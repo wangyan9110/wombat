@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { test } from 'node:test';
+import type { ScanSnapshot } from '../../src/contracts.js';
+
+const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const cli = path.join(project, 'dist', 'wombat.js');
+
+test('构建后的 CLI 从扫描到重建离线报告，并拒绝非法参数', async () => {
+  await stat(cli);
+  const root = await mkdtemp(path.join(tmpdir(), 'wombat-e2e-'));
+  const workspace = path.join(root, 'my project');
+  const codex = path.join(root, '.codex'); const claude = path.join(root, '.claude');
+  const dataHome = path.join(root, 'output');
+  await mkdir(path.join(codex, 'sessions', '2026', '09', '27'), { recursive: true });
+  await mkdir(path.join(claude, 'projects'), { recursive: true });
+  await mkdir(workspace, { recursive: true });
+  await writeFile(path.join(workspace, 'AGENTS.md'), 'Open [missing](./missing.md).');
+  await writeFile(path.join(codex, 'sessions', '2026', '09', '27', 'rollout.jsonl'), JSON.stringify({ timestamp: '2026-09-27T10:00:00Z', type: 'session_meta', payload: { id: 'example', cwd: workspace } }) + '\n');
+  const env = { ...process.env, HOME: root, CODEX_HOME: codex, CLAUDE_CONFIG_DIR: claude, WOMBAT_DATA_HOME: dataHome };
+  const run = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { cwd: project, env, encoding: 'utf8', timeout: 30_000 });
+  const scan = run('scan', workspace, '--since', '2026-09-27', '--until', '2026-09-28', '--source-dir', `codex=${codex}`, '--source-dir', `claude=${claude}`, '--no-open', '--json');
+  assert.equal(scan.status, 0, `${scan.stderr}\n${scan.stdout}`);
+  const response = JSON.parse(scan.stdout) as { snapshot: string; report: string };
+  const snapshot = JSON.parse(await readFile(response.snapshot, 'utf8')) as ScanSnapshot;
+  assert.equal(snapshot.scope.workspace, await realpath(workspace));
+  assert.ok(snapshot.sessions.some(session => session.id === 'codex:example'));
+  assert.ok(snapshot.findings.some(finding => finding.ruleId === 'rules.missing_relative_path'));
+  const report = await readFile(response.report, 'utf8');
+  assert.ok(report.includes('window.__WOMBAT_SNAPSHOT__='));
+  assert.ok(report.includes('本地报告'));
+  const rebuilt = path.join(root, 'rebuilt.html');
+  const rereport = run('report', '--snapshot', response.snapshot, '--out', rebuilt, '--no-open', '--json');
+  assert.equal(rereport.status, 0, rereport.stderr);
+  assert.equal(await readFile(rebuilt, 'utf8'), report);
+  const invalid = run('usage', 'daily', '--timezone', 'Wrong/Zone');
+  assert.equal(invalid.status, 1);
+  assert.match(invalid.stderr, /无效时区/);
+  const unsupported = run('scan', workspace, '--source-dir', 'unknown=/tmp', '--no-open');
+  assert.equal(unsupported.status, 1);
+  assert.match(unsupported.stderr, /不支持 --source-dir 来源/);
+});

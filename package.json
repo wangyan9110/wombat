@@ -1,0 +1,33 @@
+{
+  "name": "wombat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.18.3",
+  "engines": { "node": ">=22" },
+  "bin": { "wombat": "./dist/wombat.js" },
+  "files": ["dist/", "README.md", "docs/", "examples/"],
+  "scripts": {
+    "dev": "node --import tsx src/cli.ts",
+    "build": "vite build && esbuild src/cli.ts --bundle --platform=node --format=esm --target=node22 --packages=external --banner:js='#!/usr/bin/env node' --outfile=dist/wombat.js",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
+    "test:unit": "node --import tsx --test tests/unit/*.test.ts",
+    "test:integration": "node --import tsx --test tests/integration/*.test.ts",
+    "test:e2e": "node --import tsx --test tests/e2e/*.test.ts"
+  },
+  "dependencies": {
+    "ccusage": "20.0.24",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^7.0.0"
+  }
+}
