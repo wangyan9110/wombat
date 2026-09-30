@@ -1,0 +1,152 @@
+{
+  "method": "actual POSIX PTY with pyte 0.8.2 screen emulation; synthetic Codex source; not a browser test or user study",
+  "platform": "arm64",
+  "nodeVersion": "v26.4.0",
+  "verifiedAt": "2026-09-30T05:51:21.744726+00:00",
+  "binarySha256": {
+    "core": "485b7da9bb683c1e9b9321d61b23e2ddd7cfb0ad37fb5a21c1f7cb861d66b7fa",
+    "cli": "bdb1ef2d80002e40ddb014368e0554a2845c1754623e32ef49659315a59ab788"
+  },
+  "javascriptSha256": {
+    "wombat-chunk-P27SGL5M.js": "1175c0acfeb1465bfc7cd0739536a3db275f4fa559ac2065c3a1709bf318974a",
+    "wombat-dist-H5PIIU5I.js": "5c6cef1470a2f6e211d8a5f9c49152399357bce1e40e09665920cf851d2f4bf9",
+    "wombat.js": "bdb1ef2d80002e40ddb014368e0554a2845c1754623e32ef49659315a59ab788"
+  },
+  "checks": [
+    {
+      "columns": 40,
+      "rows": 14,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "U 查看离线价表 → Esc 返回用量 → 退出",
+      "priceDialogPreservesSnapshot": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "F 时间今天 → Esc 取消保留原结果 → F 时间今天 → A 应用空结果 → 近7天恢复结果 → 退出",
+      "filterCancelPreservesPage": true,
+      "timePresetApplied": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量 → ? 页尾金额说明 → ? 收起保留当前页 → 退出",
+      "footerDisclosurePreservesPage": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "轮次 → ? 页尾金额说明 → ? 收起保留当前页 → 退出",
+      "footerDisclosurePreservesPage": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "首次无快照 → 自动采集合成来源 → 用量表 → 退出",
+      "automaticCollection": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": [
+        80,
+        40,
+        120,
+        80
+      ],
+      "rows": [
+        24,
+        14,
+        32,
+        24
+      ],
+      "journey": "用量表 → 窄屏 → 宽屏 → 普通屏 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "森林 → 浅色 → 石墨 → 森林 → 对话 → 轮次 → 退出",
+      "themeCyclePreservesData": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "交互首页 → Ctrl+C 退出",
+      "exitCode": 130,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "外部旧快照 → 对话 → 明细不可用 → 返回对话 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    }
+  ],
+  "officialPriceFetch": {
+    "source": "https://developers.openai.com/api/docs/pricing.md",
+    "sourceHash": "b271bf08244492bcaa2a169a86c1c486ea8f4b1713ee990ce05b49435cd8c510",
+    "catalogHash": "a6683ec53f6bca55a0ccda3dbefe7a7fcf48af28122c21687130239615e39d26",
+    "revision": "openai-standard-live-v1-b271bf08244492bc",
+    "fetchedAt": "2026-09-30T05:46:12.345793+00:00",
+    "modelCount": 41,
+    "autoReviewListed": false,
+    "offlineStatusVerified": true,
+    "dataScope": "isolated temporary product directory; public pricing document only",
+    "proxy": "existing environment proxy via NODE_USE_ENV_PROXY=1"
+  },
+  "tests": {
+    "rust": 51,
+    "client": 8,
+    "tui": 46,
+    "cli": 5,
+    "integration": 11,
+    "e2e": 10,
+    "total": 131
+  }
+}

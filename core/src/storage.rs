@@ -1,0 +1,69 @@
+use crate::{absolute, home};
+use anyhow::Result;
+use std::{
+    env, fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
+
+pub fn data_home() -> Result<PathBuf> {
+    if let Some(dir) = env::var_os("WOMBAT_DATA_HOME") {
+        return absolute(PathBuf::from(dir));
+    }
+    if cfg!(target_os = "macos") {
+        return Ok(home().join("Library/Application Support/Wombat"));
+    }
+    Ok(env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home().join(".local/share"))
+        .join("wombat"))
+}
+
+pub fn atomic_write(file: &Path, content: &[u8]) -> Result<()> {
+    atomic_with(file, |output| {
+        output.write_all(content)?;
+        Ok(())
+    })
+}
+fn atomic_with(file: &Path, write: impl FnOnce(&mut fs::File) -> Result<()>) -> Result<()> {
+    let file = absolute(file)?;
+    let parent = file
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("文件路径没有父目录"))?;
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        builder.mode(0o700);
+    }
+    builder.create(parent)?;
+    let mut temp = tempfile::NamedTempFile::new_in(parent)?;
+    write(temp.as_file_mut())?;
+    temp.as_file().sync_all()?;
+    temp.persist(&file)?;
+    #[cfg(unix)]
+    fs::File::open(parent)?.sync_all()?;
+    Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn private_atomic_file() {
+        let dir = std::env::temp_dir().join(format!("wombat-rust-{}", uuid::Uuid::new_v4()));
+        let file = dir.join("snapshot.json");
+        atomic_write(&file, b"first").unwrap();
+        atomic_write(&file, b"second").unwrap();
+        assert_eq!(fs::read(&file).unwrap(), b"second");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&file).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+        fs::remove_dir_all(dir).unwrap();
+    }
+}

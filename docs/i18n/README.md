@@ -1,0 +1,20 @@
+# Wombat 双语文档流程
+
+中文 | [English](README.en.md)
+
+公开的人类可读文档逐步维护中文和英文配对。两种语言具有同等效力；任一语言可先修改，另一语言在同一改动中同步。术语以[术语表](terminology.md)为准，文档归属以[文档维护约定](../AGENTS.md)为准。配对与确认记录的做法参考 [DeepSeek Harness 文档流程](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/i18n/README.md)，本仓库使用自己的命名和检查范围。
+
+## 文件与范围
+
+`docs/foo.md` 是现有中文路径，英文放在同目录 `docs/foo.en.md`，确认记录为 `docs/foo.i18n.json`。根目录沿用已有 `README.md` / `README.zh-CN.md` 与 `CONTRIBUTING.md` / `CONTRIBUTING.zh-CN.md` 配对。记录保存两份文件的 SHA-256；它只证明有人确认过这两个版本，不证明翻译质量。
+
+[配对清单](../../scripts/doc-i18n.manifest.json)列出已配对页面和现存未配对的中文文档。根目录模块 README 与有效决策记录也逐份配对。新增公开文档必须成对加入；现存未配对文档在迁移时补齐两种语言和记录，不把自动翻译的草稿当成已确认配对。`AGENTS.md`、术语表、生成的 Schema 与日期化测量材料不属于逐页翻译范围。
+
+## 修改流程
+
+1. 先核实源码、契约和本次验证证据，再修改事实所属页面；不要从旧进度推断当前能力。
+2. 按原文变更范围修改另一语言。两边的标题层级、列表结构、命令和代码块保持一致；互译链接要指向可用的对应语言，尚未配对的目标保持现有路径。
+3. 人工核对术语、否定条件、数字、限制和可执行命令。对已确认的页面执行 `corepack pnpm docs:i18n:record -- <中文文件>`，只重录明确指定的配对。
+4. 执行 `corepack pnpm docs:check` 和 `git diff --check`，查看两种语言及记录的差异。
+
+校验检查配对完整性、记录哈希、语言切换链接和可机械比较的 Markdown 结构。它不能判断两种语言是否表达相同事实；审校仍由修改者完成。现存未配对范围在清单中可见，校验通过不表示全仓翻译完成。

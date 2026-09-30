@@ -1,0 +1,63 @@
+{
+  "verifiedAt": "2026-09-30T02:38:25.863918+00:00",
+  "platform": {
+    "os": "Darwin",
+    "arch": "arm64",
+    "node": "v22.17.0",
+    "npm": "11.8.0"
+  },
+  "method": "Local npm pack --ignore-scripts, independent temporary consumer, production-only npm install --ignore-scripts; no repository node_modules link, no global install, no publication. Runtime checks use installed .bin entries and synthetic logs.",
+  "package": {
+    "name": "wombat",
+    "version": "0.3.0",
+    "fileCount": 31,
+    "bytes": 1176791,
+    "sha256": "46d053d1a494ceb8a59d18795497128fc6a90c524e2d316b5c43cd6b3faf10a3",
+    "installedPackageCountIncludingWombat": 23,
+    "directProductionDependencies": {
+      "@inquirer/core": "10.3.2",
+      "string-width": "7.2.0"
+    }
+  },
+  "binaries": {
+    "cli": {
+      "sha256": "d116a6b857b63c8307efc596f0342b46ead5527a3a5cf6a6430d04a460b64fbd",
+      "bytes": 298121,
+      "executable": true
+    },
+    "core": {
+      "sha256": "569670e444871fc94a51d73f597aa474313cd89af4ce0e34c371fe8567732229",
+      "bytes": 3256192,
+      "executable": true
+    }
+  },
+  "checks": [
+    "CLI --version",
+    "CLI --help",
+    "core --version",
+    "refresh isolated synthetic source",
+    "usage fixed snapshot",
+    "threads",
+    "turns",
+    "steps token sort",
+    "non-TTY default JSON"
+  ],
+  "assertions": {
+    "singleJsonObject": true,
+    "progressOnlyOnStderr": true,
+    "tokensConservedAcrossViews": 120000,
+    "decimalCostConservedAcrossViews": "0.505",
+    "operationsHaveNoAllocatedCost": true,
+    "sourceUnchanged": true,
+    "syntheticBodyNotPersisted": true,
+    "noRepositoryDependencySymlinks": true,
+    "productionDependencyNoticesCovered": true,
+    "distLicenseCopiesMatch": true,
+    "noCcusageReactViteOrOldReportAssets": true
+  },
+  "limitations": [
+    "macOS arm64 and the recorded Node/npm versions only; Windows/Linux and other architectures not verified.",
+    "Synthetic source installation acceptance, not a real-user study or public release."
+  ],
+  "status": "verified-final-build"
+}

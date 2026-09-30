@@ -1,0 +1,167 @@
+{
+  "method": "actual POSIX PTY with pyte 0.8.2 screen emulation; synthetic Codex source; not a browser test or user study",
+  "platform": "arm64",
+  "nodeVersion": "v26.4.0",
+  "verifiedAt": "2026-09-30T08:02:49.364070+00:00",
+  "binarySha256": {
+    "core": "bfc8b4eed62152fbbb75c57c9032a63026a8856ac03b06d2e16e1832e846455f",
+    "cli": "6c66e2c41f6cca6d0d8ce0fe7632ca7099fe4721000f5625a3567f353c65c8a4"
+  },
+  "javascriptSha256": {
+    "wombat-chunk-ZQNLABCQ.js": "af2d1e2584813a4389f2d220384d25866396cfce1149222054f7e894f7091ab2",
+    "wombat-dist-DVP2BWH4.js": "1a44abfa8cd2f99dfed6e6b4e5edb70f35603639098b518db099dbeede0c4ce0",
+    "wombat.js": "6c66e2c41f6cca6d0d8ce0fe7632ca7099fe4721000f5625a3567f353c65c8a4"
+  },
+  "checks": [
+    {
+      "columns": 40,
+      "rows": 14,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "U 查看完整价表 → 展开模型 → S 切换档位 → N/P 翻页 → Esc 返回用量 → 退出",
+      "priceDialogPreservesSnapshot": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "F 时间今天 → Esc 取消保留原结果 → F 时间今天 → A 应用空结果 → 近7天恢复结果 → 退出",
+      "filterCancelPreservesPage": true,
+      "timePresetApplied": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量项目/模型下拉选择 → 应用 → 对话项目下拉选择 → 应用 → 退出",
+      "filterCandidatesApplied": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量 → ? 页尾金额说明 → ? 收起保留当前页 → 退出",
+      "footerDisclosurePreservesPage": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "轮次 → ? 页尾金额说明 → ? 收起保留当前页 → 退出",
+      "footerDisclosurePreservesPage": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "首次无快照 → 自动采集合成来源 → 用量表 → 退出",
+      "automaticCollection": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": [
+        80,
+        40,
+        120,
+        80
+      ],
+      "rows": [
+        24,
+        14,
+        32,
+        24
+      ],
+      "journey": "用量表 → 窄屏 → 宽屏 → 普通屏 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "森林 → 浅色 → 石墨 → 森林 → 对话 → 轮次 → 退出",
+      "themeCyclePreservesData": true,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "交互首页 → Ctrl+C 退出",
+      "exitCode": 130,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "日报近7天 → 周报近4周 → 月报近12个月 → 日报 → 退出",
+      "dailyTokens": 120000,
+      "weeklyTokens": 360000,
+      "monthlyTokens": 840000,
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "外部旧快照 → 对话 → 明细不可用 → 返回对话 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "日志追加 → 无按键自动显示新总量 → 退出",
+      "tokensBefore": 120000,
+      "tokensAfter": 240000,
+      "observedLatencyMs": 1076.37,
+      "terminalRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "固定快照保持原总量 → 退出",
+      "tokens": 120000,
+      "terminalRestored": true
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "package": "seahash",
+  "version": "4.1.0",
+  "packageRevision": "94b632aeac099031c373599313d5b5f0acbbaec0",
+  "sourceRevision": "3088c5c912b70b586d27bf553fbe964e025a2c89",
+  "relation": "direct child explicitly adding missing license",
+  "reason": "The published crate and its recorded source revision declare MIT but omit the license text. The official upstream direct-child commit adds only LICENSE with message 'fix: add missing MIT license text'; this supplement preserves that actual upstream text without adding copyright claims.",
+  "sourceCommit": "https://gitlab.redox-os.org/redox-os/seahash/-/commit/3088c5c912b70b586d27bf553fbe964e025a2c89",
+  "commitMetadata": "https://gitlab.redox-os.org/api/v4/projects/redox-os%2Fseahash/repository/commits/3088c5c912b70b586d27bf553fbe964e025a2c89",
+  "commitDiff": "https://gitlab.redox-os.org/api/v4/projects/redox-os%2Fseahash/repository/commits/3088c5c912b70b586d27bf553fbe964e025a2c89/diff",
+  "files": [
+    {
+      "file": "LICENSE",
+      "url": "https://gitlab.redox-os.org/redox-os/seahash/-/raw/3088c5c912b70b586d27bf553fbe964e025a2c89/LICENSE",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+    }
+  ]
+}

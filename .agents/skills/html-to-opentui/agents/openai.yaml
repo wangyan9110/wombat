@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML to OpenTUI"
+  short_description: "Help coding agents faithfully reproduce prototypes in OpenTUI"
+  default_prompt: "Use $html-to-opentui to faithfully implement my prototype in OpenTUI, verify its appearance and interactions, and reconcile later prototype updates."

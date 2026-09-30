@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-29",
+  "platform": "macOS arm64",
+  "scope": "Fresh temporary npm prefix; local tgz, explicit offline cache, ignore-scripts; no real source scan or account quota query. Historical synthetic benchmarks were not rerun.",
+  "builtArtifactSha256": {
+    "dist/wombat.js": "516b50a92778a072fafb8f0e1edc33ff81732a6f758972bc0adecd280545e561",
+    "dist/wombat-core": "a239fe42e8d81d39303c1e62dda3f5fa273559cab8f73e2bc82b85b711a806ce"
+  },
+  "checks": {
+    "dist/wombat.js hash": true,
+    "dist/wombat.js executable": true,
+    "dist/wombat-core hash": true,
+    "dist/wombat-core executable": true,
+    "LICENSE": true,
+    "THIRD_PARTY_NOTICES.md": true,
+    "dist/licenses/node-dependencies.txt": true,
+    "dist/licenses/rust-dependencies.txt": true,
+    "version": true,
+    "help": true,
+    "help JSON": true,
+    "missing-result": true,
+    "missing-result JSON": true,
+    "stable error code": true
+  },
+  "published": false,
+  "globalInstallationChanged": false
+}

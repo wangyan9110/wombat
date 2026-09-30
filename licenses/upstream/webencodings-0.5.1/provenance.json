@@ -1,0 +1,19 @@
+{
+  "package": "webencodings",
+  "version": "0.5.1",
+  "license": "BSD-3-Clause",
+  "role": "optional-development",
+  "bundledInRuntime": false,
+  "repository": "https://github.com/gsnedders/python-webencodings",
+  "release": "https://pypi.org/project/webencodings/0.5.1/",
+  "artifact": "https://raw.githubusercontent.com/gsnedders/python-webencodings/fa2cb5d75ab41e63ace691bc0825d3432ba7d694/LICENSE",
+  "source": "The PyPI 0.5.1 source distribution omits the license text. Supplemental original notice from the official v0.5.1 tag at its fixed commit. Only the license is retained.",
+  "upstreamRevision": "fa2cb5d75ab41e63ace691bc0825d3432ba7d694",
+  "files": [
+    {
+      "file": "LICENSE",
+      "upstreamPath": "LICENSE",
+      "sha256": "f23bae6ada76095610a77137fb92aec7342723900211c5826d54b4c57907ca56"
+    }
+  ]
+}

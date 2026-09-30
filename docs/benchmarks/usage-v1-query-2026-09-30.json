@@ -1,0 +1,525 @@
+{
+  "benchmark": "usage-v1-query",
+  "generatedAt": "2026-09-30T02:39:35.291288+00:00",
+  "environment": {
+    "os": "Darwin",
+    "osVersion": "25.6.0",
+    "architecture": "arm64",
+    "nodeVersion": "v22.17.0",
+    "pythonVersion": "3.9.6",
+    "cpuCount": 8
+  },
+  "build": {
+    "profile": "release (built by project build script)",
+    "coreSha256": "569670e444871fc94a51d73f597aa474313cd89af4ce0e34c371fe8567732229",
+    "cliSha256": "d116a6b857b63c8307efc596f0342b46ead5527a3a5cf6a6430d04a460b64fbd"
+  },
+  "scope": "Each measured invocation starts Node CLI and Rust core, reads a fixed snapshot, serializes its DTO and renders Chinese text to a pipe; wall time includes /usr/bin/time launch. No TUI key navigation is measured.",
+  "cacheControl": "The first invocation of each command is a fresh-process first-use measurement after refresh. OS file cache is NOT flushed; refresh and preceding commands may warm files. Warm samples also start fresh Node and Rust processes. No in-process cache or daemon is reused. Physical-disk cold-cache latency is not verified.",
+  "rssMethod": "Darwin /usr/bin/time -l maximum resident set size in bytes (or GNU time %M KiB converted to bytes), for the launched command and waited child resource accounting. This is the maximum reported process RSS, not simultaneous summed process-tree memory; Python fixture generator is excluded.",
+  "percentileMethod": "p50 median, p95 nearest-rank ceil(0.95*N), without discarding outliers",
+  "corpus": {
+    "threads": 500,
+    "turnsPerThread": 10,
+    "responsesPerTurn": 2,
+    "operationsPerTurn": 1,
+    "measurements": 10000,
+    "files": 501,
+    "bytes": 7187000,
+    "sha256": "c5db229ef08c45d51098deeeebb77b8e2f6872a75167426ddc96f96045e05d29",
+    "expectedTotalTokens": 11000000,
+    "expectedCostUsd": "28.350000"
+  },
+  "snapshotBytes": 47936436,
+  "refresh": {
+    "wallMs": 5617.337,
+    "peakRssBytes": 187973632,
+    "stdoutBytes": 2331
+  },
+  "queries": [
+    {
+      "command": "usage",
+      "output": "Chinese text, default 120 columns, piped stdout",
+      "firstInvocation": {
+        "wallMs": 225.81,
+        "peakRssBytes": 87425024,
+        "stdoutBytes": 638
+      },
+      "warmSamples": [
+        {
+          "wallMs": 223.31,
+          "peakRssBytes": 87293952,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 225.181,
+          "peakRssBytes": 87588864,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 221.55,
+          "peakRssBytes": 87375872,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 230.633,
+          "peakRssBytes": 87621632,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 226.579,
+          "peakRssBytes": 88211456,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 232.723,
+          "peakRssBytes": 87392256,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 227.404,
+          "peakRssBytes": 87556096,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 221.072,
+          "peakRssBytes": 87408640,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 220.743,
+          "peakRssBytes": 87605248,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 218.758,
+          "peakRssBytes": 88227840,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 223.482,
+          "peakRssBytes": 87375872,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 222.415,
+          "peakRssBytes": 88227840,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 222.684,
+          "peakRssBytes": 87556096,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 222.244,
+          "peakRssBytes": 87556096,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 219.955,
+          "peakRssBytes": 87277568,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 221.884,
+          "peakRssBytes": 88211456,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 221.554,
+          "peakRssBytes": 87588864,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 220.334,
+          "peakRssBytes": 87244800,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 220.498,
+          "peakRssBytes": 88260608,
+          "stdoutBytes": 638
+        },
+        {
+          "wallMs": 223.274,
+          "peakRssBytes": 87556096,
+          "stdoutBytes": 638
+        }
+      ],
+      "warmP50Ms": 222.329,
+      "warmP95Ms": 230.633,
+      "maxObservedRssBytes": 88260608,
+      "warmP95Within300Ms": true,
+      "firstInvocationWithin1000Ms": true
+    },
+    {
+      "command": "threads",
+      "output": "Chinese text, default 120 columns, piped stdout",
+      "firstInvocation": {
+        "wallMs": 262.586,
+        "peakRssBytes": 89456640,
+        "stdoutBytes": 4050
+      },
+      "warmSamples": [
+        {
+          "wallMs": 264.555,
+          "peakRssBytes": 90177536,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 266.397,
+          "peakRssBytes": 89276416,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 265.716,
+          "peakRssBytes": 89538560,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 268.721,
+          "peakRssBytes": 90062848,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 257.357,
+          "peakRssBytes": 90210304,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 257.413,
+          "peakRssBytes": 89210880,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 260.65,
+          "peakRssBytes": 90128384,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 262.6,
+          "peakRssBytes": 89292800,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 256.952,
+          "peakRssBytes": 90161152,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 257.616,
+          "peakRssBytes": 90177536,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 257.112,
+          "peakRssBytes": 89276416,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 258.409,
+          "peakRssBytes": 89260032,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 254.984,
+          "peakRssBytes": 89096192,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 255.851,
+          "peakRssBytes": 90210304,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 259.538,
+          "peakRssBytes": 89227264,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 266.235,
+          "peakRssBytes": 89079808,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 264.239,
+          "peakRssBytes": 90144768,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 267.519,
+          "peakRssBytes": 89538560,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 261.963,
+          "peakRssBytes": 90177536,
+          "stdoutBytes": 4050
+        },
+        {
+          "wallMs": 257.977,
+          "peakRssBytes": 89260032,
+          "stdoutBytes": 4050
+        }
+      ],
+      "warmP50Ms": 260.094,
+      "warmP95Ms": 267.519,
+      "maxObservedRssBytes": 90210304,
+      "warmP95Within300Ms": true,
+      "firstInvocationWithin1000Ms": true
+    },
+    {
+      "command": "turns",
+      "output": "Chinese text, default 120 columns, piped stdout",
+      "firstInvocation": {
+        "wallMs": 103.754,
+        "peakRssBytes": 72433664,
+        "stdoutBytes": 1003
+      },
+      "warmSamples": [
+        {
+          "wallMs": 118.568,
+          "peakRssBytes": 70991872,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 120.385,
+          "peakRssBytes": 74235904,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 101.642,
+          "peakRssBytes": 72122368,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 117.019,
+          "peakRssBytes": 70418432,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 110.094,
+          "peakRssBytes": 72466432,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 162.272,
+          "peakRssBytes": 71598080,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 114.42,
+          "peakRssBytes": 71778304,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 94.597,
+          "peakRssBytes": 72597504,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 94.415,
+          "peakRssBytes": 71680000,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 93.367,
+          "peakRssBytes": 72089600,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 95.394,
+          "peakRssBytes": 72073216,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 93.853,
+          "peakRssBytes": 71909376,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 91.513,
+          "peakRssBytes": 72286208,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 95.264,
+          "peakRssBytes": 72695808,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 96.066,
+          "peakRssBytes": 72466432,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 94.06,
+          "peakRssBytes": 73203712,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 91.992,
+          "peakRssBytes": 71467008,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 92.297,
+          "peakRssBytes": 72417280,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 91.431,
+          "peakRssBytes": 71991296,
+          "stdoutBytes": 1003
+        },
+        {
+          "wallMs": 91.001,
+          "peakRssBytes": 72089600,
+          "stdoutBytes": 1003
+        }
+      ],
+      "warmP50Ms": 94.93,
+      "warmP95Ms": 120.385,
+      "maxObservedRssBytes": 74235904,
+      "warmP95Within300Ms": true,
+      "firstInvocationWithin1000Ms": true
+    },
+    {
+      "command": "steps",
+      "output": "Chinese text, default 120 columns, piped stdout",
+      "firstInvocation": {
+        "wallMs": 93.169,
+        "peakRssBytes": 71565312,
+        "stdoutBytes": 291
+      },
+      "warmSamples": [
+        {
+          "wallMs": 91.528,
+          "peakRssBytes": 72908800,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 93.456,
+          "peakRssBytes": 71303168,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 93.379,
+          "peakRssBytes": 70598656,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 94.772,
+          "peakRssBytes": 72433664,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 89.735,
+          "peakRssBytes": 71647232,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 89.126,
+          "peakRssBytes": 71467008,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 88.998,
+          "peakRssBytes": 71188480,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 88.417,
+          "peakRssBytes": 71909376,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 88.459,
+          "peakRssBytes": 70549504,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 88.06,
+          "peakRssBytes": 70942720,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 90.123,
+          "peakRssBytes": 70615040,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 92.045,
+          "peakRssBytes": 71532544,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 91.751,
+          "peakRssBytes": 71942144,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 88.875,
+          "peakRssBytes": 71221248,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 92.636,
+          "peakRssBytes": 71467008,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 90.01,
+          "peakRssBytes": 73269248,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 88.761,
+          "peakRssBytes": 71958528,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 89.681,
+          "peakRssBytes": 70008832,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 89.585,
+          "peakRssBytes": 72335360,
+          "stdoutBytes": 291
+        },
+        {
+          "wallMs": 88.788,
+          "peakRssBytes": 70696960,
+          "stdoutBytes": 291
+        }
+      ],
+      "warmP50Ms": 89.708,
+      "warmP95Ms": 93.456,
+      "maxObservedRssBytes": 73269248,
+      "warmP95Within300Ms": true,
+      "firstInvocationWithin1000Ms": true
+    }
+  ],
+  "consistency": {
+    "passed": true,
+    "fullTokenTotal": 11000000,
+    "fullCostUsd": "28.350000",
+    "threadPagesChecked": 10,
+    "fixedSnapshotTextStable": true,
+    "dailySubtotalsConserved": true,
+    "threadPagesConserved": true,
+    "turnAndStepAmountsConserved": true,
+    "sharesIndependentOfPagination": true,
+    "operationHasNoInventedCost": true
+  },
+  "targets": {
+    "warmP95Ms": 300,
+    "firstInvocationMs": 1000,
+    "allWarmTargetsMet": true,
+    "allFirstInvocationTargetsMet": true,
+    "physicalDiskColdCacheVerified": false
+  },
+  "reproduce": "corepack pnpm build && python3 scripts/benchmark-usage-v1.py --threads 500 --turns 10 --samples 20 --output <report.json>"
+}

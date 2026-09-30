@@ -1,0 +1,1042 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "result": {
+      "$ref": "#/definitions/Response"
+    },
+    "freshness": {
+      "$ref": "#/definitions/Freshness"
+    }
+  },
+  "required": [
+    "outputVersion",
+    "result",
+    "freshness"
+  ],
+  "definitions": {
+    "Response": {
+      "type": "object",
+      "properties": {
+        "freshness": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Freshness"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outputVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action": {
+          "$ref": "#/definitions/Action"
+        },
+        "snapshotRef": {
+          "$ref": "#/definitions/SnapshotRef"
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "availableRange": {
+          "$ref": "#/definitions/AvailableRange"
+        },
+        "summary": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Item"
+          }
+        },
+        "page": {
+          "$ref": "#/definitions/Page"
+        },
+        "quality": {
+          "$ref": "#/definitions/Quality"
+        }
+      },
+      "required": [
+        "outputVersion",
+        "action",
+        "snapshotRef",
+        "scope",
+        "availableRange",
+        "summary",
+        "items",
+        "page",
+        "quality"
+      ]
+    },
+    "Freshness": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": "string"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "revision"
+      ]
+    },
+    "Action": {
+      "type": "string",
+      "enum": [
+        "refresh",
+        "usage",
+        "threads",
+        "turns",
+        "steps"
+      ]
+    },
+    "SnapshotRef": {
+      "type": "object",
+      "properties": {
+        "snapshotId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "selector": {
+          "description": "Fixed selector for externally located legacy files; v3 uses snapshotId.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "snapshotId",
+        "createdAt"
+      ]
+    },
+    "Scope": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "since": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "until": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agentKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceInstanceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modelUnknown": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "effortUnknown": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "undated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reasoningEffort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "threadId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "AvailableRange": {
+      "type": "object",
+      "properties": {
+        "since": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "until": {
+          "description": "Exclusive local date boundary.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "UsageSummary": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "$ref": "#/definitions/TokenUsage"
+        },
+        "price": {
+          "$ref": "#/definitions/PriceResult"
+        },
+        "measurementCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "tokens",
+        "price",
+        "measurementCount"
+      ]
+    },
+    "TokenUsage": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cacheRead": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cacheCreate": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "output": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reasoning": {
+          "description": "Subset of output, never an additional billable category.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "total": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "rawInput": {
+          "description": "Source input including caches; retained for request-level price conditions.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "PriceResult": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "priceRevision": {
+          "type": "string"
+        },
+        "cost": {
+          "description": "Present only when every applicable Token category has a known amount.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "knownCost": {
+          "type": "string"
+        },
+        "status": {
+          "description": "priced, partial, unknown",
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PriceComponent"
+          }
+        },
+        "basis": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PriceBasis"
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "currency",
+        "policy",
+        "priceRevision",
+        "knownCost",
+        "status",
+        "components",
+        "basis",
+        "issues"
+      ]
+    },
+    "PriceComponent": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cost": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "knownCost": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "ratePerMillion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "category",
+        "knownCost",
+        "status"
+      ]
+    },
+    "PriceBasis": {
+      "type": "object",
+      "properties": {
+        "originalModel": {
+          "type": "string"
+        },
+        "pricingModel": {
+          "type": "string"
+        },
+        "modelProvider": {
+          "type": "string"
+        },
+        "apiProvider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "matchMethod": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "verifiedAt": {
+          "type": "string"
+        },
+        "priceRevision": {
+          "type": "string"
+        },
+        "catalogHash": {
+          "type": "string"
+        },
+        "condition": {
+          "description": "standard, longContext, conditionUnknown",
+          "type": "string"
+        },
+        "requestInputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "requestScoped": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "originalModel",
+        "pricingModel",
+        "modelProvider",
+        "matchMethod",
+        "source",
+        "verifiedAt",
+        "priceRevision",
+        "catalogHash",
+        "condition",
+        "requestScoped"
+      ]
+    },
+    "Item": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "endDate": {
+              "description": "Inclusive display date. Scope.until remains exclusive for queries.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "isSubtotal": {
+              "type": "boolean"
+            },
+            "model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reasoningEffort": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "usage": {
+              "$ref": "#/definitions/UsageSummary"
+            },
+            "scope": {
+              "$ref": "#/definitions/Scope"
+            },
+            "kind": {
+              "type": "string",
+              "const": "usage"
+            }
+          },
+          "required": [
+            "kind",
+            "isSubtotal",
+            "usage",
+            "scope"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentKind": {
+              "type": "string"
+            },
+            "sourceInstanceId": {
+              "type": "string"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "project": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "startedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastActivityAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "models": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "reasoningEfforts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "matchedUsage": {
+              "$ref": "#/definitions/UsageSummary"
+            },
+            "threadUsage": {
+              "$ref": "#/definitions/UsageSummary"
+            },
+            "kind": {
+              "type": "string",
+              "const": "thread"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "agentKind",
+            "sourceInstanceId",
+            "models",
+            "reasoningEfforts",
+            "matchedUsage",
+            "threadUsage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "threadId": {
+              "type": "string"
+            },
+            "ordinal": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "startedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "endedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "type": "string"
+            },
+            "models": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "reasoningEfforts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "usage": {
+              "$ref": "#/definitions/UsageSummary"
+            },
+            "matchedUsage": {
+              "$ref": "#/definitions/UsageSummary"
+            },
+            "share": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "turn"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "threadId",
+            "status",
+            "models",
+            "reasoningEfforts",
+            "usage",
+            "matchedUsage"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "threadId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "turnId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "timestamp": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reasoningEffort": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "usage": {
+              "$ref": "#/definitions/UsageSummary"
+            },
+            "share": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "timePrecision": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "measurement"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "usage",
+            "sequence",
+            "timePrecision"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "threadId": {
+              "type": "string"
+            },
+            "turnId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "timestamp": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "timePrecision": {
+              "type": "string"
+            },
+            "operationType": {
+              "type": "string"
+            },
+            "exitCode": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "durationMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "server": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tool": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "operation"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "threadId",
+            "name",
+            "status",
+            "sequence",
+            "timePrecision",
+            "operationType"
+          ]
+        }
+      ]
+    },
+    "Page": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "nextOffset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "offset",
+        "limit",
+        "total"
+      ]
+    },
+    "Quality": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Issue"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SourceReport"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "issues",
+        "sources"
+      ]
+    },
+    "Issue": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "sourceInstanceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "EvidenceRef": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "file",
+        "line"
+      ]
+    },
+    "SourceReport": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/SourceInstance"
+        },
+        "adapterVersion": {
+          "type": "string"
+        },
+        "sourceVersions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "capabilities": {
+          "$ref": "#/definitions/Capabilities"
+        },
+        "status": {
+          "description": "complete, partial, failed, notFound, cancelled",
+          "type": "string"
+        },
+        "filesRead": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "bytesRead": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Issue"
+          }
+        }
+      },
+      "required": [
+        "source",
+        "adapterVersion",
+        "capabilities",
+        "status",
+        "filesRead",
+        "bytesRead",
+        "issues"
+      ]
+    },
+    "SourceInstance": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "agentKind": {
+          "type": "string"
+        },
+        "root": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "agentKind",
+        "root"
+      ]
+    },
+    "Capabilities": {
+      "type": "object",
+      "properties": {
+        "usage": {
+          "type": "boolean"
+        },
+        "threads": {
+          "type": "boolean"
+        },
+        "turns": {
+          "type": "boolean"
+        },
+        "operations": {
+          "type": "boolean"
+        },
+        "reasoningEffort": {
+          "type": "boolean"
+        },
+        "responseIdentity": {
+          "type": "boolean"
+        },
+        "measurementGrain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "usage",
+        "threads",
+        "turns",
+        "operations",
+        "reasoningEffort",
+        "responseIdentity",
+        "measurementGrain"
+      ]
+    }
+  }
+}

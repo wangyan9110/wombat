@@ -1,0 +1,15 @@
+{
+  "platform": "macOS arm64",
+  "node": "22",
+  "installation": "fresh prefix, npm offline cache, packed local tgz, ignore-scripts",
+  "checks": {
+    "executableCliAndCore": true,
+    "artifactHashesMatchBuild": true,
+    "machineDiscovery": true,
+    "emptyCheckupAndFixedRead": true,
+    "quotaMissingProgramSafeFailure": true,
+    "globalLatestUntouched": true
+  },
+  "rustRequiredAtRuntime": false,
+  "npmPublished": false
+}

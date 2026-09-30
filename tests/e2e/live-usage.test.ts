@@ -1,0 +1,55 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile, appendFile, rm, readdir } from 'node:fs/promises';
+import { spawn, spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
+
+const binary = path.resolve('dist/wombat-core');
+const cli = path.resolve('dist/wombat.js');
+const row = (r: string, input = 100) => JSON.stringify({type:'event_msg',timestamp:'2026-09-29T00:00:01Z',payload:{type:'token_usage_record',thread_id:'t',turn_id:'u',response_id:r,usage:{input_tokens:input,cached_input_tokens:60,cache_write_input_tokens:0,output_tokens:10,reasoning_output_tokens:2,total_tokens:input+10}}});
+
+test('live CLI resumes, keeps fixed views, exports only explicitly and streams append updates', { skip: process.platform === 'win32', timeout: 30_000 }, async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-live-'));
+  const source = path.join(dir,'source'), data = path.join(dir,'data'), log = path.join(source,'sessions','one.jsonl');
+  await mkdir(path.dirname(log), {recursive:true});
+  await writeFile(log, JSON.stringify({type:'session_meta',payload:{id:'t'}})+'\n'+JSON.stringify({type:'turn_context',payload:{turn_id:'u',model:'gpt-5.4',effort:'high'}})+'\n'+row('one')+'\n');
+  const env: NodeJS.ProcessEnv = {...process.env, WOMBAT_DATA_HOME:data, CODEX_HOME:source}; delete env.WOMBAT_CORE_BIN;
+  let service: ReturnType<typeof spawn> | undefined;
+  const start = async () => { service = spawn(binary,['--serve-usage'],{env,stdio:'ignore'}); await delay(100); };
+  const stop = async () => { if(service && service.exitCode === null) { const exited=new Promise(resolve=>service!.once('exit',resolve)); service.kill(); await exited; } };
+  const run = (args: string[]) => {
+    const p=spawnSync(process.execPath,[cli,...args,'--json'],{env,encoding:'utf8',timeout:15_000});
+    assert.ifError(p.error); const value=JSON.parse(p.stdout); assert.ok([0,2].includes(p.status!),p.stdout+p.stderr); return value;
+  };
+  try {
+    await start();
+    const first=run(['usage','--fresh']);
+    assert.equal(first.summary.tokens.total,110); assert.equal(first.freshness.status,'current');
+    assert.ok(!(await readdir(data)).includes('usage-v3'), 'automatic sync must not export snapshots');
+    await stop();
+    await appendFile(log,row('two'));
+    await start();
+    const cached=run(['usage','--cached']);
+    assert.equal(cached.summary.tokens.total,110); assert.equal(cached.snapshotRef.snapshotId,first.snapshotRef.snapshotId);
+    const partial=run(['usage','--fresh']); assert.equal(partial.summary.tokens.total,110); assert.equal(partial.quality.status,'partial');
+    await appendFile(log,'\n');
+    const second=run(['usage','--fresh']); assert.equal(second.summary.tokens.total,220); assert.equal(second.quality.status,'complete');
+    const fixed=run(['usage','--snapshot',first.snapshotRef.snapshotId]); assert.equal(fixed.summary.tokens.total,110);
+    const snapshot=run(['refresh','--verify']); assert.equal(snapshot.summary.tokens.total,220); assert.ok(!snapshot.snapshotRef.snapshotId.startsWith('live:'));
+    const watch=spawn(process.execPath,[cli,'usage','--watch','--json'],{env,stdio:['ignore','pipe','pipe']});
+    try {
+      const results: any[]=[]; let buffer=''; let error='';
+      watch.stdout!.on('data',chunk=>{buffer+=chunk; let n; while((n=buffer.indexOf('\n'))>=0){ results.push(JSON.parse(buffer.slice(0,n)));buffer=buffer.slice(n+1); }});
+      watch.stderr!.on('data',chunk=>error+=chunk);
+      const until=async (condition:()=>boolean)=>{const deadline=Date.now()+7000;while(!condition()&&Date.now()<deadline)await delay(30);assert.ok(condition(),error+JSON.stringify(results));};
+      await until(()=>results.length>0);
+      await appendFile(log,row('three')+'\n');
+      await until(()=>results.some(r=>r.summary?.tokens.total===330));
+      const historical=run(['usage','--snapshot',snapshot.snapshotRef.snapshotId]); assert.equal(historical.summary.tokens.total,220);
+      const stable=run(['usage','--fresh']); const again=run(['usage','--fresh']); assert.equal(stable.snapshotRef.snapshotId,again.snapshotRef.snapshotId);
+      const exit=new Promise(resolve=>watch.once('close',resolve)); watch.kill('SIGINT'); assert.equal(await exit,130);
+    } finally { if(watch.exitCode===null)watch.kill('SIGKILL'); }
+  } finally { await stop(); await rm(dir,{recursive:true,force:true}); }
+});

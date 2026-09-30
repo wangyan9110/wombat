@@ -1,0 +1,31 @@
+{
+  "name": "@wombat/tui",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=26.4.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --experimental-ffi --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@wombat/client": "workspace:*",
+    "@opentui/core": "0.5.12",
+    "web-tree-sitter": "0.25.10"
+  },
+  "devDependencies": {
+    "@types/node": "26.0.0",
+    "typescript": "5.9.3",
+    "tsx": "4.23.15"
+  }
+}

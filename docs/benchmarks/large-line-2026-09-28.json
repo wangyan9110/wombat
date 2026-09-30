@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-28",
+  "platform": "macOS aarch64",
+  "node": "22.17.0",
+  "rust": "1.98.1",
+  "kernelVersion": "0.3.0",
+  "scope": "Synthetic large JSONL line only; historical single-run measurement, not rerun during documentation cleanup",
+  "largeLine": {
+    "encodedBytes": 138000372,
+    "bytes": 66000000,
+    "sha256": "bb1a87ecb9916fb882c46be728639dd25fa4a59569f00af45234be1164daa392",
+    "wallSeconds": 1.02,
+    "maxRssBytes": 148471808,
+    "followingEventRetained": true,
+    "digestVerified": true
+  }
+}

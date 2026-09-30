@@ -1,33 +1,84 @@
 {
   "name": "wombat",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.3",
-  "engines": { "node": ">=22" },
-  "bin": { "wombat": "./dist/wombat.js" },
-  "files": ["dist/", "README.md", "docs/", "examples/"],
+  "engines": {
+    "node": ">=26.4.0"
+  },
+  "bin": {
+    "wombat": "./dist/wombat.js",
+    "wombat-core": "./dist/wombat-core"
+  },
+  "files": [
+    "dist/*.js",
+    "dist/wombat-core",
+    "dist/wombat-core.exe",
+    "dist/licenses/",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses/",
+    "CONTRIBUTING.md",
+    "CONTRIBUTING.zh-CN.md",
+    "docs/README.md",
+    "docs/README.en.md",
+    "docs/agent-cli.md",
+    "docs/architecture.md",
+    "docs/contracts.md",
+    "docs/development.md",
+    "docs/pricing.md",
+    "docs/privacy.md",
+    "docs/support-matrix.md",
+    "docs/terminal.md",
+    "docs/dependency-licenses.json",
+    "docs/schemas/"
+  ],
   "scripts": {
-    "dev": "node --import tsx src/cli.ts",
-    "build": "vite build && esbuild src/cli.ts --bundle --platform=node --format=esm --target=node22 --packages=external --banner:js='#!/usr/bin/env node' --outfile=dist/wombat.js",
-    "typecheck": "tsc --noEmit",
-    "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
-    "test:unit": "node --import tsx --test tests/unit/*.test.ts",
+    "dev": "node --import tsx cli/src/index.ts",
+    "build": "node scripts/build-core.mjs && pnpm --filter @wombat/client build && pnpm --filter @wombat/tui build && pnpm --filter @wombat/cli build && node scripts/build-cli.mjs",
+    "build:core": "node scripts/build-core.mjs",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p tsconfig.json && node scripts/check-module-boundaries.mjs",
+    "test": "pnpm run test:core && pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
+    "test:core": "node scripts/build-core.mjs --test",
+    "test:unit": "pnpm -r test",
     "test:integration": "node --import tsx --test tests/integration/*.test.ts",
-    "test:e2e": "node --import tsx --test tests/e2e/*.test.ts"
+    "test:e2e": "node --import tsx --test tests/e2e/*.test.ts",
+    "contracts:generate": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs",
+    "contracts:check": "node scripts/generate-usage-contracts.mjs --check",
+    "skills:check": "node scripts/check-skills.mjs",
+    "notes:check": "node scripts/check-agent-notes.mjs",
+    "docs:budget": "node scripts/check-doc-budgets.mjs",
+    "docs:i18n:check": "node scripts/check-doc-i18n.mjs",
+    "docs:i18n:record": "node scripts/check-doc-i18n.mjs --write",
+    "docs:check": "pnpm run skills:check && pnpm run notes:check && pnpm run docs:budget && pnpm run docs:i18n:check && pnpm run public:check",
+    "repo:check": "pnpm run docs:check && node scripts/check-module-boundaries.mjs",
+    "licenses:generate": "node scripts/dependency-licenses.mjs",
+    "licenses:check": "node scripts/dependency-licenses.mjs --check",
+    "public:check": "node scripts/check-public-release.mjs",
+    "package:check": "node scripts/check-package.mjs",
+    "release:check": "node scripts/check-release.mjs",
+    "package:bundle": "node scripts/create-release-bundle.mjs",
+    "release:bundle": "node scripts/check-release.mjs && node scripts/create-release-bundle.mjs",
+    "npm:pack": "node scripts/prepare-npm-package.mjs"
   },
   "dependencies": {
-    "ccusage": "20.0.24",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "@opentui/core": "0.5.12",
+    "string-width": "7.2.0",
+    "web-tree-sitter": "0.25.10"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "@types/node": "26.0.0",
+    "@wombat/cli": "workspace:*",
+    "@wombat/client": "workspace:*",
+    "@wombat/tui": "workspace:*",
+    "ajv": "8.17.1",
     "esbuild": "^0.25.0",
+    "json-schema-to-typescript": "15.0.4",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vite": "^7.0.0"
-  }
+    "typescript": "^5.0.0"
+  },
+  "license": "MIT"
 }

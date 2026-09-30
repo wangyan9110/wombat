@@ -1,0 +1,54 @@
+{
+  "platform": "arm64",
+  "method": "actual POSIX PTY with synthetic native telemetry; not a real-user study or browser test",
+  "checks": [
+    {
+      "locale": "en",
+      "columns": 80,
+      "rows": 24,
+      "journey": "home \u2192 timeline \u2192 peak \u2192 detail \u2192 preview \u2192 premature export blocked \u2192 review all artifacts \u2192 explicit export \u2192 watch \u2192 info \u2192 session \u2192 pause/resume \u2192 resize \u2192 quit",
+      "exitCode": 0,
+      "indexCleaned": true,
+      "terminalRestored": true
+    },
+    {
+      "locale": "zh-CN",
+      "columns": 80,
+      "rows": 24,
+      "journey": "home \u2192 timeline \u2192 peak \u2192 detail \u2192 preview \u2192 premature export blocked \u2192 review all artifacts \u2192 explicit export \u2192 watch \u2192 info \u2192 session \u2192 pause/resume \u2192 resize \u2192 quit",
+      "exitCode": 0,
+      "indexCleaned": true,
+      "terminalRestored": true
+    },
+    {
+      "locale": "en",
+      "columns": 40,
+      "rows": 14,
+      "journey": "home \u2192 timeline \u2192 peak \u2192 detail \u2192 preview \u2192 premature export blocked \u2192 review all artifacts \u2192 explicit export \u2192 watch \u2192 info \u2192 session \u2192 pause/resume \u2192 resize \u2192 quit",
+      "exitCode": 0,
+      "indexCleaned": true,
+      "terminalRestored": true
+    },
+    {
+      "locale": "zh-CN",
+      "columns": 40,
+      "rows": 14,
+      "journey": "home \u2192 timeline \u2192 peak \u2192 detail \u2192 preview \u2192 premature export blocked \u2192 review all artifacts \u2192 explicit export \u2192 watch \u2192 info \u2192 session \u2192 pause/resume \u2192 resize \u2192 quit",
+      "exitCode": 0,
+      "indexCleaned": true,
+      "terminalRestored": true
+    },
+    {
+      "journey": "standalone watch Q",
+      "exitCode": 0,
+      "indexCleaned": true,
+      "terminalRestored": true
+    },
+    {
+      "journey": "standalone watch Ctrl+C",
+      "exitCode": 130,
+      "indexCleaned": true,
+      "terminalRestored": true
+    }
+  ]
+}

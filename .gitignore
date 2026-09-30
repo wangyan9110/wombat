@@ -2,4 +2,21 @@ node_modules/
 dist/
 .DS_Store
 coverage/
+__pycache__/
+*.pyc
 *.tgz
+core/target/
+
+# Internal planning and design archives live outside the public repository.
+/internal/
+/docs/planning/
+/docs/design/
+/docs/reviews/
+/docs/benchmarks/*real-smoke-*.json
+/docs/benchmarks/machine-install-selftest-*.json
+/docs/benchmarks/rust-kernel-2026-09-28.json
+
+# Workspace module build output
+client/dist/
+tui/dist/
+cli/dist/

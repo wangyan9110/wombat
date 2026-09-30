@@ -1,0 +1,26 @@
+{
+  "method": "OpenTUI production test renderer captureSpans with synthetic data; rasterized cell preview, not an actual terminal screenshot or browser comparison",
+  "sourceScript": "scripts/preview-usage-terminal.ts",
+  "nativeTests": "tui/tests/fidelity.test.ts",
+  "verifiedColorMappings": 9,
+  "fullPrototypeFidelity": "not yet verified",
+  "images": [
+    {
+      "path": "usage-v1-opentui-usage-120.png",
+      "sha256": "1eb234e3e667503a296f0d469fc75186d0c021139707a39c523105325552877c"
+    },
+    {
+      "path": "usage-v1-opentui-costs-40.png",
+      "sha256": "3ec101c845ae5ffc296b3c8e349d6720646090f5c9fbf08145aa12e77110ca7b"
+    },
+    {
+      "path": "usage-v1-opentui-theme-paper.png",
+      "sha256": "153fab16604cf43027738d88d6180cd4b0bde79d789cf4554a141bbb6d3de33f"
+    },
+    {
+      "path": "usage-v1-opentui-theme-graphite.png",
+      "sha256": "aed31ec814fd01da39b60f74fd53653ba9953698cb398a5ef3447fe6083191da"
+    }
+  ],
+  "status": "Historical preview before descendant CSS color and column geometry correction; current code tests are authoritative."
+}

@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-29",
+  "platform": "macOS arm64",
+  "scope": "synthetic product data directory; installation preview only; no network or source writes in PTY cases",
+  "cases": [
+    {
+      "columns": 40,
+      "rows": 24,
+      "language": "zh-CN",
+      "quotaRepairShortcut": true,
+      "planVersionAndConfirmation": true,
+      "cancelThenQuit": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "language": "zh-CN",
+      "quotaRepairShortcut": true,
+      "planVersionAndConfirmation": true,
+      "cancelThenQuit": true
+    },
+    {
+      "columns": 120,
+      "rows": 24,
+      "language": "en",
+      "quotaRepairShortcut": true,
+      "planVersionAndConfirmation": true,
+      "cancelThenQuit": true
+    }
+  ],
+  "tests": {
+    "rust": 22,
+    "unit": 27,
+    "integration": 24,
+    "e2e": 31,
+    "failed": 0
+  },
+  "boundaries": [
+    "Real Codex install apply was left for explicit user execution",
+    "Automatic repair does not re-sign downloads",
+    "Other platforms and full prototype parity unverified"
+  ],
+  "installedPackageVerification": {
+    "cliMatchesTestedBuild": true,
+    "coreMatchesTestedBuild": true,
+    "samePtyCasesPassed": true
+  }
+}

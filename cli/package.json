@@ -1,0 +1,35 @@
+{
+  "name": "@wombat/cli",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26.4.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/usage-app-cli.d.ts",
+      "import": "./dist/usage-app-cli.js"
+    },
+    "./format": {
+      "types": "./dist/format.d.ts",
+      "import": "./dist/format.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@wombat/client": "workspace:*",
+    "@wombat/tui": "workspace:*",
+    "string-width": "7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "license": "MIT"
+}

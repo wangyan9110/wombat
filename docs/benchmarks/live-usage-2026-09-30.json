@@ -1,0 +1,41 @@
+{
+  "servicePeakRssBytes": 176996352,
+  "platform": "macOS arm64",
+  "node": "v26.4.0",
+  "build": "release",
+  "corpus": {
+    "files": 100,
+    "initialMeasurements": 10000,
+    "tokensPerMeasurement": 110,
+    "rawBytes": 3034750
+  },
+  "coldSyncAndCliMs": 952.2,
+  "warmCliMs": [
+    117.39,
+    103.91,
+    99.79,
+    90.96,
+    102.13,
+    98.88,
+    101.03,
+    99.82,
+    100.19,
+    99.86
+  ],
+  "appendSyncAndCliMs": [
+    137.76,
+    137.85,
+    131.21,
+    137.64,
+    130.89,
+    133.32,
+    168.52,
+    153.33,
+    149.72,
+    169.36
+  ],
+  "serviceRssKiBAtEnd": 172816,
+  "indexBytesAtEnd": 49188032,
+  "correctness": "1100000 initial tokens; ten appends add exactly 1100 tokens; no implicit snapshots",
+  "limits": "Warm filesystem caches; service peak RSS from wait4 on macOS; 100-file corpus does not establish the proposed million-measurement or 24-hour targets."
+}
