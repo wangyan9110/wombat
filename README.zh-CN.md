@@ -1,7 +1,9 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/wombat-logo-dark.svg">
-  <img src="assets/wombat-logo-light.svg" alt="Wombat" width="80" height="56">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/wombat-logo-dark.svg">
+    <img src="assets/wombat-logo-light.svg" alt="Wombat" width="80" height="56">
+  </picture>
+</p>
 
 # Wombat — Codex Token 用量追踪工具
 
