@@ -8,7 +8,7 @@
 
 - `startTerminalApp(initial, client)` starts the terminal interface with an initial request and typed client.
 - Pages own navigation, filter drafts, expansion, scrolling, and themes; the core still decides sources, accounting, pricing, and aggregation.
-- Components use native OpenTUI layout and input; the [style rules](../docs/terminal-style-contract.md) record confirmed visual mappings.
+- Components use native OpenTUI layout and input; native rendering tests verify confirmed visual mappings.
 
 ## Limits and verification
 

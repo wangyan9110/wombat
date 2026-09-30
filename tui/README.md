@@ -8,7 +8,7 @@
 
 - `startTerminalApp(initial, client)` 启动终端界面，接收初始请求与类型化客户端。
 - 页面维护导航、筛选草稿、展开、滚动和主题；来源、计量、计价及汇总仍由内核决定。
-- 组件使用 OpenTUI 原生布局与输入；[样式规则](../docs/terminal-style-contract.md)记录已确认的视觉映射。
+- 组件使用 OpenTUI 原生布局与输入；已确认的视觉映射由原生渲染测试验证。
 
 ## 限制与验证
 

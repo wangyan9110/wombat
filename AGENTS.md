@@ -1,6 +1,6 @@
 # Wombat 项目开发约定
 
-界面和原型设计使用项目内 [frontend-design Skill](.agents/skills/frontend-design/SKILL.md)；HTML 原型到 OpenTUI 的保真还原使用 [html-to-opentui Skill](.agents/skills/html-to-opentui/SKILL.md)。规则、脚本和问题记录随仓库维护；私有原型与提取结果仍保留在仓库外。
+HTML 原型到 OpenTUI 的保真还原使用项目内 [html-to-opentui Skill](.agents/skills/html-to-opentui/SKILL.md)。规则、脚本和问题记录随仓库维护；原型设计资料与前端设计 Skill 保留在独立的内部仓库。
 
 Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、Node CLI 和中文 TUI。实施范围以 [首版方案](./docs/usage-threads-v1.md) 为准。先阅读 [架构设计](./docs/architecture.md)、[路线图](./docs/roadmap.md)、[支持矩阵](./docs/support-matrix.md)及[进度记录](./docs/progress.md)。实现状态以源码和验证证据为准，目标设计不是已实现功能。
 
