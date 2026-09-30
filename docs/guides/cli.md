@@ -1,5 +1,7 @@
 # CLI 与自动化
 
+中文 | [English](cli.en.md)
+
 Wombat 默认增量同步本机 Codex 日志，查询与终端自动更新；显式 refresh 另外保存固定快照。首版只有用量与对话两个产品入口；所有子命令无需 TTY，JSON 与终端使用同一 Rust 查询。
 
 ```sh
@@ -13,6 +15,10 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 ```
 
 `--root` 可重复；省略时使用 CODEX_HOME 或 `~/.codex`。同时读取 sessions 与 archived_sessions，显示范围不限制历史采集。刷新不接受查询筛选。
+
+## 语言
+
+使用 `--lang zh` 或 `--lang en` 选择展示语言；也可设置 `WOMBAT_LANG`。JSON 字段与原始内容保持不变，完整优先级见[产品语言](../i18n/product.md)。
 
 ## 自动同步
 
@@ -29,7 +35,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 `prices`（或 `prices status`）离线查看当前完整价表；`prices update` 从固定官方地址联网下载并校验，默认输出简要结果，`--json` 返回 `outputVersion:1`、action、origin、updated、source、sourceHash、catalogHash和完整catalog。价格响应/错误版本独立于用量v3；错误仍为`{outputVersion:1,error:{code,message}}`，退出码1或取消130。常见失败包括PRICE_FETCH_FAILED、PRICE_SOURCE_CHANGED、PRICE_CACHE_INVALID、OUTPUT_LIMIT、TIMEOUT和UPDATE_BUSY。
 
-更新成功后，下一次实时同步按新价表生成完整读取版本；执行`refresh`可另存快照，旧快照金额保留。更新不支持自定义URL、导入路径或用量筛选。网络范围、代理、支持模型表与保存规则见[价格口径](pricing.md#联网更新价表)。
+更新成功后，下一次实时同步按新价表生成完整读取版本；执行`refresh`可另存快照，旧快照金额保留。更新不支持自定义URL、导入路径或用量筛选。网络范围、代理、支持模型表与保存规则见[价格口径](../reference/pricing.md#联网更新价表)。
 
 ## 筛选与分页
 

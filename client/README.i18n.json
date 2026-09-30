@@ -2,12 +2,12 @@
   "version": 2,
   "sections": {
     "/typed-client": {
-      "zh": "dd5ae2f0f1a83311c808a297350a9fd49ed9b3d00851786f135760dbfa311641",
-      "en": "2480ea17a4a8dcc2bda41dc57c4a4fbd8d0585916de3ae84b71d3592895311d1"
+      "zh": "719eae452e8f4d1c3aaf6fd8f02060f64de168e2aae0c8e818fa37e13e4fbf8a",
+      "en": "45bab5405b40bd2e7d4bbeceb32956f81d0b82edeaaab12dae16b1bb1d09d0e9"
     },
     "/typed-client/public-entries": {
-      "zh": "8bc54cfa53b675d5eca76fe391561ff3673c1817b7520b99864de752977dfada",
-      "en": "a545ae9bdf76d0e02a8671ca054dd5f44b4ba6f6255f9dad92fa1125529d518a"
+      "zh": "f0165261a71c02f268f321f0c3daebd46572e95770603f75540866a07b4f799c",
+      "en": "84ac16d2bf77bc4e7d4fa92ec159ea264277a7660810e0fe4d3d9adf70c253d5"
     },
     "/typed-client/limits-and-verification": {
       "zh": "4f969c9476ec586804818b4c68cdfdec23d80f8b4af7fec198471cb5b9d9b27c",

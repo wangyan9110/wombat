@@ -1,6 +1,6 @@
 # 客户端开发约定
 
-本目录同时遵循[根目录约定](../AGENTS.md)及[开发约定](../docs/development.md)。包的公开入口与限制见[客户端说明](README.md)。
+本目录同时遵循[根目录约定](../AGENTS.md)及[开发约定](../docs/development/workflow.md)。包的公开入口与限制见[客户端说明](README.md)。
 
 - `src/generated/` 的 TS 类型、Schema 校验器由 Rust DTO 生成，修改源头后运行契约生成；不得手改生成文件来改变公共语义。
 - `src/index.ts` 保持可注入、无 Node 和终端依赖；`src/node/` 独立管理内核路径、子进程取消、超时、输出上限及清理。跨模块只使用公开包导出。

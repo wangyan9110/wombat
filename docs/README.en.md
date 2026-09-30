@@ -2,18 +2,38 @@
 
 [中文](README.md) | English
 
-- [Version-one specification](usage-threads-v1.md) and [implementation tracking](implementation-tracker.md)
-- [Usage and machine interface](agent-cli.md)
-- [Terminal operation](terminal.md)
-- [Pricing rules and official sources](pricing.md)
-- [Architecture](architecture.md) and [development rules](development.md)
-- [Decision notes and proposals](decisions/README.en.md)
-- [Contracts](contracts.md)
-- [Support matrix](support-matrix.md), [roadmap](roadmap.md), and [progress](progress.md)
-- [Privacy](privacy.md) and [dependency inventory](dependency-licenses.json)
+Choose documentation by task. Source code, technical references, and implementation evidence define current behavior. Specifications and proposals describe targets; historical results apply only to their recorded builds.
 
-- [Product language and copy](i18n/product.en.md)
+## User guides · guides
 
-Historical verification material retains its date and fixture scope. It does not establish that a feature or the current build has passed acceptance.
+- [CLI and machine interface](guides/cli.en.md): startup, refresh, queries, filters, JSON, and errors.
+- [Terminal operation](guides/terminal.en.md): usage/conversation navigation, drill-down, keyboard/mouse, catalog, and themes.
+- Start installation and building from the [project homepage](../README.md).
 
-Detailed pages are being paired with English translations gradually. A page without a language switcher is currently available only in Chinese.
+## Technical references · reference
+
+- [Support matrix](reference/support-matrix.en.md): current sources, platforms, capabilities, and limits.
+- [Pricing rules](reference/pricing.en.md): official evidence, cost policies, unknown values, and explicit updates.
+- [Privacy and data boundaries](reference/privacy.en.md): local reads/writes, body allowlists, and public materials.
+- [Generated schemas](schemas/) and the [dependency license inventory](dependency-licenses.json) are machine-maintained references.
+
+## Developer documentation · development
+
+- [Architecture](development/architecture.en.md): modules, dependencies, data flow, storage, and failures.
+- [Multi-entry development workflow](development/workflow.en.md): delivering and verifying the same business capability.
+- [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and compatibility.
+- [Source adapter acceptance](development/adapters.en.md): independent truth, attribution, and failure cases.
+- [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
+
+## Project status · project
+
+- [Version-one specification](project/specification.en.md) maintains requirements and acceptance criteria.
+- [Implementation status](project/status.en.md) tracks current delivery and remaining acceptance.
+- [Roadmap](project/roadmap.en.md) maintains future candidates.
+- [Progress and verification](project/progress.en.md) indexes dated results; raw synthetic evidence lives in [benchmarks](benchmarks/). Old commands and screenshots do not represent the current product.
+
+## Decisions and documentation maintenance
+
+The [decision directory](decisions/README.en.md) preserves lasting rationale, alternatives, and costs, distinguishing proposed, implemented, and rejected records. When consolidating existing pages, extract useful tradeoffs into decisions, retain current operations in guides, delete obsolete and repeated passages, and preserve dates and scope for verification results.
+
+Public prose follows the [bilingual workflow](i18n/README.en.md); instruction files, the terminology table, and machine evidence are exempt as listed in the manifest. Read the [documentation rules](AGENTS.md) before editing. Product localization is defined separately in the [language contract](i18n/product.en.md); document translation does not change protocol values or original source text.

@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-`@wombat/cli` 解析参数，输出文本或 JSON，并装配非交互查询与 OpenTUI 启动。命令和参数以[CLI 使用说明](../docs/agent-cli.md)为准。
+`@wombat/cli` 解析参数，输出文本或 JSON，并装配非交互查询与 OpenTUI 启动。命令和参数以[CLI 使用说明](../docs/guides/cli.md)为准。
 
 ## 公开入口
 

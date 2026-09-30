@@ -2,12 +2,12 @@
   "version": 2,
   "sections": {
     "/opentui-terminal-interface": {
-      "zh": "b70656d4c0502e8fcb8f81de9fefa18cdaaf653c3c0de8f6937e25c90bb968fa",
-      "en": "6cd45805cfe77a62587180b4f850bd3d64899cde04fccd65bd0f9cacf0d61079"
+      "zh": "7d93ef1ad1f9f9f9cde0554f50f672f141987056e363f7be3418b64fe6ce26d7",
+      "en": "bbe1e3aba0fac8b8c8b6019156ae6290d0fc9d660ce76a172674abb798ba0e78"
     },
     "/opentui-terminal-interface/public-entry": {
-      "zh": "6f5072e025c929136adc121a0661c2a8c9acacdf2cb8ebcc59a8d9dee0a8bb7b",
-      "en": "3c9e6c01e65a4cacc76b8e85b1016754e27cf2aab49ee0462652a18c075c70de"
+      "zh": "e247551d2b767f823a606277117274eb5caa5bf29c2a76ffbaf575b82b4c2bb5",
+      "en": "ba5f18509f66d7c98857b8a924163bc8236ec5df5733861d22af6dce37bb74e5"
     },
     "/opentui-terminal-interface/limits-and-verification": {
       "zh": "60afd4ec666d57fe6d778dc2db0484bcbd2eb3670131342e0c9fdd97ab9a5bbe",

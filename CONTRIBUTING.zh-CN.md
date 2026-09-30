@@ -2,7 +2,7 @@
 
 中文 | [English](CONTRIBUTING.md)
 
-Wombat 使用共享 Rust 内核和 Node CLI/TUI。开始前阅读 [AGENTS.md](AGENTS.md)、[架构](docs/architecture.md)、[开发约定](docs/development.md)及[首版方案](docs/usage-threads-v1.md)。
+Wombat 使用共享 Rust 内核和 Node CLI/TUI。开始前阅读 [AGENTS.md](AGENTS.md)、[架构](docs/development/architecture.md)、[开发约定](docs/development/workflow.md)及[首版方案](docs/project/specification.md)。
 
 安装锁定依赖，构建后执行类型检查、生成契约检查和测试。跨语言测试使用 `dist`，必须在构建后运行。Rust 改动还需检查格式，并以警告视为错误运行 clippy。
 

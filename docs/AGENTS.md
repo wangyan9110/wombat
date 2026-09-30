@@ -2,9 +2,11 @@
 
 本文件补充[仓库约定](../AGENTS.md)，仅适用于 `docs/`。修改前核对相关源码、生成契约和实际验证；方案描述不作为已交付证据。需要跨文档整理时使用 [wombat-docs Skill](../.agents/skills/wombat-docs/SKILL.md)。
 
-公开的人类可读文档按[双语流程](i18n/README.md)维护。已配对页面两种语言同次修改并重录配对；现存未配对页面列在清单中，迁移时一次补齐双语和记录。`AGENTS.md` 是工作指令，单语维护。
+公开的人类可读文档按[双语流程](i18n/README.md)维护。页面两种语言同次修改并重录配对；现有公开说明已完成配对，新增页面不得引入单语待办。`AGENTS.md` 是工作指令，单语维护。
 
-## 内容归属
+## 目录与归属
+
+`guides/` 放用户操作，`reference/` 放当前产品口径，`development/` 放开发与架构，`project/` 放规格、状态和历史。`decisions/` 保存理由，`i18n/` 管理语言；`schemas/` 与 `benchmarks/` 分别保留生成契约和日期化证据。新说明进入对应目录并更新双语索引，不再平铺根目录。
 
 每项事实选择一个主要归属，其他页面简述并链接，不复制完整段落。
 
@@ -13,16 +15,16 @@
 | 全仓与子目录的长期开发规则 | 根目录或对应子目录的 `AGENTS.md` |
 | 可重复执行的任务步骤、检查顺序与工具用法 | `.agents/skills/<name>/SKILL.md`；不在 Skill 中另写产品契约 |
 | 跨模块或长期约束的决策理由、被放弃的方案 | [决策记录](decisions/README.md)；机械改动无需新建 |
-| 首版目标与取舍 | [首版方案](usage-threads-v1.md)；未完成部分不得写成现状 |
-| 已实现的结构、模块职责和数据流 | [架构](architecture.md)；具体字段与行为由源码及[契约](contracts.md)说明 |
-| 每个根模块的公开入口、限制与验证 | 对应模块的 README；跨模块关系仍由[架构](architecture.md)说明 |
-| 当前支持范围与限制 | [支持矩阵](support-matrix.md) |
-| 当前阶段的任务状态 | [实施跟踪](implementation-tracker.md) |
-| 已完成事项、日期、验证命令与证据边界 | [进度](progress.md)及带日期的 `benchmarks/` 证据；旧记录保留为历史 |
-| 后续候选方向 | [路线图](roadmap.md) |
-| 多入口交付与贡献者开发流程 | [开发约定](development.md) |
-| CLI/TUI 用户操作 | [Agent/CLI 说明](agent-cli.md)和[终端说明](terminal.md) |
-| 来源与计价的具体边界 | [适配器用例](adapter-cases.md)和[价格口径](pricing.md) |
+| 首版目标与取舍 | [首版方案](project/specification.md)；未完成部分不得写成现状 |
+| 已实现的结构、模块职责和数据流 | [架构](development/architecture.md)；具体字段与行为由源码及[契约](development/contracts.md)说明 |
+| 每个根模块的公开入口、限制与验证 | 对应模块的 README；跨模块关系仍由[架构](development/architecture.md)说明 |
+| 当前支持范围与限制 | [支持矩阵](reference/support-matrix.md) |
+| 当前阶段的任务状态 | [实施跟踪](project/status.md) |
+| 已完成事项、日期、验证命令与证据边界 | [进度](project/progress.md)及带日期的 `benchmarks/` 证据；旧记录合并保留结果、日期及证据边界 |
+| 后续候选方向 | [路线图](project/roadmap.md) |
+| 多入口交付与贡献者开发流程 | [开发约定](development/workflow.md) |
+| CLI/TUI 用户操作 | [Agent/CLI 说明](guides/cli.md)和[终端说明](guides/terminal.md) |
+| 来源与计价的具体边界 | [适配器用例](development/adapters.md)和[价格口径](reference/pricing.md) |
 
 ## 修改规则
 
@@ -34,4 +36,5 @@
 - 维护页面只写目前有效的承诺；历史经过放进带日期的进度、决策记录或故障复盘。发现重复段落时保留一个主要归属，其余改为短链接。
 - 公开文档只引用仓库可公开文件；私人原型、真实会话、账户数据和未经审查的输出不进入文档或示例。
 - 常驻指令、架构与开发文档按[篇幅清单](../scripts/doc-budgets.json)限制非空白字符数；超限先移到正确归属，再精简，确有必要才提高上限并在改动说明中解释。上限不是删减必要故障或限制的目标。
-- 文档重命名或移动时同步修复引用。对纯文档改动，检查链接、状态口径，执行 `corepack pnpm docs:check` 和 `git diff --check`；修改 Skill 时同一检查会验证 Skill 元数据。
+- 整理旧文档时将有长期价值的理由提炼到决策目录；删除重复和已失效的操作说明，不把历史结果升级为当前承诺。
+- 文档重命名或移动时同步修复引用、双语记录、篇幅清单及发行文件清单。对纯文档改动，检查链接、状态口径，执行 `corepack pnpm docs:check` 和 `git diff --check`；修改 Skill 时同一检查会验证 Skill 元数据。

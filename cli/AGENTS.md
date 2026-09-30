@@ -1,6 +1,6 @@
 # 命令入口开发约定
 
-本目录同时遵循[根目录约定](../AGENTS.md)及[开发约定](../docs/development.md)。公开入口与输出承诺见[CLI 模块说明](README.md)。
+本目录同时遵循[根目录约定](../AGENTS.md)及[开发约定](../docs/development/workflow.md)。公开入口与输出承诺见[CLI 模块说明](README.md)。
 
 - 参数解析、帮助、JSON/文本输出和退出码留在 CLI；计量、计价、筛选和快照查询通过类型化客户端交给内核。
 - 帮助、版本、JSON 和非交互查询不初始化 OpenTUI；仅交互入口加载终端包并封装 Node FFI 参数。

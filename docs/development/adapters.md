@@ -1,6 +1,8 @@
 # 来源与计价验收样本
 
-Wombat 的独立合成样本使用协议字段与手算期望，不安装或运行 ccusage，不包含真实对话和工具输出。来源实现版本为 `codex-rollout-1`。测试代码见 [Codex 样本](../core/src/adapters/codex/tests.rs)、[异构协议样本](../core/src/adapters/mod.rs)、[计价样本](../core/src/pricing/tests.rs)和[完整查询链路](../tests/integration/usage-v1.test.ts)。
+中文 | [English](adapters.en.md)
+
+Wombat 的独立合成样本使用协议字段与手算期望，不安装或运行 ccusage，不包含真实对话和工具输出。来源实现版本为 `codex-rollout-1`。测试代码见 [Codex 样本](../../core/src/adapters/codex/tests.rs)、[异构协议样本](../../core/src/adapters/mod.rs)、[计价样本](../../core/src/pricing/tests.rs)和[完整查询链路](../../tests/integration/usage-v1.test.ts)。
 
 | 案例 | 已覆盖行为与测试定位 |
 |---|---|
@@ -29,4 +31,4 @@ Wombat 的独立合成样本使用协议字段与手算期望，不安装或运�
 - 大日志行通过复用缓冲区和临时映射完整读取，消息/输出正文由选择性反序列化跳过；计量、对话及操作元数据仍会在来源整理期间驻留内存。目录深度、文件数量、读取字节及标题索引上限会有回执，不能将其宣传为无界或常量内存扫描。
 - 原生标题来自同来源 `session_index.jsonl`。标题缺失保持缺失，不用用户提问生成标题；多次设置、失败和缺失字段按来源证据处理。
 
-运行方式：`cargo test --locked --manifest-path core/Cargo.toml adapters`、`cargo test --locked --manifest-path core/Cargo.toml pricing`；完整 CLI 链路先执行 `corepack pnpm build`，再运行相应集成测试。验证结果和未完成的验收条件记录在[进度记录](progress.md)，本页不以测试名称代替测试通过证据。
+运行方式：`cargo test --locked --manifest-path core/Cargo.toml adapters`、`cargo test --locked --manifest-path core/Cargo.toml pricing`；完整 CLI 链路先执行 `corepack pnpm build`，再运行相应集成测试。验证结果和未完成的验收条件记录在[进度记录](../project/progress.md)，本页不以测试名称代替测试通过证据。

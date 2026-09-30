@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-Decision Notes preserve rationale that code and current guides cannot carry: the problem, the chosen approach, alternatives actually considered, costs, and verification evidence. They are not task lists or the sole authority on product state; source, contracts, and the [support matrix](../support-matrix.md) still establish current behavior.
+Decision Notes preserve rationale that code and current guides cannot carry: the problem, the chosen approach, alternatives actually considered, costs, and verification evidence. They are not task lists or the sole authority on product state; source, contracts, and the [support matrix](../reference/support-matrix.en.md) still establish current behavior.
 
 ## Creation and status
 
@@ -17,3 +17,14 @@ Classes are limited to `architecture`, `product`, and `process`. Pair each Chine
 ## Content and verification
 
 Put status after the title and language switcher. A proposal contains Problem, Proposal, Alternatives considered, and Acceptance criteria; an implemented note contains Problem, Decision, Alternatives considered, and Consequences and verification; a rejected note retains its proposal body and gives a short rejection reason on the status line. Record only alternatives that were actually discussed. Run `corepack pnpm notes:check` for path, status, and structure; `corepack pnpm docs:i18n:check` checks the language pair.
+
+## Record index
+
+| Status | Decision |
+|---|---|
+| implemented | [Independent accounting and source adapters](implemented/architecture/2026-09-30-independent-accounting.en.md) |
+| implemented | [Immutable snapshots](implemented/architecture/2026-09-30-snapshot-storage.en.md) |
+| implemented | [Product localization boundaries](implemented/architecture/2026-09-30-localization.en.md) |
+| implemented | [Daily, weekly, and monthly defaults](implemented/product/2026-09-30-report-ranges.en.md) |
+| implemented | [Repository rules and bilingual confirmation](implemented/process/2026-09-30-repository-guidance.en.md) |
+| proposed | [Full live usage plan (partially delivered)](proposed/architecture/2026-09-30-live-usage.en.md) |

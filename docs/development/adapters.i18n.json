@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "sections": {
+    "/source-and-pricing-acceptance-cases": {
+      "zh": "16502595dac52825c272d68166285a40d4c9e35a9a0576bf9d727dc0463a88b7",
+      "en": "2ad87f8a66c7e63049516e0ecd6a292165627fc1eb4fb7b0a44d686f9bf0b21e"
+    },
+    "/source-and-pricing-acceptance-cases/current-support-boundaries": {
+      "zh": "48cf5de144eed15bf505a8ca8b63985f579bd93f1e5ea195eb4d69e0a6916776",
+      "en": "3b772913e7ca287205325c55b8ddbe1c6577fb7d4fdd770543180dc8ac5c7408"
+    }
+  }
+}

@@ -7,6 +7,6 @@
   "docs/AGENTS.md": 2000,
   ".agents/skills/AGENTS.md": 700,
   "docs/decisions/AGENTS.md": 700,
-  "docs/architecture.md": 4500,
-  "docs/development.md": 1800
+  "docs/development/architecture.md": 4500,
+  "docs/development/workflow.md": 1800
 }

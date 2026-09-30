@@ -10,7 +10,7 @@ Existing rules were concentrated in the root file, making module, documentation,
 
 ## Decision
 
-Keep repository-wide rules at the root and add local rules where modules, docs, and Skills own them; module READMEs describe public entries. Pair public pages with English gradually while preserving current Chinese paths, and use named confirmation records and static checks to catch accidental drift. Store lasting design rationale in this directory and continue selecting behavior tests by changed scope.
+Keep repository-wide rules at the root and add local rules where modules, docs, and Skills own them; module READMEs describe public entries. Pair public pages with English within their respective directories, and use named confirmation records and static checks to catch accidental drift. Store lasting design rationale in this directory and continue selecting behavior tests by changed scope.
 
 ## Alternatives considered
 
@@ -19,4 +19,4 @@ Keep repository-wide rules at the root and add local rules where modules, docs, 
 
 ## Consequences and verification
 
-Local instructions, bilingual pairs, and focused scripts are now present; existing Chinese-only pages remain explicitly listed for migration. `repo:check` verifies rules, pairing, and public links but cannot establish translation meaning, product behavior, or terminal appearance; those still require human review and relevant tests.
+Local instructions, bilingual pairs, and focused scripts are now present; original Chinese-only pages have been organized by purpose and fully paired, leaving no legacy migration entries in the manifest. `repo:check` verifies rules, pairing, and public links but cannot establish translation meaning, product behavior, or terminal appearance; those still require human review and relevant tests.

@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-`@wombat/client` 校验请求与结果，并向 CLI、TUI 提供同一个 `UsageClient`。业务 DTO 来自 Rust 生成契约；[架构](../docs/architecture.md)说明跨模块数据流。
+`@wombat/client` 校验请求与结果，并向 CLI、TUI 提供同一个 `UsageClient`。业务 DTO 来自 Rust 生成契约；[架构](../docs/development/architecture.md)说明跨模块数据流。
 
 ## 公开入口
 
@@ -10,7 +10,7 @@
 - `@wombat/client/node` 的 `createNodeClient` 管理本机内核子进程、取消、超时和响应上限。
 - `UsageClient.live`提供auto/fresh/cached实时查询与新鲜度；Node宿主管理共用本地服务，`query`保留固定快照接口。
 - `UsageClient.prices`提供离线查询和显式官方价格更新；Node宿主获取固定HTTPS文档，Rust校验、保存及计价。
-- 生成文件位于 `src/generated/`；字段和版本以 Rust DTO 及[契约](../docs/contracts.md)为准。
+- 生成文件位于 `src/generated/`；字段和版本以 Rust DTO 及[契约](../docs/development/contracts.md)为准。
 
 - 展示语言使用 `@wombat/client/locale`，详见[产品语言与文案](../docs/i18n/product.md)。
 

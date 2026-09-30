@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/wombat-decision-notes": {
-      "zh": "8c9867270cc587b932caa24e334e86917ed3d9cab8e0bc68e2402f5e6acc6243",
-      "en": "a4a78446df75f75cd0f742d18bf4d32baf9cd1f48e5258f723814658fd37afbb"
+      "zh": "cc950fc453a49279f06d4b778ddb05fd7fc9c71960fe773f624698a8ab426b5b",
+      "en": "cb655d497436c36407f3ea398249016a2e7afc88bc29f14ba0a4696376aa2501"
     },
     "/wombat-decision-notes/creation-and-status": {
       "zh": "3563d7cfaff0aa491f953bc35fcdf650c77d2259eb5c14fcd92d39637d27daac",
@@ -12,6 +12,10 @@
     "/wombat-decision-notes/content-and-verification": {
       "zh": "5c20d1c1ae6e0d3259222b2a8e5055c788293d42a00a1819dd1611546b594f49",
       "en": "621b9739ac3cc7eb752c1e5b15a12c374353bff95fa3c7d291eaa393252c40b0"
+    },
+    "/wombat-decision-notes/record-index": {
+      "zh": "60ebe3116ad12675349127d719d8f61dc4832a4c38ac2fabcf960e01d7ae2d00",
+      "en": "97250c237f16454185799479dffa68f1d3ac84e68072d95393567fefee7b7473"
     }
   }
 }

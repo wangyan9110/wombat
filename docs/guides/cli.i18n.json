@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "sections": {
+    "/cli-and-automation": {
+      "zh": "6c65ad7dcf2bedbaeec228715360b7aafe8c28aba87687e9dc3f7848f4182fed",
+      "en": "d16fe7e706fb951288d56de6ef26ba9de133b922442ed7a64f26765c154a963f"
+    },
+    "/cli-and-automation/language": {
+      "zh": "cfeb3518580569b9e18e81faff0c4e1c5c22c77d25820978f49c8948d44e0b14",
+      "en": "cfcd29aa701e358926ef720610ea8bfd04163393062050e955faa3d7c94f0d81"
+    },
+    "/cli-and-automation/automatic-synchronization": {
+      "zh": "c532ec81bff85ceb0acd799377701d0b7630d30f299ed66ee75122463b24f164",
+      "en": "9c2800c94768beaae006ec994a9f82d80b0b56b493a3838fe465dd5bc22c8495"
+    },
+    "/cli-and-automation/official-price-catalog": {
+      "zh": "dd7daa8746f9f46ba33253ae1ac7e2583b2998fe49be091492768469561441af",
+      "en": "8a1fa9320b934f52c796eef2443a3e2aa11f8eff0ce74e87f42d858d68208d7a"
+    },
+    "/cli-and-automation/filtering-and-pagination": {
+      "zh": "eb1cea12efbbf05de54a620c873501b591790e22f633d16b72fd73a24e506d4f",
+      "en": "9f682dd9b81856e5e21fed8bab7483457112456b325e9c10dec3e73691e66f64"
+    },
+    "/cli-and-automation/json": {
+      "zh": "6e9d4c5e8582add86245ee197b37088508eef68a15b34308a2881378a3dca3c8",
+      "en": "d29e8a39f862a610cd8a3ab2f3f7711168efbf750ded87fdad426199ee5d00a5"
+    },
+    "/cli-and-automation/legacy-migration": {
+      "zh": "383bff99465e5f7dc7f05854504c4d5c2a7d60e10133fa09b1de10ffd8955eef",
+      "en": "23d63bd1a8fdb7fda73662d8ad00b27374af900449809f8f0314a8d984ede9a0"
+    }
+  }
+}

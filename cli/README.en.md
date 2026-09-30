@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-`@wombat/cli` parses arguments, emits text or JSON, and composes noninteractive queries with OpenTUI startup. The [CLI guide](../docs/agent-cli.md) owns user-facing commands and options.
+`@wombat/cli` parses arguments, emits text or JSON, and composes noninteractive queries with OpenTUI startup. The [CLI guide](../docs/guides/cli.en.md) owns user-facing commands and options.
 
 ## Public entries
 

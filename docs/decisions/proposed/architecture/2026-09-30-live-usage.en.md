@@ -4,7 +4,7 @@
 
 Status: proposed
 
-This note retains the full target, which is not fully implemented. Resumable cursors, SQLite transactions, an on-demand shared service and automatic CLI/TUI updates were delivered on 2026-09-30; the current documents below describe their boundaries. See the [current architecture](../../../architecture.md) and [support matrix](../../../support-matrix.md) for shipped behavior. Interfaces, timings and performance figures below are proposed specifications or acceptance targets.
+This note retains the full target, which is not fully implemented. Resumable cursors, SQLite transactions, an on-demand shared service and automatic CLI/TUI updates were delivered on 2026-09-30; the current documents below describe their boundaries. See the [current architecture](../../../development/architecture.en.md) and [support matrix](../../../reference/support-matrix.en.md) for shipped behavior. Interfaces, timings and performance figures below are proposed specifications or acceptance targets.
 
 ## Implementation progress
 

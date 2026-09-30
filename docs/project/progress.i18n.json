@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "sections": {
+    "/wombat-progress-and-verification-records": {
+      "zh": "1f98a88c05b81b506c2bb4d3d0f5b7a83c8d4795f240ab58490d083988b38ad5",
+      "en": "edd89bcf7286878fa899e4b308692bc8ed3e35051b49c65a089209281885902f"
+    },
+    "/wombat-progress-and-verification-records/documentation-directory-upgrade-2026-09-30": {
+      "zh": "8ca204db141063dcaff47d118592ddd1aaa2de10c7cc20b9419c492a6ea12707",
+      "en": "3dd504ae396a5113cfb4951a7d25b16af8614a5c64a8a2d3296883b32e51e81c"
+    },
+    "/wombat-progress-and-verification-records/localization-and-governance-2026-09-30": {
+      "zh": "18c5dffdad4f31aa12709e79571ac524adcf6583c72b9311271331feaf0dd46e",
+      "en": "ebfa914f5a38b45473a5e6d9f04dffc9e0db6d25cb18e7f1b70c9036dbd4ad8b"
+    },
+    "/wombat-progress-and-verification-records/live-synchronization-and-memory-2026-09-30": {
+      "zh": "a5c75294d7cd96b46dbc1a4a36b73e4020d3fc0e0ca63aecce47e674e7cf5e8c",
+      "en": "85362204821753490529e7d68e070a5bb4330d1c3f179c974436de1efff76fd1"
+    },
+    "/wombat-progress-and-verification-records/terminal-and-command-iterations-2026-09-30": {
+      "zh": "d1be919ab8d6c58e1f759d52f7ec73f2dc15b9387d2b200fbf613b0b0facfa2b",
+      "en": "a9f60089205c307401428c902cc8aead3824e61585eb0d0247ea796529c02fa1"
+    },
+    "/wombat-progress-and-verification-records/version-one-consolidation-2026-09-30": {
+      "zh": "d751be0db9eeb2b7dbe9962eff170e551559401682f0bbe018d668c60721a824",
+      "en": "313a91c905d7abbcc03ffd2d2990f8aeb4decd95c987dcb9a62b158c8e15e693"
+    },
+    "/wombat-progress-and-verification-records/retired-product-history-2026-09-28-through-2026-09-29": {
+      "zh": "390cc98d04870ba9bf964649a64e4ce90efd4fc56c6ae3db836e5189e560a285",
+      "en": "7f48a19afc71ee7fc61acb937924aa863b37c086a5dff16f8b85cce5a7b31b46"
+    }
+  }
+}

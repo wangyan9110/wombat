@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-`@wombat/client` validates requests and results and gives the CLI and TUI one `UsageClient`. Business DTOs come from Rust-generated contracts; the [architecture](../docs/architecture.md) shows the cross-module data flow.
+`@wombat/client` validates requests and results and gives the CLI and TUI one `UsageClient`. Business DTOs come from Rust-generated contracts; the [architecture](../docs/development/architecture.en.md) shows the cross-module data flow.
 
 ## Public entries
 
@@ -10,7 +10,7 @@
 - `createNodeClient` from `@wombat/client/node` manages the local core subprocess, cancellation, timeouts, and response limits.
 - `UsageClient.live` provides auto/fresh/cached queries and freshness; the Node host manages a shared local service, while `query` retains the fixed-snapshot interface.
 - `UsageClient.prices` provides offline inspection and explicit official price updates; the Node host retrieves a fixed HTTPS document, and Rust validates, stores, and applies the prices.
-- Generated files live in `src/generated/`; field and version authority remains with the Rust DTO and [contracts](../docs/contracts.md).
+- Generated files live in `src/generated/`; field and version authority remains with the Rust DTO and [contracts](../docs/development/contracts.en.md).
 
 - Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).
 

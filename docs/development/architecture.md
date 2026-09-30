@@ -1,22 +1,24 @@
 # Wombat 架构
 
-本版按[用量与对话方案](usage-threads-v1.md)实施，共享 Rust 内核、Node CLI 与中英终端界面。实际验证见[进度](progress.md)和[实施跟踪](implementation-tracker.md)。
+中文 | [English](architecture.en.md)
+
+本版按[用量与对话方案](../project/specification.md)实施，共享 Rust 内核、Node CLI 与中英终端界面。实际验证见[进度](../project/progress.md)和[实施跟踪](../project/status.md)。
 
 ## 数据流
 
 ```mermaid
 flowchart LR
-  L[只读 Agent 日志] --> A[来源适配器]
-  A --> F[统一计量 / 对话 / 轮次 / 操作]
-  F --> P[官方离线价表与十进制计价]
-  P --> D[SQLite增量索引 / 版本视图]
+  L[Read-only Agent logs] --> A[Source adapters]
+  A --> F[Measurements / conversations / turns / operations]
+  F --> P[Offline catalog and decimal pricing]
+  P --> D[SQLite incremental index / versioned views]
   D --> Q
-  P --> S[显式保存不可变快照与分片]
-  S --> Q[共享查询]
-  Q --> N[client/node 受限通信]
-  N --> I[client 类型化接口]
+  P --> S[Explicit immutable snapshots and shards]
+  S --> Q[Shared queries]
+  Q --> N[client/node restricted transport]
+  N --> I[client typed interface]
   I --> C[cli JSON / 文本]
-  I --> T[tui OpenTUI 用量 / 对话]
+  I --> T[tui OpenTUI usage / conversations]
 ```
 
 - `core/src/adapters/`：静态注册及来源协议，首版注册 Codex。来源格式、缓存语义、身份、重放、历史设置属于适配器。公共数据模型不要求其他 Agent 也有轮次或 JSONL。
@@ -25,7 +27,7 @@ flowchart LR
 - `core/src/usage_store.rs`：v3 generation、manifest、精简计量账本、按对话 JSONL 分片及轮次偏移/哈希；旧 v1/v2 窄只读兼容。
 - `core/src/usage_app.rs`、`usage_app_dto.rs`：刷新、用量、对话、轮次、步骤；完整范围过滤、排序、汇总后分页。Rust Schema 生成 Node 类型及校验器。
 - `client/src/`：Rust 生成契约、请求和响应校验、可注入的类型化客户端；通用入口不加载 Node 或终端库。
-- `client/src/locale/`：CLI/TUI 共用的纯展示语言服务、类型化字典与订阅；不改变核心协议，详见[语言契约](i18n/product.md)。
+- `client/src/locale/`：CLI/TUI 共用的纯展示语言服务、类型化字典与订阅；不改变核心协议，详见[语言契约](../i18n/product.md)。
 - `client/src/node/`：受限内核请求、进程生命周期、取消、超时和输出限制。内核 stdout 为最终 JSON，stderr 为阶段进度。
 - `cli/src/`：命令参数、JSON/文本输出、退出码和交互启动装配；帮助与机器查询不加载 OpenTUI。
 - `tui/src/`：OpenTUI 两入口、页面状态、组件、筛选、键鼠操作与语义主题。不解析来源、不计价、不从分页重算汇总。
@@ -36,7 +38,7 @@ flowchart LR
 
 现代逐响应计量与旧累计遥测不能叠加。Token 非重叠分类为输入、缓存读取、缓存创建、输出；推理为输出子集。历史模型和强度只读取日志当时的上下文。工具调用按明确身份连接，不按相邻时间分摊费用。没有轮次归属的计量仍保留在对话“其他记录”。
 
-价格为官方标准 API 等价金额，与订阅实付及来源 reportedCost 分离。价表显式更新由Node宿主从固定OpenAI文档下载，Rust校验和原子保存到产品数据目录；刷新一次性读取当前价表，全次采集保持同版本。每条记录保存计算结果和价表依据；查询旧快照不重新定价。旧政策金额不得与新政策混加。详见[价格口径](pricing.md)。
+价格为官方标准 API 等价金额，与订阅实付及来源 reportedCost 分离。价表显式更新由Node宿主从固定OpenAI文档下载，Rust校验和原子保存到产品数据目录；刷新一次性读取当前价表，全次采集保持同版本。每条记录保存计算结果和价表依据；查询旧快照不重新定价。旧政策金额不得与新政策混加。详见[价格口径](../reference/pricing.md)。
 
 ## 存储与故障
 
@@ -50,37 +52,37 @@ flowchart LR
 
 ## 扩展约束
 
-接入下一 Agent 时新增适配器并通过能力差异、身份隔离、Token 语义、日期、未知价格和故障测试；不增加公共查询中的来源专用分支。未来宿主可复用相同 DTO 与操作，但桌面产品不属于本次交付。业务代码、构建和常规测试均独立于 ccusage；其边界处理经验记录在方案中。
+接入下一 Agent 时新增适配器并通过能力差异、身份隔离、Token 语义、日期、未知价格和故障测试；不增加公共查询中的来源专用分支。未来宿主可复用相同 DTO 与操作，但桌面产品不属于本次交付。业务代码、构建和常规测试均独立于 ccusage；其边界经验与取舍见[独立计量决策](../decisions/implemented/architecture/2026-09-30-independent-accounting.md)。
 
 ## 独立模块
 
-根目录并列 `core/`、`client/`、`tui/` 和 `cli/`。模块源码和公开接口已迁移，OpenTUI 使用 0.5.12，产品 Node 运行要求为 26.4.0 或更新版本。迁移后的整链路与终端验收状态单独见[实施跟踪](implementation-tracker.md)；原有渲染器的历史验证不作为新链路的验收证据。
+根目录并列 `core/`、`client/`、`tui/` 和 `cli/`。模块源码和公开接口已迁移，OpenTUI 使用 0.5.12，产品 Node 运行要求为 26.4.0 或更新版本。迁移后的整链路与终端验收状态单独见[实施跟踪](../project/status.md)；原有渲染器的历史验证不作为新链路的验收证据。
 
 ```text
-core/              # Rust 内核：来源适配、业务服务、存储和公开协议
+core/
   Cargo.toml
   src/
   tests/
-client/            # TypeScript 客户端：生成契约、校验、受限传输
+client/
   package.json
   src/
-    generated/     # 从 Rust DTO 生成
-    node/          # Node 子进程传输、超时与清理
+    generated/
+    node/
   tests/
-tui/               # OpenTUI 展示包
+tui/
   package.json
   src/
-    screens/       # 数据展示格式
-    components/    # OpenTUI 组件与页面视图模型
-    state/         # 筛选草稿等界面状态
-    themes/        # 语义颜色；森林是其中一种主题
+    screens/
+    components/
+    state/
+    themes/
   tests/
-cli/               # 命令参数、输出、交互启动装配
+cli/
   package.json
   src/
   tests/
-tests/             # 跨模块集成与产品端到端验收
-scripts/           # 构建、契约生成、模块边界和发行编排
+tests/
+scripts/
 docs/
 ```
 

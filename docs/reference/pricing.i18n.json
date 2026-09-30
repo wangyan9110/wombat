@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/cost-calculation": {
+      "zh": "9e18a406633b3984cc849c2804bd1ef6372480c3a1cbaa5c6846565230afa0af",
+      "en": "cb1151126979937183108d209fec72251c3bfb9bbaefaf69eb2f5ad1d9d41d16"
+    },
+    "/cost-calculation/catalog-and-sources": {
+      "zh": "36c9259eae7bb4d43e76fb59086d62f3e2cb1f5906f270941bd3b8c65708575c",
+      "en": "5898a04403d38580ce51ca759486247fccad8aba5186124cea21c98856c97fcc"
+    },
+    "/cost-calculation/updating-prices-online": {
+      "zh": "0d1b48353c6a424710361e4228f91f9158c0ac574d31e2bfca9968ef4a1eb082",
+      "en": "61a6542b68adaf4e2f00f8f8123e685927ea5b5c2512cd1109b29624d957c98c"
+    },
+    "/cost-calculation/categories-and-precision": {
+      "zh": "62ea3736b353563b7799164d8a607974ed242cf79a133f7c86e6ba3c9ee169dc",
+      "en": "190ed643260823d24d039bb0b66f322453344414b721236e7a3bbefcae420be1"
+    },
+    "/cost-calculation/independent-verification": {
+      "zh": "04cd4a40ede205cf9cc6a58e5bbc191b5baa9da7c34c1c578c8b5a98c01f395a",
+      "en": "c5209d96110f65d5ff55a51f2a5af21a1dbd9f03aa1350698c88de8b45d318ee"
+    }
+  }
+}

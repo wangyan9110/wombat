@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-independent-accounting-pricing-and-source-adapters": {
+      "zh": "08ff188471cfbb6bba467fab52ecceceb18b4ce64d464303e9b1ecab6962c536",
+      "en": "1bfc88cada4f2688677feead5796dfb287d6b9d4db25121e557ce3a33a0bc09a"
+    },
+    "/decision-note-independent-accounting-pricing-and-source-adapters/problem": {
+      "zh": "0679f9a9640bf4fcfabe3b1dc23ca2a0e6bea1e021cf0be065d89e17195b2b81",
+      "en": "096b31b67b79a989303ae1a923ed8b3f04ae5a0176d0a54dfc2db9fc309dedbf"
+    },
+    "/decision-note-independent-accounting-pricing-and-source-adapters/decision": {
+      "zh": "60ce6af5afd37f3dcec3d46c470d74194be97bcefef4741a1fbc17c691e509ac",
+      "en": "81f4e14df9e5fa59f64591040e62b0582c15f706746979be45184069720c6ab2"
+    },
+    "/decision-note-independent-accounting-pricing-and-source-adapters/alternatives-considered": {
+      "zh": "1b02ea5d7bd3ae5cef2f818ac1ff6498d136da482564604e58e33f164dc77a04",
+      "en": "75b5e882ef459bf93fea78b0d2a192386fda8623fdb1e4dca89fcc1250605e07"
+    },
+    "/decision-note-independent-accounting-pricing-and-source-adapters/impact-and-verification": {
+      "zh": "0129285ca221584556d2996be0b641e09d3b294cc091494e9b1181869e0c38bf",
+      "en": "7c13c8294ad962b56599c0fd1e063f0842c2ca0b1d18f417a0ced61fae0be361"
+    }
+  }
+}

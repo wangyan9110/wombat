@@ -37,7 +37,7 @@ Wombat 独立实现计量和计价，不依赖 ccusage；Token 与官方标准 A
 
 根目录采用独立的 `core/` 内核、`client/` 客户端、`tui/` 终端界面和 `cli/` 命令入口。各模块通过公开接口协作，其他界面可复用同一业务客户端；CLI 仅为交互会话启用所需的 FFI 参数。
 
-当前为源码预览，OpenTUI 迁移验收正在进行，历史终端验证不替代新链路验收；先验收 macOS Apple Silicon；其他平台、完整英文界面、桌面产品和 Web 服务不在本次验收范围。
+当前为源码预览，OpenTUI 迁移验收正在进行，历史终端验证不替代新链路验收；先验收 macOS Apple Silicon；中英 CLI/TUI 已交付，未知内核诊断与来源原文仍可能保留原语言。其他平台、桌面产品和 Web 服务不在本次验收范围。
 
 ## 开发
 
@@ -59,4 +59,4 @@ corepack pnpm release:check
 
 将该目录复制到同平台、装有 Node.js 26.4.0+ 和 npm 的机器，在目录内运行 `node install.mjs`。安装程序会检查平台和归档哈希，获取公开运行依赖，安装到 `~/.local/share/wombat`，并测试已安装的命令与内核。它会输出命令的绝对路径；将其 `bin` 目录加入 PATH 后可直接运行 `wombat`。目标机器不需要 Rust、pnpm 或源码仓库。目前安装验收目标为 macOS Apple Silicon。
 
-[终端操作](docs/terminal.md) · [CLI 与 JSON](docs/agent-cli.md) · [价格依据](docs/pricing.md) · [支持矩阵](docs/support-matrix.md) · [实施跟踪](docs/implementation-tracker.md) · [验证记录](docs/progress.md) · [隐私](docs/privacy.md) · [参与贡献](CONTRIBUTING.zh-CN.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
+[终端操作](docs/guides/terminal.md) · [CLI 与 JSON](docs/guides/cli.md) · [价格依据](docs/reference/pricing.md) · [支持矩阵](docs/reference/support-matrix.md) · [实施跟踪](docs/project/status.md) · [验证记录](docs/project/progress.md) · [隐私](docs/reference/privacy.md) · [参与贡献](CONTRIBUTING.zh-CN.md) · [第三方声明](THIRD_PARTY_NOTICES.md)

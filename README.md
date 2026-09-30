@@ -37,7 +37,7 @@ This version removes the earlier quota, checkup, environment and rule diagnostic
 
 The root contains independent `core/` for Rust business logic, `client/` for typed access, `tui/` for terminal presentation, and `cli/` for the command entry. Modules collaborate through public interfaces, allowing other interfaces to reuse the business client; the CLI enables the required FFI arguments only for interactive sessions.
 
-This is a source preview. OpenTUI migration acceptance is in progress; earlier terminal verification does not establish acceptance of the new path. macOS Apple Silicon is the first verification target. Other platforms, a fully English interface, desktop product, and web server are outside this acceptance scope.
+This is a source preview. OpenTUI migration acceptance is in progress; earlier terminal verification does not establish acceptance of the new path. macOS Apple Silicon is the first verification target. Chinese and English CLI/TUI are delivered; unknown core diagnostics and source text may retain their original language. Other platforms, desktop product, and web server are outside this acceptance scope.
 
 ## Develop
 
@@ -59,4 +59,4 @@ On the build machine, run `corepack pnpm release:bundle`. It runs the full relea
 
 Copy that directory to a matching machine with Node.js 26.4.0+ and npm. From inside the copied directory, run `node install.mjs`. The installer checks the platform and archive hash, downloads public runtime dependencies, installs into `~/.local/share/wombat`, and tests the installed command and core. It prints the absolute command path; add its `bin` directory to PATH to use `wombat` by name. Rust, pnpm and the source checkout are not needed on the target machine. The current installation acceptance target is macOS Apple Silicon.
 
-[Terminal operation](docs/terminal.md) · [CLI and JSON](docs/agent-cli.md) · [Pricing sources](docs/pricing.md) · [Support matrix](docs/support-matrix.md) · [Implementation tracking](docs/implementation-tracker.md) · [Verification record](docs/progress.md) · [Privacy](docs/privacy.md) · [Contributing](CONTRIBUTING.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[Terminal operation](docs/guides/terminal.en.md) · [CLI and JSON](docs/guides/cli.en.md) · [Pricing sources](docs/reference/pricing.en.md) · [Support matrix](docs/reference/support-matrix.en.md) · [Implementation tracking](docs/project/status.en.md) · [Verification record](docs/project/progress.en.md) · [Privacy](docs/reference/privacy.en.md) · [Contributing](CONTRIBUTING.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)

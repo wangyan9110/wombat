@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "sections": {
+    "/public-contracts": {
+      "zh": "12772cbacb0c3afffce24cc98bdec10570d35779c02d19378cf84dc665cc031e",
+      "en": "6fc00f573f4760cb11a705ca611a5bbfc23655f69fc229955f1152ba1f629dcc"
+    },
+    "/public-contracts/client-entries": {
+      "zh": "9bc76c0c859025c3068875d21a8aa1a4c9cc54e19a8b3b204986cf5f6d0055b4",
+      "en": "6a51c44968797405a804fa138a7ed200a7568488c34926cf2de67d129291fb10"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "sections": {
+    "/development-and-delivery-rules": {
+      "zh": "171ad7203ace8178a0230e45c95007bd2514cd1fba4764bcb727a965dcee8e1a",
+      "en": "ab3f89daf48829768da5e6ba9f3bf9f98694990123823c6185eecb59dd762d33"
+    },
+    "/development-and-delivery-rules/implementation-boundaries": {
+      "zh": "be7c2d2d295d2c242284ed5db38293016c71b4024c6c84e55911ee3732b5c0e1",
+      "en": "d929b48f0084708b75308b48e0ee841e8a95003f80c1e845c0978a6f780bfecc"
+    },
+    "/development-and-delivery-rules/verification": {
+      "zh": "9cb7287d50742bc5fc0e575c0c3c87d2e821f2ac325089205bf23d5bc06c4ac0",
+      "en": "b85b998596806d3fd6f3a603024d165be1c19667944f8e7f07f7fd35faa7e17a"
+    }
+  }
+}

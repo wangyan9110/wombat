@@ -69,24 +69,84 @@
       "zh": "docs/decisions/implemented/architecture/2026-09-30-localization.md",
       "en": "docs/decisions/implemented/architecture/2026-09-30-localization.en.md",
       "record": "docs/decisions/implemented/architecture/2026-09-30-localization.i18n.json"
+    },
+    {
+      "zh": "docs/development/adapters.md",
+      "en": "docs/development/adapters.en.md",
+      "record": "docs/development/adapters.i18n.json"
+    },
+    {
+      "zh": "docs/guides/cli.md",
+      "en": "docs/guides/cli.en.md",
+      "record": "docs/guides/cli.i18n.json"
+    },
+    {
+      "zh": "docs/development/architecture.md",
+      "en": "docs/development/architecture.en.md",
+      "record": "docs/development/architecture.i18n.json"
+    },
+    {
+      "zh": "docs/development/contracts.md",
+      "en": "docs/development/contracts.en.md",
+      "record": "docs/development/contracts.i18n.json"
+    },
+    {
+      "zh": "docs/development/workflow.md",
+      "en": "docs/development/workflow.en.md",
+      "record": "docs/development/workflow.i18n.json"
+    },
+    {
+      "zh": "docs/project/status.md",
+      "en": "docs/project/status.en.md",
+      "record": "docs/project/status.i18n.json"
+    },
+    {
+      "zh": "docs/reference/pricing.md",
+      "en": "docs/reference/pricing.en.md",
+      "record": "docs/reference/pricing.i18n.json"
+    },
+    {
+      "zh": "docs/reference/privacy.md",
+      "en": "docs/reference/privacy.en.md",
+      "record": "docs/reference/privacy.i18n.json"
+    },
+    {
+      "zh": "docs/project/progress.md",
+      "en": "docs/project/progress.en.md",
+      "record": "docs/project/progress.i18n.json"
+    },
+    {
+      "zh": "docs/project/roadmap.md",
+      "en": "docs/project/roadmap.en.md",
+      "record": "docs/project/roadmap.i18n.json"
+    },
+    {
+      "zh": "docs/reference/support-matrix.md",
+      "en": "docs/reference/support-matrix.en.md",
+      "record": "docs/reference/support-matrix.i18n.json"
+    },
+    {
+      "zh": "docs/guides/terminal.md",
+      "en": "docs/guides/terminal.en.md",
+      "record": "docs/guides/terminal.i18n.json"
+    },
+    {
+      "zh": "docs/project/specification.md",
+      "en": "docs/project/specification.en.md",
+      "record": "docs/project/specification.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-09-30-independent-accounting.md",
+      "en": "docs/decisions/implemented/architecture/2026-09-30-independent-accounting.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-09-30-independent-accounting.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-09-30-snapshot-storage.md",
+      "en": "docs/decisions/implemented/architecture/2026-09-30-snapshot-storage.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-09-30-snapshot-storage.i18n.json"
     }
   ],
-  "legacyUnpaired": [
-    "docs/adapter-cases.md",
-    "docs/agent-cli.md",
-    "docs/architecture.md",
-    "docs/contracts.md",
-    "docs/development.md",
-    "docs/implementation-tracker.md",
-    "docs/pricing.md",
-    "docs/privacy.md",
-    "docs/progress.md",
-    "docs/roadmap.md",
-    "docs/support-matrix.md",
-    "docs/terminal-style-contract.md",
-    "docs/terminal.md",
-    "docs/usage-threads-v1.md"
-  ],
+  "legacyUnpaired": [],
   "excluded": [
     "docs/decisions/AGENTS.md",
     "AGENTS.md",

@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "sections": {
+    "/wombat-usage-and-conversations-version-one-specification": {
+      "zh": "d515145eb1784e65f4def4334c2052c691997f81201c28f036f698fa3680032e",
+      "en": "9efe331fdab3f5223175c538f5010f57a7f3bed1652faa4c09b29bdf88218d57"
+    },
+    "/wombat-usage-and-conversations-version-one-specification/scope": {
+      "zh": "a258703b469d683dd8322fc3c91ed5078ddd9cad38c675426bb79e5382b19cce",
+      "en": "b9ff6023525c28851d8c9ca35689e7818340c8561aa6fd59d5de8679dcc8c09c"
+    },
+    "/wombat-usage-and-conversations-version-one-specification/user-journeys": {
+      "zh": "13ccdea0707a6e80490a426954cae82a7b8eeb7b431b18ba465cd51559cf0995",
+      "en": "bcf28c15dae30b02e29a423d1a3dd953cc094be106c49ba82914873fd45bb6ad"
+    },
+    "/wombat-usage-and-conversations-version-one-specification/data-and-presentation-constraints": {
+      "zh": "f3d03f4baac8841a0d92b1b3bfadc7153dfe0e8f59d0786696171b4db2f4cd6f",
+      "en": "7ed4e095078a3f23fae3e96ccc7cf38ff520a3f3143a0b8875f14664f0c04bf8"
+    },
+    "/wombat-usage-and-conversations-version-one-specification/storage-resources-and-extension": {
+      "zh": "c8488225363b96e1396ac07d74e3b4315a6706813e01f4e467e037c18bf8cb6e",
+      "en": "5ff82b2366b3118ead1b4cd07a49794965d31fdfbd161e8ede6a9d8d8639c54f"
+    },
+    "/wombat-usage-and-conversations-version-one-specification/acceptance-and-delivery": {
+      "zh": "332f07d7f726fea2703d21bf0dc02003957456b307f3693c48411e98817ca181",
+      "en": "dd8da301b0d561d7b94f14449db50f422f8dfb6c61c0898ce71f8aea893bf7d9"
+    }
+  }
+}

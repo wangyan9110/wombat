@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "sections": {
+    "/wombat-implementation-status": {
+      "zh": "f75d07a1b909900b6e9bb96243139af8876ddda3af7b1b795bede41a3d8f55e4",
+      "en": "45a78f12edf35d9f3ec1e20c3e5a5cfe03cd676206a077009e221c6846ce2256"
+    },
+    "/wombat-implementation-status/delivered-baseline": {
+      "zh": "7256ea65b5f7d7875e3b089dfb459c1ff5868ed02cff351b17da4cb4e02e5978",
+      "en": "5c4a17daeb5a62ffb10c02f90ee24b70db96e3f18b87c1dfe9d9395e59f8de2e"
+    },
+    "/wombat-implementation-status/remaining-work-and-acceptance-responsibility": {
+      "zh": "e9f9028116f291aae97fb3b86e66e52a25e2cecd755666a7c437ffc64dd3924f",
+      "en": "992ad7b5622f2297802b0417a8152ea146ae32b1d9e4df93612740f7192021f4"
+    }
+  }
+}

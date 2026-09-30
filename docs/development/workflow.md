@@ -1,6 +1,8 @@
 # 开发与交付约定
 
-以[首版方案](usage-threads-v1.md)及[架构](architecture.md)为依据。产品只有用量与对话，CLI/TUI 共用 Rust 操作、筛选、计量与价格。
+中文 | [English](workflow.en.md)
+
+以[首版方案](../project/specification.md)及[架构](architecture.md)为依据。产品只有用量与对话，CLI/TUI 共用 Rust 操作、筛选、计量与价格。
 
 ## 实现边界
 
