@@ -5,7 +5,11 @@ use rust_decimal::Decimal;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, str::FromStr, sync::OnceLock};
+use std::{
+    collections::BTreeSet,
+    str::FromStr,
+    sync::{Arc, OnceLock},
+};
 
 const CATALOG_JSON: &str = include_str!("../prices/openai-standard-2026-09-30.json");
 pub const PRICE_REVISION: &str = "openai-standard-2026-09-30.2";
@@ -15,28 +19,28 @@ const CATEGORIES: [&str; 4] = ["input", "cacheRead", "cacheCreate", "output"];
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PriceComponent {
-    pub category: String,
+    pub category: Arc<str>,
     pub tokens: Option<u64>,
     pub cost: Option<String>,
     pub known_cost: String,
-    pub status: String,
-    pub rate_per_million: Option<String>,
+    pub status: Arc<str>,
+    pub rate_per_million: Option<Arc<str>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]
 pub struct PriceBasis {
-    pub original_model: String,
-    pub pricing_model: String,
-    pub model_provider: String,
-    pub api_provider: Option<String>,
-    pub match_method: String,
-    pub source: String,
-    pub verified_at: String,
-    pub price_revision: String,
-    pub catalog_hash: String,
+    pub original_model: Arc<str>,
+    pub pricing_model: Arc<str>,
+    pub model_provider: Arc<str>,
+    pub api_provider: Option<Arc<str>>,
+    pub match_method: Arc<str>,
+    pub source: Arc<str>,
+    pub verified_at: Arc<str>,
+    pub price_revision: Arc<str>,
+    pub catalog_hash: Arc<str>,
     /// standard, longContext, conditionUnknown
-    pub condition: String,
+    pub condition: Arc<str>,
     pub request_input_tokens: Option<u64>,
     pub request_scoped: bool,
 }
@@ -44,17 +48,17 @@ pub struct PriceBasis {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PriceResult {
-    pub currency: String,
-    pub policy: String,
-    pub price_revision: String,
+    pub currency: Arc<str>,
+    pub policy: Arc<str>,
+    pub price_revision: Arc<str>,
     /// Present only when every applicable Token category has a known amount.
     pub cost: Option<String>,
     pub known_cost: String,
     /// priced, partial, unknown
-    pub status: String,
+    pub status: Arc<str>,
     pub components: Vec<PriceComponent>,
     pub basis: Vec<PriceBasis>,
-    pub issues: Vec<String>,
+    pub issues: Vec<Arc<str>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -158,7 +162,7 @@ pub(crate) fn price_with_catalog(
     catalog_hash: &str,
 ) -> PriceResult {
     let mut result = empty_price();
-    result.price_revision = catalog.revision.clone();
+    result.price_revision = catalog.revision.as_str().into();
     let counts = [
         tokens.input,
         tokens.cache_read,
@@ -206,14 +210,14 @@ pub(crate) fn price_with_catalog(
         }
         active_rates = rates;
         result.basis.push(PriceBasis {
-            original_model: model.raw.clone().unwrap_or_default(),
-            pricing_model: entry.id.clone(),
+            original_model: model.raw.as_deref().unwrap_or_default().into(),
+            pricing_model: entry.id.as_str().into(),
             model_provider: "openai".into(),
-            api_provider: model.api_provider.clone(),
+            api_provider: model.api_provider.as_deref().map(Into::into),
             match_method: method.into(),
-            source: entry.source.clone(),
-            verified_at: catalog.verified_at.clone(),
-            price_revision: catalog.revision.clone(),
+            source: entry.source.as_str().into(),
+            verified_at: catalog.verified_at.as_str().into(),
+            price_revision: catalog.revision.as_str().into(),
             catalog_hash: catalog_hash.into(),
             condition: condition.into(),
             request_input_tokens: request_input,
@@ -252,7 +256,7 @@ pub(crate) fn price_with_catalog(
             any_known_usage |= count.is_some_and(|n| n > 0);
         } else {
             complete = false;
-            result.issues.push(format!("{category}PriceUnknown"));
+            result.issues.push(format!("{category}PriceUnknown").into());
         }
         result.components.push(PriceComponent {
             category: (*category).into(),
@@ -263,7 +267,7 @@ pub(crate) fn price_with_catalog(
             rate_per_million: if invalid {
                 None
             } else {
-                rates[index].map(str::to_owned)
+                rates[index].map(Into::into)
             },
         });
     }
@@ -386,27 +390,27 @@ pub fn sum_prices<'a>(
     let mut policy: Option<&str> = None;
     let mut components: Vec<Vec<&PriceComponent>> = vec![Vec::new(); 4];
     for value in values {
-        if value.currency != "USD"
-            || ![PRICE_POLICY, "legacy_recorded"].contains(&value.policy.as_str())
-            || policy.is_some_and(|p| p != value.policy)
+        if value.currency.as_ref() != "USD"
+            || ![PRICE_POLICY, "legacy_recorded"].contains(&value.policy.as_ref())
+            || policy.is_some_and(|p| p != value.policy.as_ref())
         {
             return Err("incompatiblePricePolicy".into());
         }
         policy = Some(&value.policy);
-        if !["priced", "partial", "unknown"].contains(&value.status.as_str()) {
+        if !["priced", "partial", "unknown"].contains(&value.status.as_ref()) {
             return Err("invalidPriceStatus".into());
         }
         let amount = parse_amount(&value.known_cost)?;
-        if (value.status == "priced"
+        if (value.status.as_ref() == "priced"
             && value.cost.as_deref().map(parse_amount).transpose()? != Some(amount))
-            || (value.status != "priced" && value.cost.is_some())
-            || (value.status == "unknown" && amount != Decimal::ZERO)
+            || (value.status.as_ref() != "priced" && value.cost.is_some())
+            || (value.status.as_ref() == "unknown" && amount != Decimal::ZERO)
         {
             return Err("inconsistentPriceResult".into());
         }
         total = add_exact(total, amount)?;
-        complete &= value.status == "priced";
-        known |= value.status != "unknown";
+        complete &= value.status.as_ref() == "priced";
+        known |= value.status.as_ref() != "unknown";
         basis.extend(value.basis.iter().cloned().map(|mut entry| {
             entry.request_input_tokens = None;
             entry
@@ -416,7 +420,7 @@ pub fn sum_prices<'a>(
         for component in &value.components {
             let index = CATEGORIES
                 .iter()
-                .position(|c| *c == component.category)
+                .position(|c| *c == component.category.as_ref())
                 .ok_or("invalidPriceCategory")?;
             components[index].push(component);
         }
@@ -438,8 +442,8 @@ pub fn sum_prices<'a>(
                 }
                 _ => None,
             };
-            priced &= value.status == "priced";
-            any |= value.status != "unknown";
+            priced &= value.status.as_ref() == "priced";
+            any |= value.status.as_ref() != "unknown";
             rates.insert(value.rate_per_million.clone());
         }
         result.components.push(PriceComponent {
@@ -474,3 +478,55 @@ pub fn sum_prices<'a>(
 #[cfg(test)]
 #[path = "pricing/tests.rs"]
 mod tests;
+
+/// Shares repeated descriptive price strings within a published generation.
+/// Amounts and request-specific counts remain independent and exact.
+#[derive(Default)]
+pub(crate) struct PriceStrings(BTreeSet<Arc<str>>);
+impl PriceStrings {
+    fn share(&mut self, value: &mut Arc<str>) {
+        if let Some(shared) = self.0.get(value.as_ref()) {
+            *value = Arc::clone(shared);
+        } else {
+            self.0.insert(Arc::clone(value));
+        }
+    }
+    pub(crate) fn compact(&mut self, price: &mut PriceResult) {
+        for value in [
+            &mut price.currency,
+            &mut price.policy,
+            &mut price.price_revision,
+            &mut price.status,
+        ] {
+            self.share(value);
+        }
+        for value in &mut price.issues {
+            self.share(value);
+        }
+        for component in &mut price.components {
+            self.share(&mut component.category);
+            self.share(&mut component.status);
+            if let Some(value) = &mut component.rate_per_million {
+                self.share(value);
+            }
+        }
+        for basis in &mut price.basis {
+            for value in [
+                &mut basis.original_model,
+                &mut basis.pricing_model,
+                &mut basis.model_provider,
+                &mut basis.match_method,
+                &mut basis.source,
+                &mut basis.verified_at,
+                &mut basis.price_revision,
+                &mut basis.catalog_hash,
+                &mut basis.condition,
+            ] {
+                self.share(value);
+            }
+            if let Some(value) = &mut basis.api_provider {
+                self.share(value);
+            }
+        }
+    }
+}

@@ -399,6 +399,11 @@ impl Snapshot {
         };
         save_with_prices(&product_home()?, collected, prices)
     }
+    pub(crate) fn operation_facts(&self) -> impl Iterator<Item = &Arc<Operation>> {
+        self.memory_turns
+            .iter()
+            .flat_map(|turns| turns.values().flat_map(|t| t.operations.iter()))
+    }
     pub(crate) fn measurement_facts(&self) -> impl Iterator<Item = &Arc<Measurement>> {
         self.live_rows
             .iter()
@@ -878,6 +883,7 @@ pub(crate) fn memory(
     prices: crate::pricing_sync::Response,
     prior: Option<&Snapshot>,
 ) -> Result<Snapshot> {
+    let mut price_strings = pricing::PriceStrings::default();
     let reusable = prior
         .filter(|s| s.manifest.price_catalog_hash == prices.catalog_hash)
         .and_then(|s| s.live_rows.as_ref());
@@ -890,11 +896,11 @@ pub(crate) fn memory(
                     .ok()
                     .map(|i| &rows[i])
             })
-            .filter(|r| r.fact == fact);
+            .filter(|r| Arc::ptr_eq(&r.fact, &fact) || r.fact == fact);
         let row = match prior {
             Some(row) => Arc::clone(row),
             None => {
-                let price = pricing::price_with_catalog(
+                let mut price = pricing::price_with_catalog(
                     &fact.model,
                     &fact.tokens,
                     &PricingContext {
@@ -903,12 +909,19 @@ pub(crate) fn memory(
                     &prices.catalog,
                     &prices.catalog_hash,
                 );
+                price_strings.compact(&mut price);
                 Arc::new(PricedMeasurement { fact, price })
             }
         };
         rows.push(row);
     }
     rows.sort_unstable_by(|a, b| a.fact.id.cmp(&b.fact.id));
+    if rows
+        .windows(2)
+        .any(|pair| pair[0].fact.id == pair[1].fact.id)
+    {
+        return Err(operation_error("INVALID_FACTS", "计量身份重复"));
+    }
     for (index, row) in rows.iter().enumerate() {
         if let Some(thread) = &row.fact.thread_id {
             memory_turns
@@ -1059,6 +1072,49 @@ mod tests {
         }
     }
     #[test]
+    fn compact_live_indices_preserve_order_and_old_revision() {
+        let root = tempfile::tempdir().unwrap();
+        let prices = crate::pricing_sync::current_at(root.path()).unwrap();
+        let mut collected = fixture();
+        let mut other = collected.measurements[0].as_ref().clone();
+        other.id = "measurement-z".into();
+        collected.measurements.insert(0, other.into());
+        let first = memory(collected.clone(), "live:a:one".into(), prices.clone(), None).unwrap();
+        let old = first.turn("thread-a", "turn-a").unwrap();
+        assert_eq!(
+            old.measurements
+                .iter()
+                .map(|r| r.fact.tokens.total.unwrap())
+                .sum::<u64>(),
+            220
+        );
+        let fact = Arc::make_mut(&mut collected.measurements[0]);
+        fact.tokens.input = Some(200);
+        fact.tokens.raw_input = Some(200);
+        fact.tokens.total = Some(210);
+        let second = memory(collected.clone(), "live:a:two".into(), prices, Some(&first)).unwrap();
+        let new = second.turn("thread-a", "turn-a").unwrap();
+        assert_eq!(
+            new.measurements
+                .iter()
+                .map(|r| r.fact.tokens.total.unwrap())
+                .sum::<u64>(),
+            320
+        );
+        assert_eq!(
+            first.turn("thread-a", "turn-a").unwrap().measurements[1]
+                .fact
+                .tokens
+                .total,
+            Some(110)
+        );
+        let a = first.live_rows.as_ref().unwrap();
+        let b = second.live_rows.as_ref().unwrap();
+        assert!(Arc::ptr_eq(&a[0], &b[0]));
+        assert!(Arc::ptr_eq(&collected.measurements[0], &b[1].fact));
+    }
+
+    #[test]
     fn immutable_generation_and_exact_turn_read() {
         let root = tempfile::tempdir().unwrap();
         let old = save_at(root.path(), fixture()).unwrap();
@@ -1122,7 +1178,7 @@ mod tests {
         fs::write(&path, &bytes).unwrap();
         let loaded = load_legacy(&path).unwrap();
         let records = loaded.ledger().unwrap();
-        assert_eq!(records[0].price.policy, "legacy_recorded");
+        assert_eq!(records[0].price.policy.as_ref(), "legacy_recorded");
         assert_eq!(records[0].price.cost, None);
         assert_eq!(records[0].price.known_cost, "1.2345");
         assert!(
@@ -1163,7 +1219,7 @@ mod tests {
             .unwrap();
             let result = crate::usage_app::execute(request).unwrap();
             assert_eq!(result.summary.tokens.total, Some(110));
-            assert_eq!(result.summary.price.policy, "legacy_recorded");
+            assert_eq!(result.summary.price.policy.as_ref(), "legacy_recorded");
             assert_eq!(result.items.len(), 1);
         }
         assert_eq!(fs::read(path).unwrap(), bytes);
@@ -1243,6 +1299,6 @@ mod tests {
         let sum = crate::usage_app::summarize(&rows.iter().collect::<Vec<_>>()).unwrap();
         assert_eq!(sum.tokens.total, Some(130));
         assert_eq!(sum.price.cost.as_deref(), Some("3"));
-        assert_eq!(sum.price.policy, "legacy_recorded");
+        assert_eq!(sum.price.policy.as_ref(), "legacy_recorded");
     }
 }

@@ -603,6 +603,18 @@ fn usage_items(
     }
     Ok(items)
 }
+fn group_measurements<'a>(
+    rows: &[&'a PricedMeasurement],
+    key: impl Fn(&'a PricedMeasurement) -> Option<&'a str>,
+) -> BTreeMap<&'a str, Vec<&'a PricedMeasurement>> {
+    let mut grouped = BTreeMap::<_, Vec<_>>::new();
+    for &row in rows {
+        if let Some(id) = key(row) {
+            grouped.entry(id).or_default().push(row);
+        }
+    }
+    grouped
+}
 fn thread_items(
     snapshot: &Snapshot,
     rows: &[&PricedMeasurement],
@@ -617,6 +629,8 @@ fn thread_items(
         || request.scope.model_unknown == Some(true)
         || request.scope.effort_unknown == Some(true)
         || request.scope.undated == Some(true);
+    let full_by_thread = group_measurements(rows, |r| r.fact.thread_id.as_deref());
+    let matched_by_thread = group_measurements(selected, |r| r.fact.thread_id.as_deref());
     let mut result = vec![];
     for entry in &snapshot.manifest.threads {
         let t = &entry.thread;
@@ -659,20 +673,18 @@ fn thread_items(
         {
             continue;
         }
-        let matched = selected
-            .iter()
-            .copied()
-            .filter(|r| r.fact.thread_id.as_ref() == Some(&t.id))
-            .collect::<Vec<_>>();
+        let matched = matched_by_thread
+            .get(t.id.as_str())
+            .map(Vec::as_slice)
+            .unwrap_or_default();
         if scoped && matched.is_empty() {
             continue;
         }
-        let full = rows
-            .iter()
-            .copied()
-            .filter(|r| r.fact.thread_id.as_ref() == Some(&t.id))
-            .collect::<Vec<_>>();
-        let (models, reasoning_efforts) = dimensions(&full);
+        let full = full_by_thread
+            .get(t.id.as_str())
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let (models, reasoning_efforts) = dimensions(full);
         result.push(Item::Thread {
             id: t.id.clone(),
             agent_kind: t.agent_kind.clone(),
@@ -683,8 +695,8 @@ fn thread_items(
             last_activity_at: t.last_activity_at.clone(),
             models,
             reasoning_efforts,
-            matched_usage: summarize(&matched)?,
-            thread_usage: summarize(&full)?,
+            matched_usage: summarize(matched)?,
+            thread_usage: summarize(full)?,
         });
     }
     result.sort_by(|a, b| {
@@ -738,21 +750,25 @@ fn turn_items(
             "旧快照没有轮次明细，请更新用量",
         ));
     }
+    let full_by_turn = group_measurements(full, |r| {
+        Some(r.fact.turn_id.as_deref().unwrap_or("unassigned"))
+    });
+    let matched_by_turn = group_measurements(selected, |r| {
+        Some(r.fact.turn_id.as_deref().unwrap_or("unassigned"))
+    });
     let mut result = vec![];
     for (turn_id, turn) in &entry.turns {
-        let current = full
-            .iter()
-            .copied()
-            .filter(|r| r.fact.turn_id.as_deref().unwrap_or("unassigned") == turn_id)
-            .collect::<Vec<_>>();
-        let matched = selected
-            .iter()
-            .copied()
-            .filter(|r| r.fact.turn_id.as_deref().unwrap_or("unassigned") == turn_id)
-            .collect::<Vec<_>>();
-        let usage = summarize(&current)?;
+        let current = full_by_turn
+            .get(turn_id.as_str())
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let matched = matched_by_turn
+            .get(turn_id.as_str())
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let usage = summarize(current)?;
         let ratio = share(usage.tokens.total, total.tokens.total);
-        let (models, reasoning_efforts) = dimensions(&current);
+        let (models, reasoning_efforts) = dimensions(current);
         result.push(Item::Turn {
             id: turn_id.clone(),
             thread_id: id.into(),
@@ -767,7 +783,7 @@ fn turn_items(
             models,
             reasoning_efforts,
             usage,
-            matched_usage: summarize(&matched)?,
+            matched_usage: summarize(matched)?,
             share: ratio,
         });
     }

@@ -377,8 +377,8 @@ mod tests {
             "synthetic",
         );
         assert_eq!(priced.cost.as_deref(), Some("0.4125"));
-        assert_eq!(priced.price_revision, catalog.revision);
-        assert_eq!(priced.basis[0].source, SOURCE);
+        assert_eq!(priced.price_revision.as_ref(), catalog.revision);
+        assert_eq!(priced.basis[0].source.as_ref(), SOURCE);
         let long = TokenUsage {
             input: Some(230_000),
             raw_input: Some(290_000),

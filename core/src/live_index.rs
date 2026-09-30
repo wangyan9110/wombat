@@ -159,3 +159,9 @@ pub(crate) fn replace_field<'a, T: serde::Serialize + 'a>(
     }
     Ok(())
 }
+
+pub(crate) fn remove(db: &Connection, scope: &str, field: &str, id: &str) -> Result<()> {
+    db.prepare_cached("DELETE FROM kv WHERE scope=?1 AND key=?2")?
+        .execute(params![scope, serde_json::to_string(&(field, id))?])?;
+    Ok(())
+}

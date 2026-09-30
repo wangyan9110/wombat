@@ -1117,9 +1117,10 @@ fn live_cached_operations_keep_old_views_and_restart_equivalence() {
         .remove(0);
     let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
     let mut cache = incremental::Cache::default();
-    let (first, dirty) = incremental::sync_cached(&db, &source, false, &mut cache)
+    let synced = incremental::sync_cached(&db, &source, false, &mut cache)
         .unwrap()
         .unwrap();
+    let (first, dirty) = (synced.collected, synced.operations);
     assert!(dirty.is_none());
     let old_status = first.operations[0].status.clone();
     let mut file = fs::OpenOptions::new().append(true).open(path).unwrap();
@@ -1129,15 +1130,17 @@ fn live_cached_operations_keep_old_views_and_restart_equivalence() {
         direct("t", "u", "r2", "2026-09-29T00:00:02Z", 100, 60, 10)
     )
     .unwrap();
-    let (second, dirty) = incremental::sync_cached(&db, &source, false, &mut cache)
+    let synced = incremental::sync_cached(&db, &source, false, &mut cache)
         .unwrap()
         .unwrap();
+    let (second, dirty) = (synced.collected, synced.operations);
     assert!(dirty.unwrap().is_empty());
     assert!(Arc::ptr_eq(&first.operations[0], &second.operations[0]));
     writeln!(file,"{}",json!({"type":"response_item","payload":{"type":"function_call_output","call_id":"call","output":{"isError":true,"content":"PRIVATE_OUTPUT"}}})).unwrap();
-    let (third, dirty) = incremental::sync_cached(&db, &source, false, &mut cache)
+    let synced = incremental::sync_cached(&db, &source, false, &mut cache)
         .unwrap()
         .unwrap();
+    let (third, dirty) = (synced.collected, synced.operations);
     assert_eq!(dirty.unwrap().len(), 1);
     assert_eq!(third.operations[0].status, "failed");
     assert_eq!(first.operations[0].status, old_status);
@@ -1148,7 +1151,24 @@ fn live_cached_operations_keep_old_views_and_restart_equivalence() {
         direct("t", "u", "r3", "2026-09-29T00:00:03Z", 100, 60, 10)
     )
     .unwrap();
-    let restart = incremental::sync(&db, &source, false).unwrap().unwrap();
+    let mut restored = incremental::Cache::default();
+    restored.seed(third.measurements.clone(), third.operations.clone());
+    let restart = incremental::sync_cached(&db, &source, false, &mut restored)
+        .unwrap()
+        .unwrap()
+        .collected;
+    assert!(Arc::ptr_eq(&third.operations[0], &restart.operations[0]));
+    let previous = third
+        .measurements
+        .iter()
+        .find(|r| r.response_id.as_deref() == Some("r"))
+        .unwrap();
+    let resumed = restart
+        .measurements
+        .iter()
+        .find(|r| r.id == previous.id)
+        .unwrap();
+    assert!(Arc::ptr_eq(previous, resumed));
     let full = collect(root.path());
     assert_eq!(
         serde_json::to_value(&restart.operations).unwrap(),
@@ -1166,4 +1186,70 @@ fn live_cached_operations_keep_old_views_and_restart_equivalence() {
             .sum::<u64>(),
         330
     );
+}
+
+#[test]
+fn live_projection_delta_retracts_late_legacy_and_preserves_prior_facts() {
+    use std::io::Write;
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    let path = write(
+        root.path(),
+        "sessions/delta.jsonl",
+        &[
+            meta("t"),
+            context("u", "gpt-5.4", "high"),
+            legacy(
+                counts(100, 60, 10),
+                Some(counts(100, 60, 10)),
+                "2026-09-29T00:00:01Z",
+            ),
+        ],
+    );
+    let source = CodexAdapter
+        .discover(&DiscoveryRequest {
+            roots: vec![root.path().into()],
+        })
+        .sources
+        .remove(0);
+    let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    let mut cache = incremental::Cache::default();
+    let first = incremental::sync_cached(&db, &source, false, &mut cache)
+        .unwrap()
+        .unwrap();
+    assert!(first.measurements.is_none());
+    let old = first.collected.measurements[0].clone();
+    let mut file = fs::OpenOptions::new().append(true).open(path).unwrap();
+    writeln!(
+        file,
+        "{}",
+        direct("t", "u", "r", "2026-09-29T00:00:01Z", 100, 60, 10)
+    )
+    .unwrap();
+    let second = incremental::sync_cached(&db, &source, false, &mut cache)
+        .unwrap()
+        .unwrap();
+    let delta = second.measurements.unwrap();
+    assert_eq!(delta.remove, vec![old.id.clone()]);
+    assert_eq!(delta.upsert.len(), 1);
+    assert_eq!(second.collected.measurements.len(), 1);
+    let retained = second.collected.measurements[0].clone();
+    writeln!(
+        file,
+        "{}",
+        direct("t", "u", "r", "2026-09-29T00:00:01Z", 200, 60, 10)
+    )
+    .unwrap();
+    let third = incremental::sync_cached(&db, &source, false, &mut cache)
+        .unwrap()
+        .unwrap();
+    let delta = third.measurements.unwrap();
+    assert!(delta.remove.is_empty());
+    assert_eq!(delta.upsert.len(), 1);
+    assert_eq!(
+        delta.upsert[0].tokens.total, None,
+        "conflicting evidence remains unknown"
+    );
+    assert_eq!(retained.tokens.total, Some(110));
+    assert_eq!(old.tokens.total, Some(110));
 }

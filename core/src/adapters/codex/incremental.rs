@@ -50,9 +50,30 @@ fn boundary(path: &Path, offset: u64) -> Result<String> {
 #[derive(Default)]
 pub(crate) struct Cache {
     facts: Option<Facts>,
+    projected: Option<Vec<Arc<Measurement>>>,
+    seed: Option<ReusableFacts>,
+}
+
+struct ReusableFacts {
+    measurements: Vec<Arc<Measurement>>,
+    operations: Vec<Arc<Operation>>,
 }
 
 impl Cache {
+    pub(crate) fn needs_seed(&self) -> bool {
+        self.facts.is_none() && self.seed.is_none()
+    }
+    pub(crate) fn seed(
+        &mut self,
+        measurements: Vec<Arc<Measurement>>,
+        mut operations: Vec<Arc<Operation>>,
+    ) {
+        operations.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+        self.seed = Some(ReusableFacts {
+            measurements,
+            operations,
+        });
+    }
     pub(crate) fn share_measurements<'a>(
         &mut self,
         rows: impl Iterator<Item = &'a Arc<Measurement>>,
@@ -63,6 +84,12 @@ impl Cache {
                     && candidate.measurement == *row
                 {
                     candidate.measurement = Arc::clone(row);
+                    if let Some(projected) = &mut self.projected
+                        && let Ok(index) = projected.binary_search_by(|m| m.id.cmp(&row.id))
+                        && projected[index] == *row
+                    {
+                        projected[index] = Arc::clone(row);
+                    }
                 }
             }
         }
@@ -75,11 +102,12 @@ pub(crate) fn sync(
     source: &SourceInstance,
     verify: bool,
 ) -> Result<Option<Collected>> {
-    Ok(sync_cached(db, source, verify, &mut Cache::default())?.map(|(value, _)| value))
+    Ok(sync_cached(db, source, verify, &mut Cache::default())?.map(|value| value.collected))
 }
 
-fn load_facts(db: &Connection, scope: &str) -> Result<Facts> {
+fn load_facts(db: &Connection, scope: &str, reuse: Option<&ReusableFacts>) -> Result<Facts> {
     let mut facts = Facts::default();
+    let mut paths = EvidencePaths::default();
     crate::live_index::each(db, scope, |field, id, payload| {
         match field {
             "threads" => {
@@ -93,14 +121,30 @@ fn load_facts(db: &Connection, scope: &str) -> Result<Facts> {
                     .insert(id.into(), serde_json::from_str(payload)?);
             }
             "measurements" => {
-                facts
-                    .measurements
-                    .insert(id.into(), serde_json::from_str(payload)?);
+                let mut candidate: Candidate = serde_json::from_str(payload)?;
+                if let Some(rows) = reuse.map(|r| &r.measurements)
+                    && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
+                    && rows[index] == candidate.measurement
+                {
+                    candidate.measurement = Arc::clone(&rows[index]);
+                }
+                if Arc::strong_count(&candidate.measurement) == 1 {
+                    paths.compact(&mut Arc::make_mut(&mut candidate.measurement).evidence);
+                }
+                facts.measurements.insert(id.into(), candidate);
             }
             "operations" => {
-                facts
-                    .operations
-                    .insert(id.into(), serde_json::from_str(payload)?);
+                let mut operation: Arc<Operation> = serde_json::from_str(payload)?;
+                if let Some(rows) = reuse.map(|r| &r.operations)
+                    && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
+                    && rows[index] == operation
+                {
+                    operation = Arc::clone(&rows[index]);
+                }
+                if Arc::strong_count(&operation) == 1 {
+                    paths.compact(&mut Arc::make_mut(&mut operation).evidence);
+                }
+                facts.operations.insert(id.into(), operation);
             }
             "aliases" => {
                 facts
@@ -132,7 +176,54 @@ fn load_facts(db: &Connection, scope: &str) -> Result<Facts> {
     Ok(facts)
 }
 
-type Synced = (Collected, Option<BTreeSet<String>>);
+pub(crate) struct MeasurementDelta {
+    pub upsert: Vec<Arc<Measurement>>,
+    pub remove: Vec<String>,
+}
+pub(crate) struct Synced {
+    pub collected: Collected,
+    pub operations: Option<BTreeSet<String>>,
+    pub measurements: Option<MeasurementDelta>,
+}
+// Both lists are ID-sorted; reconcile inserts, corrections and retractions in one pass.
+fn projection_delta(old: &[Arc<Measurement>], new: &[Arc<Measurement>]) -> MeasurementDelta {
+    let mut delta = MeasurementDelta {
+        upsert: vec![],
+        remove: vec![],
+    };
+    let (mut left, mut right) = (0, 0);
+    while left < old.len() || right < new.len() {
+        match (old.get(left), new.get(right)) {
+            (Some(a), Some(b)) => match a.id.cmp(&b.id) {
+                std::cmp::Ordering::Less => {
+                    delta.remove.push(a.id.clone());
+                    left += 1;
+                }
+                std::cmp::Ordering::Greater => {
+                    delta.upsert.push(Arc::clone(b));
+                    right += 1;
+                }
+                std::cmp::Ordering::Equal => {
+                    if !Arc::ptr_eq(a, b) && a != b {
+                        delta.upsert.push(Arc::clone(b));
+                    }
+                    left += 1;
+                    right += 1;
+                }
+            },
+            (Some(a), None) => {
+                delta.remove.push(a.id.clone());
+                left += 1;
+            }
+            (None, Some(b)) => {
+                delta.upsert.push(Arc::clone(b));
+                right += 1;
+            }
+            (None, None) => break,
+        }
+    }
+    delta
+}
 pub(crate) fn sync_cached(
     db: &Connection,
     source: &SourceInstance,
@@ -205,7 +296,7 @@ pub(crate) fn sync_cached(
             "sourceMissing",
             "已索引的日志不可用，保留已观察用量",
             Some(EvidenceRef {
-                file: path.clone(),
+                file: path.as_str().into(),
                 line: 0,
             }),
         );
@@ -219,8 +310,9 @@ pub(crate) fn sync_cached(
     let fact_scope = format!("{scope}:facts");
     let mut facts = match cache.facts.take() {
         Some(facts) => facts,
-        None => load_facts(db, &fact_scope)?,
+        None => load_facts(db, &fact_scope, cache.seed.as_ref())?,
     };
+    cache.seed = None;
     let prior_migrations = facts.migrated.clone();
     facts.dirty_operations.clear();
     facts.dirty_measurements.clear();
@@ -234,10 +326,10 @@ pub(crate) fn sync_cached(
                 && c.measurement
                     .evidence
                     .iter()
-                    .all(|e| missing.contains(&e.file))
+                    .all(|e| missing.contains(e.file.as_ref()))
         });
         facts.operations.retain(|_, o| {
-            !o.evidence.is_empty() && o.evidence.iter().all(|e| missing.contains(&e.file))
+            !o.evidence.is_empty() && o.evidence.iter().all(|e| missing.contains(e.file.as_ref()))
         });
         let retained_threads: BTreeSet<_> = facts
             .measurements
@@ -372,7 +464,17 @@ pub(crate) fn sync_cached(
     }
     result.issues.extend(report.issues.iter().cloned());
     result.sources.push(report);
-    Ok(Some((result, changed_operations)))
+    result.measurements.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+    let measurements = cache
+        .projected
+        .as_ref()
+        .map(|old| projection_delta(old, &result.measurements));
+    cache.projected = Some(result.measurements.clone());
+    Ok(Some(Synced {
+        collected: result,
+        operations: changed_operations,
+        measurements,
+    }))
 }
 
 fn facts_empty_marker(result: &Collected) -> bool {

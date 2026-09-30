@@ -37,7 +37,7 @@ pub struct ModelRef {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct EvidenceRef {
-    pub file: String,
+    pub file: Arc<str>,
     pub line: u64,
 }
 
@@ -142,7 +142,7 @@ pub struct Measurement {
     pub evidence: Vec<EvidenceRef>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Operation {
     pub id: String,
@@ -239,4 +239,19 @@ pub trait AgentAdapter: Send + Sync {
         context: &RunContext,
         sink: &mut dyn FactSink,
     ) -> SourceReport;
+}
+
+/// Source paths repeat across every record; keep one allocation per observed path.
+#[derive(Default)]
+pub(crate) struct EvidencePaths(std::collections::BTreeSet<Arc<str>>);
+impl EvidencePaths {
+    pub(crate) fn compact(&mut self, evidence: &mut [EvidenceRef]) {
+        for item in evidence {
+            if let Some(path) = self.0.get(item.file.as_ref()) {
+                item.file = Arc::clone(path);
+            } else {
+                self.0.insert(Arc::clone(&item.file));
+            }
+        }
+    }
 }

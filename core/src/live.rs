@@ -141,6 +141,7 @@ fn source_key(roots: &[String]) -> String {
 }
 fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Option<Collected>> {
     let mut value = Collected::default();
+    let mut paths = EvidencePaths::default();
     let found = crate::live_index::each(db, &format!("projection:{key}"), |field, id, payload| {
         macro_rules! rows {
             ($name:ident) => {
@@ -163,9 +164,15 @@ fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Option<Collect
             }
             "measurements" => {
                 rows!(measurements);
+                if let Some(row) = value.measurements.last_mut() {
+                    paths.compact(&mut Arc::make_mut(row).evidence);
+                }
             }
             "operations" => {
                 rows!(operations);
+                if let Some(row) = value.operations.last_mut() {
+                    paths.compact(&mut Arc::make_mut(row).evidence);
+                }
             }
             "issues" => {
                 value.issues = serde_json::from_str(payload)?;
@@ -202,12 +209,19 @@ fn sync(
     let mut epochs = BTreeMap::new();
     let mut updated = BTreeMap::new();
     for source in &discovered.sources {
-        if let Some((value, dirty_operations)) = adapters::codex::incremental::sync_cached(
-            &tx,
-            source,
-            verify,
-            caches.entry(source.id.clone()).or_default(),
-        )? {
+        let cache = caches.entry(source.id.clone()).or_default();
+        if cache.needs_seed()
+            && let Some(prior) = prior_view
+        {
+            cache.seed(
+                prior.measurement_facts().cloned().collect(),
+                prior.operation_facts().cloned().collect(),
+            );
+        }
+
+        if let Some(synced) = adapters::codex::incremental::sync_cached(&tx, source, verify, cache)?
+        {
+            let value = synced.collected;
             let scope = format!("projection:{}", source.id);
             crate::live_index::replace_field(
                 &tx,
@@ -227,9 +241,18 @@ fn sync(
             }
             save!(threads);
             save!(turns);
-            save!(measurements);
+            if let Some(delta) = synced.measurements {
+                for row in delta.upsert {
+                    crate::live_index::put(&tx, &scope, "measurements", &row.id, &row)?;
+                }
+                for id in delta.remove {
+                    crate::live_index::remove(&tx, &scope, "measurements", &id)?;
+                }
+            } else {
+                save!(measurements);
+            }
             crate::live_index::put(&tx, &scope, "issues", "", &value.issues)?;
-            if let Some(dirty) = dirty_operations {
+            if let Some(dirty) = synced.operations {
                 for operation in &value.operations {
                     if dirty.contains(&operation.id) {
                         crate::live_index::put(

@@ -886,6 +886,7 @@ fn read_file_from(
     report: &mut SourceReport,
     mut checkpoint: Option<&mut incremental::Checkpoint>,
 ) {
+    let evidence_path: Arc<str> = path.to_string_lossy().as_ref().into();
     let mut file = match File::open(path) {
         Ok(file) => file,
         Err(_) => {
@@ -894,7 +895,7 @@ fn read_file_from(
                 "sourceUnreadable",
                 "无法读取日志文件",
                 Some(EvidenceRef {
-                    file: path.to_string_lossy().into_owned(),
+                    file: Arc::clone(&evidence_path),
                     line: 0,
                 }),
             );
@@ -950,7 +951,7 @@ fn read_file_from(
                 "incompleteTail",
                 "日志尾行尚未写完",
                 Some(EvidenceRef {
-                    file: path.to_string_lossy().into_owned(),
+                    file: Arc::clone(&evidence_path),
                     line: line_number + 1,
                 }),
             );
@@ -967,7 +968,7 @@ fn read_file_from(
         consumed += row.bytes().len() as u64;
         report.bytes_read += row.bytes().len() as u64;
         let evidence = EvidenceRef {
-            file: path.to_string_lossy().into_owned(),
+            file: Arc::clone(&evidence_path),
             line: line_number,
         };
         if row.bytes().iter().all(u8::is_ascii_whitespace) {

@@ -31,7 +31,7 @@ fn official_short_request_has_exact_independent_category_amounts() {
             .collect::<Vec<_>>(),
         [Some("0.175"), Some("0.00875"), Some("0"), Some("0.14")]
     );
-    assert_eq!(result.status, "priced");
+    assert_eq!(result.status.as_ref(), "priced");
 }
 
 #[test]
@@ -47,8 +47,8 @@ fn current_codex_models_use_verified_standard_and_long_context_rates() {
         let short = price(&model(name), &sample);
         assert_eq!(short.cost.as_deref(), Some(expected_short), "{name}");
         let long = price(&model(name), &tokens(230_000, 50_000, 10_000, 20_000));
-        assert_eq!(long.status, "priced", "{name}");
-        assert_eq!(long.basis[0].condition, "longContext", "{name}");
+        assert_eq!(long.status.as_ref(), "priced", "{name}");
+        assert_eq!(long.basis[0].condition.as_ref(), "longContext", "{name}");
         assert_eq!(
             long.components[0].rate_per_million.as_deref(),
             Some(match name {
@@ -66,11 +66,11 @@ fn current_codex_models_use_verified_standard_and_long_context_rates() {
 fn long_context_boundary_is_strict_and_applies_to_entire_request() {
     let at = price(&model("gpt-5.4"), &tokens(222_000, 50_000, 0, 10_000));
     assert_eq!(at.cost.as_deref(), Some("0.7175"));
-    assert_eq!(at.basis[0].condition, "standard");
+    assert_eq!(at.basis[0].condition.as_ref(), "standard");
     let over = price(&model("gpt-5.4"), &tokens(222_001, 50_000, 0, 10_000));
     // 222001*5/1M + 50000*.5/1M + 10000*22.5/1M, not a marginal tier.
     assert_eq!(over.cost.as_deref(), Some("1.360005"));
-    assert_eq!(over.basis[0].condition, "longContext");
+    assert_eq!(over.basis[0].condition.as_ref(), "longContext");
     assert_eq!(over.basis[0].request_input_tokens, Some(272_001));
 }
 
@@ -81,7 +81,10 @@ fn reasoning_is_a_subset_and_never_charged_twice() {
     usage.reasoning = Some(25);
     assert_eq!(price(&model("gpt-5.3-codex"), &usage).cost, baseline.cost);
     usage.reasoning = Some(31);
-    assert_eq!(price(&model("gpt-5.3-codex"), &usage).status, "unknown");
+    assert_eq!(
+        price(&model("gpt-5.3-codex"), &usage).status.as_ref(),
+        "unknown"
+    );
 }
 
 #[test]
@@ -104,9 +107,14 @@ fn unscoped_cumulative_difference_does_not_invent_long_context_tier() {
             request_scoped: false,
         },
     );
-    assert_eq!(result.status, "unknown");
+    assert_eq!(result.status.as_ref(), "unknown");
     assert!(result.cost.is_none());
-    assert!(result.issues.iter().any(|i| i == "requestContextUnknown"));
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|i| i.as_ref() == "requestContextUnknown")
+    );
     // A constant-price model can still price an aggregate.
     let result = price_with_context(
         &model("gpt-5.3-codex"),
@@ -123,21 +131,21 @@ fn missing_category_unknown_model_and_zero_are_distinct() {
     let mut usage = tokens(100, 0, 0, 20);
     usage.cache_create = None;
     let partial = price(&model("gpt-5.3-codex"), &usage);
-    assert_eq!(partial.status, "partial");
+    assert_eq!(partial.status.as_ref(), "partial");
     assert!(partial.cost.is_none());
     assert_eq!(partial.known_cost, "0.000455");
     let unknown = price(&model("gpt-unverified"), &tokens(100, 0, 0, 20));
-    assert_eq!(unknown.status, "unknown");
+    assert_eq!(unknown.status.as_ref(), "unknown");
     assert!(unknown.cost.is_none());
     let zero = price(&model("gpt-unverified"), &tokens(0, 0, 0, 0));
-    assert_eq!(zero.status, "priced");
+    assert_eq!(zero.status.as_ref(), "priced");
     assert_eq!(zero.cost.as_deref(), Some("0"));
 }
 
 #[test]
 fn cache_write_without_official_rate_remains_unpriced() {
     let result = price(&model("gpt-5.3-codex"), &tokens(100, 0, 3, 20));
-    assert_eq!(result.status, "partial");
+    assert_eq!(result.status.as_ref(), "partial");
     assert_eq!(result.known_cost, "0.000455");
     assert!(result.components[2].cost.is_none());
 }
@@ -148,10 +156,10 @@ fn official_snapshot_aliases_are_explicit_no_fuzzy_model_matching() {
     let canonical = price(&model("gpt-5.4"), &usage);
     let dated = price(&model("gpt-5.4-2026-03-05"), &usage);
     assert_eq!(dated.cost, canonical.cost);
-    assert_eq!(dated.basis[0].match_method, "officialSnapshot");
+    assert_eq!(dated.basis[0].match_method.as_ref(), "officialSnapshot");
     let mini = price(&model("gpt-5.4-mini-2026-03-17"), &usage);
     assert_eq!(mini.cost.as_deref(), Some("0.0012"));
-    assert_eq!(mini.basis[0].match_method, "officialSnapshot");
+    assert_eq!(mini.basis[0].match_method.as_ref(), "officialSnapshot");
     for name in [
         "gpt-5.4-fast",
         "GPT-5.4",
@@ -159,21 +167,31 @@ fn official_snapshot_aliases_are_explicit_no_fuzzy_model_matching() {
         "proxy/gpt-5.4",
         "gpt-5.4 ",
     ] {
-        assert_eq!(price(&model(name), &usage).status, "unknown", "{name}");
+        assert_eq!(
+            price(&model(name), &usage).status.as_ref(),
+            "unknown",
+            "{name}"
+        );
     }
     let mut fake_alias = model("other-model");
     fake_alias.pricing_model = Some("gpt-5.4".into());
-    assert_eq!(price(&fake_alias, &usage).status, "unknown");
+    assert_eq!(price(&fake_alias, &usage).status.as_ref(), "unknown");
 }
 
 #[test]
 fn explicit_other_provider_does_not_borrow_openai_price() {
     let mut reference = model("gpt-5.4");
     reference.provider = Some("other".into());
-    assert_eq!(price(&reference, &tokens(100, 0, 0, 1)).status, "unknown");
+    assert_eq!(
+        price(&reference, &tokens(100, 0, 0, 1)).status.as_ref(),
+        "unknown"
+    );
     reference.provider = Some("openai".into());
     reference.api_provider = Some("proxy".into());
-    assert_eq!(price(&reference, &tokens(100, 0, 0, 1)).status, "unknown");
+    assert_eq!(
+        price(&reference, &tokens(100, 0, 0, 1)).status.as_ref(),
+        "unknown"
+    );
 }
 
 #[test]
@@ -184,10 +202,10 @@ fn aggregate_preserves_partial_unknown_and_exact_sub_cent_amounts() {
     assert_eq!(many.cost.as_deref(), Some("0.00175"));
     let unknown = price(&model("unverified"), &tokens(0, 100, 0, 0));
     let partial = sum_prices([&many, &unknown]).unwrap();
-    assert_eq!(partial.status, "partial");
+    assert_eq!(partial.status.as_ref(), "partial");
     assert!(partial.cost.is_none());
     assert_eq!(partial.known_cost, "0.00175");
-    assert_eq!(sum_prices([&unknown]).unwrap().status, "unknown");
+    assert_eq!(sum_prices([&unknown]).unwrap().status.as_ref(), "unknown");
     assert_eq!(sum_prices([]).unwrap().cost.as_deref(), Some("0"));
 }
 
@@ -195,13 +213,13 @@ fn aggregate_preserves_partial_unknown_and_exact_sub_cent_amounts() {
 fn legacy_amount_never_becomes_official_or_mixes_policies() {
     let old = legacy_price(Some("12.3400")).unwrap();
     assert_eq!(old.cost.as_deref(), Some("12.34"));
-    assert_eq!(old.policy, "legacy_recorded");
+    assert_eq!(old.policy.as_ref(), "legacy_recorded");
     assert_eq!(
         sum_prices([&old, &old]).unwrap().cost.as_deref(),
         Some("24.68")
     );
     let missing = legacy_price(None).unwrap();
-    assert_eq!(missing.status, "unknown");
+    assert_eq!(missing.status.as_ref(), "unknown");
     let modern = price(&model("gpt-5.4"), &tokens(100, 0, 0, 1));
     assert!(sum_prices([&old, &modern]).is_err());
     assert!(legacy_price(Some("NaN")).is_err());
@@ -212,7 +230,7 @@ fn legacy_amount_never_becomes_official_or_mixes_policies() {
 fn invalid_counts_and_overflow_fail_without_fabricating_amounts() {
     let mut usage = tokens(100, 20, 0, 10);
     usage.total = Some(100);
-    assert_eq!(price(&model("gpt-5.4"), &usage).status, "unknown");
+    assert_eq!(price(&model("gpt-5.4"), &usage).status.as_ref(), "unknown");
     let mut amount = legacy_price(Some("79228162514264337593543950335")).unwrap();
     assert!(sum_prices([&amount, &amount]).is_err());
     amount.known_cost = "bad".into();
@@ -243,7 +261,7 @@ fn persisted_price_replays_without_catalog_recalculation() {
     let decoded: PriceResult = serde_json::from_str(&encoded).unwrap();
     let summary = sum_prices([&decoded]).unwrap();
     assert_eq!(summary.cost.as_deref(), Some("0.53"));
-    assert_eq!(summary.price_revision, "prior-catalog");
+    assert_eq!(summary.price_revision.as_ref(), "prior-catalog");
 }
 
 #[test]
@@ -275,4 +293,25 @@ fn catalog_pins_supported_rates_aliases_and_auditable_metadata() {
             }
         }
     }
+}
+
+#[test]
+fn shared_price_metadata_keeps_exact_amounts_and_serialization() {
+    let mut first = price(&model("gpt-5.4"), &tokens(100, 20, 0, 10));
+    let mut second = price(&model("gpt-5.4"), &tokens(200, 30, 0, 20));
+    let original = serde_json::to_value([&first, &second]).unwrap();
+    let mut strings = PriceStrings::default();
+    strings.compact(&mut first);
+    strings.compact(&mut second);
+    assert_eq!(serde_json::to_value([&first, &second]).unwrap(), original);
+    assert!(Arc::ptr_eq(&first.basis[0].source, &second.basis[0].source));
+    assert!(Arc::ptr_eq(
+        &first.components[0].category,
+        &second.components[0].category
+    ));
+    assert_ne!(first.cost, second.cost);
+    assert_ne!(
+        first.basis[0].request_input_tokens,
+        second.basis[0].request_input_tokens
+    );
 }

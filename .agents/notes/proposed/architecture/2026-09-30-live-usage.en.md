@@ -10,6 +10,8 @@ This note retains the full target, which is not fully implemented. Resumable cur
 
 To reuse verified accounting and queries, a changed source still undergoes source-wide candidate reconciliation. SQLite writes changed candidate/projection entries; in-memory read revisions share unchanged facts, retaining at most eight revisions for up to ten minutes. Persistent MVCC, dependency-closure reconciliation and database aggregation remain unimplemented. Existing v3 snapshot queries remain available; a separate live v1 envelope adds freshness to results. Clients poll through narrow typed operations, with no generic command interface. File notifications and periodic reconciliation coexist; full verification currently requires explicit refresh --verify. The million-measurement, 256MiB and 24-hour targets remain unverified; small-corpus results do not establish them. See the [performance record](../../../../docs/benchmarks/live-usage-2026-09-30.json).
 
+To reduce both copying and computation, append processing shares parser facts, pricing descriptions and evidence paths. Read revisions use sorted row vectors and positional turn indices; parser-cache restoration reuses committed facts. Queries group rows by thread or turn before aggregation, and sorted projection differences commit corrections and retractions. The eight-revision/ten-minute retention rule remains. Source-wide reconciliation still scales with history; database aggregation and persistent MVCC remain future targets.
+
 ## Problem
 
 The user requires fresh usage on opening the application and fast automatic updates during use. Three constraints exist today:
