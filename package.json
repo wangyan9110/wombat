@@ -34,7 +34,9 @@
     "docs/support-matrix.md",
     "docs/terminal.md",
     "docs/dependency-licenses.json",
-    "docs/schemas/"
+    "docs/schemas/",
+    "docs/i18n/product.md",
+    "docs/i18n/product.en.md"
   ],
   "scripts": {
     "dev": "node --import tsx cli/src/index.ts",
@@ -49,12 +51,12 @@
     "contracts:generate": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs",
     "contracts:check": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs --check",
     "skills:check": "node scripts/check-skills.mjs",
-    "notes:check": "node scripts/check-agent-notes.mjs",
+    "notes:check": "node scripts/check-decisions.mjs",
     "docs:budget": "node scripts/check-doc-budgets.mjs",
     "docs:i18n:check": "node scripts/check-doc-i18n.mjs",
     "docs:i18n:record": "node scripts/check-doc-i18n.mjs --write",
     "docs:check": "pnpm run skills:check && pnpm run notes:check && pnpm run docs:budget && pnpm run docs:i18n:check && pnpm run public:check",
-    "repo:check": "pnpm run docs:check && node scripts/check-module-boundaries.mjs",
+    "repo:check": "pnpm run docs:check && node scripts/check-module-boundaries.mjs && pnpm run i18n:check && pnpm run test:repo",
     "licenses:generate": "node scripts/dependency-licenses.mjs",
     "licenses:check": "node scripts/dependency-licenses.mjs --check",
     "public:check": "node scripts/check-public-release.mjs",
@@ -62,7 +64,9 @@
     "release:check": "node scripts/check-release.mjs",
     "package:bundle": "node scripts/create-release-bundle.mjs",
     "release:bundle": "node scripts/check-release.mjs && node scripts/create-release-bundle.mjs",
-    "npm:pack": "node scripts/prepare-npm-package.mjs"
+    "npm:pack": "node scripts/prepare-npm-package.mjs",
+    "i18n:check": "node scripts/check-ui-i18n.mjs",
+    "test:repo": "node --test scripts/*.test.mjs"
   },
   "dependencies": {
     "@opentui/core": "0.5.12",
@@ -77,6 +81,9 @@
     "ajv": "8.17.1",
     "esbuild": "^0.25.0",
     "json-schema-to-typescript": "15.0.4",
+    "mdast-util-from-markdown": "2.0.2",
+    "mdast-util-gfm": "3.1.0",
+    "micromark-extension-gfm": "3.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   },

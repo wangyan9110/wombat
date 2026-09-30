@@ -51,7 +51,7 @@ async function fixture() {
     { id: 'alpha', thread_name: 'Alpha 合成对话', updated_at: '2026-09-29T00:31:00Z' },
     { id: 'beta', thread_name: 'Beta 合成对话', updated_at: '2026-09-29T01:00:02Z' },
   ]));
-  const env: NodeJS.ProcessEnv = { ...process.env, WOMBAT_DATA_HOME: data, CODEX_HOME: source, NO_COLOR: '1' };
+  const env: NodeJS.ProcessEnv = { ...process.env, WOMBAT_LANG: 'zh', WOMBAT_DATA_HOME: data, CODEX_HOME: source, NO_COLOR: '1' };
   delete env.WOMBAT_CORE_BIN;
   const run = (args: string[], json = true) => {
     const result = spawnSync(process.execPath, [entry, ...args, ...(json ? ['--json'] : [])], {
@@ -189,5 +189,26 @@ test('real CLI partial sources, failed refresh and corrupted snapshot have expli
     const corrupt = f.run(['usage', ...dates, '--snapshot', retained.value.snapshotRef.snapshotId]);
     assert.equal(corrupt.code, 1);
     assert.equal(corrupt.value.error.code, 'SNAPSHOT_CORRUPT');
+  } finally { await f.cleanup(); }
+});
+
+test('language changes presentation while real core data and source titles stay unchanged', async () => {
+  const f = await fixture();
+  try {
+    const initial = f.run(['usage', ...dates]);
+    const args = ['threads', '--snapshot', initial.value.snapshotRef.snapshotId];
+    const zh = f.run([...args, '--lang=zh']);
+    const en = f.run(['--lang', 'en', ...args]);
+    assert.equal(zh.code, en.code);
+    for (const field of ['summary', 'items', 'scope', 'page', 'snapshotRef', 'quality']) assert.deepEqual(en.value[field], zh.value[field]);
+    assert.equal(en.value.items[0].title, zh.value.items[0].title);
+    const plain = f.run(['usage', ...dates, '--lang=en'], false);
+    assert.match(plain.stdout, /Wombat · Usage/);
+    assert.match(plain.stdout, /Cost unknown/);
+    const help = f.run(['--help', '--lang=en'], false);
+    assert.match(help.stdout, /Usage/); assert.match(help.stdout, /wombat threads/);
+    const invalid = f.run(['usage', '--lang=en', '--unknown']);
+    assert.equal(invalid.value.error.code, 'INVALID_ARGUMENT');
+    assert.match(invalid.value.error.message, /Unknown option/);
   } finally { await f.cleanup(); }
 });

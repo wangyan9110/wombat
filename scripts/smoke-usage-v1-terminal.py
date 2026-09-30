@@ -101,10 +101,24 @@ with tempfile.TemporaryDirectory(prefix='wombat-v1-pty-') as temporary:
     event('event_msg',{'type':'task_complete','turn_id':'synthetic-turn'},5)
     (sessions/'rollout-synthetic.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in events))
     (codex/'session_index.jsonl').write_text(json.dumps({'id':'synthetic-thread','thread_name':'终端验收样本','updated_at':f'{day}T12:01:00Z'})+'\n')
-    env={**os.environ,'CODEX_HOME':str(codex),'WOMBAT_DATA_HOME':str(folder/'data'),'TERM':'xterm-256color','WOMBAT_THEME':'forest'}
+    env={**os.environ,'WOMBAT_LANG':'zh','CODEX_HOME':str(codex),'WOMBAT_DATA_HOME':str(folder/'data'),'TERM':'xterm-256color','WOMBAT_THEME':'forest'}
     env.pop('NO_COLOR',None)
     refresh=subprocess.run([NODE,str(ENTRY),'refresh','--root',str(codex),'--json'],env=env,cwd=ROOT,capture_output=True,text=True)
     assert refresh.returncode in (0,2),refresh.stderr+refresh.stdout
+    for width,height in [(40,24),(80,24),(120,32)]:
+        terminal=Terminal(env,width,height,['--lang','en'])
+        try:
+            terminal.expect('Daily report')
+            terminal.key('l','日报')
+            terminal.key('l','Daily report')
+            terminal.key('g','Weekly report')
+            terminal.key('2','Conversations')
+            terminal.expect('终端验收样本')
+            terminal.key('f','Filters')
+            terminal.key('\x1b','Conversations')
+            terminal.key('q');terminal.finish(0)
+            checks.append({'columns':width,'rows':height,'journey':'English launch → Chinese → English → weekly report → source title → filters → quit','terminalRestored':True})
+        finally:terminal.close()
     for width,height in [(40,14),(80,24),(120,32)]:
         terminal=Terminal(env,width,height)
         try:

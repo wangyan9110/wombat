@@ -1,4 +1,17 @@
 {
-  "zh": "3487ad04bfe0e5e6942add59c41b63500eaa1e2b15c05de6d641e4f3f925686c",
-  "en": "e22e6c59928a3ac5d19b5a78d75ab3fec80bd113d1ead560613ba0ac2f3449c7"
+  "version": 2,
+  "sections": {
+    "/opentui-terminal-interface": {
+      "zh": "b70656d4c0502e8fcb8f81de9fefa18cdaaf653c3c0de8f6937e25c90bb968fa",
+      "en": "6cd45805cfe77a62587180b4f850bd3d64899cde04fccd65bd0f9cacf0d61079"
+    },
+    "/opentui-terminal-interface/public-entry": {
+      "zh": "6f5072e025c929136adc121a0661c2a8c9acacdf2cb8ebcc59a8d9dee0a8bb7b",
+      "en": "3c9e6c01e65a4cacc76b8e85b1016754e27cf2aab49ee0462652a18c075c70de"
+    },
+    "/opentui-terminal-interface/limits-and-verification": {
+      "zh": "60afd4ec666d57fe6d778dc2db0484bcbd2eb3670131342e0c9fdd97ab9a5bbe",
+      "en": "1600d63ad5f2d43f403f954365a60e14cb68b3fbc50888fc438f9d1f45ca99dd"
+    }
+  }
 }

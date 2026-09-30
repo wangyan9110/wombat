@@ -42,6 +42,7 @@ export interface Frame {
   totalCells?: TableCell[];
   controls?: string;
   controlOptions?: string[];
+  controlKind?: 'group' | 'sort';
   activeControl?: string;
   context?: Array<{ text: string; summary?: boolean }>;
   total?: string;

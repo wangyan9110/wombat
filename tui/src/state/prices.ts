@@ -1,3 +1,4 @@
+import { t } from '@wombat/client/locale';
 import { CoreError, type UsageClient, type PricingResult } from '@wombat/client';
 import type { TerminalUI } from '../components/terminal-ui.js';
 import { priceFrame, pricePageSize, type PriceViewState } from '../screens/prices.js';
@@ -9,23 +10,23 @@ export async function browsePrices(client: UsageClient, ui: TerminalUI): Promise
   const state: PriceViewState = { tier: 'standard', cursor: 0 };
   async function read(action: 'status' | 'update') {
     try {
-      prices = await ui.task({ kind: 'query', message: action === 'status' ? '正在读取价表…' : '正在更新官方价表…' }, options => client.prices({ action }, options));
-      notice = action === 'update' ? `${prices.updated ? '价表已更新' : '价表内容未变化'} · 更新用量后生效` : undefined;
+      prices = await ui.task({ kind: 'query', message: action === 'status' ? t("tui.state.prices.loading_prices") : t("tui.state.prices.updating_official_prices") }, options => client.prices({ action }, options));
+      notice = action === 'update' ? t("tui.state.prices.value_applies_after_refreshing_usage", { p0: prices.updated ? t("common.prices_updated") : t("common.prices_unchanged") }) : undefined;
     } catch (error) {
       if (ui.signal.aborted || (error instanceof CoreError && error.code === 'CANCELLED')) throw error;
-      notice = error instanceof OperationCancelled ? '读取已取消' : error instanceof Error ? error.message : String(error);
+      notice = error instanceof OperationCancelled ? t("common.loading_cancelled") : error instanceof Error ? error.message : String(error);
     }
   }
   await read('status');
   for (;;) {
     if (ui.signal.aborted) return 'quit';
     const frame = prices ? priceFrame(prices,state,notice) : {
-      title:'Wombat / 价格表',intro:[notice ?? '价表无法读取'],choices:[{id:'update-prices',lines:['联网更新价表']},{id:'retry',lines:['重试']}],
-      footer:'U 联网更新价表 · Esc 返回',shortcuts:{u:'update-prices'},
+      title:t("common.wombat_prices"),intro:[notice ?? t("tui.state.prices.prices_unavailable")],choices:[{id:'update-prices',lines:[t("common.update_prices_online")]},{id:'retry',lines:[t("common.retry")]}],
+      footer:t("common.u_update_prices_online_esc_back"),shortcuts:{u:'update-prices'},
     };
     // Empty catalogs still offer the existing explicit recovery action.
-    if (prices && !prices.catalog.models.length) frame.choices = [{id:'update-prices',lines:['联网更新价表']}];
-    if (prices && !prices.catalog.models.length) { frame.layout = undefined; frame.status = notice; frame.footer = 'U 联网更新价表 · Esc 返回'; }
+    if (prices && !prices.catalog.models.length) frame.choices = [{id:'update-prices',lines:[t("common.update_prices_online")]}];
+    if (prices && !prices.catalog.models.length) { frame.layout = undefined; frame.status = notice; frame.footer = t("common.u_update_prices_online_esc_back"); }
     const answer = await ui.choose(frame);
     if (answer.id === 'quit' || answer.id === 'back' || answer.id === 'usage-tab' || answer.id === 'threads-tab') return answer.id;
     if (answer.id === 'tab') return 'threads-tab';

@@ -1,17 +1,75 @@
 {
   "pairs": [
-    { "zh": ".agents/notes/proposed/architecture/2026-09-30-live-usage.md", "en": ".agents/notes/proposed/architecture/2026-09-30-live-usage.en.md", "record": ".agents/notes/proposed/architecture/2026-09-30-live-usage.i18n.json" },
-    { "zh": ".agents/notes/implemented/product/2026-09-30-report-ranges.md", "en": ".agents/notes/implemented/product/2026-09-30-report-ranges.en.md", "record": ".agents/notes/implemented/product/2026-09-30-report-ranges.i18n.json" },
-    { "zh": ".agents/notes/README.md", "en": ".agents/notes/README.en.md", "record": ".agents/notes/README.i18n.json" },
-    { "zh": ".agents/notes/implemented/process/2026-09-30-repository-guidance.md", "en": ".agents/notes/implemented/process/2026-09-30-repository-guidance.en.md", "record": ".agents/notes/implemented/process/2026-09-30-repository-guidance.i18n.json" },
-    { "zh": "CONTRIBUTING.zh-CN.md", "en": "CONTRIBUTING.md", "record": "CONTRIBUTING.i18n.json" },
-    { "zh": "README.zh-CN.md", "en": "README.md", "record": "README.i18n.json" },
-    { "zh": "cli/README.md", "en": "cli/README.en.md", "record": "cli/README.i18n.json" },
-    { "zh": "client/README.md", "en": "client/README.en.md", "record": "client/README.i18n.json" },
-    { "zh": "core/README.md", "en": "core/README.en.md", "record": "core/README.i18n.json" },
-    { "zh": "docs/README.md", "en": "docs/README.en.md", "record": "docs/README.i18n.json" },
-    { "zh": "docs/i18n/README.md", "en": "docs/i18n/README.en.md", "record": "docs/i18n/README.i18n.json" },
-    { "zh": "tui/README.md", "en": "tui/README.en.md", "record": "tui/README.i18n.json" }
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-09-30-live-usage.md",
+      "en": "docs/decisions/proposed/architecture/2026-09-30-live-usage.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-09-30-live-usage.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/product/2026-09-30-report-ranges.md",
+      "en": "docs/decisions/implemented/product/2026-09-30-report-ranges.en.md",
+      "record": "docs/decisions/implemented/product/2026-09-30-report-ranges.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/README.md",
+      "en": "docs/decisions/README.en.md",
+      "record": "docs/decisions/README.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/process/2026-09-30-repository-guidance.md",
+      "en": "docs/decisions/implemented/process/2026-09-30-repository-guidance.en.md",
+      "record": "docs/decisions/implemented/process/2026-09-30-repository-guidance.i18n.json"
+    },
+    {
+      "zh": "CONTRIBUTING.zh-CN.md",
+      "en": "CONTRIBUTING.md",
+      "record": "CONTRIBUTING.i18n.json"
+    },
+    {
+      "zh": "README.zh-CN.md",
+      "en": "README.md",
+      "record": "README.i18n.json"
+    },
+    {
+      "zh": "cli/README.md",
+      "en": "cli/README.en.md",
+      "record": "cli/README.i18n.json"
+    },
+    {
+      "zh": "client/README.md",
+      "en": "client/README.en.md",
+      "record": "client/README.i18n.json"
+    },
+    {
+      "zh": "core/README.md",
+      "en": "core/README.en.md",
+      "record": "core/README.i18n.json"
+    },
+    {
+      "zh": "docs/README.md",
+      "en": "docs/README.en.md",
+      "record": "docs/README.i18n.json"
+    },
+    {
+      "zh": "docs/i18n/README.md",
+      "en": "docs/i18n/README.en.md",
+      "record": "docs/i18n/README.i18n.json"
+    },
+    {
+      "zh": "tui/README.md",
+      "en": "tui/README.en.md",
+      "record": "tui/README.i18n.json"
+    },
+    {
+      "zh": "docs/i18n/product.md",
+      "en": "docs/i18n/product.en.md",
+      "record": "docs/i18n/product.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-09-30-localization.md",
+      "en": "docs/decisions/implemented/architecture/2026-09-30-localization.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-09-30-localization.i18n.json"
+    }
   ],
   "legacyUnpaired": [
     "docs/adapter-cases.md",
@@ -30,7 +88,7 @@
     "docs/usage-threads-v1.md"
   ],
   "excluded": [
-    ".agents/notes/AGENTS.md",
+    "docs/decisions/AGENTS.md",
     "AGENTS.md",
     "THIRD_PARTY_NOTICES.md",
     "cli/AGENTS.md",

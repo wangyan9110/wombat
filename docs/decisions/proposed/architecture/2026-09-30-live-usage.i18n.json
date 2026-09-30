@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-fast-automatic-usage-updates": {
+      "zh": "5523ab8b2cbbb3f3b27b9a54fa66f647a582c93cafe2771fed2f884959360162",
+      "en": "75db0806e19b99d7d693412ca2bed7062cf58596cde82811fdba4aa3bc079bb2"
+    },
+    "/decision-note-fast-automatic-usage-updates/implementation-progress": {
+      "zh": "437ab2f9e4fb777bc7aeb1cb47a22a341835a234f20ea2d83ede8d16452f4e92",
+      "en": "ecae0dcd40aa6313143d6478c6bbebc74aa3525de105ba529e48a5e7f54acc5b"
+    },
+    "/decision-note-fast-automatic-usage-updates/problem": {
+      "zh": "383bb7a80582401b51eff5b305488b1817c9a3d0bba002911ec710e3ce90bb13",
+      "en": "f7607c9f9b0820c0b3710ce55d13db5f07098a695678dc5b9f28955c14f5b685"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal": {
+      "zh": "ca258a5d37ffa6a0ba7c117647724fda51cdfe6385c17e4b18e9127ab0445f72",
+      "en": "986dd8097aac4d3d9e25cf3e2cef01c77daedde5ce18afa375f7c433f9d8bc72"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal/1-user-behavior-and-the-real-time-boundary": {
+      "zh": "c8d124b165c2824fc642ab2166dc3d4adaf234fba17daa66287fda94ad6a4912",
+      "en": "5328af10ded6b27c8182adff9052c7b5489571d13415153c6b66ad5d532f09fe"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal/2-components-and-process-lifecycle": {
+      "zh": "95e0ccd1877c3c97fea3af5fdab5bedc5943caaca05b8b1ac631ecaae561a1e8",
+      "en": "c4086c2282adb3f58b8af27c832216972915c54dd3beac3ffbaad8f0bc2fe4cc"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal/3-detecting-changes-and-incremental-reads": {
+      "zh": "d0db570767dc8f26681999f172d1580cd1d3e02b2250db823b615308f62501d0",
+      "en": "6aacce381235d59593eade29360c85a7387580f2f33ccab05069870cf8e914aa"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal/4-accounting-correctness-and-transaction-boundaries": {
+      "zh": "232d8d8f8cf455296a6404043236a1e552bc8fff1816e396d1e4daa2f50de04f",
+      "en": "6ee8f9cb12e5c0350c62d37d7c6b76a6b6acda5cae5f1f1bf4e3c1fe781471b4"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal/5-index-money-and-fixed-read-views": {
+      "zh": "24207e3b18c2a13f0f16c24517fad1f2a0ad99a77df506a3650d25eacec37bd8",
+      "en": "91c8b81efea7e10c089df1551b8d117640a65907b583d83d181b3d948d83ea2a"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal/6-interfaces-and-ui-synchronization": {
+      "zh": "10fa15fd79e03aec01e2c540a63db8a8135ce826d3cc6de233d00e1952d9fab5",
+      "en": "4982f667038e0fe2fd9de97c7a243c4d823637529cb411b6207212cc885b1e18"
+    },
+    "/decision-note-fast-automatic-usage-updates/proposal/7-implementation-sequence": {
+      "zh": "acadd62812db6bd873db27a91ef87d237c3424b3230099a792171bb169675de4",
+      "en": "f92223940e8642b9018e3c8ccf5ebae4ef27de437839eaaf240982d8002ee441"
+    },
+    "/decision-note-fast-automatic-usage-updates/alternatives-considered": {
+      "zh": "f11e0b38e7a520481714171682b48acb71c8e51674f5adc778a7c48e64c8b2ef",
+      "en": "ef93c8496d1c599259da4924281418689d6133ef7952f3ca5f4fb5e7311e5719"
+    },
+    "/decision-note-fast-automatic-usage-updates/acceptance-criteria": {
+      "zh": "1c7a9e56d0fd24fc2214dc0a69fb3cfe5fde6939ba1902df4fde470ee5a2e01c",
+      "en": "26911898ffeba8bead0ae6853d0820117e7c96c4f4c1bca98297d533c9a4e0bc"
+    },
+    "/decision-note-fast-automatic-usage-updates/acceptance-criteria/correctness-and-recovery": {
+      "zh": "76a91d4197b74c56f12438d785e167b902f21a1c5193ef91902b1786d81137be",
+      "en": "76a329f2f02b81a7c65b5740889b7ee4499330e5e4da7bb9f1a46268e12675de"
+    },
+    "/decision-note-fast-automatic-usage-updates/acceptance-criteria/performance-targets-not-yet-measured": {
+      "zh": "6fe88bb7454718ef49eeb618c69912836df9c517d157bd478e327eacd83355cd",
+      "en": "e69bf4a3990732db7449fb8bd287333b1a7132e1e3d808a2216684ce3236a008"
+    }
+  }
+}

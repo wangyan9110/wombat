@@ -7,7 +7,7 @@ Wombat's original code is licensed under [MIT](LICENSE). Third-party components 
 - Optional Python development tooling notices: [license texts](licenses/python-tooling.txt).
 - Versions, declared licenses, selected alternatives and notice hashes: [inventory](docs/dependency-licenses.json).
 
-The inventory covers 43 installed Node packages (13 runtime) and 144 locked Rust packages other than Wombat. Enabled normal/build/dev dependencies are identified separately; optional lock entries not activated by current features are not compiled into this build, but their upstream license notices are still preserved. Node optional platform packages not installed here are recorded as unverified; their presence is not a platform support claim. Development dependencies are included conservatively.
+The inventory covers 102 installed Node packages (13 runtime) and 144 locked Rust packages other than Wombat. Enabled normal/build/dev dependencies are identified separately; optional lock entries not activated by current features are not compiled into this build, but their upstream license notices are still preserved. Node optional platform packages not installed here are recorded as unverified; their presence is not a platform support claim. Development dependencies are included conservatively.
 
 The 2 pinned Python tools support optional terminal tests: pyte is LGPL-3.0 and wcwidth is MIT with its additional upstream permission notice. They are separately installed by developers and are not bundled into the product runtime. Only their original release license/author notices and provenance are retained. Their pins and notice hashes are checked locally without Python, pip, a virtual environment, or network access.
 

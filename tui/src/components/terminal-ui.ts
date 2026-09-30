@@ -1,3 +1,4 @@
+import { t } from '@wombat/client/locale';
 import { BoxRenderable, ScrollBoxRenderable, TextRenderable, InputRenderable, StyledText, RGBA, TextAttributes, createCliRenderer, type CliRenderer, type KeyEvent } from '@opentui/core';
 import { terminalTheme, nextTerminalTheme, type TerminalTheme } from '../themes/index.js';
 import { terminalText } from '../display-text.js';
@@ -170,13 +171,13 @@ export class TerminalUI {
     for (const line of dense && frame.nav ? frame.compactIntro ?? [] : frame.intro) this.text(heading, line, { tone: 'muted' });
     if (frame.nav) {
       const nav = this.box(area, { id: 'navigation', flexDirection: 'row', gap: 3, border: dense ? [] : ['bottom'], borderColor: this.color ? theme.border : undefined, marginTop: 0 });
-      this.button(nav, '1 用量', 'usage-tab', frame.activeTab === '1 用量', false, undefined, !dense);
-      this.button(nav, '2 对话', 'threads-tab', frame.activeTab === '2 对话', false, undefined, !dense);
+      this.button(nav, t("common.1_usage"), 'usage-tab', frame.activeTab === t("common.1_usage"), false, undefined, !dense);
+      this.button(nav, t("common.2_threads"), 'threads-tab', frame.activeTab === t("common.2_threads"), false, undefined, !dense);
     }
     if (!dense) for (const [index, line] of (frame.context ?? []).entries()) this.text(area, line.text, { tone: line.summary ? 'summaryForeground' : 'contextForeground' }, `context-${index}`);
     if (frame.controlOptions) {
       const controls = this.box(area, { id: 'period-sort', flexDirection: 'row', gap: 1, height: 3, marginTop: short ? 0 : 1 });
-      frame.controlOptions.forEach((label, i) => this.button(controls, label, `${label.startsWith('按') ? 'group' : 'sort'}:${i}`, label === frame.activeControl?.trim(), true));
+      frame.controlOptions.forEach((label, i) => this.button(controls, label, `${frame.controlKind ?? 'sort'}:${i}`, label === frame.activeControl?.trim(), true));
     }
     if ((frame.tableCells || frame.tableHeader) && !dense) {
       const header = this.box(area, { id: 'table-header', paddingLeft: 2, paddingRight: 1, border: ['bottom'], borderColor: this.color ? theme.border : undefined, marginTop: short ? 0 : 1 });
@@ -245,7 +246,7 @@ export class TerminalUI {
         for (const line of choice.priceDetail.lines) this.text(detail, line, { tone: 'contextForeground' });
         const source = choice.priceDetail.source;
         const link = /^https:\/\/[^\s\x00-\x1f\x7f]+$/.test(source) ? source : undefined;
-        this.text(detail, link ? '查看官方模型价格 ↗' : source, { tone: 'priceSource', underline: Boolean(link), link }, `price-source-${index}`);
+        this.text(detail, link ? t("tui.components.terminal-ui.view_official_model_prices") : source, { tone: 'priceSource', underline: Boolean(link), link }, `price-source-${index}`);
       }
       if (choice.bar != null && !dense) {
         const fraction = Math.max(0, Math.min(1, choice.bar));
@@ -275,7 +276,7 @@ export class TerminalUI {
       this.selectionPaint.push(paintRow);
       if (choice.separatorAfter) this.box(group ?? scroll, { height: 1, border: ['bottom'], borderColor: this.color ? theme.border : undefined });
     }
-    if (!frame.choices.length) for (const line of frame.empty ?? ['暂无记录']) this.text(scroll, line, { tone: 'muted' });
+    if (!frame.choices.length) for (const line of frame.empty ?? [t("common.no_records")]) this.text(scroll, line, { tone: 'muted' });
     if ((frame.totalCells || frame.total) && !dense) {
       const total = this.box(area, { id: 'total', paddingLeft: 2, paddingRight: 1, border: ['top'], borderColor: this.color ? theme.border : undefined });
       if (frame.totalCells) this.table(total, frame.totalCells, { tone: 'pageTitle', bold: true }); else this.text(total, frame.total!, { tone: 'pageTitle', bold: true });
@@ -290,7 +291,7 @@ export class TerminalUI {
     }
     const footer = this.box(area, { id: 'footer', height: frame.disclosure ? '55%' : undefined, flexShrink: frame.disclosure ? 1 : 0, minHeight: frame.disclosure ? dense ? 4 : 3 : undefined, border: ['top'], borderColor: this.color ? theme.border : undefined, marginTop: short ? 0 : 1 });
     if (frame.status) this.text(footer, frame.status, { tone: 'muted' });
-    for (const line of (dense ? frame.compactFooter ?? '↑↓ 选择 · Enter 查看 · Tab 切换\nF 筛选 · ? 说明 · Q 退出' : frame.footer).split('\n')) {
+    for (const line of (dense ? frame.compactFooter ?? t("tui.components.terminal-ui.select_enter_view_tab_switch_f") : frame.footer).split('\n')) {
       const links = this.box(footer, { flexDirection: 'row', flexWrap: 'wrap', gap: 1 });
       for (const label of line.split(' · ')) {
         const key = label.split(' ')[0].toLowerCase();
@@ -383,10 +384,10 @@ export class TerminalUI {
     const narrow = this.renderer.width < 68, short = this.renderer.height < 30, dense = this.renderer.height < 20;
     const area = this.base();
     const header = this.box(area, { border: dense ? [] : ['bottom'], borderColor: this.color ? theme.border : undefined });
-    this.title(header, 'Wombat / ' + (state.spec.activeTab === 'threads' ? '对话' : '用量'));
-    if (!dense) this.text(header, '本机 Codex · ' + content.context, { tone: 'muted' });
+    this.title(header, 'Wombat / ' + (state.spec.activeTab === 'threads' ? t("common.threads") : t("cli.format.usage")));
+    if (!dense) this.text(header, t("common.local_codex") + content.context, { tone: 'muted' });
     const nav = this.box(area, { id: 'loading-navigation', flexDirection: 'row', gap: 3, border: dense ? [] : ['bottom'], borderColor: this.color ? theme.border : undefined });
-    for (const [tab, label] of [['usage', '1 用量'], ['threads', '2 对话']]) {
+    for (const [tab, label] of [['usage', t("common.1_usage")], ['threads', t("common.2_threads")]]) {
       const active = tab === (state.spec.activeTab ?? 'usage');
       const item = this.box(nav, { height: 2, border: ['bottom'], borderColor: this.color ? active ? theme.activeTabBorder : theme.background : undefined });
       this.text(item, label, { tone: active ? 'activeTabForeground' : 'muted', underline: active && !this.color });
@@ -396,7 +397,7 @@ export class TerminalUI {
     const scene = this.box(scroll, { id: 'startup-scene', width: '100%', maxWidth: 90, marginTop: short ? 0 : 1, paddingTop: dense ? 0 : 1, border: ['top'], borderColor: this.color ? theme.startupBorder : undefined });
     const mast = this.box(scene, { flexDirection: 'row', justifyContent: 'space-between', gap: 1 });
     this.text(mast, content.context, { tone: 'brand', bold: true });
-    if (!narrow) this.text(mast, '本机 · Codex', { tone: 'startupSource' });
+    if (!narrow) this.text(mast, t("tui.components.terminal-ui.local_codex"), { tone: 'startupSource' });
     this.text(scene, content.heading, { tone: 'startupHeading', bold: true }, 'startup-heading');
     if (state.expanded && !narrow && !dense && content.description) this.text(scene, content.description, { tone: 'startupDescription' });
     if (state.expanded) {
@@ -405,7 +406,7 @@ export class TerminalUI {
         const row = this.box(track, { id: `startup-stage-${i}`, flexDirection: 'row', gap: 1, border: dense ? [] : ['bottom'], borderColor: this.color ? theme.startupRule : undefined, paddingX: dense ? 0 : 1, ...(this.color ? { backgroundColor: theme.subtotalBackground } : {}) });
         this.text(row, '◆', { tone: 'startupActiveMarker' });
         const name = this.text(row, stage.name, { tone: 'startupActive' }); name.flexGrow = 1; name.flexShrink = 1; name.minWidth = 0;
-        this.text(row, '正在进行', { tone: 'startupActiveState' });
+        this.text(row, t("tui.components.terminal-ui.active"), { tone: 'startupActiveState' });
       }
       if (content.detail) this.text(scene, content.detail, { tone: 'startupDescription' });
     }
@@ -417,7 +418,7 @@ export class TerminalUI {
     const footer = this.box(area, { border: ['top'], borderColor: this.color ? theme.border : undefined, flexDirection: 'row', flexWrap: 'wrap', gap: 2 });
     const cancel = this.text(footer, 'X / Esc ' + content.cancel, { tone: 'actionForeground' }, 'loading-cancel');
     cancel.onMouseUp = event => { if (event.button === 0) this.cancelOperation?.(); };
-    const quit = this.text(footer, 'Q 退出', { tone: 'footerForeground' });
+    const quit = this.text(footer, t("tui.components.terminal-ui.q_quit"), { tone: 'footerForeground' });
     quit.onMouseUp = event => { if (event.button === 0) { this.terminationCode = 0; this.interrupt(); } };
     this.renderer.requestRender();
   }
@@ -428,8 +429,8 @@ export class TerminalUI {
     const heading = this.box(area, { id: 'form-heading', border: this.renderer.height < 20 ? [] : ['bottom'], borderColor: this.color ? this.theme.border : undefined });
     this.title(heading, spec.title);
     const nav = this.box(area, { id: 'form-navigation', flexDirection: 'row', gap: 3, border: this.renderer.height < 20 ? [] : ['bottom'], borderColor: this.color ? this.theme.border : undefined });
-    this.button(nav, '1 用量', 'usage-tab', spec.activeTab === 'usage', false, () => this.activeForm?.finish('usage-tab'), this.renderer.height >= 20);
-    this.button(nav, '2 对话', 'threads-tab', spec.activeTab === 'threads', false, () => this.activeForm?.finish('threads-tab'), this.renderer.height >= 20);
+    this.button(nav, t("common.1_usage"), 'usage-tab', spec.activeTab === 'usage', false, () => this.activeForm?.finish('usage-tab'), this.renderer.height >= 20);
+    this.button(nav, t("common.2_threads"), 'threads-tab', spec.activeTab === 'threads', false, () => this.activeForm?.finish('threads-tab'), this.renderer.height >= 20);
     const form = new NativeForm(this.renderer, area, spec, this.theme, this.color); this.activeForm = form;
     try { return await form.run(); }
     finally { form.dispose(); this.activeForm = undefined; }
@@ -441,7 +442,7 @@ export class TerminalUI {
     const panel = this.box(area, { border: true, borderStyle: 'rounded', borderColor: this.theme.selectedBorder, height: 3, marginTop: 1, paddingX: 1 });
     const editor = new InputRenderable(this.renderer, { id: 'input', value: config.value, width: '100%', ...(this.color ? { textColor: this.theme.foreground, backgroundColor: this.theme.background, focusedBackgroundColor: this.theme.selectedBackground } : {}) });
     panel.add(editor); this.editor = editor;
-    this.text(area, 'Enter 确认 · Esc 取消 · Ctrl+U 清空', { tone: 'muted' });
+    this.text(area, t("tui.components.terminal-ui.enter_confirm_esc_cancel_ctrl_u"), { tone: 'muted' });
     editor.focus();
     try { return await new Promise(resolve => { this.inputPending = resolve; editor.on('enter', () => resolve(terminalText(editor.value))); }); }
     finally { this.editor = undefined; this.inputPending = undefined; }

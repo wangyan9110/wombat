@@ -4,6 +4,8 @@ English | [中文](README.zh-CN.md)
 
 Wombat is a local Codex usage and conversation viewer. Its two views are usage and conversations: inspect Token counts and costs, then find expensive turns and recorded operations.
 
+Choose Chinese or English with `--lang zh|en` or `WOMBAT_LANG`; press `L` on the main terminal view to switch. See [product language](docs/i18n/product.en.md) for precedence and boundaries.
+
 ## Run from source
 
 Requires Node.js 26.4.0+, Corepack/pnpm, and Rust (see `rust-toolchain.toml`). The terminal uses OpenTUI; the command entry configures the FFI runtime needed for interactive use.

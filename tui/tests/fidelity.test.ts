@@ -28,7 +28,7 @@ for (const [width, height] of [[80, 24], [120, 32], [160, 40]]) test(`report row
 test('outlined control fill stays inside its border; active tab shares the navigation rule', async () => {
   const setup = await createTestRenderer({ width: 80, height: 24 });
   const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
-  const frame: Frame = { title: 'Wombat', intro: [], footer: 'Q 退出', choices: [], nav: '1 用量 2 对话', activeTab: '1 用量', controlOptions: ['按天', '按周', '按月'], activeControl: '按天' };
+  const frame: Frame = { title: 'Wombat', intro: [], footer: 'Q 退出', choices: [], nav: '1 用量 2 对话', activeTab: '1 用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天' };
   const cell = (x: number, y: number) => {
     let offset = 0;
     for (const span of setup.captureSpans().lines[y].spans) {
@@ -131,7 +131,7 @@ test('report hierarchy: source colors, full-width rules, inset and selection tra
   const frame: Frame = {
     title: 'Wombat / 日报', intro: ['本机 Codex'], footer: 'Q 退出',
     nav: '1 用量 2 对话', activeTab: '1 用量',
-    controlOptions: ['按天', '按周', '按月'], activeControl: '按天',
+    controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天',
     choices: [
       { id: 'day', kind: 'subtotal', reportGroup: 'day1', lines: ['9月29日 ›'] },
       { id: 'model', kind: 'model', reportGroup: 'day1', lines: ['gpt-test-model'] },
@@ -206,7 +206,7 @@ for (const width of [80, 120, 160]) test(`actual report cells preserve column ge
   const setup = await createTestRenderer({ width, height: width === 80 ? 24 : 32 });
   const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
   try {
-    void ui.choose({ title: 'Wombat', intro: ['本机 Codex'], nav: '1 用量 2 对话', activeTab: '1 用量', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', actions: 'F 筛选 · R 更新', footer: 'Q 退出', tableCells: usageHeaderCells(contentWidth), totalCells: usageTotalCells(summary, contentWidth), choices: [
+    void ui.choose({ title: 'Wombat', intro: ['本机 Codex'], nav: '1 用量 2 对话', activeTab: '1 用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', actions: 'F 筛选 · R 更新', footer: 'Q 退出', tableCells: usageHeaderCells(contentWidth), totalCells: usageTotalCells(summary, contentWidth), choices: [
       { id: 'day', kind: 'subtotal', reportGroup: 'a', ...itemContent(day, result, contentWidth) },
       { id: 'model', kind: 'model', reportGroup: 'a', ...itemContent(model, result, contentWidth) },
     ] });

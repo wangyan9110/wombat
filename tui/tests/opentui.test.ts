@@ -4,7 +4,7 @@ import { createTestRenderer } from '@opentui/core/testing';
 import { TerminalUI } from '../src/components/terminal-ui.js';
 import { terminalThemes } from '../src/themes/index.js';
 import type { Frame } from '../src/components/view-model.js';
-const frame: Frame = { title: 'Wombat / 日报', intro: ['9月24日—30日'], nav: '1 用量      2 对话', activeTab: '1 用量', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', footer: 'Q 退出', choices: [
+const frame: Frame = { title: 'Wombat / 日报', intro: ['9月24日—30日'], nav: '1 用量      2 对话', activeTab: '1 用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', footer: 'Q 退出', choices: [
   { id: 'day', reportGroup: 'a', kind: 'subtotal', lines: ['9月29日 ›   110 Token · $0.20'] },
   { id: 'model', reportGroup: 'a', kind: 'model', lines: ['gpt-5.4 · 高 · 110 Token · $0.20'] },
   { id: 'next-day', reportGroup: 'b', kind: 'subtotal', lines: ['9月28日 ›   200 Token · $0.30'] },

@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-repository-guidance-and-bilingual-confirmation": {
+      "zh": "ae011f007d4affdd0dbd4807ab3073c246327270a5ff372c18efbf19b5e36654",
+      "en": "41a4d07f07b81ef5bb0d1566904f6a6ff0e37826a4278b44b920554e54b14a60"
+    },
+    "/decision-note-repository-guidance-and-bilingual-confirmation/problem": {
+      "zh": "0fa8bceecf7584eede810726d4a401276082e61240f4f91be30c20784ad2ddb2",
+      "en": "c82b65c2c6ce58beaff20f9a4ea341e0830b9a4234698f779d1f86842e4dbd56"
+    },
+    "/decision-note-repository-guidance-and-bilingual-confirmation/decision": {
+      "zh": "a452217fcc3093a59bd9d0d3ae7025be853deb06b7edfd8dc320a354c55b0f3c",
+      "en": "25c50ae9a048f3addf837da5de2c8fb5e2502c6eee95f7551699067c9d9391df"
+    },
+    "/decision-note-repository-guidance-and-bilingual-confirmation/alternatives-considered": {
+      "zh": "211aa73ec0204d53a6e9f61552711a3f2f1f27f949f3c563bcc51afd4e9fc819",
+      "en": "b86bf7c12c91755df6e5ad48972525c301e140f596b48b6b4dec4994188ed365"
+    },
+    "/decision-note-repository-guidance-and-bilingual-confirmation/consequences-and-verification": {
+      "zh": "f46eb2cc2fb9de06cd2c0d164e8e3ca142488b4ecabd357f6b21f3a30ac567da",
+      "en": "943fd7009720dc9dd9eea948d2c0f0246d64e1a252a5e53e1ffb1f16a0ea67e2"
+    }
+  }
+}

@@ -6,7 +6,7 @@
   },
   "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. Optional Python terminal/CSS tooling is reviewed from pinned release notices and is not bundled in the product runtime. This is not cross-platform installation verification.",
   "lockfiles": {
-    "pnpm-lock.yaml": "90bbf52bcc93b0ef4fe104557660c88629eaaea531a8cba716f211ff7a544f69",
+    "pnpm-lock.yaml": "36693755ac0fb7a3b5914e0174fd2bf5ea155bf959f5217bfc75639646e3abad",
     "core/Cargo.lock": "1d6c509a94d5fbd080a4e80586827a2809fdee2d05279ccf3e7d73044b1acdb7",
     "scripts/requirements-terminal.txt": "ef13b0834a04c18ccf4278d1adf6a93748b34763e859b536094b51afec047056"
   },
@@ -118,6 +118,19 @@
       ]
     },
     {
+      "name": "@types/debug",
+      "version": "4.1.13",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
       "name": "@types/json-schema",
       "version": "7.0.15",
       "license": "MIT",
@@ -144,6 +157,32 @@
       ]
     },
     {
+      "name": "@types/mdast",
+      "version": "4.0.4",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/ms",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
       "name": "@types/node",
       "version": "22.20.4",
       "license": "MIT",
@@ -159,6 +198,19 @@
     {
       "name": "@types/node",
       "version": "26.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/unist",
+      "version": "3.0.3",
       "license": "MIT",
       "role": "development",
       "licenseSource": "installed package",
@@ -222,6 +274,84 @@
       ]
     },
     {
+      "name": "ccount",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf"
+        }
+      ]
+    },
+    {
+      "name": "character-entities",
+      "version": "2.0.2",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf"
+        }
+      ]
+    },
+    {
+      "name": "debug",
+      "version": "4.4.3",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "3a61c6c96caf5c1d9b623fb9b04c822b783dfcb78aa7e49c76a3f643e6ed7f95"
+        }
+      ]
+    },
+    {
+      "name": "decode-named-character-reference",
+      "version": "1.3.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "dequal",
+      "version": "2.0.3",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "306fa513e39b23a6e8747520de761809d206b99800ef41907b530226574c59ae"
+        }
+      ]
+    },
+    {
+      "name": "devlop",
+      "version": "1.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "6f296a5eccc1dc96714bb94ebaa9cac25b0a1467d74cc5263ac4d0646ab01f62"
+        }
+      ]
+    },
+    {
       "name": "diff",
       "version": "9.0.0",
       "license": "BSD-3-Clause",
@@ -270,6 +400,19 @@
         {
           "name": "LICENSE.md",
           "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "escape-string-regexp",
+      "version": "5.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
         }
       ]
     },
@@ -417,6 +560,32 @@
       ]
     },
     {
+      "name": "longest-streak",
+      "version": "3.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "9f084fac69d8cf1e6ce983ba5a3499c7695ed74a26ec625c38f0fd19fddd5e10"
+        }
+      ]
+    },
+    {
+      "name": "markdown-table",
+      "version": "3.0.4",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
       "name": "marked",
       "version": "17.0.1",
       "license": "MIT",
@@ -430,6 +599,526 @@
       ]
     },
     {
+      "name": "mdast-util-find-and-replace",
+      "version": "3.0.2",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-from-markdown",
+      "version": "2.0.2",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-gfm-autolink-literal",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-gfm-footnote",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-gfm-strikethrough",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-gfm-table",
+      "version": "2.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-gfm-task-list-item",
+      "version": "2.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-gfm",
+      "version": "3.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-phrasing",
+      "version": "4.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "b6d1a4e1831b177acc96f22a817d4f0f4c18419355badc3125754445fc69e3a7"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-to-markdown",
+      "version": "2.1.3",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "mdast-util-to-string",
+      "version": "4.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf"
+        }
+      ]
+    },
+    {
+      "name": "micromark-core-commonmark",
+      "version": "2.0.4",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-extension-gfm-autolink-literal",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "micromark-extension-gfm-footnote",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "807a88522a850092aece49486207c17c313c4d5708ac276524840fe1caa0b0fa"
+        }
+      ]
+    },
+    {
+      "name": "micromark-extension-gfm-strikethrough",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "micromark-extension-gfm-table",
+      "version": "2.1.2",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-extension-gfm-tagfilter",
+      "version": "2.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "micromark-extension-gfm-task-list-item",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "micromark-extension-gfm",
+      "version": "3.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61"
+        }
+      ]
+    },
+    {
+      "name": "micromark-factory-destination",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-factory-label",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-factory-space",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-factory-title",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-factory-whitespace",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-character",
+      "version": "2.1.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-chunked",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-classify-character",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-combine-extensions",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-decode-numeric-character-reference",
+      "version": "2.0.2",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-decode-string",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-edit-map",
+      "version": "1.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-encode",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-html-tag-name",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-normalize-identifier",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-resolve-all",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-sanitize-uri",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-subtokenize",
+      "version": "2.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-symbol",
+      "version": "2.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark-util-types",
+      "version": "2.0.3",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
+      "name": "micromark",
+      "version": "4.0.3",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
+        }
+      ]
+    },
+    {
       "name": "minimist",
       "version": "1.2.8",
       "license": "MIT",
@@ -439,6 +1128,19 @@
         {
           "name": "LICENSE",
           "sha256": "435a6722c786b0a56fbe7387028f1d9d3f3a2d0fb615bb8fee118727c3f59b7b"
+        }
+      ]
+    },
+    {
+      "name": "ms",
+      "version": "2.1.3",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license.md",
+          "sha256": "1662fae9b5314d11cf51284e2dcd1f006a354f7343f08712a730fcff9a359801"
         }
       ]
     },
@@ -586,6 +1288,58 @@
       ]
     },
     {
+      "name": "unist-util-is",
+      "version": "6.0.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "82974dbf2639d13edab95c32ed9cb6c0867ede272cd2e07ce47ce8548fe55c05"
+        }
+      ]
+    },
+    {
+      "name": "unist-util-stringify-position",
+      "version": "4.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d"
+        }
+      ]
+    },
+    {
+      "name": "unist-util-visit-parents",
+      "version": "6.0.2",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d"
+        }
+      ]
+    },
+    {
+      "name": "unist-util-visit",
+      "version": "5.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf"
+        }
+      ]
+    },
+    {
       "name": "web-tree-sitter",
       "version": "0.25.10",
       "license": "MIT",
@@ -595,6 +1349,19 @@
         {
           "name": "LICENSE",
           "sha256": "5f9cf9fb6acb1972b35ae29119ce563bb60ec097656bc4b69b9bac2d04c7a147"
+        }
+      ]
+    },
+    {
+      "name": "zwitch",
+      "version": "2.0.4",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "ca4662cb5d1b738fbe5350c0d5485ba11773b4b7208974082ae6e129a52d631d"
         }
       ]
     }

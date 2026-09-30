@@ -10,6 +10,8 @@
 - `refresh`、`usage`、`threads`、`turns`、`steps`、`prices` 经 `@wombat/client/node` 调用共享内核。
 - 仅交互入口加载 `@wombat/tui`；帮助、版本、JSON 和非交互查询不初始化终端。
 
+- 展示语言使用 `@wombat/client/locale`，详见[产品语言与文案](../docs/i18n/product.md)。
+
 ## 限制与验证
 
 CLI 只负责参数、输出、进度与退出码，不计算费用或改变快照语义。JSON 进度写 stderr，结果写 stdout；按[命令入口约定](AGENTS.md)在构建后验证参数错误、部分结果与完整命令路径。

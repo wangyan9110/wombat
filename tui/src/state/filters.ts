@@ -1,3 +1,4 @@
+import { t, labels } from '@wombat/client/locale';
 import type { UsageRequest } from '@wombat/client';
 import type { FormSpec, FormAnswer, FormField } from '../components/form-model.js';
 import type { FilterOptions } from './filter-options.js';
@@ -5,8 +6,8 @@ import type { FilterOptions } from './filter-options.js';
 interface FilterUI { form: (spec: FormSpec) => Promise<FormAnswer>; }
 export interface FilterResult { request: UsageRequest; navigate?: 'usage-tab' | 'threads-tab'; }
 type Period = 'today' | 'recent' | 'week' | 'month' | 'custom';
-const periodNames: Record<Period, string> = { today: '今天', recent: '近7天', week: '本周', month: '本月', custom: '自定义' };
-const effortNames: Record<string, string> = { none: '无', minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '极高', max: '最高', ultra: '超高' };
+const periodNames: Record<Period, string> = labels({ today: "tui.state.filters.today", recent: "tui.state.filters.last_7_days", week: "tui.state.filters.this_week", month: "tui.state.filters.this_month", custom: "tui.state.filters.custom" });
+const effortNames: Record<string, string> = labels({ none: "common.none", minimal: "common.minimal", low: "common.low", medium: "common.medium", high: "common.high", xhigh: "common.extra_high", max: "common.maximum", ultra: "common.ultra" });
 const unknownModel = '\u0000unknown-model';
 function validDay(day: string): boolean { return /^\d{4}-\d{2}-\d{2}$/.test(day) && Number.isFinite(Date.parse(day)) && new Date(day).toISOString().slice(0, 10) === day; }
 function shift(day: string, days: number): string { return new Date(Date.parse(day) + days * 86400000).toISOString().slice(0, 10); }
@@ -33,25 +34,25 @@ export async function editTerminalFilters(request: UsageRequest, reference: stri
   const touched = new Set<string>();
   for (;;) {
     const choiceField = (id: 'project' | 'model', label: string): FormField => {
-      const placeholder = id === 'model' && scope.modelUnknown && !touched.has('model') ? '模型未知' : '全部';
+      const placeholder = id === 'model' && scope.modelUnknown && !touched.has('model') ? t("common.unknown_model") : t("common.all");
       if (!candidates) return { id, label, placeholder };
       const choices = new Set(id === 'project' ? candidates.projects : candidates.models);
       if (values[id] && values[id] !== unknownModel) choices.add(values[id]);
-      return { id, label, options: [{ value: '', label: '全部' }, ...(id === 'model' && scope.modelUnknown ? [{ value: unknownModel, label: '模型未知' }] : []), ...[...choices].sort().map(value => ({ value, label: value }))] };
+      return { id, label, options: [{ value: '', label: t("common.all") }, ...(id === 'model' && scope.modelUnknown ? [{ value: unknownModel, label: t("common.unknown_model") }] : []), ...[...choices].sort().map(value => ({ value, label: value }))] };
     };
     const advancedFields: FormField[] = [
-    choiceField('project', '项目'),
-    choiceField('model', '模型'),
-    { id: 'reasoningEffort', label: '推理强度', options: [{ value: '', label: scope.effortUnknown && !touched.has('reasoningEffort') ? '强度未知' : '全部' }, ...Object.entries(effortNames).map(([value, label]) => ({ value, label })), ...(scope.reasoningEffort && !Object.hasOwn(effortNames, scope.reasoningEffort) ? [{ value: scope.reasoningEffort, label: scope.reasoningEffort }] : [])] },
-    { id: 'timezone', label: '时区' },
+    choiceField('project', t("common.project")),
+    choiceField('model', t("common.model")),
+    { id: 'reasoningEffort', label: t("common.effort"), options: [{ value: '', label: scope.effortUnknown && !touched.has('reasoningEffort') ? t("tui.state.filters.unknown_effort") : t("common.all") }, ...Object.entries(effortNames).map(([value, label]) => ({ value, label })), ...(scope.reasoningEffort && !Object.hasOwn(effortNames, scope.reasoningEffort) ? [{ value: scope.reasoningEffort, label: scope.reasoningEffort }] : [])] },
+    { id: 'timezone', label: t("tui.state.filters.time_zone") },
     ];
-    const fields: FormField[] = isUsage ? [{ id: 'period', label: '时间', options: [
-      { value: 'auto', label: scope.threadId ? '完整对话范围' : '随报表' },
+    const fields: FormField[] = isUsage ? [{ id: 'period', label: t("tui.state.filters.time"), options: [
+      { value: 'auto', label: scope.threadId ? t("tui.state.filters.full_thread_range") : t("tui.state.filters.follow_report") },
       ...(['today', 'recent', 'week', 'month', 'custom'] as const).map(value => ({ value, label: periodNames[value] })),
-      ...(scope.undated ? [{ value: 'undated', label: '日期未知' }] : []),
-    ] }] : [{ id: 'search', label: '标题 / 项目搜索', placeholder: '全部' }, choiceField('project', '项目')];
-    if (isUsage && values.period === 'custom') fields.push({ id: 'since', label: '从', placeholder: 'YYYY-MM-DD' }, { id: 'until', label: '到', placeholder: 'YYYY-MM-DD' });
-    const answer = await ui.form({ title: 'Wombat / 筛选', activeTab: isUsage ? 'usage' : 'threads', values, fields,
+      ...(scope.undated ? [{ value: 'undated', label: t("common.unknown_date") }] : []),
+    ] }] : [{ id: 'search', label: t("tui.state.filters.search_title_project"), placeholder: t("common.all") }, choiceField('project', t("common.project"))];
+    if (isUsage && values.period === 'custom') fields.push({ id: 'since', label: t("tui.state.filters.from"), placeholder: 'YYYY-MM-DD' }, { id: 'until', label: t("tui.state.filters.to"), placeholder: 'YYYY-MM-DD' });
+    const answer = await ui.form({ title: t("tui.state.filters.wombat_filters"), activeTab: isUsage ? 'usage' : 'threads', values, fields,
       ...(isUsage ? { advancedFields, advancedOpen } : {}), error: error ?? loadError, focusId });
     if (answer.action === 'cancel') return { request };
     if (answer.action === 'usage-tab' || answer.action === 'threads-tab') return { request, navigate: answer.action };
@@ -64,22 +65,22 @@ export async function editTerminalFilters(request: UsageRequest, reference: stri
         try {
           const dates = periodDates(values.period as 'today', localDay(reference, timezone));
           values.since = dates.since; values.until = shift(dates.until, -1);
-        } catch { error = '请输入有效时区'; advancedOpen = true; focusId = 'timezone'; }
+        } catch { error = t("common.enter_a_valid_time_zone"); advancedOpen = true; focusId = 'timezone'; }
       }
       continue;
     }
     const draft: UsageRequest = { ...request, scope: { ...scope }, offset: 0 };
     const next = draft.scope!;
     if (isUsage) {
-      try { localDay(reference, timezone); } catch { error = '请输入有效时区'; advancedOpen = true; focusId = 'timezone'; continue; }
+      try { localDay(reference, timezone); } catch { error = t("common.enter_a_valid_time_zone"); advancedOpen = true; focusId = 'timezone'; continue; }
       if (touched.has('timezone')) { if (values.timezone.trim()) next.timezone = timezone; else delete next.timezone; }
       if (values.period === 'auto' && touched.has('period')) {
         delete next.since; delete next.until; delete next.undated;
       } else if (values.period === 'custom' && ['period', 'since', 'until'].some(id => touched.has(id))) {
         const since = values.since.trim(), until = values.until.trim();
-        if (!since && !until) { error = '请填写起始或截止日期'; focusId = 'since'; continue; }
-        if ([since, until].some(day => day && !validDay(day))) { error = '日期格式为 YYYY-MM-DD'; focusId = since && !validDay(since) ? 'since' : 'until'; continue; }
-        if (since && until && since > until) { error = '截止日期不能早于起始日期'; focusId = 'until'; continue; }
+        if (!since && !until) { error = t("tui.state.filters.enter_a_start_or_end_date"); focusId = 'since'; continue; }
+        if ([since, until].some(day => day && !validDay(day))) { error = t("tui.state.filters.use_yyyy_mm_dd_date_format"); focusId = since && !validDay(since) ? 'since' : 'until'; continue; }
+        if (since && until && since > until) { error = t("tui.state.filters.the_end_date_cannot_precede_the"); focusId = 'until'; continue; }
         if (since) next.since = since; else delete next.since;
         if (until) next.until = shift(until, 1); else delete next.until;
         delete next.undated;

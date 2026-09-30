@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "sections": {
+    "/product-language-and-copy": {
+      "zh": "563100b494837d0a54ab49189e1ea13e54b2cc9f5f968401ad042f12e4f204e5",
+      "en": "07906965e72ad6daed1a68aa02232a4f7924415aae72feb34a89e32e256faca2"
+    },
+    "/product-language-and-copy/usage": {
+      "zh": "2ffb13c2c04d2c2ea2046ee688c46a2f62ae0ac2373377717d44d81e29a5d4ab",
+      "en": "eaf73e185872fd01ae18c2a0d7e86991ac73ed5cbcdb4e8ae1632045d7b14173"
+    },
+    "/product-language-and-copy/module-boundaries": {
+      "zh": "013d9a88779535eac042db58d5cc14b341ead37112b722d71d53ef8e8a5f0977",
+      "en": "95a013f1991b78a617b4b294d55e5889a6d5bf93a0d4cbda622912cd1cb68f93"
+    },
+    "/product-language-and-copy/verification-and-limits": {
+      "zh": "f8944cdd0862f7ac11577ad9b9b30c40038dd7bd1b1be479d848d960d6f54fca",
+      "en": "374ff6d5172611afd1a97dd126da7749d9fdc9dd82b30223232337b579563ac0"
+    }
+  }
+}

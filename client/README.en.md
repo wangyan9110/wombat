@@ -12,6 +12,8 @@
 - `UsageClient.prices` provides offline inspection and explicit official price updates; the Node host retrieves a fixed HTTPS document, and Rust validates, stores, and applies the prices.
 - Generated files live in `src/generated/`; field and version authority remains with the Rust DTO and [contracts](../docs/contracts.md).
 
+- Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).
+
 ## Limits and verification
 
 The client allows only operations in the generated request union; it exposes no arbitrary shell, file write, or generic dispatch. It validates requests and results at the process boundary; build and run focused tests after changes, following the [client rules](AGENTS.md).

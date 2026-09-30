@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "sections": {
+    "/wombat-decision-notes": {
+      "zh": "8c9867270cc587b932caa24e334e86917ed3d9cab8e0bc68e2402f5e6acc6243",
+      "en": "a4a78446df75f75cd0f742d18bf4d32baf9cd1f48e5258f723814658fd37afbb"
+    },
+    "/wombat-decision-notes/creation-and-status": {
+      "zh": "3563d7cfaff0aa491f953bc35fcdf650c77d2259eb5c14fcd92d39637d27daac",
+      "en": "c037d74ee30a7cf54ba1173d937c1b229152a99d26a9fbf2d8b8eabeb3af6fc3"
+    },
+    "/wombat-decision-notes/content-and-verification": {
+      "zh": "5c20d1c1ae6e0d3259222b2a8e5055c788293d42a00a1819dd1611546b594f49",
+      "en": "621b9739ac3cc7eb752c1e5b15a12c374353bff95fa3c7d291eaa393252c40b0"
+    }
+  }
+}

@@ -1,4 +1,17 @@
 {
-  "zh": "c4816c158bb3de9be3de680fc3c339c53d244c098cfb54e5898ca6b01c5458d7",
-  "en": "0874eb4987176344ca5c35cfc35f3ea6d16006ea6cdeb91cb356fb997ba863f1"
+  "version": 2,
+  "sections": {
+    "/cli-command-entry": {
+      "zh": "6fd01f12208ece81908ab90b1df783aa0dd04aa1593a338fe1bfef55f6015e3d",
+      "en": "bc381deea2ee1e9da88b65dc3a7a30431d96c64260340bbac49db4122f6dc39f"
+    },
+    "/cli-command-entry/public-entries": {
+      "zh": "53f0b44a5cff1bb1b65bc7789f26ab3b7b3d6a86c6ba7800c515157d17ac5311",
+      "en": "720107e3871e9968aca529d0197093de1296b121922357e428758b7e354ae237"
+    },
+    "/cli-command-entry/limits-and-verification": {
+      "zh": "12c9c0385e44206a9b2b33221a156bb212f0b5f14041e20c8649d22c560d9065",
+      "en": "35fc9510fdca89b18ea5add1e68d0fa716d14bf349272c90f201ea12e392db67"
+    }
+  }
 }

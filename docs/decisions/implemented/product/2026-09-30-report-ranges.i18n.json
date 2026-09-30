@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-report-defaults-follow-grouping-granularity": {
+      "zh": "c6f364f6f98d7bbb297f62d1d5a21e5d4591111d442d30656f01ac2e0175b5f9",
+      "en": "cc344eded3e1c6879911688540701ae30c18d1178b226e7611c548119b0848d8"
+    },
+    "/decision-note-report-defaults-follow-grouping-granularity/problem": {
+      "zh": "be4016b193cf11c12b7ddbb17c9bf819c9977825e1de239dfc2b9f15abc188f6",
+      "en": "7abf5ce307b988a6bcf1819aa0c5f00f60edf13f469ac3636cc32e7098f4e8cb"
+    },
+    "/decision-note-report-defaults-follow-grouping-granularity/decision": {
+      "zh": "6c04f9762ccaa1a2545a54937887a1354c4e436ea41f4ad44588b7bbe84834b2",
+      "en": "a912937c1bf6b16c88afa20b51ce09ec86457ba8976cce4dddcf8c07ff75c684"
+    },
+    "/decision-note-report-defaults-follow-grouping-granularity/alternatives-considered": {
+      "zh": "db8097f7b5f835593db7b5081858c3df15ef5fe32302cc57b61c422100806004",
+      "en": "93dcbb7c53f7eb4e77fea0b2939d8498a77936de4cd51dc3fb1f14e53521ade7"
+    },
+    "/decision-note-report-defaults-follow-grouping-granularity/impact-and-verification": {
+      "zh": "7f8e6a87e02a36c9492f5904167c0ffce39c6ba0df94036acc8341a37c244bfc",
+      "en": "1fa457cd5abe138d6a9bcaad89e4be4683ccccb1c00fb30a62bd9b2e408f41dd"
+    }
+  }
+}

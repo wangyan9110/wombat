@@ -16,3 +16,6 @@
 | 支持矩阵 | support matrix | 当前范围与限制 / Current scope and limits |
 | 实施跟踪 | implementation tracking | 当前阶段任务状态 / Current work status |
 | 验证记录 | verification record | 带日期和条件的结果 / Dated result with stated conditions |
+| 展示语言 | presentation language | 仅影响面向人的文字 / Affects human-facing copy only |
+| 语言状态 | locale state | 不进入计量协议 / Outside the accounting protocol |
+| 章节确认记录 | section confirmation record | 哈希不证明翻译质量 / Hashes do not establish translation quality |

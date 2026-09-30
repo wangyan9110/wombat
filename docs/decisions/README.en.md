@@ -2,15 +2,17 @@
 
 [中文](README.md) | English
 
-Decision Notes preserve rationale that code and current guides cannot carry: the problem, the chosen approach, alternatives actually considered, costs, and verification evidence. They are not task lists or the sole authority on product state; source, contracts, and the [support matrix](../../docs/support-matrix.md) still establish current behavior.
+Decision Notes preserve rationale that code and current guides cannot carry: the problem, the chosen approach, alternatives actually considered, costs, and verification evidence. They are not task lists or the sole authority on product state; source, contracts, and the [support matrix](../support-matrix.md) still establish current behavior.
 
 ## Creation and status
+
+Project decisions belong in `docs/decisions/` for all maintainers to consult. Reusable agent workflows belong in `.agents/skills/`, and standing rules belong in the applicable directory's `AGENTS.md`.
 
 - `proposed/<class>/YYYY-MM-DD-topic.md` records an unshipped decision with `Status: proposed`.
 - `implemented/<class>/YYYY-MM-DD-topic.md` records a shipped decision with `Status: implemented` and stays factually current with code.
 - `rejected/<class>/YYYY-MM-DD-topic.md` keeps a declined proposal while it prevents a plausible repeated mistake, with `Status: rejected`.
 
-Classes are limited to `architecture`, `product`, and `process`. Pair each Chinese source with sibling `.en.md` and `.i18n.json` files under the [bilingual workflow](../../docs/i18n/README.en.md). Create a note only when its rationale has lasting value; mechanical and local changes need none.
+Classes are limited to `architecture`, `product`, and `process`. Pair each Chinese source with sibling `.en.md` and `.i18n.json` files under the [bilingual workflow](../i18n/README.en.md). Create a note only when its rationale has lasting value; mechanical and local changes need none.
 
 ## Content and verification
 

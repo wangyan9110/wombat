@@ -1,3 +1,4 @@
+import { t } from '@wombat/client/locale';
 import { BoxRenderable, TextRenderable, InputRenderable, SelectRenderable, ScrollBoxRenderable, RGBA, TextAttributes, type Renderable, type CliRenderer, type KeyEvent } from '@opentui/core';
 import type { TerminalTheme } from '../themes/index.js';
 import { terminalText } from '../display-text.js';
@@ -20,14 +21,14 @@ export class NativeForm {
     this.scroll.verticalScrollBar.visible = false; this.scroll.horizontalScrollBar.visible = false; area.add(this.scroll);
     this.fields(spec.fields);
     if (spec.advancedFields) {
-      this.action(this.scroll, 'advanced', `${spec.advancedOpen ? '⌄' : '›'} 其他筛选`, () => this.finish('toggle'), false);
+      this.action(this.scroll, 'advanced', t("tui.components.native-form.value_more_filters", { p0: spec.advancedOpen ? '⌄' : '›' }), () => this.finish('toggle'), false);
       if (spec.advancedOpen) this.fields(spec.advancedFields);
     }
     if (spec.error) this.text(area, spec.error, this.theme.disclosureSummary, 'form-error');
     const actions = this.box(area, { id: 'form-actions', flexDirection: 'row', gap: 2 });
-    this.action(actions, 'apply', '应用', () => this.finish('apply'), false);
-    this.action(actions, 'cancel', '取消', () => this.finish('cancel'), false);
-    this.text(area, 'Tab 切换 · Ctrl+S 应用 · Esc 取消', theme.footerForeground, 'form-help');
+    this.action(actions, 'apply', t("tui.components.native-form.apply"), () => this.finish('apply'), false);
+    this.action(actions, 'cancel', t("tui.components.native-form.cancel"), () => this.finish('cancel'), false);
+    this.text(area, t("tui.components.native-form.tab_move_ctrl_s_apply_esc"), theme.footerForeground, 'form-help');
     this.resize();
     this.focus(Math.max(0, this.controls.findIndex(control => control.id === spec.focusId)));
   }

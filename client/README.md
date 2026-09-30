@@ -12,6 +12,8 @@
 - `UsageClient.prices`提供离线查询和显式官方价格更新；Node宿主获取固定HTTPS文档，Rust校验、保存及计价。
 - 生成文件位于 `src/generated/`；字段和版本以 Rust DTO 及[契约](../docs/contracts.md)为准。
 
+- 展示语言使用 `@wombat/client/locale`，详见[产品语言与文案](../docs/i18n/product.md)。
+
 ## 限制与验证
 
 客户端只允许生成请求联合类型中的操作，不提供任意 shell、文件写入或通用 dispatch。请求与返回值在跨进程边界校验；修改此包时按[客户端约定](AGENTS.md)构建并运行聚焦测试。

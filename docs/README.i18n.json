@@ -1,4 +1,9 @@
 {
-  "zh": "82779e9c6d703a7c398d48f3f5220b8d4d1848e1b78dbf8a9d090b020d3dfc7d",
-  "en": "6ae54ab50c29ba8a266973337e20988937f413dcf49094f328aaff174c9d8575"
+  "version": 2,
+  "sections": {
+    "/wombat-documentation": {
+      "zh": "e18c8f333b0940aed14d95f8ef7174f1ec0be75b89bb71b52af62d21d6b8efe8",
+      "en": "fe5454d528060bff208c12da782ec8aa076dd1885fcd5237c216812a52ab73a3"
+    }
+  }
 }

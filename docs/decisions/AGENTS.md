@@ -1,8 +1,8 @@
 # 决策记录约定
 
-本目录同时遵循[根目录约定](../../AGENTS.md)。格式和生命周期见[决策记录说明](README.md)。
+本目录遵循[根目录约定](../../AGENTS.md)及[文档维护约定](../AGENTS.md)。格式和生命周期见[决策记录说明](README.md)。
 
 - 只为长期有用的选择、取舍和验证责任写记录；机械迁移、局部样式调整和测试修补无需新建。
 - `proposed` 描述尚未交付的方案与验收条件；`implemented` 以现在时描述实际落地的决定和代价。状态不得与目录或代码事实冲突。
 - 同一决定更新原记录；改变决定时新建记录并互相链接。已实施记录中的路径、默认值和机制随代码同次修正。
-- 中英配对按[双语流程](../../docs/i18n/README.md)同步。验证运行 `corepack pnpm notes:check` 和 `corepack pnpm docs:i18n:check`。
+- 中英配对按[双语流程](../i18n/README.md)同步。验证运行 `corepack pnpm notes:check` 和 `corepack pnpm docs:i18n:check`。

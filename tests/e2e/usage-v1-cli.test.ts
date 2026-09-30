@@ -11,7 +11,7 @@ async function run(args: string[], env: NodeJS.ProcessEnv): Promise<{
   stdout: string;
   stderr: string;
 }> {
-  return await new Promise((resolve, reject) => { const child = spawn(process.execPath, ['dist/wombat.js', ...args], { cwd: process.cwd(), env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); let stdout = '', stderr = ''; child.stdout.on('data', chunk => stdout += chunk); child.stderr.on('data', chunk => stderr += chunk); child.on('error', reject); child.on('close', code => resolve({ code, stdout, stderr })); });
+  return await new Promise((resolve, reject) => { const child = spawn(process.execPath, ['dist/wombat.js', ...args], { cwd: process.cwd(), env: { ...process.env, WOMBAT_LANG: 'zh', ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); let stdout = '', stderr = ''; child.stdout.on('data', chunk => stdout += chunk); child.stderr.on('data', chunk => stderr += chunk); child.on('error', reject); child.on('close', code => resolve({ code, stdout, stderr })); });
 }
 async function mockCore(body: string): Promise<{
   dir: string;

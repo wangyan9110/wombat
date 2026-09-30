@@ -1,4 +1,17 @@
 {
-  "zh": "2289b04e51d5848078af499f1904ed9137fa46499bf16ffd8180da3f55c08a00",
-  "en": "346c88f21898fc8557760c6da2bf7b62516314b6806d895221c20c296fbf873c"
+  "version": 2,
+  "sections": {
+    "/rust-core": {
+      "zh": "c61354c41bd0eaa451da902e51462abf48776164bc0021ef241c731fa0fcc3ed",
+      "en": "9978d7e1853b17c68df19dc6a4d8cbaf429047f353033b0b311915aa95e541c6"
+    },
+    "/rust-core/entry-points-and-responsibilities": {
+      "zh": "8875ef86dd219d3c3a8acb494c7d22d215d0c4e805691451d720b7fffbef6221",
+      "en": "a573c50ed5fc88bc754f7d4fddf7a4b1b474fd4a874acd9a37a91a824058033e"
+    },
+    "/rust-core/limits-and-verification": {
+      "zh": "04f3583773e494928df8e6e8837e932c32c9898532f03a066f707e41c6ec71db",
+      "en": "6d44f7bde32ed20f33f8bf9771779b9329395e36a5f6db6dadb6791ced99f510"
+    }
+  }
 }

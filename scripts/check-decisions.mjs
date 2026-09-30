@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const notesRoot = path.join(root, '.agents', 'notes');
+const notesRoot = path.join(root, 'docs', 'decisions');
 const errors = [];
 let checked = 0;
 const required = {
@@ -18,7 +18,7 @@ function walk(directory) {
     if (entry.isDirectory()) { walk(file); continue; }
     if (!entry.name.endsWith('.md') || entry.name.endsWith('.en.md') || ['README.md', 'AGENTS.md'].includes(entry.name)) continue;
     const relative = path.relative(root, file).split(path.sep).join('/');
-    const match = /^\.agents\/notes\/(proposed|implemented|rejected)\/(architecture|product|process)\/(\d{4}-\d{2}-\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/.exec(relative);
+    const match = /^docs\/decisions\/(proposed|implemented|rejected)\/(architecture|product|process)\/(\d{4}-\d{2}-\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/.exec(relative);
     if (!match) { errors.push(`${relative}: invalid lifecycle, class, or dated filename`); continue; }
     checked++;
     const [, lifecycle, , date] = match;

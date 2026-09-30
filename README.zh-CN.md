@@ -4,6 +4,8 @@
 
 本地 Codex 用量与对话查看工具。只有“用量 / 对话”两个入口：先看 Token 和费用，再找到高消耗轮次与实际操作。
 
+通过 `--lang zh|en` 或 `WOMBAT_LANG` 选择中英文，终端主界面按 `L` 切换；优先级与边界见[产品语言](docs/i18n/product.md)。
+
 ## 从源码运行
 
 需要 Node.js 26.4.0+、Corepack/pnpm 与 Rust（版本见 rust-toolchain.toml）。终端使用 OpenTUI，交互所需的 FFI 参数由命令入口自动处理。

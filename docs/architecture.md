@@ -1,6 +1,6 @@
 # Wombat 架构
 
-本版按[用量与对话方案](usage-threads-v1.md)实施，共享 Rust 内核、Node CLI 与中文终端界面。实际验证见[进度](progress.md)和[实施跟踪](implementation-tracker.md)。
+本版按[用量与对话方案](usage-threads-v1.md)实施，共享 Rust 内核、Node CLI 与中英终端界面。实际验证见[进度](progress.md)和[实施跟踪](implementation-tracker.md)。
 
 ## 数据流
 
@@ -25,6 +25,7 @@ flowchart LR
 - `core/src/usage_store.rs`：v3 generation、manifest、精简计量账本、按对话 JSONL 分片及轮次偏移/哈希；旧 v1/v2 窄只读兼容。
 - `core/src/usage_app.rs`、`usage_app_dto.rs`：刷新、用量、对话、轮次、步骤；完整范围过滤、排序、汇总后分页。Rust Schema 生成 Node 类型及校验器。
 - `client/src/`：Rust 生成契约、请求和响应校验、可注入的类型化客户端；通用入口不加载 Node 或终端库。
+- `client/src/locale/`：CLI/TUI 共用的纯展示语言服务、类型化字典与订阅；不改变核心协议，详见[语言契约](i18n/product.md)。
 - `client/src/node/`：受限内核请求、进程生命周期、取消、超时和输出限制。内核 stdout 为最终 JSON，stderr 为阶段进度。
 - `cli/src/`：命令参数、JSON/文本输出、退出码和交互启动装配；帮助与机器查询不加载 OpenTUI。
 - `tui/src/`：OpenTUI 两入口、页面状态、组件、筛选、键鼠操作与语义主题。不解析来源、不计价、不从分页重算汇总。

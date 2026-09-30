@@ -1,4 +1,9 @@
 {
-  "zh": "6faa8eccb559bd7fc71d20e517a6234aa7bb285688d554cdf6563486ad2306e2",
-  "en": "77c7a11f7d9797f89acd112d1859a90771a7ddb238ae332d600054498feddaaa"
+  "version": 2,
+  "sections": {
+    "/contributing": {
+      "zh": "07434b2bde2616fdbe52b7056194c69c888fc8f746a2a37c012bb4f427aa24a8",
+      "en": "1ad223e33c666a40adf4b76916ef4bd854633045d14b7127fc55ccdc499bed13"
+    }
+  }
 }

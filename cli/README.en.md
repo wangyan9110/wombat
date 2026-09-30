@@ -10,6 +10,8 @@
 - `refresh`, `usage`, `threads`, `turns`, `steps`, and `prices` call the shared core through `@wombat/client/node`.
 - Only the interactive entry loads `@wombat/tui`; help, version, JSON, and noninteractive queries do not initialize the terminal.
 
+- Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).
+
 ## Limits and verification
 
 The CLI owns arguments, output, progress, and exit codes, not pricing or snapshot semantics. JSON progress goes to stderr and results to stdout; after a build, verify argument errors, partial results, and complete command paths under the [CLI rules](AGENTS.md).

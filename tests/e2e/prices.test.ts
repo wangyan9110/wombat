@@ -17,7 +17,7 @@ test('built CLI price update changes new snapshots only, is idempotent, and fail
       if (process.env.TEST_PRICE_ERROR) throw new Error('offline');
       return new Response(process.env.TEST_PRICE_BAD ? '# Pricing\\nInvalid' : ${JSON.stringify(document)});
     };`);
-    const env: NodeJS.ProcessEnv = { ...process.env, WOMBAT_DATA_HOME: path.join(root, 'data'), NODE_OPTIONS: '', NO_COLOR: '1' };
+    const env: NodeJS.ProcessEnv = { ...process.env, WOMBAT_LANG: 'zh', WOMBAT_DATA_HOME: path.join(root, 'data'), NODE_OPTIONS: '', NO_COLOR: '1' };
     delete env.WOMBAT_CORE_BIN;
     const run = (args: string[], extra: NodeJS.ProcessEnv = {}) => {
       const result = spawnSync(process.execPath, ['--import', pathToFileURL(hook).href, entry, ...args, '--json'], { env: { ...env, ...extra }, encoding: 'utf8', timeout: 15_000 });

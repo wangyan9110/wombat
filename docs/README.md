@@ -7,9 +7,12 @@
 - [终端操作](terminal.md)
 - [价格口径与官方依据](pricing.md)
 - [架构](architecture.md)与[开发约定](development.md)
+- [决策记录与提案](decisions/README.md)
 - [契约](contracts.md)
 - [支持矩阵](support-matrix.md)、[路线图](roadmap.md)、[进度](progress.md)
 - [隐私](privacy.md)与[依赖清单](dependency-licenses.json)
+
+- [产品语言与文案](i18n/product.md)
 
 历史验证材料保留其日期和语料边界，不代表当前功能或当前构建已经验收。
 

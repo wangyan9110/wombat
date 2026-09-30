@@ -4,11 +4,11 @@
 
 Status: proposed
 
-This note retains the full target, which is not fully implemented. Resumable cursors, SQLite transactions, an on-demand shared service and automatic CLI/TUI updates were delivered on 2026-09-30; the current documents below describe their boundaries. See the [current architecture](../../../../docs/architecture.md) and [support matrix](../../../../docs/support-matrix.md) for shipped behavior. Interfaces, timings and performance figures below are proposed specifications or acceptance targets.
+This note retains the full target, which is not fully implemented. Resumable cursors, SQLite transactions, an on-demand shared service and automatic CLI/TUI updates were delivered on 2026-09-30; the current documents below describe their boundaries. See the [current architecture](../../../architecture.md) and [support matrix](../../../support-matrix.md) for shipped behavior. Interfaces, timings and performance figures below are proposed specifications or acceptance targets.
 
 ## Implementation progress
 
-To reuse verified accounting and queries, a changed source still undergoes source-wide candidate reconciliation. SQLite writes changed candidate/projection entries; in-memory read revisions share unchanged facts, retaining at most eight revisions for up to ten minutes. Persistent MVCC, dependency-closure reconciliation and database aggregation remain unimplemented. Existing v3 snapshot queries remain available; a separate live v1 envelope adds freshness to results. Clients poll through narrow typed operations, with no generic command interface. File notifications and periodic reconciliation coexist; full verification currently requires explicit refresh --verify. The million-measurement, 256MiB and 24-hour targets remain unverified; small-corpus results do not establish them. See the [performance record](../../../../docs/benchmarks/live-usage-2026-09-30.json).
+To reuse verified accounting and queries, a changed source still undergoes source-wide candidate reconciliation. SQLite writes changed candidate/projection entries; in-memory read revisions share unchanged facts, retaining at most eight revisions for up to ten minutes. Persistent MVCC, dependency-closure reconciliation and database aggregation remain unimplemented. Existing v3 snapshot queries remain available; a separate live v1 envelope adds freshness to results. Clients poll through narrow typed operations, with no generic command interface. File notifications and periodic reconciliation coexist; full verification currently requires explicit refresh --verify. The million-measurement, 256MiB and 24-hour targets remain unverified; small-corpus results do not establish them. See the [performance record](../../../benchmarks/live-usage-2026-09-30.json).
 
 To reduce both copying and computation, append processing shares parser facts, pricing descriptions and evidence paths. Read revisions use sorted row vectors and positional turn indices; parser-cache restoration reuses committed facts. Queries group rows by thread or turn before aggregation, and sorted projection differences commit corrections and retractions. The eight-revision/ten-minute retention rule remains. Source-wide reconciliation still scales with history; database aggregation and persistent MVCC remain future targets.
 
@@ -20,7 +20,7 @@ The user requires fresh usage on opening the application and fast automatic upda
 - `core/src/usage_store.rs::save_with_prices` reprices and rewrites the ledger and thread shards. Usage queries in `usage_app.rs` read the ledger again.
 - `client/src/node/core.ts` starts a core process for each request and waits for a single response. The TUI uses a fixed snapshot until manual refresh.
 
-The historical [query benchmark](../../../../docs/benchmarks/usage-v1-query-2026-09-30.json) measured roughly 5.6 seconds to refresh 10,000 measurements. It used an earlier build and Node22, so it is not evidence of current performance. It motivates measuring the whole pipeline again instead of substituting frequent full refreshes for incremental ingestion.
+The historical [query benchmark](../../../benchmarks/usage-v1-query-2026-09-30.json) measured roughly 5.6 seconds to refresh 10,000 measurements. It used an earlier build and Node22, so it is not evidence of current performance. It motivates measuring the whole pipeline again instead of substituting frequent full refreshes for incremental ingestion.
 
 ## Proposal
 

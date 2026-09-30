@@ -1,4 +1,17 @@
 {
-  "zh": "1c85053f71ca246571f066b69f597400d3d73af1483329a87a14d947988024c8",
-  "en": "03b62f4756f477c5c61f0af97270066783d464a3b43fdf07e037936791a54b5e"
+  "version": 2,
+  "sections": {
+    "/typed-client": {
+      "zh": "dd5ae2f0f1a83311c808a297350a9fd49ed9b3d00851786f135760dbfa311641",
+      "en": "2480ea17a4a8dcc2bda41dc57c4a4fbd8d0585916de3ae84b71d3592895311d1"
+    },
+    "/typed-client/public-entries": {
+      "zh": "8bc54cfa53b675d5eca76fe391561ff3673c1817b7520b99864de752977dfada",
+      "en": "a545ae9bdf76d0e02a8671ca054dd5f44b4ba6f6255f9dad92fa1125529d518a"
+    },
+    "/typed-client/limits-and-verification": {
+      "zh": "4f969c9476ec586804818b4c68cdfdec23d80f8b4af7fec198471cb5b9d9b27c",
+      "en": "2cd0089b4696150953a7bcb087c6c75531825a65cecf51a761ef998434bb239d"
+    }
+  }
 }

@@ -2,11 +2,11 @@
 
 界面和原型设计使用项目内 [frontend-design Skill](.agents/skills/frontend-design/SKILL.md)；HTML 原型到 OpenTUI 的保真还原使用 [html-to-opentui Skill](.agents/skills/html-to-opentui/SKILL.md)。规则、脚本和问题记录随仓库维护；私有原型与提取结果仍保留在仓库外。
 
-Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、Node CLI 和中文 TUI。实施范围以 [首版方案](./docs/usage-threads-v1.md) 为准。先阅读 [架构设计](./docs/architecture.md)、[路线图](./docs/roadmap.md)、[支持矩阵](./docs/support-matrix.md)及[进度记录](./docs/progress.md)。实现状态以源码和验证证据为准，目标设计不是已实现功能。
+Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、Node CLI 和中英 TUI。实施范围以 [首版方案](./docs/usage-threads-v1.md) 为准。先阅读 [架构设计](./docs/architecture.md)、[路线图](./docs/roadmap.md)、[支持矩阵](./docs/support-matrix.md)及[进度记录](./docs/progress.md)。实现状态以源码和验证证据为准，目标设计不是已实现功能。
 
 修改 `docs/` 时遵循[文档维护约定](./docs/AGENTS.md)和[双语流程](./docs/i18n/README.md)；跨多份文档的整理可使用 [wombat-docs Skill](./.agents/skills/wombat-docs/SKILL.md)。长期规则留在适用目录的 `AGENTS.md`，具体工作步骤留在 Skill，当前产品事实以源码和对应文档为准。
 
-影响多个模块或长期约束的非机械决策按[决策记录约定](./.agents/notes/README.md)保存理由与取舍；局部修正不强制新建记录。已实施记录须与实际代码保持一致，不代替当前产品文档。
+影响多个模块或长期约束的非机械决策按[决策记录约定](./docs/decisions/README.md)保存理由与取舍；局部修正不强制新建记录。已实施记录须与实际代码保持一致，不代替当前产品文档。
 
 ## 范围与职责
 
@@ -18,6 +18,8 @@ Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、
 - `core/src/adapters/`：来源事实；`pricing.rs`：官方离线计价；`usage_store.rs`：快照与兼容；`usage_app.rs`：共享查询。
 - `usage_app_dto.rs` 与生成 TS/Schema 边界：字段和口径必须一致，禁止手写另一套公共 DTO。协议、快照、来源适配与价格版本分别管理。
 - `docs/roadmap.md` 为公开后续方向，`docs/development.md` 为多入口交付基线；`docs/architecture.md` 为架构依据；`docs/progress.md` 只记录已完成和实际验证。新增能力更新支持矩阵。
+
+- 展示文案归属 `client/src/locale/`，CLI/TUI 通过 `@wombat/client/locale` 使用类型化消息；稳定操作标识、协议字段和来源内容不翻译。语言边界见[产品语言](./docs/i18n/product.md)。
 
 ## 产品口径
 

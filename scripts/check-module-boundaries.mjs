@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-const allowed = { client: [], tui: ['@wombat/client'], cli: ['@wombat/client', '@wombat/client/node', '@wombat/tui'] };
+const allowed = { client: [], tui: ['@wombat/client', '@wombat/client/locale'], cli: ['@wombat/client/locale', '@wombat/client', '@wombat/client/node', '@wombat/tui'] };
 const issues = [];
 function files(dir) { return readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? files(path.join(dir, e.name)) : /\.[cm]?[jt]sx?$/.test(e.name) ? [path.join(dir, e.name)] : []); }
 for (const [module, imports] of Object.entries(allowed)) {

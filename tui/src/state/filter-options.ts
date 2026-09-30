@@ -1,3 +1,4 @@
+import { t } from '@wombat/client/locale';
 import { CoreError, type UsageClient, type UsageRequest } from '@wombat/client';
 
 export interface FilterOptions { projects: string[]; models: string[]; }
@@ -13,11 +14,11 @@ export async function loadFilterOptions(query: UsageClient['query'], request: Us
     let offset = 0, count = 0, total: number | undefined;
     for (;;) {
       const result = await query({ ...candidateQuery, snapshotId, offset, limit: 500 });
-      if (generation && generation !== result.snapshotRef.snapshotId) throw new CoreError('PROTOCOL_ERROR', '筛选候选的快照已变化');
+      if (generation && generation !== result.snapshotRef.snapshotId) throw new CoreError('PROTOCOL_ERROR', t("tui.state.filter-options.filter_option_snapshot_changed"));
       generation = result.snapshotRef.snapshotId;
       snapshotId = result.snapshotRef.selector ?? generation;
       if (result.action !== action || result.page.offset !== offset || (total !== undefined && result.page.total !== total))
-        throw new CoreError('PROTOCOL_ERROR', '筛选候选分页不一致');
+        throw new CoreError('PROTOCOL_ERROR', t("tui.state.filter-options.inconsistent_filter_option_pagination"));
       total = result.page.total; count += result.items.length;
       if (action === 'threads' && offset === 0 && request.action === 'usage') {
         // An unbounded usage request uses the report's default range. Query the advertised dated
@@ -33,11 +34,11 @@ export async function loadFilterOptions(query: UsageClient['query'], request: Us
       }
       const next = result.page.nextOffset;
       if (next == null) {
-        if (count !== total) throw new CoreError('PROTOCOL_ERROR', '筛选候选未读取完整');
+        if (count !== total) throw new CoreError('PROTOCOL_ERROR', t("tui.state.filter-options.incomplete_filter_options"));
         break;
       }
       if (next !== offset + result.items.length || next <= offset || next >= total)
-        throw new CoreError('PROTOCOL_ERROR', '筛选候选分页无效');
+        throw new CoreError('PROTOCOL_ERROR', t("tui.state.filter-options.invalid_filter_option_pagination"));
       offset = next;
     }
   }

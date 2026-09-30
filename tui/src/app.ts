@@ -1,3 +1,4 @@
+import { t, locale } from '@wombat/client/locale';
 import { browsePrices } from './state/prices.js';
 import { OperationCancelled, type LoadingSpec } from './components/loading-model.js';
 import { editTerminalFilters } from './state/filters.js';
@@ -64,13 +65,13 @@ function screenChoices(screen: Screen, width: number): Choice[] {
       const steps = screen.expanded.get(item.id)!;
       const sort = screen.stepSort?.get(item.id) ?? 'time';
       choices.push({ id: `step-sort:${item.id}`, kind: 'control', depth: 1, turnGroup: item.id, lines: [], controls: [
-        { id: `step-sort:time:${item.id}`, label: '时间顺序', active: sort === 'time' },
-        { id: `step-sort:tokens:${item.id}`, label: '消耗优先', active: sort === 'tokens' },
+        { id: `step-sort:time:${item.id}`, label: t("common.chronological"), active: sort === 'time' },
+        { id: `step-sort:tokens:${item.id}`, label: t("common.most_tokens"), active: sort === 'tokens' },
       ] });
       for (const [stepIndex, step] of steps.items.entries()) {
         const key = `step:${item.id}:${stepIndex}`;
         const stepContent = clockStepContent(step, steps, item, width);
-        if (step.kind === 'operation' && screen.stepSort?.get(item.id) === 'tokens' && (stepIndex === 0 || steps.items[stepIndex - 1].kind !== 'operation')) stepContent.lines.unshift('操作 · 时间顺序');
+        if (step.kind === 'operation' && screen.stepSort?.get(item.id) === 'tokens' && (stepIndex === 0 || steps.items[stepIndex - 1].kind !== 'operation')) stepContent.lines.unshift(t("tui.app.operations_chronological"));
         if (step.kind === 'measurement' && stepContent.headline)
           stepContent.headline.label = `${screen.details.has(key) ? '▾' : '▸'} ${stepContent.headline.label}`;
         choices.push({ id: key, ...stepContent, turnGroup: item.id, recordStart: true, expanded: screen.details.has(key), kind: step.kind === 'operation' ? 'operation' : 'measurement', depth: 1, paint: itemPaint(stepContent.lines) });
@@ -78,15 +79,15 @@ function screenChoices(screen: Screen, width: number): Choice[] {
           choices.push({ id: `step-detail:${item.id}:${stepIndex}`, kind: 'detail', depth: 2, turnGroup: item.id, lines: [], metrics: summaryMetrics(step.usage) });
       }
       if (steps.page.offset > 0)
-        choices.push({ id: `step-prev:${item.id}`, depth: 1, turnGroup: item.id, lines: ['上一页记录'] });
+        choices.push({ id: `step-prev:${item.id}`, depth: 1, turnGroup: item.id, lines: [t("tui.app.previous_records")] });
       if (steps.page.offset + steps.items.length < steps.page.total)
-        choices.push({ id: `step-next:${item.id}`, depth: 1, turnGroup: item.id, lines: ['下一页记录'] });
+        choices.push({ id: `step-next:${item.id}`, depth: 1, turnGroup: item.id, lines: [t("tui.app.next_records")] });
     }
   }
   if (result.page.offset > 0)
-    choices.push({ id: 'previous', lines: ['上一页'] });
+    choices.push({ id: 'previous', lines: [t("tui.app.previous_page")] });
   if (result.page.offset + result.items.length < result.page.total)
-    choices.push({ id: 'next', lines: ['下一页'] });
+    choices.push({ id: 'next', lines: [t("tui.app.next_page")] });
   return choices;
 }
 function selectedSummary(screen: Screen, choice: string | undefined): UsageSummary {
@@ -109,14 +110,14 @@ function selectedSummary(screen: Screen, choice: string | undefined): UsageSumma
   return result.summary;
 }
 export function priceBasisLines(summary: UsageSummary): string[] {
-  if (summary.measurementCount === 0) return ['暂无用量记录'];
+  if (summary.measurementCount === 0) return [t("common.no_usage_records")];
   const price = summary.price;
   return [
-    `金额 ${price.cost == null ? price.status === 'partial' ? '$' + price.knownCost + '*' : '费用未知' : '$' + price.cost}`,
-    `价格版本 ${price.priceRevision}`,
-    ...price.components.map(component => `${categoryLabels[component.category] ?? component.category} · ${component.ratePerMillion == null ? '单价未知' : '$' + component.ratePerMillion + ' / 百万 Token'} · ${component.cost == null ? component.status === 'partial' ? '$' + component.knownCost + '*' : '费用未知' : '$' + component.cost}`),
+    t("tui.app.amount_value", { p0: price.cost == null ? price.status === 'partial' ? '$' + price.knownCost + '*' : t("common.cost_unknown") : '$' + price.cost }),
+    t("tui.app.price_revision_value", { p0: price.priceRevision }),
+    ...price.components.map(component => `${categoryLabels[component.category] ?? component.category} · ${component.ratePerMillion == null ? t("tui.app.rate_unknown") : '$' + component.ratePerMillion + t("tui.app.million_tokens")} · ${component.cost == null ? component.status === 'partial' ? '$' + component.knownCost + '*' : t("common.cost_unknown") : '$' + component.cost}`),
     ...price.basis.flatMap(basis => [
-      `${basis.originalModel} → ${basis.pricingModel} · ${{ standard: '标准价格', longContext: '长上下文价格', conditionUnknown: '价格条件未知' }[basis.condition] ?? basis.condition}`,
+      `${basis.originalModel} → ${basis.pricingModel} · ${{ standard: t("common.standard_prices"), longContext: t("common.long_context_prices"), conditionUnknown: t("tui.app.unknown_pricing_condition") }[basis.condition] ?? basis.condition}`,
       basis.source,
     ]),
   ];
@@ -128,34 +129,34 @@ export function screenFrame(screen: Screen, tab: number, notice = ''): Frame {
     const makeLayout = (width: number): Partial<Frame> => {
       width = Math.min(width, 120);
       const range = rangeLabel(scope.since, scope.until, result.snapshotRef.createdAt, timezone);
-      const updated = `更新于 ${dateLabel(result.snapshotRef.createdAt, result.snapshotRef.createdAt, timezone, true, 'minute')}`;
-      const intro = width < 68 ? [range] : ['本机 Codex · ' + range + ' · ' + updated];
-      if (scope.project || screen.request.search) intro.push([scope.project && scope.project.split('/').filter(Boolean).at(-1), screen.request.search && '搜索：' + screen.request.search].filter(Boolean).join(' · '));
+      const updated = t("common.updated_value", { p0: dateLabel(result.snapshotRef.createdAt, result.snapshotRef.createdAt, timezone, true, 'minute') });
+      const intro = width < 68 ? [range] : [t("common.local_codex") + range + ' · ' + updated];
+      if (scope.project || screen.request.search) intro.push([scope.project && scope.project.split('/').filter(Boolean).at(-1), screen.request.search && t("tui.app.search") + screen.request.search].filter(Boolean).join(' · '));
       if (scope.model || scope.reasoningEffort) intro.push([scope.model, scope.reasoningEffort && effort(scope.reasoningEffort)].filter(Boolean).join(' · '));
       const context: NonNullable<Frame['context']> = [];
-      if (screen.thread && width >= 68) context.push({ text: (screen.thread.project?.split('/').filter(Boolean).at(-1) ?? '项目未知') + ' · ' + activityRange(screen.thread.startedAt, screen.thread.lastActivityAt, result.snapshotRef.createdAt, timezone) });
+      if (screen.thread && width >= 68) context.push({ text: (screen.thread.project?.split('/').filter(Boolean).at(-1) ?? t("common.unknown_project")) + ' · ' + activityRange(screen.thread.startedAt, screen.thread.lastActivityAt, result.snapshotRef.createdAt, timezone) });
       const isUsage = screen.request.action === 'usage';
-      const currentControl = isUsage ? ({ day: '按天', week: '按周', month: '按月' }[screen.request.group ?? 'day']) : screen.request.sort === 'recent' ? '最近活动' : screen.request.sort === 'time' ? '时间顺序' : '消耗优先';
-      const options = isUsage ? ['按天', '按周', '按月'] : ['消耗优先', screen.request.action === 'threads' ? '最近活动' : '时间顺序'];
+      const currentControl = isUsage ? ({ day: t("common.daily"), week: t("common.weekly"), month: t("common.monthly") }[screen.request.group ?? 'day']) : screen.request.sort === 'recent' ? t("common.recent_activity") : screen.request.sort === 'time' ? t("common.chronological") : t("common.most_tokens");
+      const options = isUsage ? [t("common.daily"), t("common.weekly"), t("common.monthly")] : [t("common.most_tokens"), screen.request.action === 'threads' ? t("common.recent_activity") : t("common.chronological")];
       if (!isUsage && screen.thread && width >= 68) {
         context.push({ text: usageLabel(result.summary, false, true), summary: true });
-        context.push({ text: (screen.thread.models.join(' / ') || '模型未知') + ' · ' + (screen.thread.reasoningEfforts.map(effort).join(' / ') || '—') });
-        if (screen.thread.matchedUsage.measurementCount !== screen.thread.threadUsage.measurementCount) context.push({ text: '所选范围 ' + usageLabel(screen.thread.matchedUsage) });
+        context.push({ text: (screen.thread.models.join(' / ') || t("common.unknown_model")) + ' · ' + (screen.thread.reasoningEfforts.map(effort).join(' / ') || '—') });
+        if (screen.thread.matchedUsage.measurementCount !== screen.thread.threadUsage.measurementCount) context.push({ text: t("tui.app.selected_range") + usageLabel(screen.thread.matchedUsage) });
       }
-      const actions = isUsage ? 'F 筛选 · R 更新用量 · G 周期 · U 价表 · T 主题' : screen.thread ? 'D 此对话用量 · S 排序 · T 主题' : 'F 筛选 / 搜索 · R 更新用量 · S 排序 · T 主题';
-      const footer = screen.note ? '↑↓ 查看说明 · ? 收起 · Esc 返回' : width < 68 ? `↑↓ 选择 · Enter 展开 · Tab 切换\n${screen.thread ? 'D 用量' : 'F 筛选'} · ${isUsage ? 'G 周期' : 'S 排序'} · R 更新\n? 说明 · T 主题 · Q 退出` : `↑↓ 选择 · Enter ${isUsage || screen.request.action === 'threads' ? '查看' : '展开'} · Esc 返回 · ? 金额依据 · Q 退出`;
+      const actions = isUsage ? t("tui.app.f_filter_r_refresh_g_period") : screen.thread ? t("tui.app.d_thread_usage_s_sort_t") : t("tui.app.f_filter_search_r_refresh_s");
+      const footer = screen.note ? t("tui.app.read_notes_collapse_esc_back") : width < 68 ? t("tui.app.select_enter_expand_tab_switch_value", { p0: screen.thread ? t("tui.app.d_usage") : t("tui.app.f_filter"), p1: isUsage ? t("tui.app.g_period") : t("tui.app.s_sort") }) : t("tui.app.select_enter_value_esc_back_cost", { p0: isUsage || screen.request.action === 'threads' ? t("tui.app.view") : t("tui.app.expand") });
       const disclosure = screen.note?.lines;
       const choices = screenChoices(screen, width);
-      return { intro, context, actions, disclosure, disclosureAction: disclosure ? { label: 'U 查看完整价格表 →', id: 'prices' } : undefined, controlOptions: options, activeControl: currentControl, choices, footer,
+      return { intro, context, actions, disclosure, disclosureAction: disclosure ? { label: t("tui.app.u_view_all_prices"), id: 'prices' } : undefined, controlKind: isUsage ? 'group' : 'sort', controlOptions: options, activeControl: currentControl, choices, footer,
         tableCells: isUsage && result.items.length && width >= 68 ? usageHeaderCells(width) : undefined,
         totalCells: isUsage && result.items.length ? usageTotalCells(result.summary, width) : undefined,
-        status: notice || (result.freshness?.status === 'syncing' ? '正在同步 · 显示已提交数据' : result.freshness?.status === 'failed' ? '同步失败 · 保留上次数据' : result.freshness?.status === 'current' ? '自动更新中' : undefined) || (result.quality.status === 'partial' ? '数据说明 · ? 查看' : undefined),
-        empty: ['这个范围暂无记录', 'R 更新用量 · F 调整日期'],
+        status: notice || (result.freshness?.status === 'syncing' ? t("tui.app.syncing_showing_committed_data") : result.freshness?.status === 'failed' ? t("tui.app.sync_failed_keeping_previous_data") : result.freshness?.status === 'current' ? t("tui.app.updating_automatically") : undefined) || (result.quality.status === 'partial' ? t("tui.app.data_notes_view") : undefined),
+        empty: [t("tui.app.no_records_in_this_range"), t("tui.app.r_refresh_f_change_dates")],
       };
     };
-    const title = 'Wombat / ' + (screen.request.action === 'turns' && screen.thread ? screen.thread.title ?? '对话' : screen.request.action === 'usage' ? ({ day: '日报', week: '周报', month: '月报' }[screen.request.group ?? 'day']) : '对话');
-    const nav = '1 用量      2 对话';
-    return { title, nav, activeTab: tab === 0 ? '1 用量' : '2 对话', viewportStart: screen.viewportStart, intro: [], choices: [], footer: '', layout: makeLayout };
+    const title = 'Wombat / ' + (screen.request.action === 'turns' && screen.thread ? screen.thread.title ?? t("common.threads") : screen.request.action === 'usage' ? ({ day: t("tui.app.daily_report"), week: t("tui.app.weekly_report"), month: t("tui.app.monthly_report") }[screen.request.group ?? 'day']) : t("common.threads"));
+    const nav = t("tui.app.1_usage_2_threads");
+    return { title, nav, activeTab: tab === 0 ? t("common.1_usage") : t("common.2_threads"), viewportStart: screen.viewportStart, intro: [], choices: [], footer: '', layout: makeLayout };
 }
 export async function startTerminalApp(initial: UsageRequest, client: UsageClient): Promise<number> {
   return runTerminalAppWithUI(initial, client, await createTerminalUI());
@@ -201,13 +202,13 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
     let candidates = selector ? filterCache.get(key) : undefined, error: string | undefined;
     if (!candidates) {
       try {
-        candidates = await ui.task({ kind: 'query', message: '正在读取筛选选项…', activeTab: tab === 0 ? 'usage' : 'threads' }, options =>
+        candidates = await ui.task({ kind: 'query', message: t("tui.app.loading_filter_options"), activeTab: tab === 0 ? 'usage' : 'threads' }, options =>
           loadFilterOptions(request => queryUsage(request, options), { ...screen.request, snapshotId: selector }));
         if (selector) filterCache.set(key, candidates);
       } catch (cause) {
-        if (cause instanceof OperationCancelled) { notice = '读取已取消'; return { request: screen.request }; }
+        if (cause instanceof OperationCancelled) { notice = t("common.loading_cancelled"); return { request: screen.request }; }
         if (ui.signal.aborted || (cause instanceof CoreError && cause.code === 'CANCELLED')) throw cause;
-        error = '选项读取失败，可手动输入：' + (cause instanceof Error ? cause.message : String(cause));
+        error = t("tui.app.options_unavailable_enter_manually") + (cause instanceof Error ? cause.message : String(cause));
       }
     }
     return editTerminalFilters(screen.request, new Date().toISOString(), { form: ui.form.bind(ui) }, candidates, error);
@@ -227,7 +228,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
     if (ui.signal.aborted) return 130;
     try {
       if (!screen.result) {
-        screen.result = await ui.task({ kind: openedAny ? 'query' : 'open', message: '正在读取用量…', activeTab: tab === 0 ? 'usage' : 'threads' }, options => queryUsage({ ...screen.request, snapshotId: client.live && homes.includes(screen) && !initial.snapshotId ? undefined : snapshotId }, options));
+        screen.result = await ui.task({ kind: openedAny ? 'query' : 'open', message: t("tui.app.loading_usage"), activeTab: tab === 0 ? 'usage' : 'threads' }, options => queryUsage({ ...screen.request, snapshotId: client.live && homes.includes(screen) && !initial.snapshotId ? undefined : snapshotId }, options));
         openedAny = true;
         notice = '';
         if (!startupChecked) {
@@ -240,7 +241,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
               continue;
             } catch (error) {
               if (ui.signal.aborted) return ui.exitCode;
-              notice = error instanceof OperationCancelled ? '更新已取消，继续显示上次结果' : error instanceof Error ? error.message : String(error);
+              notice = error instanceof OperationCancelled ? t("common.refresh_cancelled_showing_previous_results") : error instanceof Error ? error.message : String(error);
             }
           }
         }
@@ -253,7 +254,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
     catch (error) {
       if (!initial.snapshotId && error instanceof CoreError && error.code === 'VIEW_EXPIRED') {
         snapshotId = undefined; for (const home of homes) home.result = undefined;
-        stack.length = 0; screen = homes[tab]; notice = '读取版本已过期，重新加载列表'; continue;
+        stack.length = 0; screen = homes[tab]; notice = t("tui.app.version_expired_reloading_the_list"); continue;
       }
       if (error instanceof CoreError && error.code === 'CANCELLED')
         return 130;
@@ -268,7 +269,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
           notice = refreshError instanceof Error ? refreshError.message : String(refreshError);
         }
       }
-      const answer = await choose({ title: 'Wombat / 用量', intro: [notice || (error instanceof OperationCancelled ? '读取已取消，尚无用量结果' : error instanceof Error ? error.message : String(error))], choices: [{ id: 'refresh', lines: ['读取用量'] }, { id: 'retry', lines: ['重试'] }, { id: 'prices', lines: ['更新官方价表'] }, { id: 'filters', lines: ['修改筛选'] }, { id: 'back', lines: [stack.length ? '返回对话' : '退出'] }], footer: '↑↓ 选择 · Enter 确认 · Esc 返回' });
+      const answer = await choose({ title: t("common.wombat_usage"), intro: [notice || (error instanceof OperationCancelled ? t("tui.app.loading_cancelled_no_usage_results_yet") : error instanceof Error ? error.message : String(error))], choices: [{ id: 'refresh', lines: [t("tui.app.load_usage")] }, { id: 'retry', lines: [t("common.retry")] }, { id: 'prices', lines: [t("tui.app.update_official_prices")] }, { id: 'filters', lines: [t("tui.app.edit_filters")] }, { id: 'back', lines: [stack.length ? t("tui.app.back_to_threads") : t("tui.app.quit")] }], footer: t("tui.app.select_enter_confirm_esc_back") });
       if (answer.id === 'quit') return 1;
       if (answer.id === 'prices') { if (await managePrices()) return 1; continue; }
       if (answer.id === 'back') { const parent = stack.pop(); if (!parent) return 1; screen = parent; tab = screen.request.action === 'usage' ? 0 : 1; continue; }
@@ -277,7 +278,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
           const filtered = await editFilters();
           if (filtered.navigate) { tab = filtered.navigate === 'usage-tab' ? 0 : 1; screen = homes[tab]; stack.length = 0; }
           else screen.request = filtered.request;
-        } else notice = '返回对话列表后筛选';
+        } else notice = t("common.return_to_the_thread_list_to");
       }
       if (answer.id === 'refresh') {
         try {
@@ -315,7 +316,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
         if (polling.signal.aborted) return;
         if (value.snapshotRef.snapshotId !== result.snapshotRef.snapshotId || JSON.stringify(value.scope) !== JSON.stringify(result.scope) || value.freshness?.status !== result.freshness?.status) {
           if (ui.isFollowingTop && result.page.offset === 0) update = value;
-          else { updateAvailable = true; if (notice === '有新数据 · R 更新') return; }
+          else { updateAvailable = true; if (notice === t("common.new_data_r_refresh")) return; }
           ui.invalidate();
         }
       }).catch(error => {
@@ -324,7 +325,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
     }, 1_000) : undefined;
     let answer;
     try {
-      answer = await choose({ ...frame, selected: Math.min(screen.selected, Math.max(0, initialChoices.length - 1)), shortcuts: { '1': 'usage-tab', '2': 'threads-tab', v: 'details', q: 'quit', r: 'refresh', u: 'prices', f: 'filters', '/': 'search', s: 'sort', g: 'group', d: 'daily', '?': 'explain', n: 'next', p: 'previous' } });
+      answer = await choose({ ...frame, selected: Math.min(screen.selected, Math.max(0, initialChoices.length - 1)), shortcuts: { '1': 'usage-tab', '2': 'threads-tab', v: 'details', q: 'quit', l: 'language', r: 'refresh', u: 'prices', f: 'filters', '/': 'search', s: 'sort', g: 'group', d: 'daily', '?': 'explain', n: 'next', p: 'previous' } });
     } finally { if (timer) clearInterval(timer); polling.abort(); }
 
     const choices = frame.layout!(ui.renderer.width).choices!;
@@ -341,10 +342,11 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
         snapshotId = update.snapshotRef.snapshotId;
         lastCode = update.quality.status === 'partial' ? 2 : 0;
         notice = '';
-      } else if (updateAvailable) notice = '有新数据 · R 更新';
-      else if (updateError) notice = '自动更新失败：' + updateError;
+      } else if (updateAvailable) notice = t("common.new_data_r_refresh");
+      else if (updateError) notice = t("tui.app.automatic_update_failed") + updateError;
       continue;
     }
+    if (answer.id === 'language') { locale.setLocale(locale.getSnapshot().locale === 'zh' ? 'en' : 'zh'); notice = ''; screen.note = undefined; continue; }
     if (answer.id === 'quit')
       return lastCode;
     if (['tab', 'usage-tab', 'threads-tab'].includes(answer.id)) {
@@ -366,7 +368,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
     }
     if (answer.id === 'prices') { if (await managePrices()) return lastCode; continue; }
     if (answer.id === 'explain') {
-      screen.note = screen.note ? undefined : { lines: ['金额依据 · 标准 API 价格折算', '不是账户账单；* 为已计价小计。', ...priceBasisLines(selectedSummary(screen, choices[answer.selected]?.id)), ...result.quality.issues.map(issue => issue.message)] };
+      screen.note = screen.note ? undefined : { lines: [t("tui.app.cost_basis_standard_api_equivalent"), t("tui.app.not_an_account_bill_marks_the"), ...priceBasisLines(selectedSummary(screen, choices[answer.selected]?.id)), ...result.quality.issues.map(issue => issue.message)] };
       continue;
     }
     if (answer.id === 'refresh') {
@@ -385,12 +387,12 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
         notice = '';
       }
       catch (error) {
-        notice = error instanceof OperationCancelled ? '更新已取消，继续显示上次结果' : error instanceof Error ? error.message : String(error);
+        notice = error instanceof OperationCancelled ? t("common.refresh_cancelled_showing_previous_results") : error instanceof Error ? error.message : String(error);
       }
       continue;
     }
     if (answer.id === 'filters') {
-      if (screen.request.action !== 'usage' && screen.request.action !== 'threads') { notice = '返回对话列表后筛选'; continue; }
+      if (screen.request.action !== 'usage' && screen.request.action !== 'threads') { notice = t("common.return_to_the_thread_list_to"); continue; }
       const filtered = await editFilters();
       if (filtered.navigate) { tab = filtered.navigate === 'usage-tab' ? 0 : 1; screen = homes[tab]; stack.length = 0; continue; }
       if (filtered.request === screen.request) continue;
@@ -403,10 +405,10 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
     }
     if (answer.id === 'search') {
       if (screen.request.action !== 'threads') {
-        notice = '在对话中搜索';
+        notice = t("tui.app.search_in_threads");
         continue;
       }
-      const search = await input({ title: '搜索对话', value: screen.request.search ?? '' });
+      const search = await input({ title: t("tui.app.search_threads"), value: screen.request.search ?? '' });
       if (search !== null) {
         screen.request = { ...screen.request, search: search || undefined, offset: 0 };
         screen.result = undefined;
@@ -464,7 +466,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
       const sort = explicitSort ?? (prefix === 'step-sort' ? (stepSort.get(turnId) === 'tokens' ? 'time' : 'tokens') : (stepSort.get(turnId) ?? 'time'));
       const request: UsageRequest = { action: 'steps', threadId: screen.request.threadId, turnId, scope: screen.request.scope, sort, offset: prefix === 'step-next' ? previous.page.offset + previous.page.limit : prefix === 'step-prev' ? Math.max(0, previous.page.offset - previous.page.limit) : 0 };
       try {
-        const steps = await ui.task({ kind: 'query', message: '正在读取轮次记录…', activeTab: 'threads' }, options => queryUsage({ ...request, snapshotId }, options));
+        const steps = await ui.task({ kind: 'query', message: t("common.loading_turn_records"), activeTab: 'threads' }, options => queryUsage({ ...request, snapshotId }, options));
         screen.expanded.set(turnId, steps);
         stepSort.set(turnId, sort);
         clearStepDetails(screen, turnId);
@@ -508,7 +510,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
       else
         try {
           const sort = screen.stepSort?.get(item.id) ?? 'time';
-          const steps = await ui.task({ kind: 'query', message: '正在读取轮次记录…', activeTab: 'threads' }, options => queryUsage({ action: 'steps', snapshotId, threadId: item.threadId, turnId: item.id, scope, sort }, options));
+          const steps = await ui.task({ kind: 'query', message: t("common.loading_turn_records"), activeTab: 'threads' }, options => queryUsage({ action: 'steps', snapshotId, threadId: item.threadId, turnId: item.id, scope, sort }, options));
           screen.expanded.set(item.id, steps);
           clearStepDetails(screen, item.id);
         }

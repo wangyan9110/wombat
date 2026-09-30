@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-shared-presentation-language-and-section-based-document-pairing": {
+      "zh": "692f4a6ee98cd1366d824ac2cea18779eb6da245cd56ba6f77d5d1ea3770511e",
+      "en": "7613a83f2a7c3329b3a1787a5fb4e49d79414cca4ca4a43248c7cffbc442a02e"
+    },
+    "/decision-note-shared-presentation-language-and-section-based-document-pairing/problem": {
+      "zh": "6e15afa9b44b3ed833bb773b877aee49ae680f5b92878d9d7d0728b48ff0da8f",
+      "en": "f3466f48d081ce982fc3beef1adda33c392bf3edf6fb9c4f62cd25920b8839c5"
+    },
+    "/decision-note-shared-presentation-language-and-section-based-document-pairing/decision": {
+      "zh": "821a27a34d31498ba9a2274f5d4359d549c6c21026cc0b0555810d81c89293dd",
+      "en": "dbfaa9a04cf467bbedfddbc9d39c3d047d5661bf5c7743fa5728f711293b3d46"
+    },
+    "/decision-note-shared-presentation-language-and-section-based-document-pairing/alternatives-considered": {
+      "zh": "fb05c5243f68b59ff4cea26be3a7ef37ff8f6ab88286d2cd74299a29f00160a7",
+      "en": "d7b1e8a3b2e2f035fec21e856a9cb49ceebec4a8b6bbfd6fd6b5dee2fd3c5075"
+    },
+    "/decision-note-shared-presentation-language-and-section-based-document-pairing/impact-and-verification": {
+      "zh": "55b7e503f9e7f45266257051e0c475a3feb9cfeb0f2e2577fba37c44007caa9c",
+      "en": "d80345a756be68e55d7ffa116934a3547f4b96735cc7e10dc1388350c72f35f5"
+    }
+  }
+}

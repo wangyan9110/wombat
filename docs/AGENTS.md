@@ -12,7 +12,7 @@
 |---|---|
 | 全仓与子目录的长期开发规则 | 根目录或对应子目录的 `AGENTS.md` |
 | 可重复执行的任务步骤、检查顺序与工具用法 | `.agents/skills/<name>/SKILL.md`；不在 Skill 中另写产品契约 |
-| 跨模块或长期约束的决策理由、被放弃的方案 | [决策记录](../.agents/notes/README.md)；机械改动无需新建 |
+| 跨模块或长期约束的决策理由、被放弃的方案 | [决策记录](decisions/README.md)；机械改动无需新建 |
 | 首版目标与取舍 | [首版方案](usage-threads-v1.md)；未完成部分不得写成现状 |
 | 已实现的结构、模块职责和数据流 | [架构](architecture.md)；具体字段与行为由源码及[契约](contracts.md)说明 |
 | 每个根模块的公开入口、限制与验证 | 对应模块的 README；跨模块关系仍由[架构](architecture.md)说明 |

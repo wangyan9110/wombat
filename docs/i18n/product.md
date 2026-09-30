@@ -1,0 +1,31 @@
+# 产品语言与文案
+
+中文 | [English](product.en.md)
+
+本页定义 CLI/TUI 的展示语言。文档配对由[双语文档流程](README.md)管理。实现吸收 [DeepSeek Harness LocaleRuntime](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/client/locale) 的共享语言状态、类型化字典与文案归属设计；Wombat 独立实现，不依赖其插件系统。
+
+## 使用
+
+```sh
+wombat --lang en
+wombat usage --lang zh
+wombat prices --lang en
+WOMBAT_LANG=en wombat --help
+```
+
+语言优先级为 `--lang`、`WOMBAT_LANG`、系统语言、中文兼容默认值。支持 `zh` / `en` 及其地区标签。系统语言依次取非空的 `LC_ALL`、`LC_MESSAGES`、`LANG`，均未设置时使用运行环境的语言；`C` / `POSIX` 使用英文。显式指定不支持的语言报参数错误，无法匹配的系统语言回退中文。
+
+在用量或对话主界面按 `L` 切换语言，保持查询范围、选择位置及原始数据。切换本身不重新扫描。筛选和价格页面使用当前语言；返回主界面后可再次切换。语言选择只作用于当前进程，长期偏好通过环境变量设置；没有写入偏好文件或新增设置命令。
+
+## 模块边界
+
+- `@wombat/client/locale` 是独立的纯 TypeScript 公开入口，不依赖 Node、OpenTUI 或 Rust。它提供 `LocaleRuntime`、`resolveLocale`、类型化 `t`、不可变状态及订阅；CLI/TUI 共用一个进程级展示实例。
+- `client/src/locale/zh.ts` 与 `en.ts` 保存完整消息，以功能前缀划分键；英文键集合由中文键集合约束。参数名从中文模板推导，双语参数一致性另由检查脚本验证。正文参数按原值插入，不递归解析或翻译。
+- CLI 负责解析语言参数和环境变量；TUI 只读取语言状态。模块级标签使用延迟读取，避免启动时捕获旧语言。界面操作使用稳定标识，不能根据翻译后的文字判断业务动作。
+- 语言影响帮助、提示、标签、日期和紧凑数字展示。JSON 字段、错误码、模型标识、来源标题、用户内容及用量/金额不翻译。已知内核与宿主进度在展示层映射；未知内核诊断与来源问题原样保留。
+
+## 验证与限制
+
+`corepack pnpm i18n:check` 检查字典键和参数，并检查 CLI/TUI 的中文字面量及部分英文文案属性。它使用 TypeScript 语法树，跳过注释；它不能判定译文质量或识别所有动态拼接的英文文案。新增消息仍须人工审校。
+
+`corepack pnpm test:repo` 验证检查器的故障样本；模块测试覆盖语言优先级、运行时切换、原生终端与格式化；构建后的端到端测试确认语言不改变共享内核数据。首次交付范围为中英 CLI/TUI 展示，未增加任意语言插件、复数语法、从右到左布局、文档网站或内核诊断全文翻译。
