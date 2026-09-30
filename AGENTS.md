@@ -54,7 +54,7 @@ Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、
 
 保持已有用户改动。完成记录包含修改范围、验证证据、未完成边界和运行方式，不将规划任务整体标完成。根目录约定覆盖全仓库，子目录约定补充该范围；用户明确指令优先。
 
-跨模块或发行前的验证选择可使用 [wombat-verify Skill](.agents/skills/wombat-verify/SKILL.md)。仓库规则、双语配对、Skill 元数据及公开引用的静态检查统一执行 `corepack pnpm repo:check`；它不代替对应构建、行为测试或真实终端验收。
+跨模块或发行前的验证选择可使用 [wombat-verify Skill](.agents/skills/wombat-verify/SKILL.md)；构建、打包与版本发布使用 [wombat-release Skill](.agents/skills/wombat-release/SKILL.md)。仓库规则、双语配对、Skill 元数据及公开引用的静态检查统一执行 `corepack pnpm repo:check`；它不代替对应构建、行为测试或真实终端验收。
 
 ## 公开资料边界
 

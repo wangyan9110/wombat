@@ -34,3 +34,5 @@ corepack pnpm test
 按改动选择对应测试，完整链路交付运行全部。跨语言测试调用 dist，必须先构建。独立真值覆盖 A01–A12；正确性不是“与旧输出一样”。终端用真实 PTY 验证 40 / 80 / 120 列与完整返回路径。性能须报告固定语料、release、冷暖查询、内核启动及峰值内存，不以局部解析代表整体。
 
 依赖变化审查并执行 `corepack pnpm licenses:generate`、`licenses:check`。发行验收执行 `corepack pnpm public:check --package` 与干净目录安装；其他平台未经实测不能宣称支持。只有实际通过的项目进入进度完成记录。
+
+构建、可转移安装包、npm 候选及公开发布按 [wombat-release Skill](../../.agents/skills/wombat-release/SKILL.md)执行；它编排现有脚本，记录发行基线、归档校验和安装结果。生成候选不等于已经发布，公开发布沿用用户明确的版本与授权范围。

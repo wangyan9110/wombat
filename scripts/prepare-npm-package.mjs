@@ -79,7 +79,7 @@ try {
     delete env.WOMBAT_CORE_BIN;
     const version = JSON.parse(run(command, ['--version', '--json'], { cwd: scratch, env, capture: true }));
     if (version.version !== source.version) throw new Error('Installed npm package version mismatch');
-    const result = JSON.parse(run(command, ['usage', '--json'], { cwd: scratch, env, capture: true, status: 1 }));
+    const result = JSON.parse(run(command, ['usage', '--cached', '--json'], { cwd: scratch, env, capture: true, status: 1 }));
     if (result.error?.code !== 'NO_SNAPSHOT') throw new Error('Installed npm package did not reach its core');
   } finally {
     rmSync(scratch, { recursive: true, force: true });

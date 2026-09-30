@@ -4,6 +4,14 @@
 
 This page retains useful delivery results, failures, and evidence boundaries. Repeated implementation descriptions have been consolidated and obsolete commands removed. See [implementation status](status.en.md) for current status and the [support matrix](../reference/support-matrix.en.md) and source for feature semantics. Results apply to the builds recorded at the time, not subsequent working trees. Evidence files may be updated by later runs; their internal hashes and fixtures identify the exact run.
 
+## Release Skill and npm candidate · 2026-09-30
+
+Added the project [wombat-release Skill](../../.agents/skills/wombat-release/SKILL.md) for release baselines, build gates, transferable bundles, npm candidates, authentication, public publishing, and post-publication installation checks. Root guidance and the development workflow link to it. Existing scripts are reused; the npm installation smoke now checks the no-cache error with usage --cached, while ordinary empty live queries may succeed.
+
+Prepared @wangyan9110/wombat@0.3.0 from committed 9ad9d47 plus that packaging fix (macOS arm64 / Node ≥26.4.0). The full release gate, 202 product tests, 6 repository tests, and clean installs of both original and scoped packages passed. Final terminal evidence covers 20 PTY journeys, with every JS and core hash matching the candidate archive; see the [candidate manifest](../benchmarks/npm-candidate-2026-09-30.json). The initial PTY failure came from a non-executable node-pty spawn-helper; restoring its execute permission resolved it, and the prerequisite is recorded in the Skill. Concurrent automatic-pricing and later interface changes were excluded; no public publication occurred.
+
+The Skill creator validator passed using temporary YAML validation dependencies. The new Skill and documentation entry points passed repo:check on the isolated baseline; a subsequent shared-workspace review also passed repository checks and git diff --check. Static checks do not replace behavioral verification of concurrent product changes.
+
 ## Documentation directory upgrade · 2026-09-30
 
 13 existing pages moved into guides/reference/development/project and gained English counterparts. The specification drops its pre-migration file inventory, implementation status retains only current delivery and gaps, and progress consolidates repeated history and removes obsolete operating commands. Lasting accounting and snapshot tradeoffs became 2 bilingual implemented decisions; raw synthetic evidence remains. Entry points, directory rules, budgets, pairing manifests, and release documentation paths were updated together.
