@@ -5,12 +5,16 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, copyFileSync, chmodSy
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
+import { npmReadme } from './npm-readme.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const args = process.argv.slice(2).filter(arg => arg !== '--');
-if (args.length !== 2 || args[0] !== '--name')
-  throw new Error('Usage: node scripts/prepare-npm-package.mjs --name @your-scope/wombat');
-const name = args[1];
+const { values } = parseArgs({ args: process.argv.slice(2).filter(arg => arg !== '--'),
+  options: { name: { type: 'string' }, 'public-ref': { type: 'string', default: 'main' } } });
+const name = values.name;
+if (!name) throw new Error('Usage: node scripts/prepare-npm-package.mjs --name @your-scope/wombat [--public-ref <tag-or-commit>]');
+const publicRef = values['public-ref'];
+npmReadme('', publicRef);
 const validPart = '[a-z0-9][a-z0-9._~-]*';
 if (name === 'wombat' || !new RegExp(`^(?:@${validPart}/)?${validPart}$`).test(name))
   throw new Error('Choose a valid npm name that you own; the unscoped wombat name is already occupied');
@@ -50,7 +54,11 @@ try {
   }
   const metadata = {
     name, version: source.version,
-    description: 'Local Codex usage and conversation viewer',
+    description: source.description,
+    keywords: source.keywords,
+    repository: source.repository,
+    homepage: source.homepage,
+    bugs: source.bugs,
     type: 'module', license: source.license,
     engines: source.engines,
     os: ['darwin'], cpu: ['arm64'],
@@ -60,6 +68,10 @@ try {
     publishConfig: { access: 'public' },
   };
   writeFileSync(path.join(stage, 'package.json'), JSON.stringify(metadata, null, 2) + '\n');
+  for (const file of ['README.md', 'README.zh-CN.md']) {
+    const destination = path.join(stage, file);
+    writeFileSync(destination, npmReadme(readFileSync(destination, 'utf8'), publicRef));
+  }
   const packed = JSON.parse(run('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', output,
     '--cache', path.join(output, '.npm-cache')], { cwd: stage, capture: true }));
   if (packed.length !== 1 || !packed[0].filename) throw new Error('npm pack produced no public archive');
@@ -88,6 +100,7 @@ try {
   rmSync(path.join(output, '.npm-cache'), { recursive: true, force: true });
   complete = true;
   console.log(`npm archive candidate checked (not published): ${archive}\nPackage: ${name}@${source.version} · darwin/arm64`);
+  console.log(`README links target ${publicRef}; public image accessibility must be verified before publication.`);
 } finally {
   if (!complete) rmSync(output, { recursive: true, force: true });
 }

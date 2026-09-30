@@ -27,6 +27,17 @@ for (const pair of pairs) {
   }
 }
 
+// Localized screenshots are reviewed pairs too, without prose hash records.
+for (const pair of manifest.assetPairs ?? []) {
+  for (const language of ['zh', 'en']) {
+    const file = pair[language];
+    if (typeof file !== 'string' || !/^assets\/[a-z0-9-]+\.(?:png|svg)$/.test(file)
+      || !existsSync(path.join(root, file)) || pairByPath.has(file)) {
+      errors.push(`Invalid or duplicate ${language} asset pair: ${file}`);
+    } else pairByPath.set(file, pair);
+  }
+}
+
 function walk(directory) {
   const found = [];
   for (const entry of readdirSync(path.join(root, directory), { withFileTypes: true })) {

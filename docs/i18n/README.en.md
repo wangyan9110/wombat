@@ -21,6 +21,8 @@ The check uses a Markdown syntax tree to verify complete pairs, section hashes, 
 
 ## Incremental maintenance
 
+Register localized interface images under `assetPairs` in the pairing manifest with Chinese and English paths. Checks cover file existence, unique pairing, and the language of README links; they do not judge image translations. Review image content manually; non-localized logos share the same file.
+
 For routine edits, read the terminology table and directly update the changed passages while preserving untouched translations. Never re-record hashes without review merely to pass checks. Delete or rename both languages and their record together.
 
 `corepack pnpm docs:i18n:check -- docs/i18n/README.md` validates the named pair’s content; repository checks still validate every pair. Failures identify changed sections and languages. `node scripts/check-doc-i18n.mjs --migrate` migrates only records whose contents still exactly match the old whole-file confirmation hashes; it does not confirm new translations. Records remain JSON, and that command does not rename files or change pairing scope.

@@ -157,5 +157,19 @@
     "docs/AGENTS.md",
     "docs/i18n/terminology.md",
     "tui/AGENTS.md"
+  ],
+  "assetPairs": [
+    {
+      "zh": "assets/prototype-usage-overview-zh.png",
+      "en": "assets/prototype-usage-overview-en.png"
+    },
+    {
+      "zh": "assets/prototype-high-usage-turn-zh.png",
+      "en": "assets/prototype-high-usage-turn-en.png"
+    },
+    {
+      "zh": "assets/prototype-conversations-zh.png",
+      "en": "assets/prototype-conversations-en.png"
+    }
   ]
 }

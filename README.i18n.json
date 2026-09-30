@@ -1,21 +1,49 @@
 {
   "version": 2,
   "sections": {
-    "/wombat": {
-      "zh": "2ade31562152778cee7fc14930f199420492ef24ae436a642e23d6434c34f84a",
-      "en": "94c7f55c19c1f7f43445c7070fb731eb2724598cd9491929baa3e9a5fe09a7ec"
+    "/": {
+      "zh": "b35f32b745a32e5cbbc0fa3d256133360dc2a69d45863ac0e870bf2ba9f544b3",
+      "en": "b35f32b745a32e5cbbc0fa3d256133360dc2a69d45863ac0e870bf2ba9f544b3"
     },
-    "/wombat/run-from-source": {
-      "zh": "209ba3c25518718cf4c4378088abe09e908b861f562a85911b9a8f5693074d17",
-      "en": "47d1454af6d7c47400289b47a25c2ea4c97a001acd33cb909b2f1252aaa07985"
+    "/wombat-codex-token-usage-tracker": {
+      "zh": "ba9f6c1ae714ca5cf6c1212e7a81a5457950a887b3f264bcb8367f3331f2688e",
+      "en": "07252d79717903052cdbf077da0df5516d714cbc7ca69594fee2380724b7c6e1"
     },
-    "/wombat/develop": {
-      "zh": "06aeb1b21bf78c83e5d19fa0fd7628e0652dc77a2a469d10962d5d020272f877",
-      "en": "c4e8f0ea7df928e278e9aea6166043f8e3fdf5b23cc72931ea14d13760655173"
+    "/wombat-codex-token-usage-tracker/get-started": {
+      "zh": "a1dc3292644a335a6bad4b04ffa356e63ff5502df01e299f2badaeadae88f065",
+      "en": "8c091fa417bd5a7bc49be90fda86b9c915e4313985ec7246fef64b019cf2866c"
     },
-    "/wombat/transferable-install": {
-      "zh": "923f1233dc195b36d0639c4116a359f2c37b63b2f03480920887ff5b431403ca",
-      "en": "a2ab7a20059d5245a31c85d0291e520273232aea6a45df3445d2312148bb7542"
+    "/wombat-codex-token-usage-tracker/find-a-high-usage-turn": {
+      "zh": "614b9f45c842d5533c7edb31c66cc24d26e5d6bc29b154c1bcd7c185d4e72ed1",
+      "en": "95ecb80560713a1a0d02e8e6a6e82b1aaba9b0d7d1d7811dfd110670971919f9"
+    },
+    "/wombat-codex-token-usage-tracker/explore-your-usage": {
+      "zh": "c81abaa0ed2fbaabb2703bc62a5a5a079100070d0898ea172219f6691512a56c",
+      "en": "8910b414a5247386fe6f0b470620d42044b22e80605835219e5e4d7ee9c2d9ae"
+    },
+    "/wombat-codex-token-usage-tracker/common-questions": {
+      "zh": "bc275b13ba5bc0f38555d82dc31768d810cbe1c021904d8e20b7430ed9f82e43",
+      "en": "1cd34632e06d6894ffa00d0ba8d14f8dbe94a6cdee43df3339b0352f96889cfe"
+    },
+    "/wombat-codex-token-usage-tracker/how-costs-work": {
+      "zh": "261269f7a8eb58263b6a95da8fb1cb5516ab765f967c08204afc73b4c37c2aa3",
+      "en": "322a2c40f297dba750555ae787873e3d41ee499b7f0697eb4c3f819f4650234a"
+    },
+    "/wombat-codex-token-usage-tracker/privacy": {
+      "zh": "5a953a94cc81f585714847fc79a5b87d5e1abdca895fb8789284de1c0bbf462f",
+      "en": "9e7efdfeaf9edd8cdd1a68969c8e58d73b96d0b51b7cbbc6a2f66c61221e0f4a"
+    },
+    "/wombat-codex-token-usage-tracker/feedback-and-contributions": {
+      "zh": "29cb55e4debe3bafd91f037276bcb00075bb78af59fb6d13eaf33d7256744613",
+      "en": "5449d8d695e4e57306180f340e68fa50d181a3301476bfd11baace7bb70cd5c6"
+    },
+    "/wombat-codex-token-usage-tracker/development-and-releases": {
+      "zh": "a3e4dcb2b2dfce8c5af9b2e9c04003c041c982ce01a72e81e9d80a23f6940ddf",
+      "en": "799149481c48c67a6851b30477c43a39a100fe29a383c0d55ba236a5cb36459b"
+    },
+    "/wombat-codex-token-usage-tracker/license": {
+      "zh": "cde8bbb6126ec7c29da0dba23a26d83f906c3fb7b369eb68598e99d230c55abe",
+      "en": "9c5c5200e5acffbfb38188f50b353b65be5224629be421c622dc693ccebc2499"
     }
   }
 }

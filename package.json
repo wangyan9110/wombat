@@ -44,7 +44,17 @@
     "docs/dependency-licenses.json",
     "docs/schemas/",
     "docs/i18n/product.md",
-    "docs/i18n/product.en.md"
+    "docs/i18n/product.en.md",
+    "assets/prototype-conversations-en.png",
+    "assets/prototype-conversations-zh.png",
+    "assets/prototype-high-usage-turn-en.png",
+    "assets/prototype-high-usage-turn-zh.png",
+    "assets/prototype-usage-overview-en.png",
+    "assets/prototype-usage-overview-zh.png",
+    "assets/wombat-logo-dark.png",
+    "assets/wombat-logo-dark.svg",
+    "assets/wombat-logo-light.png",
+    "assets/wombat-logo-light.svg"
   ],
   "scripts": {
     "dev": "node --import tsx cli/src/index.ts",
@@ -100,5 +110,21 @@
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "description": "Local Codex token usage tracker. Find usage peaks and drill into conversations, turns, and estimated API costs in your terminal.",
+  "keywords": [
+    "codex",
+    "token-usage",
+    "usage-tracker",
+    "tui",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangyan9110/wombat.git"
+  },
+  "homepage": "https://github.com/wangyan9110/wombat#readme",
+  "bugs": {
+    "url": "https://github.com/wangyan9110/wombat/issues"
+  }
 }

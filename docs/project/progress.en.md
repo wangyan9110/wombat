@@ -4,6 +4,14 @@
 
 This page retains useful delivery results, failures, and evidence boundaries. Repeated implementation descriptions have been consolidated and obsolete commands removed. See [implementation status](status.en.md) for current status and the [support matrix](../reference/support-matrix.en.md) and source for feature semantics. Results apply to the builds recorded at the time, not subsequent working trees. Evidence files may be updated by later runs; their internal hashes and fixtures identify the exact run.
 
+## README and release assets · 2026-09-30
+
+Imported the handed-off bilingual READMEs and 10 logo/interface images, verifying every file SHA-256; production notes and the metadata fragment stay outside the public repository. The README leads from installation through a usage peak to conversations and turns, with CLI and privacy details collapsed. Images are labelled design prototypes; npm publication is explicitly pending, and source setup and the release Skill remain discoverable.
+
+Release metadata reads the description, keywords, and repository links from the root configuration; images enter the package allowlist individually. Staged npm READMEs resolve images, logos, fallback images, and documentation to absolute URLs, with --public-ref to pin the reference; GitHub source files retain relative paths. The existing Node 26 packaging entry directly loads the new TypeScript conversion module without new dependencies. Three localized image pairs have language ownership checks. Three focused tests, TypeScript checks, and the public inventory of 67 package files passed; remote images and the npm page remain unverified publicly, and local checks do not establish external installability.
+
+The isolated baseline passed the full release gate, 202 product tests, 9 repository tests, and clean installs of both original and scoped packages. The actual npm archive contains both READMEs and all 10 images, whose bytes match the handed-off originals; metadata and absolute-link conversion were verified. The candidate uses main image references for local acceptance only; public references still require verification before publication. Concurrent product changes in the shared workspace were excluded, and no public publication occurred.
+
 ## Release Skill and npm candidate · 2026-09-30
 
 Added the project [wombat-release Skill](../../.agents/skills/wombat-release/SKILL.md) for release baselines, build gates, transferable bundles, npm candidates, authentication, public publishing, and post-publication installation checks. Root guidance and the development workflow link to it. Existing scripts are reused; the npm installation smoke now checks the no-cache error with usage --cached, while ordinary empty live queries may succeed.
