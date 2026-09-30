@@ -1,0 +1,6 @@
+{
+  "package": "@xterm/headless",
+  "version": "5.5.0",
+  "source": "https://raw.githubusercontent.com/xtermjs/xterm.js/5.5.0/LICENSE",
+  "sha256": "c0998a378eaafe66ef66e4b16cd4016636bf617664f4576c30bd6914e2039008"
+}

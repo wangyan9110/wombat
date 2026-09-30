@@ -156,11 +156,11 @@ test('report hierarchy: source colors, full-width rules, inset and selection tra
     color('9月29日', '#d4e6da', '#2b4a35');
     color('gpt-test-model', '#c3d8ca', '#142820');
     color('9月28日', '#d4e6da', '#1d3628');
-    for (const id of ['heading', 'navigation']) {
-      const node = setup.renderer.root.findDescendantById(id)!;
-      const line = setup.captureCharFrame().split('\n')[node.y + node.height - 1];
-      assert.equal(line.slice(node.x, node.x + node.width), '─'.repeat(node.width));
-    }
+    const heading = setup.renderer.root.findDescendantById('heading')!;
+    const navigation = setup.renderer.root.findDescendantById('navigation')!;
+    const lines = setup.captureCharFrame().split('\n');
+    assert.match(lines[heading.y + heading.height - 1], /本机 Codex/, 'heading ends with context, not a second rule');
+    assert.equal(lines[navigation.y + navigation.height - 1].slice(navigation.x, navigation.x + navigation.width), '─'.repeat(navigation.width));
     const before = setup.captureCharFrame().split('\n');
     assert.equal(before.find(line => line.includes('gpt-test-model'))!.indexOf('gpt-test-model'), before.find(line => line.includes('9月29日'))!.indexOf('9月29日') + 1);
     const dayNode = setup.renderer.root.findDescendantById('row-0');
@@ -218,6 +218,11 @@ for (const width of [80, 120, 160]) test(`actual report cells preserve column ge
       const expected = root.findDescendantById(`table-header-column-${i}`)!;
       assert(expected.width >= 8, `column ${i} must not collapse`);
       for (const row of ['row-0', 'row-1', 'total']) {
+        if (row === 'row-0' && i < 3) {
+          const date = root.findDescendantById('row-0-column-0')!;
+          assert(date.x <= expected.x && date.x + date.width >= expected.x + expected.width);
+          continue;
+        }
         const actual = root.findDescendantById(`${row}-column-${i}`)!;
         assert.equal(actual.x, expected.x, `${row}/${i} x`);
         assert.equal(actual.width, expected.width, `${row}/${i} width`);

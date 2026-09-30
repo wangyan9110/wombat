@@ -5,12 +5,12 @@ import { priceFrame, pricePageSize, type PriceViewState } from '../screens/price
 import { OperationCancelled } from '../components/loading-model.js';
 
 type Exit = 'back' | 'quit' | 'usage-tab' | 'threads-tab';
-export async function browsePrices(client: UsageClient, ui: TerminalUI): Promise<Exit> {
+export async function browsePrices(client: UsageClient, ui: TerminalUI, activeTab: 'usage' | 'threads' = 'usage'): Promise<Exit> {
   let prices: PricingResult | undefined, notice: string | undefined;
   const state: PriceViewState = { tier: 'standard', cursor: 0 };
   async function read(action: 'status' | 'update') {
     try {
-      prices = await ui.task({ kind: 'query', message: action === 'status' ? t("tui.state.prices.loading_prices") : t("tui.state.prices.updating_official_prices") }, options => client.prices({ action }, options));
+      prices = await ui.task({ kind: 'query', activeTab, message: action === 'status' ? t("tui.state.prices.loading_prices") : t("tui.state.prices.updating_official_prices") }, options => client.prices({ action }, options));
       notice = action === 'update' ? t("tui.state.prices.value_applies_after_refreshing_usage", { p0: prices.updated ? t("common.prices_updated") : t("common.prices_unchanged") }) : undefined;
     } catch (error) {
       if (ui.signal.aborted || (error instanceof CoreError && error.code === 'CANCELLED')) throw error;
@@ -20,7 +20,7 @@ export async function browsePrices(client: UsageClient, ui: TerminalUI): Promise
   await read('status');
   for (;;) {
     if (ui.signal.aborted) return 'quit';
-    const frame = prices ? priceFrame(prices,state,notice) : {
+    const frame = prices ? priceFrame(prices,state,notice,activeTab) : {
       title:t("common.wombat_prices"),intro:[notice ?? t("tui.state.prices.prices_unavailable")],choices:[{id:'update-prices',lines:[t("common.update_prices_online")]},{id:'retry',lines:[t("common.retry")]}],
       footer:t("common.u_update_prices_online_esc_back"),shortcuts:{u:'update-prices'},
     };

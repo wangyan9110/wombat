@@ -289,13 +289,13 @@ test('live home updates automatically and keeps filter drafts isolated', { timeo
   const running = runTerminalAppWithUI({action:'usage'},client,ui);
   try {
     await setup.waitForFrame(frame=>frame.includes('自动更新中'));
-    assert.deepEqual(reads[0], { action: 'usage', mode: 'fresh' });
+    assert.deepEqual(reads[0], { action: 'usage', mode: 'cached' });
     setup.mockInput.pressKey('2');
     await setup.waitForFrame(frame=>frame.includes('Wombat / 对话') && frame.includes('自动更新中'));
-    assert.ok(reads.some(read => read.action === 'threads' && read.mode === 'fresh'));
+    assert.ok(reads.some(read => read.action === 'threads' && read.mode === undefined));
     setup.mockInput.pressKey('1');
     await setup.waitForFrame(frame=>frame.includes('Wombat / 日报') && frame.includes('自动更新中'));
-    assert.equal(reads.filter(read => read.action === 'usage' && read.mode === 'fresh').length, 2);
+    assert.equal(reads.filter(read => read.action === 'usage' && read.mode === 'cached').length, 1);
     epoch=2;
     await new Promise(resolve=>setTimeout(resolve,1_100));
     await setup.waitForFrame(frame=>frame.includes('9.99'));
@@ -309,9 +309,9 @@ test('live home updates automatically and keeps filter drafts isolated', { timeo
     await setup.waitForFrame(frame => frame.includes('自动更新中'));
     refreshFails = true;
     setup.mockInput.pressKey('r');
-    const failed = await setup.waitForFrame(frame => frame.includes('合成同步失败') && frame.includes('重试'));
-    assert.doesNotMatch(failed, /9\.99/, 'failed refresh must not present the previous result');
+    const failed = await setup.waitForFrame(frame => frame.includes('合成同步失败'));
+    assert.match(failed, /9\.99/, 'failed refresh keeps the last result together with the error notice');
     await setup.flush(); setup.mockInput.pressKey('q');
-    assert.equal(await running,1);
+    assert.equal(await running,0);
   } finally { if(!ui.signal.aborted) setup.mockInput.pressCtrlC(); await running; }
 });

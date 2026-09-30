@@ -17,6 +17,9 @@ export function money(value: string | null | undefined, places = 2): string {
   return `$${digits}.${(scaled % unit).toString().padStart(places, '0')}`;
 }
 export function tokens(value: number | null | undefined): string { return value == null ? '—' : value.toLocaleString('en-US'); }
+function compactTokens(value: number | null | undefined): string {
+  return value == null ? '—' : new Intl.NumberFormat(locale.getSnapshot().locale === 'zh' ? 'zh-CN' : 'en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
+}
 export function usageLabel(usage: UsageSummary, detail = false, compact = false): string {
   if (usage.measurementCount === 0) return t("common.no_usage_records");
   const price = usage.price.status === 'unknown' ? t("common.cost_unknown") : money(usage.price.cost ?? usage.price.knownCost, detail ? 4 : 2) + (usage.price.status === 'partial' ? '*' : '');
@@ -83,17 +86,19 @@ export function reportCost(summary: UsageSummary): string {
 function tableCells(values: string[], width: number): TableCell[] {
   // Reserve whole terminal cells for numbers; fractional text tracks can paint
   // beyond their parent in the native renderer. Labels use the remaining space.
+  if (width < 68) return values.map((text, index) => ({ text, ...(index === 0 ? { grow: 1, minWidth: 0 } : { width: index === 1 ? 8 : 12 }), align: index === 0 ? 'left' : 'right' }));
   const tracks = width >= 120
     ? [{ width: 10 }, { grow: 1, minWidth: 15 }, { width: 8 }, ...Array.from({ length: 6 }, (_, i) => ({ width: i === 5 ? 12 : 11 }))]
     : [{ grow: 1.1, minWidth: 10 }, { grow: 1.8, minWidth: 14 }, { width: 8 }, { width: 12 }, { width: 13 }];
   return values.map((text, index) => ({ text, ...tracks[index], growBasis: 0, align: index >= 3 ? 'right' : 'left' }));
 }
 export function usageHeaderCells(width: number): TableCell[] {
-  return tableCells(width >= 120 ? [t("common.date"), t("common.model"), t("common.effort"), t("common.input"), t("common.output"), t("common.cache_write"), t("common.cache_read"), t("common.total_tokens"), t("common.cost_usd")] : [t("common.date"), t("common.model"), t("common.effort"), 'Token', t("common.cost_usd")], width);
+  if (width < 68) return tableCells([t('common.date') + '/' + t('common.model'), 'Token', t('common.cost_usd')], width);
+  return tableCells(width >= 120 ? [t("common.date"), t("common.model"), t("common.effort"), t("common.input"), t("common.output"), t("common.cache_write"), t("common.cache_read"), 'Token', t("common.cost_usd")] : [t("common.date"), t("common.model"), t("common.effort"), 'Token', t("common.cost_usd")], width);
 }
 export function usageTotalCells(summary: UsageSummary, width: number): TableCell[] {
-  if (width < 68) return [{ text: t("common.total"), grow: 1 }, { text: usageLabel(summary, false, true), grow: 2, align: 'right' }];
-  return tableCells([t("common.total"), '', '', ...(width >= 120 ? [summary.tokens.input, summary.tokens.output, summary.tokens.cacheCreate, summary.tokens.cacheRead].map(tableCount) : []), tableCount(summary.tokens.total), reportCost(summary)], width);
+  if (width < 68) return tableCells([t('common.total'), compactTokens(summary.tokens.total), reportCost(summary)], width);
+  return tableCells([t("common.total"), '', '', ...(width >= 120 ? [summary.tokens.input, summary.tokens.output, summary.tokens.cacheCreate, summary.tokens.cacheRead].map(tableCount) : []), width >= 120 ? tableCount(summary.tokens.total) : compactTokens(summary.tokens.total), reportCost(summary)], width);
 }
 export type ItemContent = Pick<Choice, 'lines' | 'cells' | 'headline' | 'bar' | 'operation'>;
 /** Content and column constraints only; OpenTUI owns wrapping, alignment and layout. */
@@ -102,15 +107,14 @@ export function itemContent(item: UsageItem, result: UsageResult, width: number,
   const timezone = result.scope.timezone ?? 'UTC';
   if (item.kind === 'usage') {
     const date = item.date ? rangeLabel(item.scope.since, item.scope.until, reference, timezone) : t("common.unknown_date");
-    if (width < 68) return { lines: [], headline: { label: item.isSubtotal ? `${date} ›` : `↳ ${modelLabel(item.model, item.reasoningEffort)}`, amount: usageLabel(item.usage, false, true) } };
+    if (width < 68) return { lines: [], cells: tableCells([item.isSubtotal ? `${date} ›` : `↳ ${modelLabel(item.model, item.reasoningEffort)}`, compactTokens(item.usage.tokens.total), reportCost(item.usage)], width).map((cell, index) => ({ ...cell, date: item.isSubtotal && index === 0, stackWhenLong: !item.isSubtotal && index === 0, tone: item.isSubtotal ? 'subtotalForeground' : index === 0 ? 'tableMarkerForeground' : 'tablePartForeground' })) };
     const values = [item.isSubtotal ? date + ' ›' : '↳', item.isSubtotal ? '' : item.model ?? t("common.unknown_model"), item.isSubtotal ? '' : effort(item.reasoningEffort)];
     if (width >= 120) values.push(...[item.usage.tokens.input, item.usage.tokens.output, item.usage.tokens.cacheCreate, item.usage.tokens.cacheRead].map(tableCount));
-    values.push(tableCount(item.usage.tokens.total), reportCost(item.usage));
-    return { lines: [], cells: tableCells(values, width).map((cell, index) => ({ ...cell, inset: !item.isSubtotal && index < 2 ? 1 : 0, tone: item.isSubtotal ? 'subtotalForeground' : index === 0 ? 'tableMarkerForeground' : index === 1 ? 'modelForeground' : 'tablePartForeground' })) };
+    values.push(width >= 120 ? tableCount(item.usage.tokens.total) : compactTokens(item.usage.tokens.total), reportCost(item.usage));
+    return { lines: [], cells: tableCells(values, width).map((cell, index) => ({ ...cell, date: item.isSubtotal && index === 0, inset: !item.isSubtotal && index < 2 ? 1 : 0, tone: item.isSubtotal ? 'subtotalForeground' : index === 0 ? 'tableMarkerForeground' : index === 1 ? 'modelForeground' : 'tablePartForeground' })) };
   }
   if (item.kind === 'thread') {
-    const lines = [`${item.project?.split('/').filter(Boolean).at(-1) ?? t("common.unknown_project")} · ${activityRange(item.startedAt, item.lastActivityAt, reference, timezone)}`,
-      `${item.models.join(' / ') || t("common.unknown_model")} · ${item.reasoningEfforts.map(effort).join(' / ') || '—'}`];
+    const lines = [`${item.project?.split('/').filter(Boolean).at(-1) ?? t("common.unknown_project")} · ${activityRange(item.startedAt, item.lastActivityAt, reference, timezone)}`];
     if (item.matchedUsage.measurementCount !== item.threadUsage.measurementCount) lines.push(t("tui.screens.format.selected_range_value", { p0: usageLabel(item.matchedUsage, false, true) }));
     return { headline: { label: item.title ?? t("common.untitled_thread"), amount: usageLabel(item.threadUsage, false, true) }, lines };
   }
@@ -118,7 +122,7 @@ export function itemContent(item: UsageItem, result: UsageResult, width: number,
     const lines = [t("tui.screens.format.thread_share_value_value_value", { p0: percent(item.share) || '—', p1: item.models.join(' / ') || t("common.unknown_model"), p2: item.reasoningEfforts.map(effort).join(' / ') || '—' }),
       `${activityRange(item.startedAt, item.endedAt, reference, timezone, true)} · ${statusLabel(item.status)}`];
     if (item.matchedUsage.measurementCount !== item.usage.measurementCount) lines.push(t("tui.screens.format.filtered_value", { p0: usageLabel(item.matchedUsage, false, true) }));
-    return { headline: { label: item.ordinal == null ? t("common.other_records") : t("common.turn_value", { p0: item.ordinal }), amount: usageLabel(item.usage, false, true) }, lines, ...(width >= 68 && item.share != null ? { bar: item.share } : {}) };
+    return { headline: { label: item.ordinal == null ? t("common.other_records") : t("common.turn_value", { p0: item.ordinal }), amount: usageLabel(item.usage, false, true) }, lines, ...(item.share != null ? { bar: item.share } : {}) };
   }
   const clock = timestampLabel ?? dateLabel(item.timestamp, reference, timezone, true, item.timePrecision);
   if (item.kind === 'measurement') return { headline: { label: `${clock} · ${modelLabel(item.model, item.reasoningEffort)}`, amount: `${usageLabel(item.usage, true, true)} · ${percent(item.share)}` }, lines: [] };

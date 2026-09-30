@@ -15,11 +15,11 @@ function details(model: Model): NonNullable<Choice['priceDetail']> {
     model.longContext ? t("tui.screens.prices.long_context_tier_input_including_cache", { p0: model.longContext.inputAbove.toLocaleString('en-US') }) : t("tui.screens.prices.no_long_context_tier_is_listed"),
   ], source: model.source };
 }
-export function priceFrame(prices: PricingResult, state: PriceViewState, notice?: string): Frame {
+export function priceFrame(prices: PricingResult, state: PriceViewState, notice?: string, activeTab: 'usage' | 'threads' = 'usage'): Frame {
   const models = [...prices.catalog.models].sort((a,b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
   return { title: t("common.wombat_prices"), intro: [t("tui.screens.prices.value_million_tokens_standard_api_equivalent", { p0: prices.catalog.currency })],
     compactIntro: [t("tui.screens.prices.value_million_tokens", { p0: prices.catalog.currency })], compactFooter:t("tui.screens.prices.s_tier_n_p_page_u"),
-    nav: t("tui.screens.prices.1_usage_2_threads"), activeTab: t("common.1_usage"), pageNavigation: true, choices: [], footer: '',
+    nav: t("tui.screens.prices.1_usage_2_threads"), activeTab: activeTab === 'usage' ? t("common.1_usage") : t("common.2_threads"), pageNavigation: true, choices: [], footer: '',
     shortcuts: { s: state.tier === 'standard' ? 'sort:1' : 'sort:0', u: 'update-prices', n: 'next', p: 'previous', '1': 'usage-tab', '2': 'threads-tab' },
     controlOptions: [t("common.standard_prices"),t("common.long_context_prices")], activeControl: state.tier === 'standard' ? t("common.standard_prices") : t("common.long_context_prices"),
     actions: t("tui.screens.prices.u_update_prices_online_b_back"),

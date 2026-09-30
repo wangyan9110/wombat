@@ -1,5 +1,5 @@
 import { t } from '@wombat/client/locale';
-import { BoxRenderable, ScrollBoxRenderable, TextRenderable, InputRenderable, StyledText, RGBA, TextAttributes, createCliRenderer, type CliRenderer, type KeyEvent } from '@opentui/core';
+import { BoxRenderable, ScrollBoxRenderable, TextRenderable, InputRenderable, StyledText, RGBA, TextAttributes, TextBuffer, TextBufferView, createCliRenderer, type CliRenderer, type KeyEvent } from '@opentui/core';
 import { terminalTheme, nextTerminalTheme, type TerminalTheme } from '../themes/index.js';
 import { terminalText } from '../display-text.js';
 import type { Frame, Choice, RowPaint, TableCell } from './view-model.js';
@@ -28,6 +28,8 @@ export class TerminalUI {
   private textSources = new Map<TextRenderable, { content: string; paint: RowPaint }>();
   private disposed = false;
   private loadingState?: LoadingState;
+  private loadingExpansion?: ReturnType<typeof setTimeout>;
+  private loadingAnimation?: ReturnType<typeof setInterval>;
   private cancelOperation?: () => void;
   private terminationCode = 130;
   get exitCode(): number { return this.terminationCode; }
@@ -43,7 +45,7 @@ export class TerminalUI {
   private readonly resize = () => { if (this.activeForm) this.activeForm.resize(); else if (this.loadingState) this.drawLoading(); else if (this.frame && !this.editor) this.draw(true); };
   choose(frame: Frame): Promise<Answer> {
     if (this.signal.aborted) return Promise.resolve({ id: 'quit', selected: 0, viewportStart: 0 });
-    this.loadingState = undefined;
+    this.stopLoadingTimers(); this.loadingState = undefined;
     this.frame = frame;
     this.selected = frame.selected ?? 0;
     return new Promise(resolve => { this.pending = resolve; this.draw(true, frame.viewportStart ?? 0); });
@@ -81,8 +83,8 @@ export class TerminalUI {
     else if (frame.pageNavigation && ['up','down','home','end'].includes(key.name)) finish('cursor:' + key.name);
     else if (key.name === 'up') move(this.selected - 1);
     else if (key.name === 'down') move(this.selected + 1);
-    else if (key.name === 'home') move(0);
-    else if (key.name === 'end') move(frame.choices.length - 1);
+    else if (key.name === 'home') { move(0); this.scroll?.scrollTo(0); }
+    else if (key.name === 'end') { move(frame.choices.length - 1); if (frame.totalCells || frame.total) this.scroll?.scrollChildIntoView('total'); }
     else if (key.name === 'return' && frame.choices[this.selected]) finish(frame.choices[this.selected].id);
     else if (key.name === 'escape' || key.name === 'b') finish('back');
     else if (key.name === 'tab') finish('tab');
@@ -126,20 +128,48 @@ export class TerminalUI {
       ...(this.color ? { borderColor: active ? outline ? theme.selectedBorder : theme.activeTabBorder : outline ? theme.controlBorder : joinBottomRule ? theme.border : theme.background, backgroundColor: theme.background, focusedBorderColor: theme.accent } : {}),
       focusable: true, onMouseDown: event => { pressed = event.button === 0; }, onMouseUp: event => { if (pressed && event.button === 0) { pressed = false; event.stopPropagation(); activate(); } }, onKeyDown: key => { if (key.name === 'return') activate(); } });
     const surface = outline ? this.box(button, { paddingX: 1, ...(this.color ? { backgroundColor: active ? theme.selectedBackground : theme.background } : {}) }) : button;
-    this.text(surface, label, { tone: active ? outline ? 'activeControlForeground' : 'activeTabForeground' : outline ? 'controlForeground' : 'muted', underline: active && !this.color });
+    const caption = this.text(surface, label, { tone: active ? outline ? 'activeControlForeground' : 'activeTabForeground' : outline ? 'controlForeground' : 'muted', underline: active && !this.color }, `${id}-label`);
+    caption.wrapMode = 'none';
+    caption.height = 1;
   }
   private table(parent: BoxRenderable, cells: TableCell[], paint: RowPaint = {}): void {
+    // In compact reports, move an oversized date or model label above the
+    // numeric tracks so the label remains readable and amounts stay aligned.
+    let separateLabel = false;
+    if ((cells[0]?.date || cells[0]?.stackWhenLong) && cells.length === 3) {
+      const buffer = TextBuffer.create(this.renderer.widthMethod);
+      const view = TextBufferView.create(buffer);
+      try {
+        buffer.setText(cells[0].text); view.setWrapMode('none');
+        // Compact shell padding (2), row insets (3), and two column gutters.
+        const available = this.renderer.width - 2 - 3 - 2 - (cells[1].width ?? 0) - (cells[2].width ?? 0);
+        separateLabel = (view.measureForDimensions(this.renderer.width, 1)?.widthColsMax ?? 0) > available;
+      } finally { view.destroy(); buffer.destroy(); }
+      if (separateLabel) {
+        const label = this.text(parent, cells[0].text, { ...paint, tone: cells[0].tone,
+          ...(cells[0].date ? { spans: [{ start: cells[0].text.length - 1, end: cells[0].text.length, tone: 'tableMarkerForeground' as const }] } : {}) }, `${parent.id}-label`);
+        label.wrapMode = 'none'; label.height = 1;
+      }
+    }
     const grid = this.box(parent, { id: `${parent.id}-grid`, width: '100%', flexDirection: 'row', gap: 1 });
-    for (const [index, cell] of cells.entries()) {
-      const column = this.box(grid, { id: `${parent.id}-column-${index}`, width: cell.grow ? 0 : cell.width, flexGrow: cell.grow ?? 0, flexBasis: cell.grow ? cell.growBasis : undefined, flexShrink: cell.grow ? 1 : 0, minWidth: cell.minWidth ?? 0, paddingLeft: cell.inset ?? 0 });
-      const text = this.text(column, cell.text, { ...paint, ...(cell.tone ? { tone: cell.tone } : {}), ...(cell.bold != null ? { bold: cell.bold } : {}) });
+    for (let index = 0; index < cells.length; index++) {
+      const cell = cells[index];
+      const span = cell.date && cells.length > 3 ? 3 : 1;
+      const tracks = cells.slice(index, index + span);
+      const grow = tracks.reduce((sum, track) => sum + (track.grow ?? 0), 0);
+      const minWidth = tracks.reduce((sum, track) => sum + (track.grow ? track.minWidth ?? 0 : track.width ?? 0), span - 1);
+      const column = this.box(grid, { id: `${parent.id}-column-${index}`, width: grow ? 0 : cell.width, flexGrow: grow, flexBasis: grow ? cell.growBasis : undefined, flexShrink: grow ? 1 : 0, minWidth: span > 1 ? minWidth : cell.minWidth ?? 0, paddingLeft: cell.inset ?? 0 });
+      const text = this.text(column, index === 0 && separateLabel ? '' : cell.text, { ...paint, ...(cell.tone ? { tone: cell.tone } : {}), ...(cell.bold != null ? { bold: cell.bold } : {}),
+        ...(cell.tone === 'subtotalForeground' && cell.text.endsWith(' ›') ? { spans: [{ start: cell.text.length - 1, end: cell.text.length, tone: 'tableMarkerForeground' as const }] } : {}) });
       text.textAlign = cell.align ?? 'left';
+      if (cell.date || cell.stackWhenLong) { text.wrapMode = 'none'; text.height = 1; }
+      index += span - 1;
     }
   }
   private headline(parent: BoxRenderable, value: { label: string; amount: string }, narrow: boolean, kind?: Choice['kind']): void {
     const head = this.box(parent, { flexDirection: narrow ? 'column' : 'row', gap: narrow ? 0 : 2 });
     const label = this.box(head, { flexGrow: 1, flexShrink: 1, minWidth: 0 });
-    this.text(label, value.label, { tone: kind === 'measurement' ? 'operationName' : kind === 'model' ? 'modelForeground' : kind === 'subtotal' ? 'subtotalForeground' : 'heading', bold: !['measurement', 'model'].includes(kind ?? '') });
+    this.text(label, value.label, { tone: kind === 'measurement' ? 'operationName' : kind === 'model' ? 'modelForeground' : kind === 'subtotal' ? 'subtotalForeground' : 'heading', bold: !['measurement', 'model'].includes(kind ?? ''), spans: /^[›⌄] /.test(value.label) ? [{ start: 0, end: 1, tone: 'disclosureMarker', bold: false }] : [] });
     const amount = this.box(head, { flexShrink: 0, maxWidth: narrow ? '100%' : '55%' });
     this.text(amount, value.amount, { tone: kind === 'model' ? 'tablePartForeground' : kind === 'subtotal' ? 'subtotalForeground' : 'number', bold: kind !== 'model' });
   }
@@ -166,7 +196,7 @@ export class TerminalUI {
     const frame = this.resolved(), theme = this.theme, dense = this.renderer.height < 20, short = this.renderer.height < 30;
     this.selected = Math.max(0, Math.min(frame.pageNavigation ? frame.selected ?? this.selected : this.selected, frame.choices.length - 1));
     const area = this.base();
-    const heading = this.box(area, { id: 'heading', border: dense ? [] : ['bottom'], borderColor: this.color ? theme.border : undefined });
+    const heading = this.box(area, { id: 'heading', border: dense || frame.nav ? [] : ['bottom'], borderColor: this.color ? theme.border : undefined });
     this.title(heading, frame.title);
     for (const line of dense && frame.nav ? frame.compactIntro ?? [] : frame.intro) this.text(heading, line, { tone: 'muted' });
     if (frame.nav) {
@@ -179,12 +209,14 @@ export class TerminalUI {
       const controls = this.box(area, { id: 'period-sort', flexDirection: 'row', gap: 1, height: 3, marginTop: short ? 0 : 1 });
       frame.controlOptions.forEach((label, i) => this.button(controls, label, `${frame.controlKind ?? 'sort'}:${i}`, label === frame.activeControl?.trim(), true));
     }
-    if ((frame.tableCells || frame.tableHeader) && !dense) {
-      const header = this.box(area, { id: 'table-header', paddingLeft: 2, paddingRight: 1, border: ['bottom'], borderColor: this.color ? theme.border : undefined, marginTop: short ? 0 : 1 });
+    const tableHeader = (parent: BoxRenderable) => {
+      const header = this.box(parent, { id: 'table-header', paddingLeft: 2, paddingRight: 1, border: ['bottom'], borderColor: this.color ? theme.border : undefined, marginTop: short ? 0 : 1 });
       if (frame.tableCells) this.table(header, frame.tableCells, { tone: 'muted' }); else this.text(header, frame.tableHeader!, { tone: 'muted' });
-    }
+    };
+    if ((frame.tableCells || frame.tableHeader) && !dense) tableHeader(area);
     const scroll = new ScrollBoxRenderable(this.renderer, { id: 'records', flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 1, scrollX: false, scrollY: true, viewportCulling: true, contentOptions: { flexDirection: 'column' }, verticalScrollbarOptions: { visible: false } });
     area.add(scroll); scroll.verticalScrollBar.visible = false; scroll.horizontalScrollBar.visible = false; this.scroll = scroll;
+    if ((frame.tableCells || frame.tableHeader) && dense) tableHeader(scroll);
     const keyFor = (choice: Choice | undefined) => choice?.reportGroup ? `date:${choice.reportGroup}` : choice?.turnGroup ? `turn:${choice.turnGroup}` : undefined;
     const selectedGroup = keyFor(frame.choices[this.selected]);
     let group: BoxRenderable | undefined, groupId: string | undefined;
@@ -277,12 +309,12 @@ export class TerminalUI {
       if (choice.separatorAfter) this.box(group ?? scroll, { height: 1, border: ['bottom'], borderColor: this.color ? theme.border : undefined });
     }
     if (!frame.choices.length) for (const line of frame.empty ?? [t("common.no_records")]) this.text(scroll, line, { tone: 'muted' });
-    if ((frame.totalCells || frame.total) && !dense) {
-      const total = this.box(area, { id: 'total', paddingLeft: 2, paddingRight: 1, border: ['top'], borderColor: this.color ? theme.border : undefined });
+    if (frame.totalCells || frame.total) {
+      const total = this.box(scroll, { id: 'total', paddingLeft: 2, paddingRight: 1, border: ['top'], borderStyle: 'heavy', borderColor: this.color ? theme.selectedBorder : undefined });
       if (frame.totalCells) this.table(total, frame.totalCells, { tone: 'pageTitle', bold: true }); else this.text(total, frame.total!, { tone: 'pageTitle', bold: true });
     }
     if (frame.actions && !dense) {
-      const actions = this.box(area, { id: 'actions', flexDirection: 'row', flexWrap: 'wrap', gap: 2, marginTop: short ? 0 : 1 });
+      const actions = this.box(frame.pageNavigation ? area : scroll, { id: 'actions', flexDirection: 'row', flexWrap: 'wrap', columnGap: 2, rowGap: 0, marginTop: short ? 0 : 1 });
       for (const label of frame.actions.split(' · ')) {
         const key = label[0].toLowerCase(), id = key === 't' ? 'theme' : key === 'b' ? 'back' : frame.shortcuts?.[key];
         const action = this.text(actions, label, { tone: 'actionForeground' });
@@ -295,7 +327,7 @@ export class TerminalUI {
       const links = this.box(footer, { flexDirection: 'row', flexWrap: 'wrap', gap: 1 });
       for (const label of line.split(' · ')) {
         const key = label.split(' ')[0].toLowerCase();
-        const link = this.text(links, key === '?' ? `${frame.disclosure ? '⌄' : '›'} ${label}` : label, { tone: key === '?' ? 'disclosureSummary' : 'footerForeground' }, key === '?' ? 'footer-explain' : undefined);
+        const link = this.text(links, key === '?' ? `${frame.disclosure ? '⌄' : '›'} ${label}` : label, { tone: key === '?' ? 'disclosureSummary' : 'footerForeground', spans: key === '?' ? [{ start: 0, end: 1, tone: 'disclosureMarker' }] : [] }, key === '?' ? 'footer-explain' : undefined);
         const id = ({ '?': 'explain', q: 'quit', esc: 'back', tab: 'tab', f: 'filters' } as Record<string, string>)[key] ?? frame.shortcuts?.[key];
         if (id) link.onMouseUp = event => { if (event.button === 0) this.finish(id); };
       }
@@ -341,26 +373,42 @@ export class TerminalUI {
 
   loading(message: string): void {
     if (this.disposed || this.signal.aborted) return;
+    this.stopLoadingTimers();
     this.loadingState = { spec: { kind: 'query', message }, cancelling: false };
     this.drawLoading();
+  }
+  private stopLoadingTimers(): void {
+    clearTimeout(this.loadingExpansion); clearInterval(this.loadingAnimation);
+    this.loadingExpansion = undefined; this.loadingAnimation = undefined;
   }
   async task<T>(spec: LoadingSpec, run: (options: { signal: AbortSignal; onProgress: (stage: string) => void }) => Promise<T>): Promise<T> {
     const controller = new AbortController();
     const signal = AbortSignal.any([this.signal, controller.signal]);
-    const state: LoadingState = { spec, cancelling: false, expanded: false };
+    const state: LoadingState = { spec, cancelling: false };
+    this.stopLoadingTimers();
     this.loadingState = state;
-    const expand = setTimeout(() => {
-      if (this.loadingState !== state || this.disposed) return;
-      state.expanded = true;
-      this.drawLoading();
-    }, 250);
     this.cancelOperation = () => {
       if (signal.aborted) return;
       state.cancelling = true;
+      this.stopLoadingTimers();
       controller.abort();
       this.drawLoading();
     };
     this.drawLoading();
+    this.loadingExpansion = setTimeout(() => {
+      if (this.loadingState !== state || signal.aborted || this.disposed) return;
+      state.expanded = true; this.drawLoading();
+    }, 650);
+    const started = Date.now();
+    this.loadingAnimation = setInterval(() => {
+      if (this.loadingState !== state || signal.aborted || this.disposed) return;
+      const mark = this.tree?.findDescendantById('startup-activity-mark');
+      if (mark) {
+        const phase = ((Date.now() - started) % 2400) / 1200;
+        mark.left = `${(phase <= 1 ? phase : 2 - phase) * 72}%`;
+        this.renderer.requestRender();
+      }
+    }, 80);
     try {
       if (signal.aborted) throw new OperationCancelled();
       const result = await run({ signal, onProgress: stage => {
@@ -373,45 +421,50 @@ export class TerminalUI {
       if (signal.aborted) throw new OperationCancelled();
       throw error;
     } finally {
-      clearTimeout(expand);
-      if (this.loadingState === state) { this.loadingState = undefined; this.cancelOperation = undefined; }
+      if (this.loadingState === state) { this.stopLoadingTimers(); this.loadingState = undefined; this.cancelOperation = undefined; }
     }
   }
   private drawLoading(): void {
     if (this.disposed || !this.loadingState) return;
     this.frame = undefined;
     const state = this.loadingState, content = loadingContent(state), theme = this.theme;
-    const narrow = this.renderer.width < 68, short = this.renderer.height < 30, dense = this.renderer.height < 20;
+    const narrow = this.renderer.width < 68, dense = this.renderer.height < 20;
     const area = this.base();
     const header = this.box(area, { border: dense ? [] : ['bottom'], borderColor: this.color ? theme.border : undefined });
-    this.title(header, 'Wombat / ' + (state.spec.activeTab === 'threads' ? t("common.threads") : t("cli.format.usage")));
+    this.title(header, t("common.wombat_usage"));
     if (!dense) this.text(header, t("common.local_codex") + content.context, { tone: 'muted' });
     const nav = this.box(area, { id: 'loading-navigation', flexDirection: 'row', gap: 3, border: dense ? [] : ['bottom'], borderColor: this.color ? theme.border : undefined });
     for (const [tab, label] of [['usage', t("common.1_usage")], ['threads', t("common.2_threads")]]) {
       const active = tab === (state.spec.activeTab ?? 'usage');
-      const item = this.box(nav, { height: 2, border: ['bottom'], borderColor: this.color ? active ? theme.activeTabBorder : theme.background : undefined });
+      const item = this.box(nav, { height: 2, marginBottom: dense ? 0 : -1, border: ['bottom'], borderColor: this.color ? active ? theme.activeTabBorder : dense ? theme.background : theme.border : undefined });
       this.text(item, label, { tone: active ? 'activeTabForeground' : 'muted', underline: active && !this.color });
     }
     const scroll = new ScrollBoxRenderable(this.renderer, { id: 'loading-scroll', flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 1, scrollX: false, scrollY: true, contentOptions: { alignItems: 'center' }, verticalScrollbarOptions: { visible: false } });
     area.add(scroll); scroll.verticalScrollBar.visible = false;
-    const scene = this.box(scroll, { id: 'startup-scene', width: '100%', maxWidth: 90, marginTop: short ? 0 : 1, paddingTop: dense ? 0 : 1, border: ['top'], borderColor: this.color ? theme.startupBorder : undefined });
-    const mast = this.box(scene, { flexDirection: 'row', justifyContent: 'space-between', gap: 1 });
-    this.text(mast, content.context, { tone: 'brand', bold: true });
-    if (!narrow) this.text(mast, t("tui.components.terminal-ui.local_codex"), { tone: 'startupSource' });
+    const scene = this.box(scroll, { id: 'startup-scene', width: '100%', maxWidth: 90, marginTop: dense ? 0 : 1, paddingTop: dense ? 0 : 1, border: ['top'], borderColor: this.color ? theme.startupBorder : undefined });
     this.text(scene, content.heading, { tone: 'startupHeading', bold: true }, 'startup-heading');
-    if (state.expanded && !narrow && !dense && content.description) this.text(scene, content.description, { tone: 'startupDescription' });
-    if (state.expanded) {
-      const track = this.box(scene, { id: 'startup-track', border: ['left'], borderColor: this.color ? theme.turnBorder : undefined, paddingLeft: 1, marginTop: dense ? 0 : 1 });
-      for (const [i, stage] of content.stages.entries()) {
-        const row = this.box(track, { id: `startup-stage-${i}`, flexDirection: 'row', gap: 1, border: dense ? [] : ['bottom'], borderColor: this.color ? theme.startupRule : undefined, paddingX: dense ? 0 : 1, ...(this.color ? { backgroundColor: theme.subtotalBackground } : {}) });
-        this.text(row, '◆', { tone: 'startupActiveMarker' });
-        const name = this.text(row, stage.name, { tone: 'startupActive' }); name.flexGrow = 1; name.flexShrink = 1; name.minWidth = 0;
-        this.text(row, t("tui.components.terminal-ui.active"), { tone: 'startupActiveState' });
-      }
-      if (content.detail) this.text(scene, content.detail, { tone: 'startupDescription' });
+    const activity = (parent: BoxRenderable) => {
+      const rail = this.box(parent, { id: 'startup-activity', width: '100%', maxWidth: 71, height: 1, border: ['bottom'], borderColor: this.color ? theme.startupTrack : undefined });
+      this.box(rail, { id: 'startup-activity-mark', position: 'absolute', left: 0, top: 0, width: '28%', height: 1, border: ['bottom'], borderColor: this.color ? theme.startupActivity : undefined });
+    };
+    if (!state.expanded) {
+      if (content.description) this.text(scene, content.description, { tone: 'startupBrief' });
+      activity(scene);
+    } else {
+    const track = this.box(scene, { id: 'startup-track', width: '100%', maxWidth: 71, border: ['left'], borderColor: this.color ? theme.turnBorder : undefined, paddingLeft: 1, marginTop: dense ? 0 : 1 });
+    for (const [i, stage] of content.stages.entries()) {
+      const active = stage.status === 'active', done = stage.status === 'done';
+      const phase = this.box(track, { id: `startup-stage-${i}`, border: ['bottom'], borderColor: this.color ? theme.startupRule : undefined, paddingX: dense ? 0 : 1, ...(this.color && active ? { backgroundColor: theme.subtotalBackground } : {}) });
+      const row = this.box(phase, { flexDirection: 'row', gap: 1 });
+      this.text(row, done ? '✓' : active ? '◆' : '·', { tone: done ? 'meterForeground' : active ? 'startupActiveMarker' : 'startupMarker' });
+      const name = this.text(row, stage.name, { tone: done ? 'startupDone' : active ? 'startupActive' : 'startupWaiting' }); name.flexGrow = 1; name.flexShrink = 1; name.minWidth = 0;
+      this.text(row, done ? t("tui.components.terminal-ui.done") : active ? t("tui.components.terminal-ui.active") : t("tui.components.terminal-ui.next"), { tone: active ? 'startupActiveState' : 'startupState' });
+      if (active) activity(phase);
     }
-    if (state.expanded && !dense) {
-      const close = this.box(scene, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 1, marginTop: 1 });
+    }
+    if (content.detail) this.text(scene, content.detail, { tone: 'startupDescription' });
+    {
+      const close = this.box(scene, { maxWidth: 71, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 1, marginTop: dense ? 0 : 1 });
       if (!narrow && content.assurance) this.text(close, content.assurance, { tone: 'startupAssurance' });
       this.text(close, content.destination, { tone: 'startupDestination' });
     }
@@ -449,7 +502,7 @@ export class TerminalUI {
   }
   destroy(): void {
     if (this.disposed) return;
-    this.disposed = true; this.controller.abort();
+    this.disposed = true; this.stopLoadingTimers(); this.controller.abort();
     this.activeForm?.finish('cancel');
     process.removeListener('SIGINT', this.interrupt); process.removeListener('SIGTERM', this.interrupt);
     this.renderer.keyInput.off('keypress', this.key); this.renderer.off('resize', this.resize);

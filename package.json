@@ -74,7 +74,10 @@
     "release:bundle": "node scripts/check-release.mjs && node scripts/create-release-bundle.mjs",
     "npm:pack": "node scripts/prepare-npm-package.mjs",
     "i18n:check": "node scripts/check-ui-i18n.mjs",
-    "test:repo": "node --test scripts/*.test.mjs"
+    "test:repo": "node --test scripts/*.test.mjs",
+    "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
+    "benchmark:live": "node --import tsx scripts/benchmark-live.ts",
+    "smoke:terminal": "node --import tsx scripts/smoke-usage-v1-terminal.ts"
   },
   "dependencies": {
     "@opentui/core": "0.5.12",
@@ -86,12 +89,14 @@
     "@wombat/cli": "workspace:*",
     "@wombat/client": "workspace:*",
     "@wombat/tui": "workspace:*",
+    "@xterm/headless": "5.5.0",
     "ajv": "8.17.1",
     "esbuild": "^0.25.0",
     "json-schema-to-typescript": "15.0.4",
     "mdast-util-from-markdown": "2.0.2",
     "mdast-util-gfm": "3.1.0",
     "micromark-extension-gfm": "3.0.0",
+    "node-pty": "1.1.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   },

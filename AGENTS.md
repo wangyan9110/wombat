@@ -1,6 +1,6 @@
 # Wombat 项目开发约定
 
-界面和原型设计使用项目内 [frontend-design Skill](.agents/skills/frontend-design/SKILL.md)；HTML 原型到 OpenTUI 的保真还原使用 [html-to-opentui Skill](.agents/skills/html-to-opentui/SKILL.md)。规则、脚本和问题记录随仓库维护；私有原型与提取结果仍保留在仓库外。
+HTML 原型到 OpenTUI 的保真还原使用项目内 [html-to-opentui Skill](.agents/skills/html-to-opentui/SKILL.md)。规则、脚本和问题记录随仓库维护；原型设计资料与前端设计 Skill 保留在独立的内部仓库。
 
 Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、Node CLI 和中英 TUI。实施范围以 [首版方案](docs/project/specification.md) 为准。先阅读 [架构设计](docs/development/architecture.md)、[路线图](docs/project/roadmap.md)、[支持矩阵](docs/reference/support-matrix.md)及[进度记录](docs/project/progress.md)。实现状态以源码和验证证据为准，目标设计不是已实现功能。
 
@@ -32,6 +32,7 @@ Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、
 
 ## 架构与改动约束
 
+- 新增或重写脚本优先使用 TypeScript，并复用仓库现有的 Node 工具链；确需其他语言或直接由 Node 启动的 `.mjs` 时说明理由。迁移既有脚本时保留原有验证范围与证据格式。
 - 优先成熟库并锁定依赖，先复用已验证实现。保持模块化单体，随实际功能拆模块，不为目录形式一次重写工程。
 - 核心不依赖 React/桌面框架。CLI/TUI 与未来宿主消费共享数据口径。产品操作接口应窄且类型明确，不向渲染层暴露通用文件写入/shell/任意 dispatch。
 - 新核心产品能力按[多入口开发约定](docs/development/workflow.md)同步交付 TUI 和无交互 Agent 接口；未来 GUI 经受限宿主复用同一操作、DTO、状态和取消语义。业务规则不放入菜单或页面；仅 TUI 可用不算该能力完成。GUI 工程及框架留待后续任务。

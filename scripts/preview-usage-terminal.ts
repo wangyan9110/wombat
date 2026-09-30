@@ -5,6 +5,7 @@ import { terminalThemes } from '../tui/src/themes/index.js';
 import { screenFrame } from '../tui/src/app.js';
 import { TerminalUI } from '../tui/src/components/terminal-ui.js';
 import { createTestRenderer } from '@opentui/core/testing';
+import type { Renderable } from '@opentui/core';
 import type { UsageResult, UsageSummary, UsageItem } from '@wombat/client';
 const output = process.argv[2];
 if (!output) throw new Error('Specify an output directory for synthetic previews');
@@ -51,7 +52,7 @@ for (const [width, height] of [[120, 32], [80, 24], [40, 14]]) {
     const name = `${mode}-${width}`;
     await writeFile(resolve(dir, name + '.txt'), plain);
     const geometry: Array<{id: string; x: number; y: number; width: number; height: number}> = [];
-    const collect = (node: typeof setup.renderer.root) => { geometry.push({ id: node.id, x: node.x, y: node.y, width: node.width, height: node.height }); node.getChildren().forEach(collect); };
+    const collect = (node: Renderable) => { geometry.push({ id: node.id, x: node.x, y: node.y, width: node.width, height: node.height }); node.getChildren().forEach(collect); };
     collect(setup.renderer.root);
     previews.push({ name, width, height, spans, plain, geometry });
     ui.destroy();

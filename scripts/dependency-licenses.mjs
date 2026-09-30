@@ -82,11 +82,20 @@ for (const [key, { folder, metadata }] of [...installed].sort(([a], [b]) => a.lo
   let files = textFiles(folder);
   let licenseSource = 'installed package';
   if (!files.length) {
-    const parentName = Object.entries(binaryParents).find(([prefix]) => metadata.name.startsWith(prefix))?.[1];
-    const parent = [...installed.values()].find(item => item.metadata.name === parentName && item.metadata.version === metadata.version);
-    if (!parent) throw new Error(`No license attribution for binary package ${key}`);
-    files = textFiles(parent.folder);
-    licenseSource = `same-version ${parentName} package`;
+    const supplement = path.join(root, 'licenses/upstream/xterm-headless-5.5.0');
+    if (key === '@xterm/headless@5.5.0') {
+      const provenance = JSON.parse(read(path.join(supplement, 'provenance.json')));
+      const notice = path.join(supplement, 'LICENSE');
+      if (provenance.package !== metadata.name || provenance.version !== metadata.version || provenance.sha256 !== hash(readFileSync(notice))) throw new Error(`Pinned license mismatch: ${key}`);
+      files = [notice];
+      licenseSource = provenance.source;
+    } else {
+      const parentName = Object.entries(binaryParents).find(([prefix]) => metadata.name.startsWith(prefix))?.[1];
+      const parent = [...installed.values()].find(item => item.metadata.name === parentName && item.metadata.version === metadata.version);
+      if (!parent) throw new Error(`No license attribution for binary package ${key}`);
+      files = textFiles(parent.folder);
+      licenseSource = `same-version ${parentName} package`;
+    }
   }
   if (typeof metadata.license !== 'string') throw new Error(`License needs review: ${key}`);
   const licenseTexts = texts(files, metadata.license);
@@ -129,51 +138,24 @@ for (const metadata of rustMetadata.packages.filter(item => item.name !== 'womba
   rustSections.push(`## ${metadata.name}@${metadata.version}\nDeclared license: ${declared}\nSelected alternative: ${selected}\nNotice source: ${licenseSource}\n\n` + licenseTexts.map(item => `### ${item.name}\n\n${item.text}\n`).join('\n'));
 }
 
-// Optional terminal development tools are not installed by the product build.
-// Reviewed release notices are pinned locally so checks never need Python/pip.
-const pythonEntries = [];
-const pythonSections = [];
-const pythonRequirements = ['scripts/requirements-terminal.txt'];
-for (const requirements of pythonRequirements) for (const line of read(path.join(root, requirements)).split('\n')) {
-  const requirement = line.split('#')[0].trim();
-  if (!requirement) continue;
-  const match = requirement.match(/^([a-zA-Z0-9._-]+)==([a-zA-Z0-9._+-]+)$/);
-  if (!match) throw new Error(`Python tooling requirement must be pinned and reviewed: ${requirement}`);
-  const [, name, version] = match;
-  const folder = path.join(root, `licenses/upstream/${name}-${version}`);
-  const provenance = JSON.parse(read(path.join(folder, 'provenance.json')));
-  if (provenance.package !== name || provenance.version !== version || provenance.bundledInRuntime !== false) {
-    throw new Error(`Python tooling provenance mismatch: ${requirement}`);
-  }
-  for (const entry of provenance.files) {
-    if (hash(readFileSync(path.join(folder, entry.file))) !== entry.sha256) throw new Error(`Python tooling notice hash mismatch: ${name}/${entry.file}`);
-  }
-  const licenseTexts = texts(provenance.files.map(entry => path.join(folder, entry.file)), provenance.license);
-  pythonEntries.push({ name, version, license: provenance.license, role: 'optional-development', bundledInRuntime: false, repository: provenance.repository, release: provenance.release, artifact: provenance.artifact, licenseSource: provenance.source, files: licenseTexts.map(({ text, ...item }) => item) });
-  pythonSections.push(`## ${name}@${version}\nDeclared license: ${provenance.license}\nRole: optional terminal development tooling; not bundled in the product runtime\nRelease: ${provenance.release}\nRepository: ${provenance.repository}\nNotice source: ${provenance.artifact}\n\n` + licenseTexts.map(item => `### ${item.name}\n\n${item.text}\n`).join('\n'));
-}
-
 const inventory = {
   inventoryVersion: 1,
   generationPlatform: { os: process.platform, arch: process.arch },
-  scope: 'All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. Optional Python terminal/CSS tooling is reviewed from pinned release notices and is not bundled in the product runtime. This is not cross-platform installation verification.',
+  scope: 'All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.',
   lockfiles: {
     'pnpm-lock.yaml': hash(readFileSync(path.join(root, 'pnpm-lock.yaml'))),
     'core/Cargo.lock': hash(readFileSync(path.join(root, 'core/Cargo.lock'))),
-    ...Object.fromEntries(pythonRequirements.map(file => [file, hash(readFileSync(path.join(root, file)))])),
   },
   node: nodeEntries,
   rust: rustEntries,
-  pythonTooling: pythonEntries,
   inactiveLockedRustPackages: inactiveRust,
   uninstalledOptionalNodePackages: [...absentOptional.values()].sort((a, b) => `${a.name}@${a.version}`.localeCompare(`${b.name}@${b.version}`)),
 };
-const summary = `# Third-party notices\n\nWombat's original code is licensed under [MIT](LICENSE). Third-party components retain their original licenses; the root license does not relicense them.\n\n- Node dependency notices: [license texts](licenses/node-dependencies.txt).\n- Rust dependency notices: [license texts](licenses/rust-dependencies.txt).\n- Optional Python development tooling notices: [license texts](licenses/python-tooling.txt).\n- Versions, declared licenses, selected alternatives and notice hashes: [inventory](docs/dependency-licenses.json).\n\nThe inventory covers ${nodeEntries.length} installed Node packages (${nodeEntries.filter(item => item.role === 'runtime').length} runtime) and ${rustEntries.length} locked Rust packages other than Wombat. Enabled normal/build/dev dependencies are identified separately; optional lock entries not activated by current features are not compiled into this build, but their upstream license notices are still preserved. Node optional platform packages not installed here are recorded as unverified; their presence is not a platform support claim. Development dependencies are included conservatively.\n\nThe ${pythonEntries.length} pinned Python tools support optional terminal tests: pyte is LGPL-3.0 and wcwidth is MIT with its additional upstream permission notice. They are separately installed by developers and are not bundled into the product runtime. Only their original release license/author notices and provenance are retained. Their pins and notice hashes are checked locally without Python, pip, a virtual environment, or network access.\n\nFor Rust dual-licensed packages, Wombat uses the offered MIT alternative where available, retaining additional required notices, including Unicode-3.0. The alternative LGPL license offered by r-efi is not selected. Its AUTHORS file is preserved. Binary Node packages without their own license text retain the same-version upstream package notice. Crates that omit license texts retain supplemental notices from recorded upstream revisions, with fixed hashes.\n\nDependency updates require a license review and regeneration. Run \`corepack pnpm licenses:generate\`, then \`corepack pnpm licenses:check\`. Both read local metadata only; an incomplete dependency cache fails explicitly. No dependency installation, upgrade, or network download is performed by these commands.\n\nThis inventory records source declarations and notices, not a legal warranty or verification of all platform binaries.\n`;
+const summary = `# Third-party notices\n\nWombat's original code is licensed under [MIT](LICENSE). Third-party components retain their original licenses; the root license does not relicense them.\n\n- Node dependency notices: [license texts](licenses/node-dependencies.txt).\n- Rust dependency notices: [license texts](licenses/rust-dependencies.txt).\n- Versions, declared licenses, selected alternatives and notice hashes: [inventory](docs/dependency-licenses.json).\n\nThe inventory covers ${nodeEntries.length} installed Node packages (${nodeEntries.filter(item => item.role === 'runtime').length} runtime) and ${rustEntries.length} locked Rust packages other than Wombat. Enabled normal/build/dev dependencies are identified separately; optional lock entries not activated by current features are not compiled into this build, but their upstream license notices are still preserved. Node optional platform packages not installed here are recorded as unverified; their presence is not a platform support claim. Development dependencies are included conservatively.\n\nFor Rust dual-licensed packages, Wombat uses the offered MIT alternative where available, retaining additional required notices, including Unicode-3.0. The alternative LGPL license offered by r-efi is not selected. Its AUTHORS file is preserved. Binary Node packages without their own license text retain the same-version upstream package notice. Crates that omit license texts retain supplemental notices from recorded upstream revisions, with fixed hashes.\n\nDependency updates require a license review and regeneration. Run \`corepack pnpm licenses:generate\`, then \`corepack pnpm licenses:check\`. Both read local metadata only; an incomplete dependency cache fails explicitly. No dependency installation, upgrade, or network download is performed by these commands.\n\nThis inventory records source declarations and notices, not a legal warranty or verification of all platform binaries.\n`;
 const outputs = new Map([
   ['docs/dependency-licenses.json', JSON.stringify(inventory, null, 2) + '\n'],
   ['licenses/node-dependencies.txt', '# Node dependency license texts\n\n' + nodeSections.join('\n')],
   ['licenses/rust-dependencies.txt', '# Rust dependency license texts\n\n' + rustSections.join('\n')],
-  ['licenses/python-tooling.txt', '# Optional Python development tooling license texts\n\nThese tools are installed separately for development only. They are not product runtime dependencies. Product builds and license checks do not require Python, pip, or an installed virtual environment.\n\n' + pythonSections.join('\n')],
   ['THIRD_PARTY_NOTICES.md', summary],
 ]);
 for (const [relative, content] of outputs) {
@@ -185,4 +167,4 @@ for (const [relative, content] of outputs) {
     writeFileSync(target, content);
   }
 }
-console.log(`Dependency notices ${check ? 'checked' : 'generated'}: ${nodeEntries.length} Node packages, ${rustEntries.length} Rust packages, ${pythonEntries.length} optional Python tools; no dependency changes.`);
+console.log(`Dependency notices ${check ? 'checked' : 'generated'}: ${nodeEntries.length} Node packages, ${rustEntries.length} Rust packages; no dependency changes.`);

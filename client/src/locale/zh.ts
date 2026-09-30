@@ -53,6 +53,8 @@ export const zh = {
   "cli.format.updated": "已更新",
   "cli.format.usage": "用量",
   "common.threads": "对话",
+  "common.usage": "用量",
+  "tui.report.date_model_effort": "日期 / 模型 · 强度",
   "cli.format.turns": "轮次",
   "cli.format.records": "记录",
   "common.updated_value": "更新于 {p0}",

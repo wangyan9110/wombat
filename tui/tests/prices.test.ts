@@ -27,14 +27,18 @@ for(const [width,height] of [[40,14],[80,24],[120,32]])test(`price table/cards p
  }finally{ui.destroy();}
 });
 test('price browser supports cross-page arrows, resize, tiers, expansion, exact model thresholds and return',async()=>{
- const setup=await createTestRenderer({width:120,height:40,kittyKeyboard:true});const ui=new TerminalUI(setup.renderer);
+ const setup=await createTestRenderer({width:120,height:40,kittyKeyboard:true});const ui=new TerminalUI(setup.renderer,undefined,true);
  let reads=0;
  const client:UsageClient={async query(){throw new Error('No usage query from price browser');},async prices(request){reads++;return {...fixture,action:request.action};}};
- const running=browsePrices(client,ui);
+ const running=browsePrices(client,ui,'threads');
  const visible=async(text:string)=>setup.waitForFrame(frame=>frame.includes(text),{maxPasses:50});
  const press=async(key:string)=>{setup.mockInput.pressKey(key);await setup.flush();await setup.flush();};
  try{
-  await visible('model-0');await press('RETURN');await visible('200,000 Token');assert.doesNotMatch(setup.captureCharFrame(),/272,000/);
+  await visible('model-0');
+  const activeTab=setup.renderer.root.findDescendantById('threads-tab')!;
+  const tabSpan=setup.captureSpans().lines[activeTab.y].spans.find(span=>span.text.includes('2 对话'))!;
+  assert(tabSpan.fg.equals(RGBA.fromHex('#d7e9dc')), 'price page retains its originating entry');
+  await press('RETURN');await visible('200,000 Token');assert.doesNotMatch(setup.captureCharFrame(),/272,000/);
   assert.match(setup.captureCharFrame(),/查看官方模型价格/);
   assert.doesNotMatch(setup.captureCharFrame(),/https:\/\/example/);
   const source=setup.renderer.root.findDescendantById('price-source-0') as TextRenderable;

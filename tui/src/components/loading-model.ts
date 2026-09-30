@@ -1,6 +1,6 @@
 import { t, progressText } from '@wombat/client/locale';
 export interface LoadingSpec {
-  kind: 'open' | 'first' | 'refresh' | 'query';
+  kind: 'open' | 'snapshot' | 'first' | 'refresh' | 'query';
   message?: string;
   activeTab?: 'usage' | 'threads';
 }
@@ -15,17 +15,22 @@ export class OperationCancelled extends Error {
 }
 export function loadingContent({ spec, stage, cancelling }: LoadingState) {
   stage = stage === undefined ? undefined : progressText(stage);
-  const opening = spec.kind === 'open', first = spec.kind === 'first', query = spec.kind === 'query';
-  const destination = spec.activeTab === 'threads' ? t("common.threads") : t("cli.format.usage");
-  const stages = [query ? spec.message ?? t("common.loading") : spec.kind === 'refresh' ? t("tui.loading.sync_and_save") : first ? t("tui.loading.organize_local_records") : t("tui.loading.check_local_records")];
+  const opening = spec.kind === 'open', saved = spec.kind === 'snapshot', first = spec.kind === 'first', query = spec.kind === 'query';
+  const destination = spec.activeTab === 'threads' ? t('common.threads') : t('common.usage');
+  const combinedSync = stage === t('progress.sync');
+  const stages = saved ? [t('common.open_saved_results')] : opening ? [t('tui.loading.check_local_records')]
+    : query ? [spec.message ?? t('common.loading')] : combinedSync ? [t('tui.loading.sync_and_save')]
+    : [first ? t('tui.loading.organize_local_records') : t('tui.loading.check_local_records'), t('tui.components.loading-model.save_usage')];
+  // Only an observed save phase can mark the preceding read phase complete.
+  const index = Math.max(0, stages.indexOf(stage ?? ''));
   return {
-    context: first ? t("tui.components.loading-model.initial_scan") : opening ? t("tui.loading.check_records") : query ? t("tui.components.loading-model.loading") : t("tui.components.loading-model.refresh_usage"),
-    heading: cancelling ? t("tui.components.loading-model.cancelling") : query ? spec.message ?? t("common.loading") : first ? t("tui.loading.organizing_local_records") : spec.kind === 'refresh' ? t("tui.loading.updating_usage") : t("tui.loading.read_latest", { destination }),
-    description: query ? '' : first ? t("tui.loading.initial_wait") : spec.kind === 'refresh' ? t("tui.loading.save_after_sync") : t("tui.loading.open_after_check"),
-    assurance: query ? '' : t("tui.components.loading-model.read_codex_records_without_modifying_them"),
-    destination: t("tui.loading.open_destination", { destination }),
-    cancel: spec.kind === 'refresh' ? t("tui.components.loading-model.cancel_refresh") : t("tui.components.loading-model.cancel_loading"),
-    stages: stages.map(name => ({ name, status: 'active' as const })),
-    detail: stage && !stages.includes(stage) ? stage : undefined,
+    context: saved ? t('common.open_saved_results') : t('tui.components.loading-model.loading'),
+    heading: cancelling ? t('tui.components.loading-model.cancelling') : saved ? t('tui.components.loading-model.opening_previous_usage') : opening ? t('tui.loading.read_latest', { destination }) : first ? t('tui.loading.organizing_local_records') : query ? spec.message ?? t('common.loading') : t('tui.loading.updating_usage'),
+    description: saved ? t('tui.components.loading-model.open_usage_from_saved_results') : first ? t('tui.loading.organize_local_records') : query ? '' : t('tui.loading.check_records'),
+    assurance: query ? '' : saved ? t('tui.components.loading-model.use_previous_results_without_rescanning_logs') : t('tui.components.loading-model.read_codex_records_without_modifying_them'),
+    destination: t('tui.loading.open_destination', { destination }),
+    cancel: saved ? t('tui.components.loading-model.cancel_opening') : t('tui.components.loading-model.cancel_loading'),
+    stages: stages.map((name, i) => ({ name, status: i < index ? 'done' as const : i === index ? 'active' as const : 'waiting' as const })),
+    detail: stage && !stages.includes(stage) && !combinedSync && stage !== t('tui.components.loading-model.read_codex_logs') ? stage : undefined,
   };
 }

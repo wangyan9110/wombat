@@ -10,6 +10,10 @@ This page retains useful delivery results, failures, and evidence boundaries. Re
 
 `corepack pnpm repo:check` passed: 29 document pairs, 0 legacy monolingual entries, 6 decisions, 3 Skills, 10 length budgets, module/copy boundaries, and 6 checker tests. Local links and `corepack pnpm public:check --package` passed; the release manifest includes both languages for guides and references. `git diff --check` passed. This documentation work did not rerun product builds, behavior tests, or installation acceptance, and did not commit, push, or release. Runtime and dependency changes from concurrent tasks were preserved.
 
+## Development script migration · 2026-09-30
+
+The three Python scripts under `scripts/` were migrated to TypeScript: fixed-snapshot query benchmarking, live-index benchmarking, and real PTY terminal journeys. Terminal emulation now uses pinned Node development dependencies; product runtime dependencies are unchanged. The default fixed-snapshot corpus of 500 conversations and 10,000 measurements passed with 20 query samples; the default live-index corpus of 100,000 measurements and 12 appends also passed. Both corpus hashes match the old script evidence, and all 19 real PTY journeys passed. Build, types and module boundaries, license generation and checks, repository checks, and public package checks passed. Performance numbers apply to this build with uncontrolled system caches; they do not establish a product speed improvement. Commands are in the [development workflow](../development/workflow.en.md).
+
 ## Localization and governance · 2026-09-30
 
 Localization and the decision-directory migration were committed and pushed as `e460db15384e66329e1147f9070ec01f0965b753`. The release candidate isolated startup UI changes from other tasks. Build, type checking, client 11, CLI 8, integration 12, and end-to-end 12 tests passed. Of 84 TUI tests, 83 passed; one automatic-update case expected fresh but received cached. It also reproduced with the baseline application file and must not be reported as a fully passing suite.

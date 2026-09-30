@@ -41,17 +41,14 @@ function clockStepContent(step: UsageItem, steps: UsageResult, turn: Extract<Usa
 function screenChoices(screen: Screen, width: number): Choice[] {
   const result = screen.result!;
   const choices: Choice[] = [];
-  const maxThreadTokens = Math.max(1, ...result.items.map(item => item.kind === 'thread' ? item.threadUsage.tokens.total ?? 0 : 0));
   for (const [index, item] of result.items.entries()) {
     const id = `item:${index}`;
     const reportGroup = item.kind === 'usage' ? JSON.stringify([item.scope.since, item.scope.until, item.scope.undated]) : undefined;
     const content = itemContent(item, result, width);
-    if (item.kind === 'thread' && width >= 68 && item.threadUsage.tokens.total != null)
-      content.bar = item.threadUsage.tokens.total / maxThreadTokens;
     if (item.kind === 'turn' && content.headline)
-      content.headline.label = `${screen.expanded.has(item.id) ? '▾' : '▸'} ${content.headline.label}`;
+      content.headline.label = `${screen.expanded.has(item.id) ? '⌄' : '›'} ${content.headline.label}`;
     if (item.kind === 'measurement' && content.headline)
-      content.headline.label = `${screen.details.has(id) ? '▾' : '▸'} ${content.headline.label}`;
+      content.headline.label = `${screen.details.has(id) ? '⌄' : '›'} ${content.headline.label}`;
     choices.push({ id, ...content, paint: itemPaint(content.lines), reportGroup, turnGroup: item.kind === 'turn' ? item.id : undefined,
       expanded: screen.details.has(id),
       kind: item.kind === 'usage' ? item.isSubtotal ? 'subtotal' : 'model' : item.kind,
@@ -73,7 +70,7 @@ function screenChoices(screen: Screen, width: number): Choice[] {
         const stepContent = clockStepContent(step, steps, item, width);
         if (step.kind === 'operation' && screen.stepSort?.get(item.id) === 'tokens' && (stepIndex === 0 || steps.items[stepIndex - 1].kind !== 'operation')) stepContent.lines.unshift(t("tui.app.operations_chronological"));
         if (step.kind === 'measurement' && stepContent.headline)
-          stepContent.headline.label = `${screen.details.has(key) ? '▾' : '▸'} ${stepContent.headline.label}`;
+          stepContent.headline.label = `${screen.details.has(key) ? '⌄' : '›'} ${stepContent.headline.label}`;
         choices.push({ id: key, ...stepContent, turnGroup: item.id, recordStart: true, expanded: screen.details.has(key), kind: step.kind === 'operation' ? 'operation' : 'measurement', depth: 1, paint: itemPaint(stepContent.lines) });
         if (screen.details.has(key) && step.kind === 'measurement')
           choices.push({ id: `step-detail:${item.id}:${stepIndex}`, kind: 'detail', depth: 2, turnGroup: item.id, lines: [], metrics: summaryMetrics(step.usage) });
@@ -148,7 +145,7 @@ export function screenFrame(screen: Screen, tab: number, notice = ''): Frame {
       const disclosure = screen.note?.lines;
       const choices = screenChoices(screen, width);
       return { intro, context, actions, disclosure, disclosureAction: disclosure ? { label: t("tui.app.u_view_all_prices"), id: 'prices' } : undefined, controlKind: isUsage ? 'group' : 'sort', controlOptions: options, activeControl: currentControl, choices, footer,
-        tableCells: isUsage && result.items.length && width >= 68 ? usageHeaderCells(width) : undefined,
+        tableCells: isUsage && result.items.length ? usageHeaderCells(width) : undefined,
         totalCells: isUsage && result.items.length ? usageTotalCells(result.summary, width) : undefined,
         status: notice || (result.freshness?.status === 'syncing' ? t("tui.app.syncing_showing_committed_data") : result.freshness?.status === 'failed' ? t("tui.app.sync_failed_keeping_previous_data") : result.freshness?.status === 'current' ? t("tui.app.updating_automatically") : undefined) || (result.quality.status === 'partial' ? t("tui.app.data_notes_view") : undefined),
         empty: [t("tui.app.no_records_in_this_range"), t("tui.app.r_refresh_f_change_dates")],
@@ -215,7 +212,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
   }
   async function managePrices(): Promise<boolean> {
     try {
-      const action = await browsePrices(client, ui);
+      const action = await browsePrices(client, ui, tab === 0 ? 'usage' : 'threads');
       if (action === 'quit') return true;
       if (action === 'usage-tab' || action === 'threads-tab') { tab = action === 'usage-tab' ? 0 : 1; screen = homes[tab]; stack.length = 0; }
     } catch (error) {
@@ -228,7 +225,7 @@ export async function runTerminalAppWithUI(initial: UsageRequest, client: UsageC
     if (ui.signal.aborted) return 130;
     try {
       if (!screen.result) {
-        screen.result = await ui.task({ kind: openedAny ? 'query' : 'open', message: t("tui.app.loading_usage"), activeTab: tab === 0 ? 'usage' : 'threads' }, options => queryUsage({ ...screen.request, snapshotId: client.live && homes.includes(screen) && !initial.snapshotId ? undefined : snapshotId }, options));
+        screen.result = await ui.task({ kind: client.live && homes.includes(screen) && !initial.snapshotId ? 'open' : openedAny ? 'query' : 'snapshot', message: t("tui.app.loading_usage"), activeTab: tab === 0 ? 'usage' : 'threads' }, options => queryUsage({ ...screen.request, snapshotId: client.live && homes.includes(screen) && !initial.snapshotId ? undefined : snapshotId }, options));
         openedAny = true;
         notice = '';
         if (!startupChecked) {

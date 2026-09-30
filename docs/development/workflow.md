@@ -29,6 +29,8 @@ corepack pnpm test
 
 模块测试使用 `corepack pnpm --filter @wombat/client test`、`--filter @wombat/tui test` 和 `--filter @wombat/cli test`；先构建所需包。仅构建内核使用 `corepack pnpm build:core`；TUI 可在客户端构建后独立构建。
 
+合成开发脚本在构建后运行：`corepack pnpm smoke:terminal` 验证真实终端旅程；`node --import tsx scripts/benchmark-usage-v1.ts --output /tmp/wombat-query.json` 和 `node --import tsx scripts/benchmark-live.ts --output /tmp/wombat-live.json` 分别检查固定快照查询与实时索引。终端脚本依赖根目录开发依赖，不需要 Python 环境。
+
 按改动选择对应测试，完整链路交付运行全部。跨语言测试调用 dist，必须先构建。独立真值覆盖 A01–A12；正确性不是“与旧输出一样”。终端用真实 PTY 验证 40 / 80 / 120 列与完整返回路径。性能须报告固定语料、release、冷暖查询、内核启动及峰值内存，不以局部解析代表整体。
 
 依赖变化审查并执行 `corepack pnpm licenses:generate`、`licenses:check`。发行验收执行 `corepack pnpm public:check --package` 与干净目录安装；其他平台未经实测不能宣称支持。只有实际通过的项目进入进度完成记录。

@@ -4,11 +4,10 @@
     "os": "darwin",
     "arch": "arm64"
   },
-  "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. Optional Python terminal/CSS tooling is reviewed from pinned release notices and is not bundled in the product runtime. This is not cross-platform installation verification.",
+  "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.",
   "lockfiles": {
-    "pnpm-lock.yaml": "36693755ac0fb7a3b5914e0174fd2bf5ea155bf959f5217bfc75639646e3abad",
-    "core/Cargo.lock": "1d6c509a94d5fbd080a4e80586827a2809fdee2d05279ccf3e7d73044b1acdb7",
-    "scripts/requirements-terminal.txt": "ef13b0834a04c18ccf4278d1adf6a93748b34763e859b536094b51afec047056"
+    "pnpm-lock.yaml": "49b3135d15c9503e5e8a45d0bd5c4d7cd0720c802d20f7e24457b1e4e269902f",
+    "core/Cargo.lock": "1d6c509a94d5fbd080a4e80586827a2809fdee2d05279ccf3e7d73044b1acdb7"
   },
   "node": [
     {
@@ -218,6 +217,19 @@
         {
           "name": "LICENSE",
           "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@xterm/headless",
+      "version": "5.5.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "https://raw.githubusercontent.com/xtermjs/xterm.js/5.5.0/LICENSE",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "c0998a378eaafe66ef66e4b16cd4016636bf617664f4576c30bd6914e2039008"
         }
       ]
     },
@@ -1141,6 +1153,32 @@
         {
           "name": "license.md",
           "sha256": "1662fae9b5314d11cf51284e2dcd1f006a354f7343f08712a730fcff9a359801"
+        }
+      ]
+    },
+    {
+      "name": "node-addon-api",
+      "version": "7.1.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE.md",
+          "sha256": "89024017b88a9f2b763f79b941a4f2db3b4428edfcacdc0b23866b2da633ad0c"
+        }
+      ]
+    },
+    {
+      "name": "node-pty",
+      "version": "1.1.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "a3d60eaf32d2fb09c9d82ef39f14bd6e2c0f3ca7de30daa827486c0d6f8b6e9f"
         }
       ]
     },
@@ -3528,46 +3566,6 @@
         {
           "name": "LICENSE-MIT",
           "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
-        }
-      ]
-    }
-  ],
-  "pythonTooling": [
-    {
-      "name": "pyte",
-      "version": "0.8.2",
-      "license": "LGPL-3.0",
-      "role": "optional-development",
-      "bundledInRuntime": false,
-      "repository": "https://github.com/selectel/pyte",
-      "release": "https://pypi.org/project/pyte/0.8.2/",
-      "artifact": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/59/d0/bb522283b90853afbf506cd5b71c650cf708829914efd0003d615cf426cd/pyte-0.8.2-py3-none-any.whl",
-      "licenseSource": "Exact notice bytes from the installed, unmodified release wheel. Only notices are retained; Python package source and binaries are not vendored.",
-      "files": [
-        {
-          "name": "AUTHORS",
-          "sha256": "a10015e06f4d782046e47ea7e4f41b8c5820faefa1e7f29db76b0e4ee865b63e"
-        },
-        {
-          "name": "LICENSE",
-          "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
-        }
-      ]
-    },
-    {
-      "name": "wcwidth",
-      "version": "0.2.13",
-      "license": "MIT",
-      "role": "optional-development",
-      "bundledInRuntime": false,
-      "repository": "https://github.com/jquast/wcwidth",
-      "release": "https://pypi.org/project/wcwidth/0.2.13/",
-      "artifact": "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/fd/84/fd2ba7aafacbad3c4201d395674fc6348826569da3c0937e75505ead3528/wcwidth-0.2.13-py2.py3-none-any.whl",
-      "licenseSource": "Exact notice bytes from the installed, unmodified release wheel. Only notices are retained; Python package source and binaries are not vendored.",
-      "files": [
-        {
-          "name": "LICENSE",
-          "sha256": "70b98a95a2144eb70af8017fa8c6d95ce247e40867436e8bc649e137fe13d21a"
         }
       ]
     }

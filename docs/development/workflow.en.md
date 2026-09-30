@@ -29,6 +29,8 @@ corepack pnpm test
 
 Run module tests with `corepack pnpm --filter @wombat/client test`, `--filter @wombat/tui test`, and `--filter @wombat/cli test`, building required packages first. `corepack pnpm build:core` builds only the core; TUI can build independently after the client.
 
+After building, run synthetic development scripts: `corepack pnpm smoke:terminal` checks real terminal journeys; `node --import tsx scripts/benchmark-usage-v1.ts --output /tmp/wombat-query.json` and `node --import tsx scripts/benchmark-live.ts --output /tmp/wombat-live.json` check fixed-snapshot queries and the live index. The terminal script uses root development dependencies and needs no Python environment.
+
 Choose tests by the actual change; run all for complete-chain delivery. Cross-language tests call dist and require a preceding build. Independent truth covers A01–A12; correctness is not equivalence to old output. Use real PTYs for 40 / 80 / 120 columns and complete return paths. Performance reports specify fixed fixtures, release builds, cold/warm queries, core startup, and peak memory; parsing alone does not establish total performance.
 
 Review dependency changes and run `corepack pnpm licenses:generate` and `licenses:check`. Release acceptance uses `corepack pnpm public:check --package` and installation in a clean directory. Do not claim support for untested platforms. Only checks actually passed enter completion records.

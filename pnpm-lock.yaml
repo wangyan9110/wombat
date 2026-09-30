@@ -30,6 +30,9 @@ importers:
       '@wombat/tui':
         specifier: workspace:*
         version: link:tui
+      '@xterm/headless':
+        specifier: 5.5.0
+        version: 5.5.0
       ajv:
         specifier: 8.17.1
         version: 8.17.1
@@ -48,6 +51,9 @@ importers:
       micromark-extension-gfm:
         specifier: 3.0.0
         version: 3.0.0
+      node-pty:
+        specifier: 1.1.0
+        version: 1.1.0
       tsx:
         specifier: ^4.0.0
         version: 4.23.15
@@ -502,6 +508,9 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
+  '@xterm/headless@5.5.0':
+    resolution: {integrity: sha512-5xXB7kdQlFBP82ViMJTwwEc3gKCLGKR/eoxQm4zge7GPBl86tCdI0IdPJjoKd8mUSFXz5V7i/25sfsEkP4j46g==}
+
   ajv@8.17.1:
     resolution: {integrity: sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==}
 
@@ -746,6 +755,12 @@ packages:
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+
+  node-addon-api@7.1.1:
+    resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
+
+  node-pty@1.1.0:
+    resolution: {integrity: sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg==}
 
   picomatch@4.0.7:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
@@ -1048,6 +1063,8 @@ snapshots:
       undici-types: 8.3.0
 
   '@types/unist@3.0.3': {}
+
+  '@xterm/headless@5.5.0': {}
 
   ajv@8.17.1:
     dependencies:
@@ -1495,6 +1512,12 @@ snapshots:
   minimist@1.2.8: {}
 
   ms@2.1.3: {}
+
+  node-addon-api@7.1.1: {}
+
+  node-pty@1.1.0:
+    dependencies:
+      node-addon-api: 7.1.1
 
   picomatch@4.0.7: {}
 

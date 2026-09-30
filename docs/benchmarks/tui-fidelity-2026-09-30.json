@@ -1,0 +1,252 @@
+{
+  "verifiedAt": "2026-09-30T09:19:46.767Z",
+  "scope": "Prototype-driven TUI refinement; synthetic data only",
+  "changes": [
+    "Brief loading scene expands after 650 ms; moving native activity stroke; observed phases only; cancellation cleans up timers.",
+    "Saved snapshots retain distinct loading copy; live entry names its destination.",
+    "Compact reports retain three aligned columns; medium reports use compact localized counts; wide reports retain detailed counts.",
+    "Report totals follow content with a stronger rule. End reveals the range total; Home returns to the first row.",
+    "Conversation cards use title, amount and project/date; round meters remain available at compact widths.",
+    "Disclosure glyphs, child foreground colors, subtotal marker and loading navigation match the reviewed source rules.",
+    "Price catalog preserves its originating Usage or Conversations entry."
+  ],
+  "verification": {
+    "build": "passed",
+    "typecheckAndModuleBoundaries": "passed",
+    "productLocaleCheck": "passed",
+    "clientTests": {
+      "passed": 11
+    },
+    "tuiTests": {
+      "passed": 92
+    },
+    "sourceColors": {
+      "passed": true,
+      "checks": 84
+    },
+    "nativeGeometry": {
+      "passed": true,
+      "checks": 116
+    },
+    "terminal": {
+      "method": "actual POSIX PTY with node-pty 1.1.0 and @xterm/headless 5.5.0; synthetic Codex source; not a browser test or user study",
+      "platform": "arm64",
+      "nodeVersion": "v26.4.0",
+      "verifiedAt": "2026-09-30T09:19:04.586Z",
+      "binarySha256": {
+        "core": "039ba1fe473e5f92704ef5acaa98a97f492b6fb3eb0312430c22dcbb1a760b71",
+        "cli": "d41c26c69c4cb9154ea19af806e5092eba0b6220b48b39a0dd766eb2828f1ece"
+      },
+      "javascriptSha256": {
+        "wombat-chunk-WI32EBSJ.js": "5fdf9f35a0dc141879db110e39957bd6718164e365a44333653cd9e771fa9cd2",
+        "wombat-dist-G4ICSHM2.js": "04d8748caa7d0f0dced1aea07aab5e1838c9cbdb4618f3cffeac2a7e86b74888",
+        "wombat.js": "d41c26c69c4cb9154ea19af806e5092eba0b6220b48b39a0dd766eb2828f1ece"
+      },
+      "checks": [
+        {
+          "columns": 40,
+          "rows": 24,
+          "journey": "English launch → Chinese → English → weekly report → source title → filters → quit",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "English launch → Chinese → English → weekly report → source title → filters → quit",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 120,
+          "rows": 32,
+          "journey": "English launch → Chinese → English → weekly report → source title → filters → quit",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 40,
+          "rows": 14,
+          "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 120,
+          "rows": 32,
+          "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "U 查看完整价表 → 展开模型 → S 切换档位 → N/P 翻页 → Esc 返回用量 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "priceDialogPreservesSnapshot": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "F 时间今天 → Esc 取消保留原结果 → F 时间今天 → A 应用空结果 → 近7天恢复结果 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "filterCancelPreservesPage": true,
+          "timePresetApplied": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "用量项目/模型下拉选择 → 应用 → 对话项目下拉选择 → 应用 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "filterCandidatesApplied": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "用量 → ? 页尾金额说明 → ? 收起保留当前页 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "footerDisclosurePreservesPage": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "轮次 → ? 页尾金额说明 → ? 收起保留当前页 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "footerDisclosurePreservesPage": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "首次无快照 → 自动采集合成来源 → 用量表 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "automaticCollection": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "用量表 → 窄屏 → 宽屏 → 普通屏 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "森林 → 浅色 → 石墨 → 森林 → 对话 → 轮次 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "themeCyclePreservesData": true
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "交互首页 → Ctrl+C 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "exitCode": 130
+        },
+        {
+          "columns": 120,
+          "rows": 32,
+          "journey": "日报近7天 → 周报近4周 → 月报近12个月 → 日报 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "dailyTokens": 120000,
+          "weeklyTokens": 360000,
+          "monthlyTokens": 840000
+        },
+        {
+          "columns": 80,
+          "rows": 24,
+          "journey": "外部旧快照 → 对话 → 明细不可用 → 返回对话 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true
+        },
+        {
+          "columns": 120,
+          "rows": 32,
+          "journey": "日志追加 → 无按键自动显示新总量 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "tokensBefore": 120000,
+          "tokensAfter": 240000,
+          "observedLatencyMs": 1073.85
+        },
+        {
+          "columns": 120,
+          "rows": 32,
+          "journey": "固定快照保持原总量 → 退出",
+          "terminalRestored": true,
+          "alternateScreenRestored": true,
+          "cursorRestored": true,
+          "tokens": 120000
+        }
+      ]
+    },
+    "gitDiffCheck": "passed",
+    "repositoryCheck": {
+      "passed": false,
+      "reason": "Concurrent documentation relocation has incomplete bilingual pairs and confirmation records. Unrelated migration content was preserved."
+    }
+  },
+  "commands": [
+    "corepack pnpm build",
+    "corepack pnpm typecheck",
+    "corepack pnpm --filter @wombat/client test",
+    "corepack pnpm --filter @wombat/tui test",
+    "corepack pnpm i18n:check",
+    "corepack pnpm smoke:terminal",
+    "corepack pnpm repo:check",
+    "git diff --check"
+  ],
+  "run": "node dist/wombat.js",
+  "implementationSha256": {
+    "tui/src/components/terminal-ui.ts": "e7622be35cb5b744aab5a7f2824eaa409d7ffa6e755c9e7978b3f844128e069c",
+    "tui/src/components/loading-model.ts": "c426b8f9ca4616f32ae65327f3e2fd65e1fef2e576264bcbab12757df0b2aa4f",
+    "tui/src/components/view-model.ts": "6a792b15638ea4a57a1752925afc12c4cc3685056f24db140f1b1f69a3c2f596",
+    "tui/src/app.ts": "e59052090fdc220c0a513a21e74c9a11e8b437b15e299b84c4d5e7622af7f90b",
+    "tui/src/screens/format.ts": "107d5db12551e2b4f0393c24cd7c6ce0faa8c950498266e55acbc8752074968f",
+    "tui/src/screens/prices.ts": "2955dd4558467e3f1b37784a5caeccec2639a063df966ad5fa0d5a3506fb9134",
+    "tui/src/state/prices.ts": "e989fd5b13897204f4a9e794d08013d8bbbfefe25d1c1b5d492ff571fac687dc",
+    "tui/src/themes/index.ts": "ef146787b4b88f007d47930cb7684fe0a0528d24ac0194268608b9d499252b60",
+    "client/src/locale/zh.ts": "5eeaab2a3e1b934443418fd3e3571fd7a3271752468716d4d594723b2a29b472",
+    "client/src/locale/en.ts": "e6e05ddc6dddcc0e7ed906cd8750d6d159d1fa286c9ac4929d7cbc1f86a0de14"
+  },
+  "limits": [
+    "Browser security policy blocks file URLs; no browser screenshot or pixel identity claim. HTML, CSS cascade and JavaScript were inspected from disk.",
+    "Source-linked color and geometry checks cover the explicitly mapped states, not all possible layouts. Private source inventories and captures remain outside the public repository.",
+    "Terminal font size, line thickness and integer-cell spacing approximate browser pixels. In short viewports, headers and totals scroll; the price catalog keeps its update action accessible.",
+    "Core facts, cached reads, cancellation retention and unknown pricing semantics remain authoritative over synthetic prototype behavior.",
+    "Real terminal verification is macOS arm64 with Node.js 26.4.0; other platforms and global installations were not tested."
+  ]
+}

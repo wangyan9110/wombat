@@ -5,7 +5,7 @@ import type { UsageClient, UsageResult, UsageSummary } from '@wombat/client';
 import { locale } from '@wombat/client/locale';
 import { runTerminalAppWithUI } from '../src/app.js';
 import { TerminalUI } from '../src/components/terminal-ui.js';
-import { effort, usageLabel } from '../src/screens/format.js';
+import { effort, itemContent, usageHeaderCells, usageLabel, usageTotalCells } from '../src/screens/format.js';
 import { loadingContent } from '../src/components/loading-model.js';
 const usage: UsageSummary = { tokens: { input: 10000, output: 2000, cacheRead: 0, cacheCreate: 0, reasoning: 0, total: 12000 }, measurementCount: 1,
   price: { currency: 'USD', policy: 'synthetic', priceRevision: 'fixture', basis: [], issues: [], components: [], status: 'priced', cost: '0.1', knownCost: '0.1' } };
@@ -18,6 +18,41 @@ test('English quantity magnitude and progress signals survive runtime switches',
     assert.ok(content.detail === 'Save usage' || content.stages.some(stage => stage.name === 'Save usage'), 'known progress is translated');
     locale.setLocale('zh'); assert.match(usageLabel(usage, false, true), /1.2万/);
   } finally { locale.setLocale('zh'); }
+});
+test('weekly and monthly reports keep bilingual headers and compact model labels on single lines', async () => {
+  for (const language of ['zh', 'en'] as const) for (const period of ['weekly', 'monthly'] as const) for (const [width, height] of [[40, 14], [80, 24], [120, 32]]) {
+    locale.setLocale(language);
+    const setup = await createTestRenderer({ width, height });
+    const ui = new TerminalUI(setup.renderer);
+    const scope = period === 'weekly'
+      ? { since: '2025-12-29', until: '2026-01-05', timezone: 'UTC' }
+      : { since: '2026-09-01', until: '2026-10-01', timezone: 'UTC' };
+    const report = { ...result, scope, availableRange: scope };
+    const subtotal = { kind: 'usage' as const, isSubtotal: true, date: scope.since, scope, usage };
+    const model = { ...subtotal, isSubtotal: false, model: 'gpt-5.4', reasoningEffort: 'high' };
+    const periodLabels = [locale.t('common.daily'), locale.t('common.weekly'), locale.t('common.monthly')];
+    try {
+      void ui.choose({ title: locale.t(period === 'weekly' ? 'tui.app.weekly_report' : 'tui.app.monthly_report'), intro: [],
+        nav: 'usage threads', activeTab: locale.t('common.1_usage'), controlKind: 'group', controlOptions: periodLabels,
+        activeControl: periodLabels[period === 'weekly' ? 1 : 2], footer: 'Q', tableCells: usageHeaderCells(width),
+        totalCells: usageTotalCells(usage, width), choices: [
+          { id: 'subtotal', kind: 'subtotal', reportGroup: 'period', ...itemContent(subtotal, report, width) },
+          { id: 'model', kind: 'model', reportGroup: 'period', ...itemContent(model, report, width) },
+        ] });
+      await setup.flush(); await setup.renderOnce();
+      const root = setup.renderer.root;
+      assert.equal(root.findDescendantById('title')!.height, 1, `${language}/${period}/${width}: title`);
+      assert.equal(root.findDescendantById('table-header-grid')!.height, 1, `${language}/${period}/${width}: table header`);
+      if (width === 40) {
+        const label = root.findDescendantById('row-1-label')!;
+        const grid = root.findDescendantById('row-1-grid')!;
+        assert(label, `${language}/${period}: full model label`);
+        assert.equal(label.height, 1);
+        assert(grid.y > label.y, 'numeric tracks follow the complete model label');
+      }
+      if (width === 120) assert.equal(root.findDescendantById('table-header')!.height, 2, 'header text plus one rule');
+    } finally { ui.destroy(); locale.setLocale('zh'); }
+  }
 });
 test('native terminal switches languages and preserves source titles and query scope', { timeout: 20000 }, async () => {
   for (const width of [40, 80, 120]) {

@@ -37,7 +37,7 @@ test('semantic content preserves Token, cost and model without terminal width pa
     assert.match(content.lines.join('\n'), /gpt-5\.4/);
     assert(content.lines.every(line => line === line.trim()));
     assert.doesNotMatch(content.lines.join(''), /[━─]|API估算|词元|袋熊/);
-    assert.equal(content.bar, width >= 68 ? 1 : undefined);
+    assert.equal(content.bar, 1);
   }
 });
 
@@ -78,6 +78,6 @@ test('daily cells preserve cross-year dates and full model names for native wrap
     assert.equal(model.at(-1)!.align, 'right');
   }
   const compact = itemContent({ ...daily, isSubtotal: false, model: modelName, reasoningEffort: 'high' }, result, 40);
-  assert.equal(compact.cells, undefined);
-  assert(compact.headline!.label.includes(modelName));
+  assert.equal(compact.cells!.length, 3);
+  assert(compact.cells![0].text.includes(modelName));
 });

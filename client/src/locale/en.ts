@@ -53,6 +53,8 @@ export const en = {
   "cli.format.updated": "Updated",
   "cli.format.usage": "Usage",
   "common.threads": "Conversations",
+  "common.usage": "Usage",
+  "tui.report.date_model_effort": "Date / Model · Effort",
   "cli.format.turns": "Turns",
   "cli.format.records": "Records",
   "common.updated_value": "Updated {p0}",
