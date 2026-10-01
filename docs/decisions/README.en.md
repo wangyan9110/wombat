@@ -33,3 +33,4 @@ Put status after the title and language switcher. A proposal contains Problem, P
 | implemented | [Report distribution and full-range queries](implemented/product/2026-09-30-report-distribution.en.md) |
 | implemented | [Portable npm and local transport](implemented/architecture/2026-09-30-portable-npm.en.md) |
 | implemented | [Local Web and shared frontend](implemented/architecture/2026-10-01-local-web.en.md) |
+| implemented | [Remove TUI product and tools](implemented/architecture/2026-10-01-remove-tui.en.md) |

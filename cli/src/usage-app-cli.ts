@@ -5,13 +5,11 @@ import { runPricingCli } from './prices-cli.js';
 import packageMetadata from '../package.json' with { type: 'json' };
 import { CoreError, type UsageRequest, type UsageResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { launchInteractive } from './interactive.js';
 import { renderUsageResult } from './format.js';
 export function usageHelp(): string { return t("cli.usage-app-cli.help"); }
 export interface Invocation {
   request: UsageRequest;
   json: boolean;
-  interactive: boolean;
   help: boolean;
   version: boolean;
   mode: 'auto' | 'fresh' | 'cached';
@@ -21,7 +19,7 @@ export interface Invocation {
 const actions = new Set(['refresh', 'usage', 'threads', 'turns', 'steps']);
 const valued = new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'presentation', 'sort', 'search', 'limit', 'offset', 'locate-thread']);
 function invalid(message: string): never { throw new CoreError('INVALID_ARGUMENT', message); }
-export function parseUsageArgs(argv: string[], tty = false): Invocation {
+export function parseUsageArgs(argv: string[]): Invocation {
   let action: UsageRequest['action'] = 'usage';
   let explicit = false;
   let json = false;
@@ -161,7 +159,7 @@ export function parseUsageArgs(argv: string[], tty = false): Invocation {
   if (liveFlags.has('--verify') && action !== 'refresh') invalid(t("cli.usage-app-cli.verify_only_supports_refresh"));
   if (request.snapshotId && (liveFlags.has('--fresh') || roots.length)) invalid(t("cli.usage-app-cli.snapshot_cannot_be_combined_with_fresh"));
   if (action === 'refresh' && liveFlags.has('--cached')) invalid(t("cli.usage-app-cli.refresh_cannot_use_cached"));
-  return { request, json, help, version, mode: liveFlags.has('--cached') ? 'cached' : liveFlags.has('--fresh') ? 'fresh' : 'auto', watch: liveFlags.has('--watch'), verify: liveFlags.has('--verify'), interactive: tty && !explicit && !json && !help && !version && !liveFlags.size };
+  return { request, json, help, version, mode: liveFlags.has('--cached') ? 'cached' : liveFlags.has('--fresh') ? 'fresh' : 'auto', watch: liveFlags.has('--watch'), verify: liveFlags.has('--verify') };
 }
 export function resultExitCode(result: UsageResult): number { return result.quality.status === 'partial' || (result.freshness && !['current', 'fixed'].includes(result.freshness.status)) ? 2 : 0; }
 export async function runUsageCli(argv = process.argv.slice(2)): Promise<number> {
@@ -170,7 +168,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
     argv = configureLanguage(argv);
     if (argv[0] === 'prices') return await runPricingCli(argv.slice(1));
     if (argv[0] === 'web') return await (await import('./web-cli.js')).runWebCli(argv.slice(1));
-    const invocation = parseUsageArgs(argv, Boolean(process.stdin.isTTY && process.stdout.isTTY));
+    const invocation = parseUsageArgs(argv);
     if (invocation.version) {
       process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', version: packageMetadata.version }) + '\n' : 'Wombat ' + packageMetadata.version + '\n');
       return 0;
@@ -179,8 +177,6 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
       process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
-    if (invocation.interactive)
-      return await launchInteractive(invocation.request);
     const client = createNodeClient();
     const controller = new AbortController();
     const stop = () => controller.abort();

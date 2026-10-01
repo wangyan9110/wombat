@@ -2,16 +2,16 @@
   "version": 2,
   "sections": {
     "/wombat-architecture": {
-      "zh": "a416e31963a92f2eec5c8c95000f1efc4efb89b706bc7a9bd3864844a0b7b101",
-      "en": "abf2c5b0647244eb5df4d16fa1f0b9c02a69d41c0aeb28609a46de1ee17a6c3f"
+      "zh": "aae27a46915d4cb6105f57114e1bb22a1c6ce9934d54c797066364559de7fe53",
+      "en": "f8b8e243bd1e88795dc69b451b4dfc8cdb60e574b978a711c72e8b99c6fdee1d"
     },
     "/wombat-architecture/data-flow": {
       "zh": "f3d50ef603c7d029feccd2525ac4d8d4adc4d5dbb77d2da5afef5fec06405d8b",
       "en": "28a598b035fcef6728d9b87dab8fe37d1d5bb1264f7b5ece72420c53628ed6fa"
     },
     "/wombat-architecture/independent-modules": {
-      "zh": "af274715bc22904cfa4ad0f6d2346775c03eec4e00c63c7d79a6597ce345bd99",
-      "en": "fee402affcd12fd702add4665ddda84118227817064206782a610a043a2491b2"
+      "zh": "555232710b90b18a7efe6cff52c55ca144bcb182d07ed74d7b98d4a399b3eef2",
+      "en": "2fbe6a49c507aa3688a2bf65b19834bce127a717b551135a67c2946146bc5a52"
     },
     "/wombat-architecture/web-host-and-lifecycle": {
       "zh": "02799aaa70a0e3e15d1597bcb7729f75c9fcda910177bff65e17ffcbe0981318",
@@ -26,8 +26,8 @@
       "en": "928117c879841a82d611f280aab9235de3ae607caf9a0811b6d62149b8515bcc"
     },
     "/wombat-architecture/build-and-verification": {
-      "zh": "311b0de3e59514c7b587ab01047d9d96013f676771a3cdc5c61b6f3875342c6b",
-      "en": "9be4b804ffdc89c3ed5688336cfe7b855b70ef632a42e593ac5c62f7101188d3"
+      "zh": "597bb3dbe3e9f1ecc246040d108fdd1f049a6c8bac6f07d25c08b88e4302070c",
+      "en": "7d388a7feae0854d9d239d42cd9a6da7918b87e901c814e5d478bc3dfe99fe38"
     }
   }
 }

@@ -2,20 +2,20 @@
   "version": 2,
   "sections": {
     "/cli-command-entry": {
-      "zh": "0c0fea47563b68a03f7936833d30b042b12ec7c2c86c9ece3b8953cc5d0c39b9",
-      "en": "6df3336e808af8091bb521e5bb0577599b4073f963db70eb9ca8096bd749ec22"
+      "zh": "badb8bf90c33a29a36acc3b0996679ab64e350f15de2f4a022eadda488d0aca4",
+      "en": "1d9f713783917de37796f2a3e6834a5a23ce195b9282ac9f0e41b33f69dcc9b5"
     },
     "/cli-command-entry/public-entries": {
-      "zh": "53f0b44a5cff1bb1b65bc7789f26ab3b7b3d6a86c6ba7800c515157d17ac5311",
-      "en": "720107e3871e9968aca529d0197093de1296b121922357e428758b7e354ae237"
+      "zh": "a7a0cb7ccd868c888e61df820fa1485a3cc155aad237043b2059dfa22c939a83",
+      "en": "495c2e754ba0d6449a78d6644d2672730325eabc6480d152ece288493f1bcc04"
     },
     "/cli-command-entry/limits-and-verification": {
       "zh": "12c9c0385e44206a9b2b33221a156bb212f0b5f14041e20c8649d22c560d9065",
       "en": "35fc9510fdca89b18ea5add1e68d0fa716d14bf349272c90f201ea12e392db67"
     },
     "/cli-command-entry/web-assembly": {
-      "zh": "fdea56357f286cb18e752f36cdacc235117c1e08619b55847523a170691af998",
-      "en": "3e8028fb5400defc625cf44091d5614a06120a54f7a6e3b96cfc7d0b1e81abd2"
+      "zh": "b6b2b941d986128d01738cdca5b68f9df6100afccf07184c5c89db93c5eb8d05",
+      "en": "e7be5a3c24b1ded0755fabaa4cb365ad3943e09dd899adf09ded4fd010eec4b7"
     }
   }
 }

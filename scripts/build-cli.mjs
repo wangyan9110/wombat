@@ -12,7 +12,7 @@ const isCliFile = file => /^wombat(?:-.*)?\.js$/.test(file);
 let preserveStaging = false;
 try {
   const output = path.join(staging, 'next');
-  await build({ absWorkingDir: root, entryPoints: { wombat: 'cli/src/index.ts' }, bundle: true, splitting: true, platform: 'node', format: 'esm', target: 'node26', outdir: output, chunkNames: 'wombat-[name]-[hash]', external: ['@opentui/core', '@opentui/core/*', 'string-width'], banner: { js: '#!/usr/bin/env node' } });
+  await build({ absWorkingDir: root, entryPoints: { wombat: 'cli/src/index.ts' }, bundle: true, splitting: true, platform: 'node', format: 'esm', target: 'node26', outdir: output, chunkNames: 'wombat-[name]-[hash]', external: ['string-width'], banner: { js: '#!/usr/bin/env node' } });
   chmodSync(path.join(output, 'wombat.js'), 0o755);
   mkdirSync(backup);
   const previous = readdirSync(dist).filter(isCliFile);

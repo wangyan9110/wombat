@@ -6,7 +6,7 @@ import path from 'node:path';
 export const nativeTargets = ['darwin-arm64', 'darwin-x64', 'linux-x64', 'linux-arm64', 'win32-x64'] as const;
 export type NativeTarget = typeof nativeTargets[number];
 export function checkedSourceRevision(): string {
-  const paths = ['core', 'client', 'cli', 'tui', 'scripts', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'rust-toolchain.toml', 'tsconfig.json'];
+  const paths = ['core', 'client', 'cli', 'ui', 'web', 'scripts', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'rust-toolchain.toml', 'tsconfig.json'];
   const dirty = execFileSync('git', ['status', '--porcelain', '--untracked-files=all', '--', ...paths], { encoding: 'utf8' }).trim();
   if (dirty) throw new Error('Commit source changes before exporting or assembling universal native artifacts; use --current-platform for local testing');
   return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();

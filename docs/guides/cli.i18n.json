@@ -2,24 +2,24 @@
   "version": 2,
   "sections": {
     "/cli-and-automation": {
-      "zh": "6c65ad7dcf2bedbaeec228715360b7aafe8c28aba87687e9dc3f7848f4182fed",
-      "en": "d16fe7e706fb951288d56de6ef26ba9de133b922442ed7a64f26765c154a963f"
+      "zh": "a20081783c6deb94cec6bb5718d49ac88b383c3f7b698fa8957883e3015fa0cf",
+      "en": "05ff89805f400bf51be7d32a6e8970a3ef0613cfc81cf8ea94aed99ac9bdffb7"
     },
     "/cli-and-automation/language": {
       "zh": "cfeb3518580569b9e18e81faff0c4e1c5c22c77d25820978f49c8948d44e0b14",
       "en": "cfcd29aa701e358926ef720610ea8bfd04163393062050e955faa3d7c94f0d81"
     },
     "/cli-and-automation/automatic-synchronization": {
-      "zh": "c532ec81bff85ceb0acd799377701d0b7630d30f299ed66ee75122463b24f164",
-      "en": "9c2800c94768beaae006ec994a9f82d80b0b56b493a3838fe465dd5bc22c8495"
+      "zh": "2b9aa6f004e122946c47809ef8ad0620b5cb9e5711228cb2e6c030bd7d59ab82",
+      "en": "c72ead11f1beca700cf424b689d7fd8a3d46edbd7ed500d6eb847996b24d8f91"
     },
     "/cli-and-automation/official-price-catalog": {
       "zh": "3e21a5311caf73994096301e2a6cd457372d029b55552c06146778a8db92ed46",
       "en": "637d7ed13d58ea6ca9ae10fdc6121d10eb986d3425b93e1e69db36d84fca9d53"
     },
     "/cli-and-automation/filtering-and-pagination": {
-      "zh": "a4a2ac982d9137763f38965cff5288e0b646eeff86a065e8a0274b0ac1a59f2b",
-      "en": "4df884415d94ff07bc6064c3b0d6fb2b49a2bc62549fd0c06705acc93c12e9a1"
+      "zh": "1b2796c2f272e707fdcfff53f8baa169b22d0883e6a46b37a706b18cc5a275aa",
+      "en": "d1e9fba2c18f9488e72f136b0dff6ae369584dd4bb9f6db8990bee1d36a1c36e"
     },
     "/cli-and-automation/json": {
       "zh": "6e9d4c5e8582add86245ee197b37088508eef68a15b34308a2881378a3dca3c8",

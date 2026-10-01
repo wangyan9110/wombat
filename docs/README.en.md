@@ -7,7 +7,7 @@ Choose documentation by task. Source code, technical references, and implementat
 ## User guides · guides
 
 - [CLI and machine interface](guides/cli.en.md): startup, refresh, queries, filters, JSON, and errors.
-- [Terminal operation](guides/terminal.en.md): usage/conversation navigation, drill-down, keyboard/mouse, catalog, and themes.
+- [Web frontend](../ui/README.en.md): usage, conversations, drill-down, and current UI scope.
 - Start installation and building from the [project homepage](../README.md).
 
 ## Technical references · reference

@@ -23,7 +23,7 @@
 | 已完成事项、日期、验证命令与证据边界 | [进度](project/progress.md)及带日期的 `benchmarks/` 证据；旧记录合并保留结果、日期及证据边界 |
 | 后续候选方向 | [路线图](project/roadmap.md) |
 | 多入口交付与贡献者开发流程 | [开发约定](development/workflow.md) |
-| CLI/TUI 用户操作 | [Agent/CLI 说明](guides/cli.md)和[终端说明](guides/terminal.md) |
+| CLI/Web 用户操作 | [Agent/CLI 说明](guides/cli.md)和[前端说明](../ui/README.md) |
 | 来源与计价的具体边界 | [适配器用例](development/adapters.md)和[价格口径](reference/pricing.md) |
 
 ## 修改规则

@@ -2,7 +2,7 @@
 
 [中文](cli.md) | English
 
-Wombat synchronizes local Codex logs incrementally by default and updates queries and the terminal automatically. An explicit refresh also saves a fixed snapshot. Usage and conversations are the two product views. Every subcommand works without a TTY; JSON and the terminal use the same Rust queries.
+Wombat synchronizes local Codex logs incrementally by default and updates queries incrementally. An explicit refresh also saves a fixed snapshot. Usage and conversations are the two product views. Every subcommand works without a TTY; JSON and Web use the same Rust queries.
 
 ```sh
 wombat prices --json
@@ -29,7 +29,7 @@ Choose presentation language with `--lang zh` or `--lang en`, or set `WOMBAT_LAN
 - `--snapshot ID` fixes the read and disables automatic synchronization. A `live:…` identifier is a short-lived read revision; the service retains at most 8 revisions for 10 minutes. Expiration or restart can return `VIEW_EXPIRED`. For durable fixed data, run refresh and use its snapshot ID.
 - Live queries accept `--root`. Omitting it always selects the default Codex source; another window's roots do not change this. Fixed snapshots cannot also specify source roots.
 
-One data directory shares an on-demand Rust service. File notifications supplement polling roughly every 2 seconds; TUI/CLI watch queries roughly every second. The service exits about 15 seconds after its last call. Live operation has been accepted on macOS; Windows is unimplemented and Linux has not passed installation acceptance. Accounting uses complete log records and cannot show tokens the model has not yet logged.
+One data directory shares an on-demand Rust service. File notifications supplement polling roughly every 2 seconds; CLI watch queries roughly every second. The service exits about 15 seconds after its last call. Live operation has been accepted on macOS; Windows and Linux have not passed local installation acceptance. Accounting uses complete log records and cannot show tokens the model has not yet logged.
 
 ## Official price catalog
 
@@ -42,7 +42,7 @@ After a successful update, the next live synchronization creates a complete read
 ## Filtering and pagination
 
 - `usage --group day|week|month`: without dates, day selects the last 30 calendar days, week selects this month and the previous 5 months, and month selects this month and the previous 11. All end today; response until is tomorrow, exclusively. Explicit since/until takes precedence, and changing grouping preserves a manual range. A conversation filter without dates selects its full range. Weeks start on Monday; events are assigned by timestamp and selected timezone.
-- `--since` is inclusive and `--until` exclusive. CLI timezone defaults to UTC; the terminal uses the system timezone.
+- `--since` is inclusive and `--until` exclusive. CLI timezone defaults to UTC; Web uses the system timezone.
 - `--model`, `--effort`, and `--project` match exactly. A project is observed directory evidence, not a path substring. `--model-unknown`, `--effort-unknown`, and `--undated` select missing model, effort, and date respectively, and cannot accompany corresponding explicit values or date ranges.
 - `threads --search TEXT` searches titles or projects; its sorts are `tokens|cost|recent`, using whole-thread consumption. Turns and steps use `tokens|cost|time`.
 - `--snapshot ID` fixes a snapshot; a legacy v1/v2 file can be supplied explicitly. Continue pagination with the same snapshot instead of resolving latest again. An external legacy file returns its stable locator as snapshotRef.selector, which takes precedence over snapshotId for subsequent queries.

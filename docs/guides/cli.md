@@ -2,7 +2,7 @@
 
 中文 | [English](cli.en.md)
 
-Wombat 默认增量同步本机 Codex 日志，查询与终端自动更新；显式 refresh 另外保存固定快照。首版只有用量与对话两个产品入口；所有子命令无需 TTY，JSON 与终端使用同一 Rust 查询。
+Wombat 默认增量同步本机 Codex 日志，查询增量更新；显式 refresh 另外保存固定快照。首版只有用量与对话两个产品入口；所有子命令无需 TTY，JSON 与 Web使用同一 Rust 查询。
 
 ```sh
 wombat prices --json
@@ -29,7 +29,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 - `--snapshot ID` 保持固定读取，不自动同步。实时结果的 `live:…` 标识是短期读取版本，服务内最多保留8版、最长10分钟；过期或服务重启后旧版可能返回 `VIEW_EXPIRED`。需要长期固定数据时执行 refresh 并使用其快照ID。
 - `--root` 可用于实时查询；每次省略时仍使用默认 Codex 来源，不会因为另一窗口指定根而改变。固定快照不能同时指定来源根。
 
-同一数据目录共用按需 Rust 服务；文件通知加约2秒巡检，TUI/CLI watch约每秒查询。最后一个调用结束约15秒后退出。实时接口当前在macOS验收；Windows尚未实现，Linux未作安装验收。计量以完整日志记录为准，模型还未写入的Token无法即时显示。
+同一数据目录共用按需 Rust 服务；文件通知加约2秒巡检，CLI watch约每秒查询。最后一个调用结束约15秒后退出。实时接口当前在macOS验收；Windows/Linux 未作本机安装验收。计量以完整日志记录为准，模型还未写入的Token无法即时显示。
 
 ## 官方价表
 
@@ -42,7 +42,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 ## 筛选与分页
 
 - `usage --group day|week|month`：省略日期时，day 默认近30个自然日，week 默认本月及之前5个月，month 默认本月及之前11个月，均截止今天（响应 until 为明天，不包含）。显式 since/until 优先，切换分组不改变手动范围；限定对话且省略日期时展示该对话全部范围。周一起始；按事件时间及所选时区归日。
-- `--since` 包含起日，`--until` 不包含截止日。缺省时区 UTC；终端使用系统时区。
+- `--since` 包含起日，`--until` 不包含截止日。缺省时区 UTC；Web 使用系统时区。
 - `--model`、`--effort`、`--project` 精确匹配；项目是已观察到的目录证据，不是路径子串。`--model-unknown`、`--effort-unknown`、`--undated` 分别筛选缺失模型、强度和日期，不能与对应具体值或日期范围同时指定。
 - `threads --search TEXT` 搜索标题或项目，`--sort tokens|cost|recent`，按完整对话消耗排序；轮次与步骤使用 `tokens|cost|time`。
 - `--snapshot ID` 固定快照；旧 v1/v2 可显式传文件。后续分页应继续传同一快照，不能重新查询 latest。外部旧文件的固定定位符返回在 snapshotRef.selector，优先于 snapshotId 用于续查。

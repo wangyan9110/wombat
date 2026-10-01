@@ -50,26 +50,12 @@ jobs:
         run: corepack pnpm licenses:generate
       - name: Release gate and scoped npm installation
         run: corepack pnpm npm:pack -- --name @wangyan9110/wombat --current-platform
-      - name: Real POSIX terminal journeys
-        if: runner.os != 'Windows'
-        run: |
-          node --input-type=module -e 'import{createRequire}from"node:module";import{chmodSync,existsSync}from"node:fs";import path from"node:path";const r=createRequire(import.meta.url);const p=path.join(path.dirname(r.resolve("node-pty/package.json")),"prebuilds",`${process.platform}-${process.arch}`,"spawn-helper");if(existsSync(p))chmodSync(p,0o755);'
-          node --import tsx scripts/smoke-usage-v1-terminal.ts > terminal-evidence.json
       - name: Export verified native artifact
         run: corepack pnpm native:export
-      - name: Real Windows terminal journey
-        if: runner.os == 'Windows'
-        run: node --import tsx scripts/smoke-windows-terminal.ts > terminal-evidence.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-${{ matrix.target }}
           path: dist/native-artifacts/
-          if-no-files-found: error
-          retention-days: 14
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: terminal-${{ matrix.target }}
-          path: terminal-evidence.json
           if-no-files-found: error
           retention-days: 14
   npm-candidate:

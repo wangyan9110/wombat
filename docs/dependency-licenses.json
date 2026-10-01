@@ -6,7 +6,7 @@
   },
   "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.",
   "lockfiles": {
-    "pnpm-lock.yaml": "551e74befb9a2e31e8f7f574618c3cec67889ec94067f69808cb3ecd1eda0b0f",
+    "pnpm-lock.yaml": "2337b27cf1f9dc030e89d5084d5055ca554865da1e57be29ebb6df85f10bcb0b",
     "core/Cargo.lock": "206f8b56c6f3f3b5ea777417c019c7e54ecb7aa794d2038b1c4bd86c6583f2e4"
   },
   "node": [
@@ -59,60 +59,6 @@
         {
           "name": "LICENSE",
           "sha256": "8f7fe359ab18923b48a4f0d50745f34d24e77a4973510b86bb8d35daf2a15c48"
-        }
-      ]
-    },
-    {
-      "name": "@opentui/core-darwin-arm64",
-      "version": "0.5.12",
-      "license": "MIT",
-      "role": "runtime",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "AUTHORS-LIBWEBP",
-          "sha256": "f251be89fd442bd9d701360730aea163cc8e2076ff03528f59267dc2c4f8b60a"
-        },
-        {
-          "name": "LICENSE",
-          "sha256": "d9c397a5dc5ac77a2a08fc967ea06a65317a4b5b8de48f6f732ffcb21737e3d2"
-        },
-        {
-          "name": "LICENSE-GHOSTTY",
-          "sha256": "e3c017838d3f532f52fc2361ffd5528fd0d7dc158ea34e0f169d40185845c920"
-        },
-        {
-          "name": "LICENSE-LCMS2",
-          "sha256": "6dbd60437f8ef91d8de1f08ad75882547fd4931bfcc3566a0735f28db1484d31"
-        },
-        {
-          "name": "LICENSE-LIBWEBP",
-          "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf"
-        },
-        {
-          "name": "LICENSE-STB",
-          "sha256": "bebfe904b14301657e4e5d655c811d51fd31b97c455b9cc2d8600d6bac6cff63"
-        },
-        {
-          "name": "LICENSE-WUFFS",
-          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
-        },
-        {
-          "name": "PATENTS-LIBWEBP",
-          "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c"
-        }
-      ]
-    },
-    {
-      "name": "@opentui/core",
-      "version": "0.5.12",
-      "license": "MIT",
-      "role": "runtime",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "LICENSE",
-          "sha256": "d9c397a5dc5ac77a2a08fc967ea06a65317a4b5b8de48f6f732ffcb21737e3d2"
         }
       ]
     },
@@ -286,19 +232,6 @@
       ]
     },
     {
-      "name": "@xterm/headless",
-      "version": "5.5.0",
-      "license": "MIT",
-      "role": "development",
-      "licenseSource": "https://raw.githubusercontent.com/xtermjs/xterm.js/5.5.0/LICENSE",
-      "files": [
-        {
-          "name": "LICENSE",
-          "sha256": "c0998a378eaafe66ef66e4b16cd4016636bf617664f4576c30bd6914e2039008"
-        }
-      ]
-    },
-    {
       "name": "ajv",
       "version": "8.18.0",
       "license": "MIT",
@@ -334,19 +267,6 @@
         {
           "name": "LICENSE",
           "sha256": "de4d1f2d2ad5ad0cfd1657a106476b31cb5db5ef9d1ff842b237c0c81f0c8a23"
-        }
-      ]
-    },
-    {
-      "name": "bun-ffi-structs",
-      "version": "0.3.1",
-      "license": "MIT",
-      "role": "runtime",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "LICENSE",
-          "sha256": "f2046b2f212d286d06a53214867136c8152a481737e62fcda49c1412488c3a74"
         }
       ]
     },
@@ -451,19 +371,6 @@
         {
           "name": "license",
           "sha256": "6f296a5eccc1dc96714bb94ebaa9cac25b0a1467d74cc5263ac4d0646ab01f62"
-        }
-      ]
-    },
-    {
-      "name": "diff",
-      "version": "9.0.0",
-      "license": "BSD-3-Clause",
-      "role": "runtime",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "LICENSE",
-          "sha256": "eda81a415869e67809f6a9f3fd6056062cb83a462118e07eec5e92b2e0c40ce9"
         }
       ]
     },
@@ -711,19 +618,6 @@
         {
           "name": "license",
           "sha256": "dd1081884a92952802f4803110a6bb543acea9a814c786d58605b4c1219b5ebb"
-        }
-      ]
-    },
-    {
-      "name": "marked",
-      "version": "17.0.1",
-      "license": "MIT",
-      "role": "runtime",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "LICENSE.md",
-          "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c"
         }
       ]
     },
@@ -1287,32 +1181,6 @@
       ]
     },
     {
-      "name": "node-addon-api",
-      "version": "7.1.1",
-      "license": "MIT",
-      "role": "development",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "LICENSE.md",
-          "sha256": "89024017b88a9f2b763f79b941a4f2db3b4428edfcacdc0b23866b2da633ad0c"
-        }
-      ]
-    },
-    {
-      "name": "node-pty",
-      "version": "1.1.0",
-      "license": "MIT",
-      "role": "development",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "LICENSE",
-          "sha256": "a3d60eaf32d2fb09c9d82ef39f14bd6e2c0f3ca7de30daa827486c0d6f8b6e9f"
-        }
-      ]
-    },
-    {
       "name": "picocolors",
       "version": "1.1.1",
       "license": "ISC",
@@ -1457,19 +1325,6 @@
     },
     {
       "name": "strip-ansi",
-      "version": "7.1.2",
-      "license": "MIT",
-      "role": "runtime",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "license",
-          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
-        }
-      ]
-    },
-    {
-      "name": "strip-ansi",
       "version": "7.2.0",
       "license": "MIT",
       "role": "runtime",
@@ -1511,7 +1366,7 @@
       "name": "typescript",
       "version": "5.9.3",
       "license": "Apache-2.0",
-      "role": "runtime",
+      "role": "development",
       "licenseSource": "installed package",
       "files": [
         {
@@ -1608,19 +1463,6 @@
         {
           "name": "LICENSE.md",
           "sha256": "387dd7baa307083401a27c58c362c30832f5ba1dba84f10cc22c33401523f45c"
-        }
-      ]
-    },
-    {
-      "name": "web-tree-sitter",
-      "version": "0.25.10",
-      "license": "MIT",
-      "role": "runtime",
-      "licenseSource": "installed package",
-      "files": [
-        {
-          "name": "LICENSE",
-          "sha256": "5f9cf9fb6acb1972b35ae29119ce563bb60ec097656bc4b69b9bac2d04c7a147"
         }
       ]
     },
@@ -4338,34 +4180,6 @@
     {
       "name": "@esbuild/win32-x64",
       "version": "0.28.2"
-    },
-    {
-      "name": "@opentui/core-darwin-x64",
-      "version": "0.5.12"
-    },
-    {
-      "name": "@opentui/core-linux-arm64-musl",
-      "version": "0.5.12"
-    },
-    {
-      "name": "@opentui/core-linux-arm64",
-      "version": "0.5.12"
-    },
-    {
-      "name": "@opentui/core-linux-x64-musl",
-      "version": "0.5.12"
-    },
-    {
-      "name": "@opentui/core-linux-x64",
-      "version": "0.5.12"
-    },
-    {
-      "name": "@opentui/core-win32-arm64",
-      "version": "0.5.12"
-    },
-    {
-      "name": "@opentui/core-win32-x64",
-      "version": "0.5.12"
     },
     {
       "name": "@rolldown/binding-android-arm-eabi",

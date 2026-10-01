@@ -4,7 +4,7 @@
 
 Status: proposed
 
-Implementation update (2026-10-01): the local Web path now uses Node HTTP and React / TypeScript / Vite; see the [local Web decision](../../implemented/architecture/2026-10-01-local-web.en.md). The text below preserves the research baseline. Tauri 2 remains selected; desktop delivery and TUI removal are still pending.
+Implementation update (2026-10-01): the local Web path now uses Node HTTP and React / TypeScript / Vite; see the [local Web decision](../../implemented/architecture/2026-10-01-local-web.en.md). The text below preserves the research baseline. Tauri 2 remains selected; TUI product code and its dedicated skill have been removed; desktop delivery remains pending.
 
 Research date: 2026-10-01. This note records desktop frameworks, core integration, CLI and Web coexistence, and verification tradeoffs for developers and maintainers. Tauri 2 is the selected desktop framework; the product direction is to remove the TUI, retain GUI and CLI entry points, and provide a CLI+Web edition. The full product plan is being written separately; this note does not determine specific features, pages, interactions, or platform delivery order. Framework selection is settled, but GUI/Web implementation, TUI removal, and performance measurement have not been completed. Under the repository lifecycle, proposed means engineering work is unshipped, not that the framework remains undecided.
 

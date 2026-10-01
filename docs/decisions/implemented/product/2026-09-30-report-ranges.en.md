@@ -4,6 +4,8 @@
 
 Status: implemented
 
+Update (2026-10-01): terminal-specific behavior below is historical after [TUI removal](../architecture/2026-10-01-remove-tui.en.md). Current Web scope and navigation follow the [frontend contract](../../../../ui/README.en.md); shared core query semantics remain authoritative.
+
 ## Problem
 
 The seven-day default applied to all groups. The terminal also copied response dates into requests, limiting weekly and monthly reports to the latest week.

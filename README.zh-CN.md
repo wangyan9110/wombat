@@ -11,7 +11,7 @@
 
 **找到你的 Codex Token 花在了哪里。**
 
-Wombat 是 Codex Token 用量追踪工具。从用量高峰找到相关对话，再深入到消耗最高的轮次，在终端里看清是哪段工作用了最多 Token。
+Wombat 是 Codex Token 用量追踪工具。从用量高峰找到相关对话，再深入到消耗最高的轮次，通过 CLI 与本机 Web 看清是哪段工作用了最多 Token。
 
 用量分析在本机完成，无需 API Key，也无需调用模型。
 
@@ -23,10 +23,10 @@ Wombat 是 Codex Token 用量追踪工具。从用量高峰找到相关对话，
 
 ```sh
 npm install -g @wangyan9110/wombat
-wombat
+wombat web
 ```
 
-首次启动会为本机 Codex 记录建立索引，包含已归档的对话。后续更新会复用索引。
+在浏览器打开输出链接。首次查询会为本机 Codex 记录建立索引，包含已归档的对话。后续更新会复用索引。
 
 ![Wombat Codex Token 用量总览：每日总量与分布显示 9 月 29 日的消耗高峰](assets/prototype-usage-overview-zh.png)
 
@@ -40,7 +40,7 @@ wombat
 
 第一次使用，可以先找一段高消耗对话，看看其中哪一轮占用了最多 Token。
 
-1. 在**用量**中选中消耗较高的一天，按 `Enter` 查看相关对话。
+1. 在**用量**中点击消耗较高的一天，查看相关对话。
 2. 在**对话**中按 Token 消耗排序，打开一个对话。
 3. 展开消耗最高的轮次，查看它占对话用量的比例、用量记录和实际记录到的操作。
 
@@ -55,7 +55,7 @@ wombat
 
 </details>
 
-方向键选择，`Enter` 进入，`Esc` 返回，`Q` 退出。在两个主界面按 `L` 切换中英文。更多操作见[终端指南](docs/guides/terminal.md)。
+使用 Web 导航和语言按钮；在启动终端按 Ctrl+C 停止服务。直接运行 `wombat` 输出用量文本。命令见[CLI 指南](docs/guides/cli.md)。
 
 ## 还能查看什么？
 
@@ -89,7 +89,7 @@ wombat usage --watch --json
 请检查这台机器是否已有包含用量信息的 Codex 日志，以及日期、项目筛选是否包含这些记录。Wombat 默认读取 `CODEX_HOME` 或 `~/.codex`。如果日志放在其他目录：
 
 ```sh
-wombat --root /path/to/codex-home
+wombat web --root /path/to/codex-home
 ```
 
 Wombat 只能显示所读取的本地日志中已经记录的用量。
@@ -116,7 +116,7 @@ Wombat 可以帮你找到日志中高消耗的对话和轮次，但无法确定 
 
 Wombat 使用官方模型单价，估算已记录 Token 对应的标准 API 等价费用。**这不是你的订阅账单，也不是 Codex 剩余额度。**
 
-未知单价保持未知；只能计算部分费用时，展示已知小计。可在终端查看计价依据，或阅读[价格说明](docs/reference/pricing.md)。
+未知单价保持未知；只能计算部分费用时，展示已知小计。可在 Web 查看计价依据，或阅读[价格说明](docs/reference/pricing.md)。
 
 <a id="privacy"></a>
 
@@ -152,7 +152,7 @@ WOMBAT_AUTO_PRICES=0 wombat
 ```sh
 corepack pnpm install --frozen-lockfile
 corepack pnpm build
-node dist/wombat.js
+node dist/wombat.js web
 ```
 
 构建、可转移安装包、npm 候选和发布后核验使用 [wombat-release Skill](.agents/skills/wombat-release/SKILL.md)；具体步骤见[开发流程](docs/development/workflow.md)，平台范围见[支持矩阵](docs/reference/support-matrix.md)。
@@ -163,4 +163,4 @@ node dist/wombat.js
 
 ## 本机 Web
 
-完成构建后执行 `node dist/wombat.js web`，打开输出链接。也可在已安装的新构建中运行 `wombat web`。新版 Web 已接入用量、对话、轮次、筛选与价表，布局按新版页面实现。项目暂按历史目录归组，优化能力尚未接入。Ctrl+C 停止服务。仅本机访问，更多参数见 [CLI 指南](docs/guides/cli.md)。桌面框架已选 Tauri 2，桌面实现和旧 TUI 移除待后续。
+完成构建后执行 `node dist/wombat.js web`，打开输出链接。也可在已安装的新构建中运行 `wombat web`。新版 Web 已接入用量、对话、轮次、筛选与价表，布局按新版页面实现。项目暂按历史目录归组，优化能力尚未接入。Ctrl+C 停止服务。仅本机访问，更多参数见 [CLI 指南](docs/guides/cli.md)。桌面框架已选 Tauri 2，桌面实现仍待后续，旧 TUI 已移除。

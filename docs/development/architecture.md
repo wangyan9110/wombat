@@ -2,7 +2,7 @@
 
 中文 | [English](architecture.en.md)
 
-Wombat 采用共享 Rust 内核、生成契约和可替换宿主。产品方向为 GUI、CLI 与 CLI+Web，桌面框架已选 Tauri 2；当前先交付本机 Web 基础链路。原有 TUI 暂留作为迁移基线，桌面宿主和 TUI 删除尚未实施。新版产品方案独立编写，本轮只打通既有业务接口，不迁移旧页面；新页面等待新版产品方案。实际支持及验证见[支持矩阵](../reference/support-matrix.md)与[进度](../project/progress.md)。
+Wombat 采用共享 Rust 内核、生成契约和可替换宿主。产品方向为 GUI、CLI 与 CLI+Web，桌面框架已选 Tauri 2；当前本机 Web 已按新版页面代码落地，TUI 产品代码已移除；桌面宿主尚未实施。实际支持及验证见[支持矩阵](../reference/support-matrix.md)与[进度](../project/progress.md)。
 
 ## 数据流
 
@@ -16,7 +16,6 @@ flowchart LR
   Q --> N[client/node]
   N --> C[CLI JSON / text]
   N --> W[web loopback host]
-  N --> T[Transitional OpenTUI]
   W --> H[client/http]
   H --> U[ui React]
   F[Future Tauri transport] -. UsageClient .-> U
@@ -33,10 +32,9 @@ flowchart LR
 | `client/src/locale/` | 共享类型化中英字典、语言订阅与纯展示格式化；原始内容和协议值不翻译 |
 | `web/` | `startWebHost` 接收客户端、构建资产、启动范围和端口；负责本机 HTTP、认证、静态文件及连接清理，不承载业务算法 |
 | `ui/` | React / TypeScript / Vite 前端；`App` 接收 `UsageClient`，实现新版用量、对话、轮次、来源与价表页面。浏览器入口装配 HTTP；不依赖 Node/Tauri |
-| `cli/` | 参数、JSON/文本、退出码、Web 启停与过渡 TUI 装配；普通查询、Web 和帮助不初始化 OpenTUI |
-| `tui/` | 过渡 OpenTUI 页面、键鼠、主题和状态，仍通过注入客户端访问业务 |
+| `cli/` | 参数、JSON/文本、退出码与显式 Web 启停；默认命令输出用量文本 |
 
-依赖方向为 `cli → web + client/node + tui`、`web → client`、`ui → client + client/http + client/locale`、`tui → client + client/locale`。`core` 不依赖展示模块。跨模块仅使用公开包入口或版本化协议，不引用内部源码；静态边界检查覆盖所有 TS/TSX 模块。各模块使用自己的依赖、构建和测试入口，共用 pnpm 锁文件；Rust 使用 Cargo。产品仍是一个模块化单体和安装包。
+依赖方向为 `cli → web + client/node`、`web → client`、`ui → client + client/http + client/locale`。`core` 不依赖展示模块。跨模块仅使用公开包入口或版本化协议，不引用内部源码；静态边界检查覆盖所有 TS/TSX 模块。各模块使用自己的依赖、构建和测试入口，共用 pnpm 锁文件；Rust 使用 Cargo。产品仍是一个模块化单体和安装包。
 
 业务规则保留在 Rust：适配器拥有来源语义与身份；`pricing.rs` / `pricing_sync.rs` 拥有金额与价表资格；`live.rs` / `live_index.rs` 拥有增量索引与版本；`usage_store.rs` 拥有不可变快照；`usage_app.rs` / `usage_app_dto.rs` 拥有操作、筛选、排序、完整范围汇总和分页。列表不从当前页重算总量、占比或计价。
 
@@ -72,6 +70,6 @@ flowchart LR
 
 ## 构建与验证
 
-Node.js 要求26.4.0或更新；构建顺序为内核、客户端、Web 前端与宿主、过渡 TUI、CLI、发行组装。前端静态资产随 `dist/web/` 打包，运行时不需要 Vite。React DOM 是浏览器渲染层，Tauri 2 仍是已选桌面宿主；桌面传输和生命周期需独立实施，不能把本机 HTTP 验证当作 Tauri 验收。
+Node.js 要求26.4.0或更新；构建顺序为内核、客户端、Web 前端与宿主、CLI、发行组装。前端静态资产随 `dist/web/` 打包，运行时不需要 Vite。React DOM 是浏览器渲染层，Tauri 2 仍是已选桌面宿主；桌面传输和生命周期需独立实施，不能把本机 HTTP 验证当作 Tauri 验收。
 
 协议与宿主测试使用合成客户端；端到端测试从发行入口启动 HTTP，比较真实 Rust 和 CLI 的独立真值、固定版本下钻、认证及退出。浏览器交互、窄屏、失败/取消、安装包资产与跨平台需分别验证；通过范围只写入进度。详细流程见[开发约定](workflow.md)，Web 的取舍见[本地 Web 决策](../decisions/implemented/architecture/2026-10-01-local-web.md)。

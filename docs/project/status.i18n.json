@@ -2,20 +2,20 @@
   "version": 2,
   "sections": {
     "/wombat-implementation-status": {
-      "zh": "f75d07a1b909900b6e9bb96243139af8876ddda3af7b1b795bede41a3d8f55e4",
-      "en": "45a78f12edf35d9f3ec1e20c3e5a5cfe03cd676206a077009e221c6846ce2256"
+      "zh": "c8fdc4c09f3b1773122236c6288ca98018e4df89bcf99be9f0e33fc0c42e3241",
+      "en": "aa179c4d77d68b118d1fb760eeeffaf840962274a875e8298f02ffec74827a5b"
     },
     "/wombat-implementation-status/delivered-baseline": {
-      "zh": "7256ea65b5f7d7875e3b089dfb459c1ff5868ed02cff351b17da4cb4e02e5978",
-      "en": "5c4a17daeb5a62ffb10c02f90ee24b70db96e3f18b87c1dfe9d9395e59f8de2e"
+      "zh": "b05bb0a58c91dc6fe6830bc6d7b0d7e5bbb654e5d6bee8451067a774c86cd74e",
+      "en": "44ea0dc24fa17f6d435f33d6ca09521523f2f1cf755453f4cdbfa63927770352"
     },
     "/wombat-implementation-status/remaining-work-and-acceptance-responsibility": {
-      "zh": "e9f9028116f291aae97fb3b86e66e52a25e2cecd755666a7c437ffc64dd3924f",
-      "en": "992ad7b5622f2297802b0417a8152ea146ae32b1d9e4df93612740f7192021f4"
+      "zh": "d88ba098ad6aa5761fdad33805cbcf81175d0a995cff1b673742011b52126034",
+      "en": "049297ceeb3fad46db9d95bc5238252a589f11462d2ed69bb939227fef88a441"
     },
     "/wombat-implementation-status/first-web-delivery-2026-10-01": {
-      "zh": "2b8c84559b0edba650a452abc16722f7890be807dd9faa3887df8dee14e6aab6",
-      "en": "f0b2bc6077f173b4ca1b115c5aff659493bf5a20a47579b2e65a541b33790c34"
+      "zh": "e411d0c80074ddc9f5821fe4e3be786d66009a0f3ec5a9e98414dfc434630c17",
+      "en": "4d266d5d84a8a7505115fad1a063e598d72eb61a069cbff4987b2f80944bdbf3"
     }
   }
 }

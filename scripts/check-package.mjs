@@ -14,7 +14,7 @@ const binary = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
 const digest = file => createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex');
 const cargoVersion = readFileSync(path.join(root, 'core/Cargo.toml'), 'utf8')
   .match(/^version = "([^"]+)"$/m)?.[1];
-for (const file of ['cli/package.json', 'client/package.json', 'tui/package.json', 'ui/package.json', 'web/package.json']) {
+for (const file of ['cli/package.json', 'client/package.json', 'ui/package.json', 'web/package.json']) {
   if (readJson(file).version !== pkg.version) throw new Error(`Version mismatch: ${file}`);
 }
 if (cargoVersion !== pkg.version) throw new Error('Version mismatch: core/Cargo.toml');

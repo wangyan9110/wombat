@@ -4,7 +4,7 @@
 
 Status: proposed
 
-实施更新（2026-10-01）：本地 Web 已采用 Node HTTP 与 React / TypeScript / Vite，见[本地 Web 决策](../../implemented/architecture/2026-10-01-local-web.md)。以下保留调研时基线；Tauri 2 仍为已选桌面框架，桌面交付及 TUI 删除仍未完成。
+实施更新（2026-10-01）：本地 Web 已采用 Node HTTP 与 React / TypeScript / Vite，见[本地 Web 决策](../../implemented/architecture/2026-10-01-local-web.md)。以下保留调研时基线；Tauri 2 仍为已选桌面框架，TUI 产品代码与专用 Skill 已移除，桌面交付仍未完成。
 
 调研日期为 2026-10-01。本记录面向开发维护者，保存桌面框架、内核接入方式、CLI 与 Web 共存及验证取舍。桌面框架已选定 Tauri 2；产品方向是去掉 TUI，保留 GUI 和 CLI，并提供 CLI+Web 版本。完整产品方案正在另行编写，这里不确定具体功能、页面、交互或交付平台顺序。框架选型已确定，但尚未实施 GUI/Web、移除 TUI 或取得性能实测。按仓库生命周期保留 proposed，表示工程未交付，不表示框架仍待选。
 

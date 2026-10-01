@@ -1,29 +1,9 @@
 {
   "version": 2,
   "sections": {
-    "/using-the-terminal": {
-      "zh": "0cc790ad4c5d99ee40b7429eb79a4b935d2d6d669e977245ac412e9035ee91dc",
-      "en": "9ff06672319fccd04142ea8582866b6ae06d7dd02f4c0d23b01c4ba328cbc6bf"
-    },
-    "/using-the-terminal/navigation-and-viewing": {
-      "zh": "423f639d4493eeb53a460d11e801cd8bba184bdbc3bea052f05d315a4c8a7bda",
-      "en": "45e41bca0a5a81feba148523cdbf7a06ab26a8f60972eb58edcdd50bb5e43690"
-    },
-    "/using-the-terminal/filters": {
-      "zh": "15ea4abe6a00abf5600c0dc7fe28591c6dbeb54b8c9f7397bc598f252f170b1f",
-      "en": "ae1aac52c7ba9b4fb050ea3774032df6f343920d41d6b9f708d4935bb5cb1424"
-    },
-    "/using-the-terminal/presentation-and-data-boundaries": {
-      "zh": "81debd6f9b5d5dc5911fa239fa88c8997512382fdc1e54544d207b157afa939c",
-      "en": "b3cec14b60b93cf4d65328c2d5e88d9dced6c8bc6d0ee7a1407353b4090f43f5"
-    },
-    "/using-the-terminal/price-catalog": {
-      "zh": "58a1d071e20af08324f0227f58c67e7e0aaa10641135f8991b0b543c25f06775",
-      "en": "8d375a69fcfe4de4b4f660a881e4caafe77a76ccadb0a5f425a254ec90136bb5"
-    },
-    "/using-the-terminal/themes": {
-      "zh": "0e83ba53a66e26d32e30eeac9375d285c6930fe0057fa8594e58eb7d610c7de4",
-      "en": "b6170b9d140b38f489ac9bd7dd7d3e9cb7dbde26dab6c4d35c0ab31a49f2abe8"
+    "/retired-terminal-interface": {
+      "zh": "b9c7a37435d95914823349da83f52d06ab4be98037b7f44dfdd7cf2703f6fe6c",
+      "en": "4d3825bf87a814f16deeff89075e70ba4c803bd77cd4103ee7fbc7f96f5d606f"
     }
   }
 }

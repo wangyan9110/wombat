@@ -61,11 +61,6 @@
       "record": "docs/i18n/README.i18n.json"
     },
     {
-      "zh": "tui/README.md",
-      "en": "tui/README.en.md",
-      "record": "tui/README.i18n.json"
-    },
-    {
       "zh": "docs/i18n/product.md",
       "en": "docs/i18n/product.en.md",
       "record": "docs/i18n/product.i18n.json"
@@ -184,6 +179,11 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-01-local-web.md",
       "en": "docs/decisions/implemented/architecture/2026-10-01-local-web.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-01-local-web.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-01-remove-tui.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-01-remove-tui.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-01-remove-tui.i18n.json"
     }
   ],
   "legacyUnpaired": [],
@@ -195,8 +195,7 @@
     "client/AGENTS.md",
     "core/AGENTS.md",
     "docs/AGENTS.md",
-    "docs/i18n/terminology.md",
-    "tui/AGENTS.md"
+    "docs/i18n/terminology.md"
   ],
   "assetPairs": [
     {

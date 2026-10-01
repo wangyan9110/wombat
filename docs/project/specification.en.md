@@ -15,7 +15,7 @@ Usage defaults to distribution and switches to details or token/estimated-cost v
 | Usage | Daily/weekly/monthly, date/timezone, model, effort, project, and conversation scopes; date subtotals, model components, complete totals |
 | Conversations | Cross-day/model lists, native titles, title/project search, consumption or recent-activity sorting |
 | Turns and records | In-place expansion, time/consumption sorting, accounting categories, safe operation metadata; no text replay |
-| Multiple entries | Rust operations reach Node CLI, JSON, and independent OpenTUI through generated contracts; future hosts reuse the same narrow interface |
+| Multiple entries | Rust operations reach Node CLI, JSON, and local Web through generated contracts; future hosts reuse the same narrow interface |
 | Platform and language | Node.js ≥26.4.0, first accepted on macOS arm64; Chinese/English follow the [language contract](../i18n/product.en.md); other platforms need separate installation acceptance |
 
 No quota, checkup, configuration management, rule diagnostics, automatic repair, recommendations, evidence-package export, threshold notifications, comparison, parent/child task analysis, HTML reports, or GUI. Inheritance/fork facts serve only necessary attribution and deduplication. See the [support matrix](../reference/support-matrix.en.md) for complete current boundaries.
@@ -23,13 +23,13 @@ No quota, checkup, configuration management, rule diagnostics, automatic repair,
 ## User journeys
 
 1. Build a local index initially. With an index, wait for the current read when opening a main view and update main lists after synchronization. Explicit refresh saves a fixed snapshot; explicit snapshots never refresh automatically. Failure, incomplete synchronization, and old results must be distinguishable.
-2. Daily reports default to 30 calendar days; weekly to this month plus 5 previous months; monthly to this month plus 11 previous months, all through today. Explicit CLI dates override; changing TUI periods restores defaults. Weeks start Monday; grouping uses each event timestamp and selected timezone. A conversation filter without dates uses its full range.
+2. Daily reports default to 30 calendar days; weekly to this month plus 5 previous months; monthly to this month plus 11 previous months, all through today. Explicit CLI dates override; changing Web periods retains current dates. Weeks start Monday; grouping uses each event timestamp and selected timezone. A conversation filter without dates uses its full range.
 3. Date/model/effort rows open related conversations with full filters. `matchedUsage` retains incoming conditions and `threadUsage` the whole conversation; a partial cross-day amount must not masquerade as complete.
 4. Conversations expand full turns. Inside turns, chronological order is default; consumption order places measured records first, then operations chronologically. Unassigned measurements remain in Other records without loss or allocation.
 5. Turn shares use complete conversation tokens; step shares use complete turn tokens. Pagination, sorting, and expansion never change denominators; zero denominators display missing values. Returning preserves filters, pagination, selection, and expansion.
 6. Usage and conversations link both ways and keep independent main-view filters. Cancelling filter drafts leaves applied queries unchanged; old snapshots without details explicitly report unavailability.
 
-The [terminal guide](../guides/terminal.en.md) owns input, prices, themes, and widths; the [CLI guide](../guides/cli.en.md) owns commands, filters, and errors. This specification does not duplicate help.
+The [frontend guide](../../ui/README.en.md) owns pages, prices, themes, and widths; the [CLI guide](../guides/cli.en.md) owns commands, filters, and errors. This specification does not duplicate help.
 
 ## Data and presentation constraints
 
@@ -61,7 +61,7 @@ Snapshot list/expansion p95 ≤300ms and cold query ≤1s are original targets, 
 | Scope and conservation | Timezones/DST, day/month/year/model/effort boundaries, archives and roots, unknown dates, unassigned measurements; complete ledger agrees with every aggregation layer |
 | Costs | Exact/alias/provider matching, below/equal/above thresholds, cache categories, zero/unknown, policy isolation, tiny values, catalog upgrades, fixed old results |
 | Queries | Full-range sorting before pagination, stable denominators, bidirectional links, fixed revisions, cancellation/busy/partial failures, corruption/missing details |
-| Terminal | 40/80/120 columns, Chinese/English switching, long model names/native titles, input, filters, expansion, return, resizing, cancellation, exit restoration |
+| Web | Chinese/English switching, long names, narrow layouts, filters, expansion, return, cancellation, and host shutdown |
 | Safety and installation | Large lines, tails/truncation, allowlisted metadata without bodies, no arbitrary execution, clean builds/installs, executable permissions/notices, no source writes |
 
-Select checks through the [development workflow](../development/workflow.en.md): build before cross-language tests, check generated contracts/module boundaries, update licenses with dependencies, and verify package contents/clean installation for releases. Terminal and noninteractive delivery together complete a capability; browser demonstrations cannot replace real terminal acceptance. Only actual evidence enters [progress](progress.en.md); other platforms and real-user outcomes require separate acceptance.
+Select checks through the [development workflow](../development/workflow.en.md): build before cross-language tests, check generated contracts/module boundaries, update licenses with dependencies, and verify package contents/clean installation for releases. Web and noninteractive delivery together complete a capability; builds cannot replace browser acceptance. Only actual evidence enters [progress](progress.en.md); other platforms and real-user outcomes require separate acceptance.

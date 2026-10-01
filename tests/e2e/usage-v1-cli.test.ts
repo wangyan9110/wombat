@@ -6,12 +6,12 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { CoreError } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-async function run(args: string[], env: NodeJS.ProcessEnv): Promise<{
+async function run(args: string[], env: NodeJS.ProcessEnv, tty = false): Promise<{
   code: number | null;
   stdout: string;
   stderr: string;
 }> {
-  return await new Promise((resolve, reject) => { const child = spawn(process.execPath, ['dist/wombat.js', ...args], { cwd: process.cwd(), env: { ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_LANG: 'zh', ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); let stdout = '', stderr = ''; child.stdout.on('data', chunk => stdout += chunk); child.stderr.on('data', chunk => stderr += chunk); child.on('error', reject); child.on('close', code => resolve({ code, stdout, stderr })); });
+  return await new Promise((resolve, reject) => { const child = spawn(process.execPath, tty ? ['--input-type=module', '-e', "Object.defineProperty(process.stdin, 'isTTY', {value:true}); Object.defineProperty(process.stdout, 'isTTY', {value:true}); process.argv = [process.execPath, 'dist/wombat.js', ...process.argv.slice(1)]; await import('./dist/wombat.js');", '--', ...args] : ['dist/wombat.js', ...args], { cwd: process.cwd(), env: { ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_LANG: 'zh', ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); let stdout = '', stderr = ''; child.stdout.on('data', chunk => stdout += chunk); child.stderr.on('data', chunk => stderr += chunk); child.on('error', reject); child.on('close', code => resolve({ code, stdout, stderr })); });
 }
 async function mockCore(body: string): Promise<{
   dir: string;
@@ -40,6 +40,10 @@ test('fixed-snapshot CLI has one JSON object and partial exit 2', async () => {
     assert.equal(partial.stderr, '');
     const plain = await run(['--snapshot', 'synthetic'], { WOMBAT_CORE_BIN: core.binary });
     assert.equal(plain.code, 0);
+    const terminal = await run(['--snapshot', 'synthetic'], { WOMBAT_CORE_BIN: core.binary }, true);
+    assert.equal(terminal.code, 0, terminal.stderr);
+    assert.equal(terminal.stdout, plain.stdout);
+    assert.equal(terminal.stderr, '');
     assert.match(plain.stdout, /Wombat · 用量/);
     assert.doesNotMatch(plain.stdout, /选择.*命令|额度|体检/);
   }

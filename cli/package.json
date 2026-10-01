@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@wombat/client": "workspace:*",
-    "@wombat/tui": "workspace:*",
     "string-width": "7.2.0",
     "@wombat/web": "workspace:*"
   },

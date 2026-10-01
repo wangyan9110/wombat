@@ -33,3 +33,4 @@
 | implemented | [报表分布与完整范围查询](implemented/product/2026-09-30-report-distribution.md) |
 | implemented | [跨平台 npm 与本地通信](implemented/architecture/2026-09-30-portable-npm.md) |
 | implemented | [本地 Web 与共享前端](implemented/architecture/2026-10-01-local-web.md) |
+| implemented | [移除 TUI 产品与工具](implemented/architecture/2026-10-01-remove-tui.md) |

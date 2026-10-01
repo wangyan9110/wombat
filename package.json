@@ -60,7 +60,7 @@
   ],
   "scripts": {
     "dev": "node --import tsx cli/src/index.ts",
-    "build": "node scripts/build-core.mjs && pnpm --filter @wombat/client build && pnpm --filter @wombat/ui build && pnpm --filter @wombat/web build && pnpm --filter @wombat/tui build && pnpm --filter @wombat/cli build && node scripts/build-cli.mjs && node scripts/build-web.ts",
+    "build": "node scripts/build-core.mjs && pnpm --filter @wombat/client build && pnpm --filter @wombat/ui build && pnpm --filter @wombat/web build && pnpm --filter @wombat/cli build && node scripts/build-cli.mjs && node scripts/build-web.ts",
     "build:core": "node scripts/build-core.mjs",
     "typecheck": "pnpm -r typecheck && tsc --noEmit -p tsconfig.json && node scripts/check-module-boundaries.mjs",
     "test": "pnpm run test:core && pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
@@ -89,38 +89,32 @@
     "i18n:check": "node scripts/check-ui-i18n.mjs",
     "test:repo": "node --test scripts/*.test.mjs",
     "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
-    "benchmark:live": "node --import tsx scripts/benchmark-live.ts",
-    "smoke:terminal": "node --import tsx scripts/smoke-usage-v1-terminal.ts"
+    "benchmark:live": "node --import tsx scripts/benchmark-live.ts"
   },
   "dependencies": {
-    "@opentui/core": "0.5.12",
-    "string-width": "7.2.0",
-    "web-tree-sitter": "0.25.10"
+    "string-width": "7.2.0"
   },
   "devDependencies": {
     "@types/node": "26.0.0",
     "@wombat/cli": "workspace:*",
     "@wombat/client": "workspace:*",
-    "@wombat/tui": "workspace:*",
-    "@xterm/headless": "5.5.0",
     "ajv": "8.18.0",
     "esbuild": "^0.25.0",
     "json-schema-to-typescript": "15.0.4",
     "mdast-util-from-markdown": "2.0.2",
     "mdast-util-gfm": "3.1.0",
     "micromark-extension-gfm": "3.0.0",
-    "node-pty": "1.1.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "@wombat/web": "workspace:*"
   },
   "license": "MIT",
-  "description": "Local Codex token usage tracker. Find usage peaks and drill into conversations, turns, and estimated API costs in your terminal.",
+  "description": "Local Codex token usage tracker. Find usage peaks and drill into conversations, turns, and estimated API costs through CLI and local Web.",
   "keywords": [
     "codex",
     "token-usage",
     "usage-tracker",
-    "tui",
+    "web",
     "cli"
   ],
   "repository": {

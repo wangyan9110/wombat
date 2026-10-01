@@ -2,12 +2,12 @@
   "version": 2,
   "sections": {
     "/public-contracts": {
-      "zh": "bbe013c0a73603f2590b3c6995b622ac583af1345add75886bf628c86b9c8bec",
-      "en": "0315c05061dcd0bda774bab9b8be038888d8996b3c918d1529a1633f1c75ba59"
+      "zh": "d51e11bfae78ea88c5377b431e8384f98350818c892e1e4b812fe78d22d207b4",
+      "en": "504e9f09d4ed68f6390e2f2f388a77433ac859cbac06e44f3d2b458b8ef022f5"
     },
     "/public-contracts/client-entries": {
-      "zh": "9bc76c0c859025c3068875d21a8aa1a4c9cc54e19a8b3b204986cf5f6d0055b4",
-      "en": "6a51c44968797405a804fa138a7ed200a7568488c34926cf2de67d129291fb10"
+      "zh": "ceca20cb074e543e657b7a421e32011fd428d3a6e50d86f3183230cfd7ea866c",
+      "en": "0ebd4119d3e50efd82ef3825815c5c59570eab1f2556797e00289a59be9c43b2"
     }
   }
 }

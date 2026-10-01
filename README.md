@@ -11,7 +11,7 @@ English | [中文](README.zh-CN.md)
 
 **Find where your Codex tokens went.**
 
-Wombat is a Codex token usage tracker for your terminal. Start with a usage peak, find the conversations behind it, and drill into the turns that used the most tokens.
+Wombat is a Codex token usage tracker with CLI and local Web. Start with a usage peak, find the conversations behind it, and drill into the turns that used the most tokens.
 
 Analysis runs locally. No API key or model call is needed.
 
@@ -23,10 +23,10 @@ These npm commands apply after publication; the package is not publicly released
 
 ```sh
 npm install -g @wangyan9110/wombat
-wombat
+wombat web
 ```
 
-The first launch indexes your local Codex records, including archived conversations. Later updates reuse that index.
+Open the printed link in your browser. The first query indexes your local Codex records, including archived conversations. Later updates reuse that index.
 
 ![Wombat Codex token usage overview: daily totals and distribution reveal a usage peak on September 29](assets/prototype-usage-overview-en.png)
 
@@ -40,7 +40,7 @@ Interface preview (design prototype): find a usage peak, then inspect the work b
 
 For your first session, find one high-usage conversation and the turn that accounts for the largest share of its tokens.
 
-1. In **Usage**, select a high-usage day and press `Enter` to see related conversations.
+1. In **Usage**, click a high-usage day to see related conversations.
 2. In **Threads**, sort by token usage and open a conversation.
 3. Open its highest-usage turn to see its share of the conversation, usage records, and recorded operations.
 
@@ -55,7 +55,7 @@ September 29 has the highest usage in this example. The login page redesign span
 
 </details>
 
-Navigate with the arrow keys, `Enter` to open, `Esc` to go back, and `Q` to quit. Press `L` on either main view to switch between English and Chinese. See the [terminal guide](docs/guides/terminal.en.md) for more controls.
+Use the Web navigation and language button; Ctrl+C in the launching terminal stops the service. Running `wombat` without a subcommand prints usage text. See the [CLI guide](docs/guides/cli.en.md) for commands.
 
 ## Explore your usage
 
@@ -89,7 +89,7 @@ See the [CLI guide](docs/guides/cli.en.md) for filters, date ranges, and respons
 Check that this machine has Codex logs containing usage records and that your date and project filters include them. Wombat reads `CODEX_HOME` or `~/.codex` by default. For logs stored elsewhere:
 
 ```sh
-wombat --root /path/to/codex-home
+wombat web --root /path/to/codex-home
 ```
 
 Wombat can only show usage recorded in the local logs it reads.
@@ -116,7 +116,7 @@ You can inspect recorded operations within a turn. Those operations do not have 
 
 Wombat estimates the standard API-equivalent cost of recorded tokens using official model prices. **This is not your subscription bill or remaining Codex quota.**
 
-Unknown prices stay unknown; partial estimates show only the known subtotal. Inspect the pricing basis in the terminal or read the [pricing reference](docs/reference/pricing.en.md).
+Unknown prices stay unknown; partial estimates show only the known subtotal. Inspect the pricing basis on the Web or read the [pricing reference](docs/reference/pricing.en.md).
 
 <a id="privacy"></a>
 
@@ -152,7 +152,7 @@ Source builds also need Corepack/pnpm and Rust (see `rust-toolchain.toml`):
 ```sh
 corepack pnpm install --frozen-lockfile
 corepack pnpm build
-node dist/wombat.js
+node dist/wombat.js web
 ```
 
 Use the [wombat-release Skill](.agents/skills/wombat-release/SKILL.md) for builds, transferable installers, npm candidates, and post-publication checks. See the [development workflow](docs/development/workflow.en.md) for steps and the [support matrix](docs/reference/support-matrix.en.md) for platforms.
@@ -163,4 +163,4 @@ Use the [wombat-release Skill](.agents/skills/wombat-release/SKILL.md) for build
 
 ## Local Web
 
-After building, run `node dist/wombat.js web` and open the printed link. With the new build installed, use `wombat web`. The new Web UI provides usage, conversations, turns, filters, and prices using the revised page layout. Grouping currently uses historical directories; optimization is not yet available. Ctrl+C stops the service. Access is local only; see the [CLI guide](docs/guides/cli.en.md) for options. Tauri 2 is selected for desktop; desktop implementation and removal of the old TUI remain pending.
+After building, run `node dist/wombat.js web` and open the printed link. With the new build installed, use `wombat web`. The new Web UI provides usage, conversations, turns, filters, and prices using the revised page layout. Grouping currently uses historical directories; optimization is not yet available. Ctrl+C stops the service. Access is local only; see the [CLI guide](docs/guides/cli.en.md) for options. Tauri 2 is selected for desktop; desktop implementation remains pending. The old TUI has been removed.

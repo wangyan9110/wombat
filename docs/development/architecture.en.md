@@ -2,7 +2,7 @@
 
 [中文](architecture.md) | English
 
-Wombat uses a shared Rust core, generated contracts, and replaceable hosts. The product direction is GUI, CLI, and CLI+Web; Tauri 2 is the selected desktop framework. The local Web foundation ships first. The existing TUI remains as a migration baseline; the desktop host and TUI removal are not implemented. A revised product specification is being prepared separately; this slice connects existing business interfaces without migrating old pages; new pages await the revised product specification. See the [support matrix](../reference/support-matrix.en.md) and [progress](../project/progress.en.md) for actual support and verification.
+Wombat uses a shared Rust core, generated contracts, and replaceable hosts. The product direction is GUI, CLI, and CLI+Web; Tauri 2 is the selected desktop framework. Local Web pages are implemented against the revised page code. TUI product code has been removed; the desktop host remains unimplemented. See the [support matrix](../reference/support-matrix.en.md) and [progress](../project/progress.en.md) for actual support and verification.
 
 ## Data Flow
 
@@ -16,7 +16,6 @@ flowchart LR
   Q --> N[client/node]
   N --> C[CLI JSON / text]
   N --> W[web loopback host]
-  N --> T[Transitional OpenTUI]
   W --> H[client/http]
   H --> U[ui React]
   F[Future Tauri transport] -. UsageClient .-> U
@@ -33,10 +32,9 @@ flowchart LR
 | `client/src/locale/` | Shared typed Chinese/English dictionaries, language subscriptions, and presentation formatting; source content and protocol values stay untranslated |
 | `web/` | `startWebHost` receives a client, built assets, startup scope, and port; owns local HTTP, authentication, static files, and connection cleanup, without business algorithms |
 | `ui/` | React / TypeScript / Vite frontend; `App` receives `UsageClient` and implements the revised usage, conversation, turn, source, and price pages. The browser entry wires HTTP; no Node/Tauri dependency |
-| `cli/` | Arguments, JSON/text, exit codes, Web startup/shutdown, and transitional TUI assembly; ordinary queries, Web, and help do not initialize OpenTUI |
-| `tui/` | Transitional OpenTUI pages, keyboard/mouse handling, themes, and state; still accesses business operations through an injected client |
+| `cli/` | Arguments, JSON/text, exit codes, and explicit Web startup/shutdown; the default command prints usage text |
 
-Dependencies point from `cli → web + client/node + tui`, `web → client`, `ui → client + client/http + client/locale`, and `tui → client + client/locale`. The core has no presentation dependencies. Modules use only public package entries or versioned protocols, never each other's internal source; static boundary checks cover all TS/TSX modules. Each module declares dependencies, build, and test entries under one pnpm lockfile; Rust uses Cargo. This remains one modular monolith and installation package.
+Dependencies point from `cli → web + client/node`, `web → client`, `ui → client + client/http + client/locale`. The core has no presentation dependencies. Modules use only public package entries or versioned protocols, never each other's internal source; static boundary checks cover all TS/TSX modules. Each module declares dependencies, build, and test entries under one pnpm lockfile; Rust uses Cargo. This remains one modular monolith and installation package.
 
 Business rules stay in Rust: adapters own source semantics and identity; `pricing.rs` / `pricing_sync.rs` own amounts and catalog eligibility; `live.rs` / `live_index.rs` own incremental indexes and versions; `usage_store.rs` owns immutable snapshots; `usage_app.rs` / `usage_app_dto.rs` own operations, filters, sorting, full-scope totals, and pagination. Lists never recompute totals, shares, or pricing from the current page.
 
@@ -72,6 +70,6 @@ Snapshots exclude message bodies, complete command arguments, and tool output; s
 
 ## Build and Verification
 
-Node.js 26.4.0 or newer is required. Build order is core, client, Web frontend and host, transitional TUI, CLI, then distribution assembly. Static frontend assets ship under `dist/web/`; Vite is not needed at runtime. React DOM is the browser rendering layer; Tauri 2 remains the selected desktop host. Desktop transport and lifecycle require separate implementation; local HTTP checks do not validate Tauri.
+Node.js 26.4.0 or newer is required. Build order is core, client, Web frontend and host, CLI, then distribution assembly. Static frontend assets ship under `dist/web/`; Vite is not needed at runtime. React DOM is the browser rendering layer; Tauri 2 remains the selected desktop host. Desktop transport and lifecycle require separate implementation; local HTTP checks do not validate Tauri.
 
 Protocol and host tests use synthetic clients. End-to-end tests start HTTP from the distribution entry and compare real Rust and CLI ground truth, fixed-version drill-down, authentication, and shutdown. Browser interaction, narrow layouts, failure/cancellation, installed assets, and other platforms require separate verification; only verified scope enters progress records. See the [workflow](workflow.en.md) and [local Web decision](../decisions/implemented/architecture/2026-10-01-local-web.en.md).

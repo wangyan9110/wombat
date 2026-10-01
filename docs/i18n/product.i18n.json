@@ -2,20 +2,20 @@
   "version": 2,
   "sections": {
     "/product-language-and-copy": {
-      "zh": "f6b1c4adea9b0501230c6d5ff7ace8c7488f09e753b5ba667e4045dc4705567e",
-      "en": "d2b5d10dff1bdb88b3cbcce1040c6e88c8c3c0fa5d7b43a46ac1e8947fd36347"
+      "zh": "a1fb0ef7e877fb711ec340f9558937b7f9e7756e31c0dd7867c59f0eb79ec37f",
+      "en": "f999b0cabbcc618ab33ae70d2bd0a51d5d68b0cd0481c5006a286a2a2b3563c7"
     },
     "/product-language-and-copy/usage": {
-      "zh": "2ffb13c2c04d2c2ea2046ee688c46a2f62ae0ac2373377717d44d81e29a5d4ab",
-      "en": "eaf73e185872fd01ae18c2a0d7e86991ac73ed5cbcdb4e8ae1632045d7b14173"
+      "zh": "87619ef778018e78bcdb3e32a0bf445e38fb2afb0e5cc7dcdf4f51166f943c1d",
+      "en": "252327ea01a7c8196e88a07f4044bd42dc296f2def519e080bfc88b348ecf808"
     },
     "/product-language-and-copy/module-boundaries": {
-      "zh": "013d9a88779535eac042db58d5cc14b341ead37112b722d71d53ef8e8a5f0977",
-      "en": "95a013f1991b78a617b4b294d55e5889a6d5bf93a0d4cbda622912cd1cb68f93"
+      "zh": "3017adf65961be05341666e6edbf2ccff69bf26e03dfcb8c8b726e5b3d659770",
+      "en": "ed5968791171b69d975a392013d5d58c22bce5625887296021a42ed9fff627e4"
     },
     "/product-language-and-copy/verification-and-limits": {
-      "zh": "f8944cdd0862f7ac11577ad9b9b30c40038dd7bd1b1be479d848d960d6f54fca",
-      "en": "374ff6d5172611afd1a97dd126da7749d9fdc9dd82b30223232337b579563ac0"
+      "zh": "2ef2b63b5aac4fd91611c9ccf404a4ed30beee06c6369cd80126dd37978620ba",
+      "en": "88e26d69fd5da01a054dc99183c28646278d5bedc478b6a0949ea62c448b4a99"
     }
   }
 }

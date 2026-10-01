@@ -76,7 +76,6 @@ const binaryParents = {
   '@esbuild/': 'esbuild',
   '@rollup/rollup-': 'rollup',
   '@rolldown/binding-': 'rolldown',
-  '@opentui/core-': '@opentui/core',
 };
 const nodeEntries = [];
 const nodeSections = [];
@@ -84,20 +83,11 @@ for (const [key, { folder, metadata }] of [...installed].sort(([a], [b]) => a.lo
   let files = textFiles(folder);
   let licenseSource = 'installed package';
   if (!files.length) {
-    const supplement = path.join(root, 'licenses/upstream/xterm-headless-5.5.0');
-    if (key === '@xterm/headless@5.5.0') {
-      const provenance = JSON.parse(read(path.join(supplement, 'provenance.json')));
-      const notice = path.join(supplement, 'LICENSE');
-      if (provenance.package !== metadata.name || provenance.version !== metadata.version || provenance.sha256 !== hash(readFileSync(notice))) throw new Error(`Pinned license mismatch: ${key}`);
-      files = [notice];
-      licenseSource = provenance.source;
-    } else {
-      const parentName = Object.entries(binaryParents).find(([prefix]) => metadata.name.startsWith(prefix))?.[1];
-      const parent = [...installed.values()].find(item => item.metadata.name === parentName && item.metadata.version === metadata.version);
-      if (!parent) throw new Error(`No license attribution for binary package ${key}`);
-      files = textFiles(parent.folder);
-      licenseSource = `same-version ${parentName} package`;
-    }
+    const parentName = Object.entries(binaryParents).find(([prefix]) => metadata.name.startsWith(prefix))?.[1];
+    const parent = [...installed.values()].find(item => item.metadata.name === parentName && item.metadata.version === metadata.version);
+    if (!parent) throw new Error(`No license attribution for binary package ${key}`);
+    files = textFiles(parent.folder);
+    licenseSource = `same-version ${parentName} package`;
   }
   if (typeof metadata.license !== 'string') throw new Error(`License needs review: ${key}`);
   const licenseTexts = texts(files, metadata.license);

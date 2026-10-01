@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-`@wombat/client` validates requests and results and gives the CLI and TUI one `UsageClient`. Business DTOs come from Rust-generated contracts; the [architecture](../docs/development/architecture.en.md) shows the cross-module data flow.
+`@wombat/client` validates requests and results and gives the CLI and Web one `UsageClient`. Business DTOs come from Rust-generated contracts; the [architecture](../docs/development/architecture.en.md) shows the cross-module data flow.
 
 ## Public entries
 

@@ -65,7 +65,7 @@ export function labels<K extends string>(keys: Record<K, PlainMessageKey>): Reco
 
 /** Translate known core and host progress signals; retain unknown diagnostics verbatim. */
 export function progressText(stage: string): string {
-  const key = (['tui.components.loading-model.read_codex_logs', 'tui.components.loading-model.save_usage', 'progress.sync', 'progress.fetch_prices', 'progress.save_prices'] as const).find(key => zh[key] === stage);
+  const key = (['progress.read_logs', 'progress.save_usage', 'progress.sync', 'progress.fetch_prices', 'progress.save_prices'] as const).find(key => zh[key] === stage);
   return key ? t(key) : stage;
 }
 

@@ -7,7 +7,7 @@
 ## 使用指南 · guides
 
 - [CLI 与机器接口](guides/cli.md)：启动、刷新、查询、筛选、JSON 与错误。
-- [终端操作](guides/terminal.md)：用量/对话导航、下钻、键鼠、价表与主题。
+- [Web 前端](../ui/README.md)：用量、对话、下钻与当前界面范围。
 - 安装与构建从[项目首页](../README.zh-CN.md)开始。
 
 ## 技术参考 · reference

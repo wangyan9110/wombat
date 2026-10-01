@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-`@wombat/client` 校验请求与结果，并向 CLI、TUI 提供同一个 `UsageClient`。业务 DTO 来自 Rust 生成契约；[架构](../docs/development/architecture.md)说明跨模块数据流。
+`@wombat/client` 校验请求与结果，并向 CLI、Web 提供同一个 `UsageClient`。业务 DTO 来自 Rust 生成契约；[架构](../docs/development/architecture.md)说明跨模块数据流。
 
 ## 公开入口
 

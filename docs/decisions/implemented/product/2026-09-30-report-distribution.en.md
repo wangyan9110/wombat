@@ -4,6 +4,8 @@
 
 Status: implemented
 
+Update (2026-10-01): terminal-specific behavior below is historical after [TUI removal](../architecture/2026-10-01-remove-tui.en.md). Current Web scope and navigation follow the [frontend contract](../../../../ui/README.en.md); shared core query semantics remain authoritative.
+
 ## Problem
 
 Distribution bars, shares, and peaks must describe the entire filtered range. Aggregating the current page changes the scale during pagination. Row pagination can also split a period subtotal from its model rows. Report-linked threads must describe both selected-range and complete-thread usage without sorting whole threads by their selected fragments.
