@@ -24,6 +24,26 @@
     "Response": {
       "type": "object",
       "properties": {
+        "distribution": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Distribution"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "priceUpdate": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Automatic"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "freshness": {
           "anyOf": [
             {
@@ -79,64 +99,67 @@
         "quality"
       ]
     },
-    "Freshness": {
+    "Distribution": {
       "type": "object",
       "properties": {
-        "status": {
-          "type": "string"
-        },
-        "checkedAt": {
+        "unpricedTokens": {
           "type": [
-            "string",
-            "null"
-          ]
-        },
-        "revision": {
-          "type": "string"
-        },
-        "error": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "status",
-        "revision"
-      ]
-    },
-    "Action": {
-      "type": "string",
-      "enum": [
-        "refresh",
-        "usage",
-        "threads",
-        "turns",
-        "steps"
-      ]
-    },
-    "SnapshotRef": {
-      "type": "object",
-      "properties": {
-        "snapshotId": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "selector": {
-          "description": "Fixed selector for externally located legacy files; v3 uses snapshotId.",
-          "type": [
-            "string",
+            "integer",
             "null"
           ],
-          "default": null
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxCost": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "peakTokenDates": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "peakCostDates": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "peakTokenScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Scope"
+          }
+        },
+        "peakCostScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Scope"
+          }
         }
       },
       "required": [
-        "snapshotId",
-        "createdAt"
+        "peakTokenDates",
+        "peakCostDates",
+        "peakTokenScopes",
+        "peakCostScopes"
       ]
     },
     "Scope": {
@@ -216,6 +239,105 @@
         }
       },
       "additionalProperties": false
+    },
+    "Automatic": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/AutomaticStatus"
+        },
+        "attemptId": {
+          "type": "string"
+        },
+        "attemptedAt": {
+          "type": "string"
+        },
+        "retryAt": {
+          "type": "string"
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "attemptId",
+        "attemptedAt",
+        "retryAt"
+      ]
+    },
+    "AutomaticStatus": {
+      "type": "string",
+      "enum": [
+        "checking",
+        "updated",
+        "unchanged",
+        "failed"
+      ]
+    },
+    "Freshness": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": "string"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "revision"
+      ]
+    },
+    "Action": {
+      "type": "string",
+      "enum": [
+        "refresh",
+        "usage",
+        "threads",
+        "turns",
+        "steps"
+      ]
+    },
+    "SnapshotRef": {
+      "type": "object",
+      "properties": {
+        "snapshotId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "selector": {
+          "description": "Fixed selector for externally located legacy files; v3 uses snapshotId.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "snapshotId",
+        "createdAt"
+      ]
     },
     "AvailableRange": {
       "type": "object",
@@ -515,6 +637,18 @@
             "scope": {
               "$ref": "#/definitions/Scope"
             },
+            "share": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "costShare": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "kind": {
               "type": "string",
               "const": "usage"
@@ -653,6 +787,12 @@
                 "null"
               ]
             },
+            "costShare": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "kind": {
               "type": "string",
               "const": "turn"
@@ -709,6 +849,12 @@
               "$ref": "#/definitions/UsageSummary"
             },
             "share": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "costShare": {
               "type": [
                 "number",
                 "null"

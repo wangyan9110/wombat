@@ -51,7 +51,7 @@ Color checks show expected CSS values and actual native span values. Geometry ch
 ## Modification procedure
 
 1. Validate baseline identity and source freshness. Review extraction issues and unmapped changes first.
-2. Resolve final styles and transitions for affected components, including shared ancestors, inherited tokens and responsive variants.
+2. Trace semantic dependencies across HTML/CSS/JS using the [source translation workflow](source-to-native.md): template/attribute changes alter selector matching; tokens/ancestors alter used layout; state guards and effects alter reachable branches and lifecycle. Resolve affected styles, structure, transitions and effects, including shared consumers and responsive variants. Update coverage decisions and their checks; do not limit impact to the changed selector or recognized JS candidate.
 3. Inspect current implementation edits. If both sides changed, reconcile them without overwriting human work. Locate implementation symbols through the mapped files and source review.
 4. Produce a concrete plan: component → source before/after → observed current behavior → owning code → required edit → checks. Keep known differences separate from inferred risks.
 5. Change the smallest owning component/state adapter. Preserve stable IDs, focus, scroll and data ownership. Do not regenerate unrelated pages.

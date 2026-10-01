@@ -2,7 +2,7 @@
 
 [中文](pricing.md) | English
 
-The Rust core converts tokens using bundled or explicitly updated official-standard API rates. Collection and queries run offline without API keys. These amounts are standard API equivalents, not subscription invoices or spending reported by source logs. They exclude tool calls, storage, taxes, and regional surcharges.
+The Rust core converts tokens using bundled or updated official-standard API rates. Accounting and calculations run locally; live queries automatically fetch prices when repairable missing rates are detected, without API keys. These amounts are standard API equivalents, not subscription invoices or spending reported by source logs. They exclude tool calls, storage, taxes, and regional surcharges.
 
 ## Catalog and sources
 
@@ -35,9 +35,13 @@ Checked pages for GPT-5.3-Codex, GPT-5.4, GPT-5.4 Mini, and GPT-5.5 do not list 
 
 The fixed source is [OpenAI's official pricing Markdown](https://developers.openai.com/api/docs/pricing.md). This is a document endpoint, not a promised stable dedicated pricing API; `/v1/models` supplies no unit prices. Only standard text tables and Codex rows in dedicated tables are parsed. Batch, Flex, Fast, Ultrafast, multimodal, tool, and other dedicated models with future effective dates are excluded. The parser requires USD per million tokens, an explicit 272K long-context boundary, and complete supported-model coverage. Changes to format, units, thresholds, or required models return `PRICE_SOURCE_CHANGED` until adapted. Missing rates remain null; new models match exact names, while dated aliases retain only verified bundled mappings.
 
-No API key is required and local logs are never sent. Node fetches only the fixed HTTPS document, disallows redirects, and enforces a 30-second timeout, 2 MiB limit, and cancellation. Rust validates, parses decimals, versions, persists, and prices. With an environment proxy on Node 26, set `NODE_USE_ENV_PROXY=1` and retain existing `HTTPS_PROXY`/`HTTP_PROXY`. Ordinary collection and queries stay offline.
+No API key is required and local logs are never sent. Node fetches only the fixed HTTPS document, disallows redirects, and enforces a 30-second timeout, 2 MiB limit, and cancellation. Rust validates, parses decimals, versions, persists, and prices. With an environment proxy on Node 26, set `NODE_USE_ENV_PROXY=1` and retain existing `HTTPS_PROXY`/`HTTP_PROXY`. Automatic downloads time out after 5 seconds; cached and fixed-snapshot queries, and queries with `WOMBAT_AUTO_PRICES=0`, do not trigger automatic network requests.
 
 Downloads live under `prices/` in the product data directory: content-hash-named history plus an atomically replaced `active.json`. The interface exposes document SHA-256, fetch/validation time, and normalized catalog hash. `openai-standard-live-v1-<hash>` is independent of the bundled revision; repeating an identical download does not rewrite the revision or check time. Fetch/parse failure retains the previous catalog. Without an update, use the bundled table. Corrupt caches report errors and can be recovered by updating again. Catalog history is not automatically removed; this is neither an account invoice nor a historical effective-date service.
+
+Live CLI/TUI queries use the same download and validation path when nonzero usage for an identified OpenAI model lacks a rate. Missing model names, third-party providers, conflicting tokens, and unknown request lengths alone do not trigger it. Detection uses the full matching summary, not just the current page. After an update, the original filters are queried once more against fresh usage; fixed snapshots are never repriced. Failures retain usage and the previous catalog. JSON `priceUpdate` exposes status, attempt/retry times, and an error code; text and terminal views show the same state.
+
+A file lock and 60-second lease coalesce concurrent downloads within one product data directory. Failures retry after 15 minutes; successful checks retry after 24 hours. No permanent background process is added. Cooldown state persists in `prices/automatic.json` across process restarts. Manual `prices update` can retry at any time. Automatic checks cannot guarantee that every rate is public and never bypass format validation. An explicit refresh that resolves prices saves another revision; the earlier saved revision remains immutable.
 
 ## Categories and precision
 

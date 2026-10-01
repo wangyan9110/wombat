@@ -23,7 +23,7 @@ function response(request: UsageRequest): UsageResult {
   return { outputVersion: 3, action: request.action, snapshotRef: { snapshotId: 'synthetic', createdAt: stamp }, scope: { ...scope, ...request.scope }, availableRange: scope, summary: usage, items, page: { offset: 0, limit: 50, total: items.length }, quality: { status: 'complete', issues: [], sources: [] } };
 }
 
-test('report switching keeps automatic dates implicit and preserves explicitly selected dates', { timeout: 15000 }, async () => {
+test('report switching resets explicit dates to automatic ranges while preserving other filters', { timeout: 15000 }, async () => {
   for (const explicit of [false, true]) {
     const setup = await createTestRenderer({ width: 100, height: 30, exitOnCtrlC: false });
     const ui = new TerminalUI(setup.renderer);
@@ -40,8 +40,8 @@ test('report switching keeps automatic dates implicit and preserves explicitly s
         await setup.waitForFrame(frame => frame.includes(title));
         const request = requests.at(-1)!;
         assert.equal(request.group, group);
-        assert.equal(request.scope?.since, explicit ? scope.since : undefined);
-        assert.equal(request.scope?.until, explicit ? scope.until : undefined);
+        assert.equal(request.scope?.since, undefined);
+        assert.equal(request.scope?.until, undefined);
         assert.equal(request.offset, 0);
         assert.equal(request.snapshotId, 'synthetic');
       }
@@ -68,7 +68,7 @@ test('actual narrow thread frame keeps a long title out of the breadcrumb and th
     assert.equal(setup.renderer.root.findDescendantById('title')!.height, 1);
     assert.match(setup.captureCharFrame(), /9月30日/);
     assert.match(setup.captureCharFrame(), /第 1 轮/);
-    assert.match(setup.captureCharFrame(), /Q 退出/);
+    assert.match(setup.captureCharFrame(), /↑↓ · Enter · B · Q/);
   } finally { ui.destroy(); }
 });
 
@@ -101,7 +101,7 @@ test('native app journey links daily usage, thread, turn, operations and fee det
     await press('HOME'); await press('ARROW_DOWN'); await press('RETURN');
     await setup.waitFor(() => lastStep().sort === 'tokens');
     await setup.flush(); await setup.flush();
-    assert.doesNotMatch(setup.captureCharFrame(), /非缓存输入/);
+    assert.match(setup.captureCharFrame(), /非缓存输入/, 'sorting retains the expanded measurement by identity');
     await press('HOME'); await press('RETURN');
     assert.doesNotMatch(setup.captureCharFrame(), /读取文件/);
     await press('RETURN'); await visible('读取文件');
@@ -164,7 +164,7 @@ test('native price dialog updates through shared client and preserves current sn
   const visible = async (text: string) => setup.waitForFrame(frame => frame.includes(text), { maxPasses: 300 });
   const press = async (key: string) => { setup.mockInput.pressKey(key); await setup.flush(); await setup.flush(); };
   try {
-    await visible('U 价表');
+    await visible('? 价格表');
     await press('u'); await visible('联网更新价表');
     setup.mockInput.pressEscape();
     // The terminal parser waits to distinguish Escape from a multi-byte sequence.
@@ -215,9 +215,9 @@ test('thread summary uses the prototype order and separate summary/context foreg
     assert(nodes[0].y<nodes[1].y&&nodes[1].y<nodes[2].y);
     const spans=setup.captureSpans().lines[nodes[1].y].spans.filter(span=>span.text.trim());
     assert(spans.some(span=>span.text.includes('Token')));
-    for(const span of spans){assert(span.fg.equals(RGBA.fromHex('#e1eee3')));assert.equal(span.attributes&TextAttributes.BOLD,0);}
+    for(const span of spans){assert(span.fg.equals(RGBA.fromHex('#e5f1e8')));assert.equal(span.attributes&TextAttributes.BOLD,0);}
     const model=setup.captureSpans().lines[nodes[2].y].spans.find(span=>span.text.includes('gpt-5.4'))!;
-    assert(model.fg.equals(RGBA.fromHex('#9db6a6')));
+    assert(model.fg.equals(RGBA.fromHex('#9bb6a4')));
   }finally{ui.destroy();}
 });
 
@@ -235,7 +235,8 @@ test('price explanation on a compact fee block uses that measurement rather than
     await visible('9月30日');await press('TAB');await visible('合成对话');
     await press('RETURN');await visible('第 1 轮');await press('RETURN');await visible('读取文件');
     await press('ARROW_DOWN');await press('ARROW_DOWN');await press('RETURN');await visible('非缓存输入');
-    await press('ARROW_DOWN');await press('?');await visible('价格版本 fixture');
+    await press('ARROW_DOWN');
+    const disclosure = setup.renderer.root.findDescendantById('footer-explain')!; await setup.mockMouse.click(disclosure.x + 2, disclosure.y); await visible('价格版本 fixture');
     assert.doesNotMatch(setup.captureCharFrame(),/aggregate-price/);
     await press('q');assert.equal(await running,0);
   }finally{ui.destroy();}
@@ -246,7 +247,7 @@ test('opening a compact fee block reveals its first category in a 40 by 14 termi
   const thread=response({action:'threads'}).items[0];assert.equal(thread.kind,'thread');if(thread.kind!=='thread')return;
   try{
     void ui.choose({...screenFrame({request:{action:'turns',scope},result:response({action:'turns'}),thread,
-      selected:2,expanded:new Map([['turn-a',response({action:'steps'})]]),details:new Set(['step:turn-a:0'])},1),selected:2});
+      selected:2,expanded:new Map([['turn-a',response({action:'steps'})]]),details:new Set(['step:turn-a:measurement-a'])},1),selected:2});
     await setup.flush();await setup.renderOnce();await setup.flush();
     assert.match(setup.captureCharFrame(),/非缓存输入/);
     assert.match(setup.captureCharFrame(),/\$0\.0200/);
@@ -289,13 +290,13 @@ test('live home updates automatically and keeps filter drafts isolated', { timeo
   const running = runTerminalAppWithUI({action:'usage'},client,ui);
   try {
     await setup.waitForFrame(frame=>frame.includes('自动更新中'));
-    assert.deepEqual(reads[0], { action: 'usage', mode: 'cached' });
+    assert.deepEqual(reads[0], { action: 'usage', mode: 'fresh' });
     setup.mockInput.pressKey('2');
-    await setup.waitForFrame(frame=>frame.includes('Wombat / 对话') && frame.includes('自动更新中'));
-    assert.ok(reads.some(read => read.action === 'threads' && read.mode === undefined));
+    await setup.waitForFrame(frame=>frame.includes('对话') && frame.includes('自动更新中'));
+    assert.ok(reads.some(read => read.action === 'threads' && read.mode === 'fresh'));
     setup.mockInput.pressKey('1');
-    await setup.waitForFrame(frame=>frame.includes('Wombat / 日报') && frame.includes('自动更新中'));
-    assert.equal(reads.filter(read => read.action === 'usage' && read.mode === 'cached').length, 1);
+    await setup.waitForFrame(frame=>frame.includes('日报') && frame.includes('自动更新中'));
+    assert.equal(reads.filter(read => read.action === 'usage' && read.mode === 'fresh').length, 2);
     epoch=2;
     await new Promise(resolve=>setTimeout(resolve,1_100));
     await setup.waitForFrame(frame=>frame.includes('9.99'));
@@ -310,8 +311,8 @@ test('live home updates automatically and keeps filter drafts isolated', { timeo
     refreshFails = true;
     setup.mockInput.pressKey('r');
     const failed = await setup.waitForFrame(frame => frame.includes('合成同步失败'));
-    assert.match(failed, /9\.99/, 'failed refresh keeps the last result together with the error notice');
+    assert.doesNotMatch(failed, /9\.99/, 'a failed explicit read must not expose the previous result as current');
     await setup.flush(); setup.mockInput.pressKey('q');
-    assert.equal(await running,0);
+    assert.equal(await running,1);
   } finally { if(!ui.signal.aborted) setup.mockInput.pressCtrlC(); await running; }
 });

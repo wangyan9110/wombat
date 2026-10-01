@@ -6,6 +6,8 @@ export interface FormField {
 }
 export interface FormSpec {
   title: string;
+  heading?: string;
+  intro?: string[];
   activeTab: 'usage' | 'threads';
   values: Record<string, string>;
   fields: FormField[];
@@ -15,7 +17,7 @@ export interface FormSpec {
   error?: string;
 }
 export interface FormAnswer {
-  action: 'apply' | 'cancel' | 'change' | 'toggle' | 'usage-tab' | 'threads-tab';
+  action: 'apply' | 'cancel' | 'change' | 'toggle' | 'usage-tab' | 'threads-tab' | 'language' | 'theme';
   values: Record<string, string>;
   changed: string[];
   focusId?: string;

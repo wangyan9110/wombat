@@ -2,7 +2,7 @@
 
 中文 | [English](product.en.md)
 
-本页定义 CLI/TUI 的展示语言。文档配对由[双语文档流程](README.md)管理。实现吸收 [DeepSeek Harness LocaleRuntime](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/client/locale) 的共享语言状态、类型化字典与文案归属设计；Wombat 独立实现，不依赖其插件系统。
+本页定义 CLI/TUI 的展示语言。文档配对由[双语文档流程](README.md)管理。
 
 ## 使用
 

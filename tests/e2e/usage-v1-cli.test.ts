@@ -11,7 +11,7 @@ async function run(args: string[], env: NodeJS.ProcessEnv): Promise<{
   stdout: string;
   stderr: string;
 }> {
-  return await new Promise((resolve, reject) => { const child = spawn(process.execPath, ['dist/wombat.js', ...args], { cwd: process.cwd(), env: { ...process.env, WOMBAT_LANG: 'zh', ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); let stdout = '', stderr = ''; child.stdout.on('data', chunk => stdout += chunk); child.stderr.on('data', chunk => stderr += chunk); child.on('error', reject); child.on('close', code => resolve({ code, stdout, stderr })); });
+  return await new Promise((resolve, reject) => { const child = spawn(process.execPath, ['dist/wombat.js', ...args], { cwd: process.cwd(), env: { ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_LANG: 'zh', ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); let stdout = '', stderr = ''; child.stdout.on('data', chunk => stdout += chunk); child.stderr.on('data', chunk => stderr += chunk); child.on('error', reject); child.on('close', code => resolve({ code, stdout, stderr })); });
 }
 async function mockCore(body: string): Promise<{
   dir: string;
@@ -44,7 +44,7 @@ test('fixed-snapshot CLI has one JSON object and partial exit 2', async () => {
     assert.doesNotMatch(plain.stdout, /选择.*命令|额度|体检/);
   }
   finally {
-    await rm(core.dir, { recursive: true, force: true });
+    await rm(core.dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 });
   }
 });
 test('v1 CLI invalid arguments and unavailable snapshot remain structured errors', async () => {
@@ -59,7 +59,7 @@ test('v1 CLI invalid arguments and unavailable snapshot remain structured errors
     assert.equal(JSON.parse(missing.stdout).error.code, 'NO_SNAPSHOT');
   }
   finally {
-    await rm(core.dir, { recursive: true, force: true });
+    await rm(core.dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 });
   }
 });
 test('v1 core cancellation terminates a child that ignores SIGTERM', async () => {
@@ -76,7 +76,7 @@ test('v1 core cancellation terminates a child that ignores SIGTERM', async () =>
       delete process.env.WOMBAT_CORE_BIN;
     else
       process.env.WOMBAT_CORE_BIN = previous;
-    await rm(core.dir, { recursive: true, force: true });
+    await rm(core.dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 });
   }
 });
 test('v1 version works without a core or local package paths at runtime', async () => {
@@ -115,6 +115,6 @@ test('built CLI SIGINT returns CANCELLED and reaps an uncooperative core', { ski
   finally {
     if (child.exitCode === null) child.kill('SIGKILL');
     if (corePid) { try { process.kill(corePid, 'SIGKILL'); } catch { /* Already reaped. */ } }
-    await rm(core.dir, { recursive: true, force: true });
+    await rm(core.dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 });
   }
 });

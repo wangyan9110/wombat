@@ -51,7 +51,7 @@ async function fixture() {
     { id: 'alpha', thread_name: 'Alpha 合成对话', updated_at: '2026-09-29T00:31:00Z' },
     { id: 'beta', thread_name: 'Beta 合成对话', updated_at: '2026-09-29T01:00:02Z' },
   ]));
-  const env: NodeJS.ProcessEnv = { ...process.env, WOMBAT_LANG: 'zh', WOMBAT_DATA_HOME: data, CODEX_HOME: source, NO_COLOR: '1' };
+  const env: NodeJS.ProcessEnv = { ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_LANG: 'zh', WOMBAT_DATA_HOME: data, CODEX_HOME: source, NO_COLOR: '1' };
   delete env.WOMBAT_CORE_BIN;
   const run = (args: string[], json = true) => {
     const result = spawnSync(process.execPath, [entry, ...args, ...(json ? ['--json'] : [])], {
@@ -62,7 +62,7 @@ async function fixture() {
     if (json) assert.equal(result.stdout.trim().split('\n').length, 1, 'JSON stdout must contain one object');
     return { code: result.status, stdout: result.stdout, stderr: result.stderr, value: json ? JSON.parse(result.stdout) : undefined };
   };
-  return { root, source, data, active, run, cleanup: () => rm(root, { recursive: true, force: true }) };
+  return { root, source, data, active, run, cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }) };
 }
 
 test('real CLI refresh, usage, threads, turns and steps conserve independent Token and price totals', async () => {

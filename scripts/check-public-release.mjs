@@ -1,13 +1,15 @@
+import { toolCommand } from './run-tool.ts';
 // Read-only guards for public source and package contents, not a publication command.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const issues = [];
 function run(program, args) {
-  const result = spawnSync(program, args, { cwd: root, encoding: 'utf8', timeout: 60000, maxBuffer: 32 * 1024 * 1024 });
+  const result = spawnSync(...toolCommand(program, args), { cwd: root, encoding: 'utf8', timeout: 60000, maxBuffer: 32 * 1024 * 1024 });
   if (result.error || result.status !== 0) throw new Error(`${program} check failed: ${result.error?.message || result.stderr.trim()}`);
   return result.stdout;
 }
@@ -74,7 +76,7 @@ for (const [oid, file] of blobs) {
 }
 let packagedFiles = null;
 if (process.argv.includes('--package')) {
-  const packed = JSON.parse(run('npm', ['pack', '--dry-run', '--ignore-scripts', '--json', '--cache', '/private/tmp/wombat-public-check-npm-cache']));
+  const packed = JSON.parse(run('npm', ['pack', '--dry-run', '--ignore-scripts', '--json', '--cache', path.join(os.tmpdir(), 'wombat-public-check-npm-cache')]));
   packagedFiles = packed[0].files.map(item => item.path);
   for (const file of packagedFiles) if (privatePath.test(file)) issues.push(`package: private path ${file}`);
   const binary = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';

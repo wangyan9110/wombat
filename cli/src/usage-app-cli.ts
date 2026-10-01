@@ -19,7 +19,7 @@ export interface Invocation {
   verify: boolean;
 }
 const actions = new Set(['refresh', 'usage', 'threads', 'turns', 'steps']);
-const valued = new Set(['root', 'snapshot', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'sort', 'search', 'limit', 'offset', 'root']);
+const valued = new Set(['root', 'snapshot', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'presentation', 'sort', 'search', 'limit', 'offset', 'root']);
 function invalid(message: string): never { throw new CoreError('INVALID_ARGUMENT', message); }
 export function parseUsageArgs(argv: string[], tty = false): Invocation {
   let action: UsageRequest['action'] = 'usage';
@@ -76,7 +76,7 @@ export function parseUsageArgs(argv: string[], tty = false): Invocation {
   if (action === 'refresh' && unknownFlags.size) invalid(t("cli.usage-app-cli.refresh_does_not_support_query_filters"));
   const request: UsageRequest = { action };
   const scope: NonNullable<UsageRequest['scope']> = {};
-  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'usage' ? ['group'] : []), ...(action === 'threads' ? ['sort', 'search'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn'] : [])]);
+  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn'] : [])]);
   for (const name of [...values.keys(), ...(roots.length ? ['root'] : [])])
     if (!allowed.has(name))
       invalid(t("cli.usage-app-cli.value_does_not_support_value", { p0: action, p1: name }));
@@ -128,9 +128,11 @@ export function parseUsageArgs(argv: string[], tty = false): Invocation {
       invalid(t("cli.usage-app-cli.group_accepts_day_week_or_month"));
     request.group = group as UsageRequest['group'];
   }
+  const presentation = values.get('presentation');
+  if (presentation) { if (!['distribution', 'details'].includes(presentation)) invalid(t('cli.usage-app-cli.presentation_invalid')); request.presentation = presentation as UsageRequest['presentation']; }
   const sort = values.get('sort');
   if (sort) {
-    const choices = action === 'threads' ? ['tokens', 'recent'] : ['tokens', 'time'];
+    const choices = action === 'threads' ? ['tokens', 'cost', 'recent'] : ['tokens', 'cost', 'time'];
     if (!choices.includes(sort))
       invalid(t("cli.usage-app-cli.sort_accepts_value", { p0: choices.join('、') }));
     request.sort = sort as UsageRequest['sort'];

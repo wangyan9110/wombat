@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "sections": {
+    "/security": {
+      "zh": "c5cd1a2455cd33e20e158f4ba136b256e7480b95a484799a532e2f8477444781",
+      "en": "92d3467084cc5c7914570d061b4c97662cc19635213be71824294274974de424"
+    },
+    "/security/supported-versions": {
+      "zh": "4f87d680285329f58485952716584088e87dcf2b4dae7164f5e5d886de7223b2",
+      "en": "59f363013019706a02d21f2c0eee25ff00dd583f3dce6ee925600fc206c30097"
+    },
+    "/security/reporting-a-vulnerability": {
+      "zh": "5466a5cf4d5794e0ef54121ecad69dd10a392001be3e9bcbd9c18d81024c0d12",
+      "en": "a4643701f5846e97ba84d82f3d9cc5395e612a0d9584de52dfedcf3c583d2cd2"
+    },
+    "/security/release-requirements": {
+      "zh": "f4c1ab590c5c4f2c5417de3d0df8608b0117b1e035c78f3446d8156011992f6e",
+      "en": "cae5d73ad78576e6880e0844d27ba4f0a4ca12ec5acd3ee03671d7cf9290a252"
+    }
+  }
+}

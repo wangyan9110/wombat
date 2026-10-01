@@ -68,3 +68,12 @@ export function progressText(stage: string): string {
   const key = (['tui.components.loading-model.read_codex_logs', 'tui.components.loading-model.save_usage', 'progress.sync', 'progress.fetch_prices', 'progress.save_prices'] as const).find(key => zh[key] === stage);
   return key ? t(key) : stage;
 }
+
+/** Automatic price checks describe download state separately from log freshness. */
+export function automaticPriceText(result: import('../generated/usage-app.js').Response): string | undefined {
+  const state = result.priceUpdate;
+  if (!state) return undefined;
+  if (state.status === 'checking') return t('prices.auto.checking');
+  if (state.status === 'failed') return t('prices.auto.failed', { code: state.errorCode ?? 'PRICE_UPDATE_FAILED' });
+  return result.summary.price.issues.includes('catalogPriceMissing') ? t('prices.auto.unresolved') : t('prices.auto.updated');
+}

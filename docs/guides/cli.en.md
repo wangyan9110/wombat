@@ -33,17 +33,20 @@ One data directory shares an on-demand Rust service. File notifications suppleme
 
 ## Official price catalog
 
+Live queries automatically check the official catalog when repairable missing rates are found. Failures retain results and expose `priceUpdate`. Downloads are throttled for 15 minutes after failure and 24 hours after success. Set `WOMBAT_AUTO_PRICES=0` to disable automatic networking; `--cached` and `--snapshot` never trigger it. Manual `prices update` bypasses the automatic retry interval.
+
 `prices` (or `prices status`) reads the current full catalog offline. `prices update` explicitly downloads and validates a fixed official source. Its default output is a short result; `--json` returns `outputVersion:1`, action, origin, updated, source, sourceHash, catalogHash, and the complete catalog. Price responses and errors are versioned separately from usage v3. Errors use `{outputVersion:1,error:{code,message}}`, with exit code 1 or cancellation code 130. Common failures include PRICE_FETCH_FAILED, PRICE_SOURCE_CHANGED, PRICE_CACHE_INVALID, OUTPUT_LIMIT, TIMEOUT, and UPDATE_BUSY.
 
 After a successful update, the next live synchronization creates a complete read revision using the new catalog. `refresh` can save another snapshot; old snapshots retain their amounts. Updates reject custom URLs, import paths, and usage filters. See [pricing](../reference/pricing.en.md#联网更新价表) for network scope, proxies, supported tables, and persistence.
 
 ## Filtering and pagination
 
-- `usage --group day|week|month`: without dates, day selects the last 7 calendar days, week selects this week and the previous 3, and month selects this month and the previous 11. All end today; response until is tomorrow, exclusively. Explicit since/until takes precedence, and changing grouping preserves a manual range. A conversation filter without dates selects its full range. Weeks start on Monday; events are assigned by timestamp and selected timezone.
+- `usage --group day|week|month`: without dates, day selects the last 30 calendar days, week selects this month and the previous 5 months, and month selects this month and the previous 11. All end today; response until is tomorrow, exclusively. Explicit since/until takes precedence, and changing grouping preserves a manual range. A conversation filter without dates selects its full range. Weeks start on Monday; events are assigned by timestamp and selected timezone.
 - `--since` is inclusive and `--until` exclusive. CLI timezone defaults to UTC; the terminal uses the system timezone.
 - `--model`, `--effort`, and `--project` match exactly. A project is observed directory evidence, not a path substring. `--model-unknown`, `--effort-unknown`, and `--undated` select missing model, effort, and date respectively, and cannot accompany corresponding explicit values or date ranges.
-- `threads --search TEXT` searches titles or projects; its sorts are `tokens|recent`. Turns and steps use `tokens|time`.
+- `threads --search TEXT` searches titles or projects; its sorts are `tokens|cost|recent`, using whole-thread consumption. Turns and steps use `tokens|cost|time`.
 - `--snapshot ID` fixes a snapshot; a legacy v1/v2 file can be supplied explicitly. Continue pagination with the same snapshot instead of resolving latest again. An external legacy file returns its stable locator as snapshotRef.selector, which takes precedence over snapshotId for subsequent queries.
+- `usage --presentation distribution|details`: defaults to details for category breakdowns; distribution returns only period subtotals. Explicitly setting this option pages by period: limit counts periods and details retain every model row in each selected period. Omitting it preserves row pagination. `--sort time|tokens|cost` orders by descending date or consumption. Complete-range distribution scales, peak scopes, unpriced tokens, and cost shares are computed before pagination; unknown costs sort after known costs.
 - `--limit 1..500 --offset N`, default 50. Sorting, amounts, categories, and shares are computed over the full matching range before pagination.
 
 ## JSON

@@ -11,10 +11,10 @@ test('incremental loading stays compact for quick reads and expands without a fa
     const task = ui.task({ kind: 'open', activeTab: 'threads' }, () => new Promise<number>(resolve => { finish = resolve; }));
     try {
       const compact = await setup.waitForFrame(frame => frame.includes('正在读取最新对话'));
-      assert.doesNotMatch(compact, /上次用量|530|保存用量|核对本机记录/);
+      assert.doesNotMatch(compact, /上次用量|530|保存用量|核对新增记录/);
       await new Promise(resolve => setTimeout(resolve, 700));
-      const expanded = await setup.waitForFrame(frame => frame.includes('核对本机记录'));
-      assert.match(expanded, /完成后进入对话/);
+      const expanded = await setup.waitForFrame(frame => frame.includes('核对新增记录'));
+      assert.match(expanded, /██▄████▄██|████▀▀████████▀▀████/);
       assert.doesNotMatch(expanded, /530|\d+%|保存用量/);
     } finally {
       finish?.(1);

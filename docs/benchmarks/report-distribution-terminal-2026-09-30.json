@@ -1,0 +1,299 @@
+{
+  "method": "actual POSIX PTY with node-pty 1.1.0 and @xterm/headless 5.5.0; synthetic Codex source; not a browser test or user study",
+  "platform": "arm64",
+  "nodeVersion": "v26.4.0",
+  "verifiedAt": "2026-09-30T14:38:03.023Z",
+  "binarySha256": {
+    "core": "7bca583216a0f7fdcd686af41ed394accd27667a6dbb66cad5314040a06b140b",
+    "cli": "911b6a0bf317f893447c7b51f7df560602a1e7c2efbd9734adaeda9532232794"
+  },
+  "javascriptSha256": {
+    "wombat-chunk-2FNVGU2G.js": "e368db5f662b032c6224b5fe06052b40d9981e4a61e60e1bb3299ee0a9d94d3e",
+    "wombat-dist-7H743YOL.js": "dceffe0466b880ec770f3a36d45275d43580cd228158ba717559ef08b99b415f",
+    "wombat.js": "911b6a0bf317f893447c7b51f7df560602a1e7c2efbd9734adaeda9532232794"
+  },
+  "checks": [
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "周期按钮及日期单行 → 周报 → 120/80/40 列缩放 → 月报 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "periodCaptionsSingleLine": true,
+      "dateRangesSingleLineAfterResize": true
+    },
+    {
+      "columns": 40,
+      "rows": 24,
+      "journey": "English launch → Chinese → English → weekly report → source title → filters → quit",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "English launch → Chinese → English → weekly report → source title → filters → quit",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "English launch → Chinese → English → weekly report → source title → filters → quit",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 40,
+      "rows": 14,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "用量 → 对话 → 轮次展开 → 按Token排序 → 分类费用 → 返回 → 切换入口 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "U 查看完整价表 → 展开模型 → S 切换档位 → N/P 翻页 → Esc 返回用量 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "priceDialogPreservesSnapshot": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "F 时间今天 → Esc 取消保留原结果 → F 时间今天 → A 应用空结果 → 近30天恢复结果 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "filterCancelPreservesPage": true,
+      "timePresetApplied": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量项目/模型下拉选择 → 应用 → 对话项目下拉选择 → 应用 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "filterCandidatesApplied": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量 → C 页尾金额说明 → C 收起保留当前页 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "footerDisclosurePreservesPage": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "轮次 → C 页尾金额说明 → C 收起保留当前页 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "footerDisclosurePreservesPage": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "首次无快照 → 自动采集合成来源 → 用量表 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "automaticCollection": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "用量表 → 窄屏 → 宽屏 → 普通屏 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "森林 → 午夜 → 纸张 → 琥珀 → 森林 → 对话 → 轮次 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "themeCyclePreservesData": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "交互首页 → Ctrl+C 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "exitCode": 130
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "日报近30天 → 周报近6个月 → 月报近12个月 → 日报 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "dailyTokens": 360000,
+      "weeklyTokens": 840000,
+      "monthlyTokens": 840000
+    },
+    {
+      "columns": 40,
+      "rows": 14,
+      "journey": "默认分布 → 金额 → 消耗排序 → 明细 → 关联对话 → 全部对话 → 返回日报",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "distribution": true,
+      "metricsAndViews": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "默认分布 → 金额 → 消耗排序 → 明细 → 关联对话 → 全部对话 → 返回日报",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "distribution": true,
+      "metricsAndViews": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "默认分布 → 金额 → 消耗排序 → 明细 → 关联对话 → 全部对话 → 返回日报",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "distribution": true,
+      "metricsAndViews": true
+    },
+    {
+      "columns": 80,
+      "rows": 24,
+      "journey": "外部旧快照 → 对话 → 明细不可用 → 返回对话 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "日志追加 → 无按键自动显示新总量 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "tokensBefore": 120000,
+      "tokensAfter": 240000,
+      "observedLatencyMs": 946.31
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "固定快照保持原总量 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "tokens": 120000
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "缺价 → 自动拉取合成官方价表 → 显示准确金额 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "automaticPriceUpdate": true,
+      "simulatedFailure": false,
+      "expectedTokens": 2000000,
+      "expectedCost": "5.79"
+    },
+    {
+      "columns": 120,
+      "rows": 32,
+      "journey": "缺价 → 自动下载失败 → 保留用量及失败提示 → 退出",
+      "terminalRestored": true,
+      "alternateScreenRestored": true,
+      "cursorRestored": true,
+      "automaticPriceUpdate": true,
+      "simulatedFailure": true,
+      "expectedTokens": 2000000,
+      "expectedCost": null
+    }
+  ],
+  "tests": {
+    "rust": 62,
+    "client": 13,
+    "tui": 126,
+    "cli": 9,
+    "integration": 13,
+    "e2e": 13,
+    "total": 236
+  },
+  "fidelity": {
+    "nativeScreens": 70,
+    "distributionScreens": 48,
+    "languages": [
+      "zh",
+      "en"
+    ],
+    "themes": [
+      "forest",
+      "midnight",
+      "paper",
+      "amber"
+    ],
+    "widths": [
+      40,
+      80,
+      120,
+      160
+    ],
+    "colorChecks": 733,
+    "geometryChecks": 776,
+    "scope": "Source-resolved opaque colors, native geometry, synthetic interaction; not whole-screen pixel parity."
+  },
+  "checksPassed": [
+    "build",
+    "contracts:generate",
+    "cargo fmt --check",
+    "cargo clippy --all-targets -D warnings",
+    "pnpm typecheck",
+    "pnpm test",
+    "pnpm --filter @wombat/tui test",
+    "pnpm repo:check",
+    "git diff --check"
+  ],
+  "limitations": [
+    "Private prototype source and captures are outside the public repository. Browser file navigation was blocked; no browser screenshot comparison was performed.",
+    "SVG marks/icons, browser font sizes, thin lines and diagonal unknown fills use native terminal glyph/cell approximations. Short viewports scroll totals and detail rows.",
+    "PTY uses COLORTERM=truecolor. Reduced-color terminals can approximate palettes.",
+    "macOS arm64 and Node.js 26.4.0 only. No global installation or publication in this task."
+  ],
+  "finalVerification": "After the last TUI adjustments, the built runtime completed 25 PTY journeys and all 126 TUI tests; the earlier full-chain run passed 236 product tests. Repository checks include other preserved task changes."
+}

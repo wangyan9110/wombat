@@ -315,3 +315,82 @@ fn shared_price_metadata_keeps_exact_amounts_and_serialization() {
         second.basis[0].request_input_tokens
     );
 }
+
+#[test]
+fn automatic_price_detection_requires_repairable_missing_rates() {
+    let tokens = TokenUsage {
+        input: Some(100),
+        cache_read: Some(0),
+        cache_create: Some(0),
+        output: Some(10),
+        total: Some(110),
+        raw_input: Some(100),
+        ..Default::default()
+    };
+    let model = ModelRef {
+        raw: Some("synthetic-new".into()),
+        provider: Some("openai".into()),
+        ..Default::default()
+    };
+    let missing = |model: &ModelRef, tokens: &TokenUsage| {
+        price(model, tokens)
+            .issues
+            .iter()
+            .any(|s| s.as_ref() == "catalogPriceMissing")
+    };
+    assert!(missing(&model, &tokens));
+    assert!(!missing(
+        &ModelRef {
+            raw: None,
+            ..model.clone()
+        },
+        &tokens
+    ));
+    assert!(!missing(
+        &ModelRef {
+            api_provider: Some("third-party".into()),
+            ..model.clone()
+        },
+        &tokens
+    ));
+    assert!(!missing(
+        &model,
+        &TokenUsage {
+            total: Some(999),
+            ..tokens.clone()
+        }
+    ));
+    assert!(!missing(
+        &ModelRef {
+            raw: Some("gpt-5.4".into()),
+            ..model.clone()
+        },
+        &tokens
+    ));
+    let zero = TokenUsage {
+        input: Some(0),
+        cache_read: Some(0),
+        cache_create: Some(0),
+        output: Some(0),
+        total: Some(0),
+        raw_input: Some(0),
+        ..Default::default()
+    };
+    assert!(!missing(&model, &zero));
+    let context_unknown = price_with_context(
+        &ModelRef {
+            raw: Some("gpt-5.4".into()),
+            ..model
+        },
+        &tokens,
+        &PricingContext {
+            request_scoped: false,
+        },
+    );
+    assert!(
+        !context_unknown
+            .issues
+            .iter()
+            .any(|s| s.as_ref() == "catalogPriceMissing")
+    );
+}

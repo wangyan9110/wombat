@@ -4,7 +4,7 @@ import { compile } from "json-schema-to-typescript";
 import Ajv from "ajv";
 import standalone from "ajv/dist/standalone/index.js";
 for (const [op, name] of [["schema_live_request", "live-request"], ["schema_live_response", "live-response"], ["schema_usage_app", "usage-app"], ["schema_usage_request", "usage-request"], ["schema_pricing_request", "pricing-request"], ["schema_pricing_response", "pricing-response"]]) {
-  const result = spawnSync("core/target/debug/wombat-core", [], {
+  const result = spawnSync(process.platform === 'win32' ? "core/target/debug/wombat-core.exe" : "core/target/debug/wombat-core", [], {
     input: JSON.stringify({ op, args: {} }),
     encoding: "utf8",
   });

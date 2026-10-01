@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RGBA } from '@opentui/core';
+import { RGBA, ScrollBoxRenderable } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import { TerminalUI } from '../src/components/terminal-ui.js';
 import { terminalThemes } from '../src/themes/index.js';
@@ -20,15 +20,96 @@ for (const [width, height] of [[80, 24], [120, 32], [160, 40]]) test(`report row
       const grid = setup.renderer.root.findDescendantById(`row-${i}-grid`)!;
       const above = grid.y - row.y, below = row.y + row.height - grid.y - grid.height;
       assert.equal(above, below, `row ${i}: equal space above and below text grid`);
-      assert.equal(above, height < 30 ? 0 : 1);
+      assert.equal(above, 0, 'row density does not jump when the terminal gains height');
     }
   } finally { ui.destroy(); }
 });
 
-test('outlined control fill stays inside its border; active tab shares the navigation rule', async () => {
+test('selected record surfaces remain contiguous and their bottom inset is clickable', async () => {
+  for (const kind of ['thread', 'distribution'] as const) for (const width of [40, 80, 120]) {
+    const setup = await createTestRenderer({ width, height: 24 });
+    const theme = terminalThemes.forest, ui = new TerminalUI(setup.renderer, theme, true);
+    try {
+      const answer = ui.choose({ title: 'Wombat', intro: [], footer: 'Q', choices: [{ id: 'record', kind: kind === 'thread' ? 'thread' : 'subtotal', separatorAfter: true, gapAfter: kind === 'thread',
+        lines: kind === 'thread' ? ['Synthetic conversation', 'project · 9/30', 'Selected period 1K / Whole thread 2K'] : [],
+        ...(kind === 'distribution' ? { distribution: { label: '9/30', value: '1K', share: '50%', ratio: 0.5, peak: false } } : {}) }] });
+      await setup.flush(); await setup.waitForVisualIdle();
+      const row = setup.renderer.root.findDescendantById('row-0')!;
+      const inset = setup.renderer.root.findDescendantById('row-0-separator') as import('@opentui/core').BoxRenderable;
+      assert.equal(inset.y, row.y + row.height, 'no unpainted gap splits the selected surface');
+      if (kind === 'distribution') {
+        const content = setup.renderer.root.findDescendantById('row-0-distribution')!;
+        const above = content.y - row.y;
+        const below = inset.y + inset.height - content.y - content.height;
+        assert.equal(above, below, 'distribution content is centered in the entire selected surface, including its separator');
+        assert.equal(above, 1);
+        if (width >= 68) {
+          const meter = setup.renderer.root.findDescendantById('row-0-meter')!;
+          const value = setup.renderer.root.findDescendantById('row-0-distribution-value')!;
+          const date = setup.renderer.root.findDescendantById('row-0-distribution-date')!;
+          assert.equal(meter.y, value.y); assert.equal(meter.y, date.y);
+        }
+      }
+      assert(inset.backgroundColor.equals(RGBA.fromHex(theme.selectedBackground)));
+      await setup.mockMouse.moveTo(inset.x + 3, inset.y); await setup.flush();
+      assert(inset.backgroundColor.equals(RGBA.fromHex(kind === 'distribution' ? theme.hoverBackground : theme.selectedBackground)), 'source hover specificity applies to the full surface');
+      await setup.mockMouse.click(inset.x + 3, inset.y);
+      assert.equal((await answer).id, 'record', 'bottom inset activates the same record');
+    } finally { ui.destroy(); }
+  }
+});
+
+test('distribution peak wrapping keeps the meter and numbers centered without changing row spacing on resize', async () => {
+  const setup = await createTestRenderer({ width: 68, height: 40 });
+  const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
+  try {
+    const frame: Frame = { title: 'Wombat', intro: [], footer: 'Q', choices: [{
+      id: 'peak', kind: 'subtotal', separatorAfter: true, lines: [],
+      distribution: { label: '9月24日—30日', value: '1.26亿', share: '18.1%', ratio: 1, peak: true, peakLabel: '已计价最高' },
+    }] };
+    for (const [width, height] of [[68, 40], [120, 40], [120, 29], [120, 30], [68, 40]]) {
+      setup.resize(width, height); void ui.choose(frame);
+      await setup.flush(); await setup.waitForVisualIdle();
+      const root = setup.renderer.root;
+      const row = root.findDescendantById('row-0')!;
+      const content = root.findDescendantById('row-0-distribution')!;
+      const separator = root.findDescendantById('row-0-separator')!;
+      assert.equal(content.y - row.y, separator.y + separator.height - content.y - content.height);
+      for (const id of ['row-0-meter', 'row-0-distribution-value', 'row-0-distribution-share']) {
+        const cell = root.findDescendantById(id)!;
+        assert(Math.abs(cell.y + cell.height / 2 - content.y - content.height / 2) <= .5, `${id} centered to nearest terminal row`);
+      }
+      assert.match(setup.captureCharFrame(), /已计价最高/);
+      assert.equal(content.y - row.y, 1, 'padding follows the component, not terminal height');
+    }
+  } finally { ui.destroy(); }
+});
+
+test('distribution navigation reveals the whole selected surface in a short viewport', async () => {
+  const setup = await createTestRenderer({ width: 80, height: 14 });
+  const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
+  try {
+    void ui.choose({ title: 'Wombat', intro: [], footer: 'Q', choices: Array.from({ length: 6 }, (_, i) => ({
+      id: `record-${i}`, kind: 'subtotal', separatorAfter: true, lines: [],
+      distribution: { label: `9月${30-i}日`, value: '1K', share: '10%', ratio: .1, peak: false },
+    })) });
+    await setup.flush(); await setup.waitForVisualIdle();
+    for (let i = 1; i < 6; i++) {
+      setup.mockInput.pressArrow('down'); await setup.flush(); await setup.waitForVisualIdle();
+      const root = setup.renderer.root;
+      const viewport = (root.findDescendantById('records') as ScrollBoxRenderable).viewport;
+      const row = root.findDescendantById(`row-${i}`)!;
+      const separator = root.findDescendantById(`row-${i}-separator`)!;
+      assert(row.y >= viewport.y);
+      assert(separator.y + separator.height <= viewport.y + viewport.height, 'bottom of selection is visible with the text');
+    }
+  } finally { ui.destroy(); }
+});
+
+test('outlined controls keep state fill inside their stroke and leave border-cell margins clear', async () => {
   const setup = await createTestRenderer({ width: 80, height: 24 });
   const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
-  const frame: Frame = { title: 'Wombat', intro: [], footer: 'Q 退出', choices: [], nav: '1 用量 2 对话', activeTab: '1 用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天' };
+  const frame: Frame = { title: 'Wombat', intro: [], footer: 'Q 退出', choices: [], nav: '1 用量 2 对话', activeTab: '用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天' };
   const cell = (x: number, y: number) => {
     let offset = 0;
     for (const span of setup.captureSpans().lines[y].spans) {
@@ -42,23 +123,27 @@ test('outlined control fill stays inside its border; active tab shares the navig
     const root = setup.renderer.root;
     const nav = root.findDescendantById('navigation')!, tab = root.findDescendantById('usage-tab')!;
     assert.equal(nav.y + nav.height, tab.y + tab.height, 'no additional row between underline and rule');
-    assert(cell(tab.x, nav.y + nav.height - 1).fg.equals(RGBA.fromHex('#8bb99a')));
+    assert(cell(tab.x, nav.y + nav.height - 1).fg.equals(RGBA.fromHex('#e5f1e8')));
     for (const id of ['group:0', 'group:1']) {
       const button = root.findDescendantById(id)!;
+      const surface = RGBA.fromHex(id === 'group:0' ? '#2b4a35' : '#142820');
+      // The source border encloses the fill; terminal border glyphs do not
+      // occupy their whole character cell. Coloring those cells creates a halo.
       for (let x = button.x; x < button.x + button.width; x++) {
         assert(cell(x, button.y).bg.equals(RGBA.fromHex('#142820')));
         assert(cell(x, button.y + button.height - 1).bg.equals(RGBA.fromHex('#142820')));
       }
       assert(cell(button.x, button.y + 1).bg.equals(RGBA.fromHex('#142820')));
       assert(cell(button.x + button.width - 1, button.y + 1).bg.equals(RGBA.fromHex('#142820')));
-      assert(cell(button.x + 1, button.y + 1).bg.equals(RGBA.fromHex(id === 'group:0' ? '#2b4a35' : '#142820')));
+      assert(cell(button.x + 1, button.y + 1).bg.equals(surface));
     }
     const week = root.findDescendantById('group:1')!;
-    await setup.mockMouse.click(week.x + 2, week.y + 1);
+    await setup.mockMouse.click(week.x + 2, week.y);
     assert.equal((await selected).id, 'group:1');
     void ui.choose({ ...frame, activeControl: '按周' }); await setup.flush(); await setup.renderOnce();
     const activeWeek = root.findDescendantById('group:1')!;
     assert(cell(activeWeek.x + 1, activeWeek.y + 1).bg.equals(RGBA.fromHex('#2b4a35')));
+    assert(cell(activeWeek.x, activeWeek.y).bg.equals(RGBA.fromHex('#142820')));
   } finally { ui.destroy(); }
 });
 
@@ -70,50 +155,47 @@ for (const width of [40, 80]) test(`header preserves brand/divider/title styles 
     void ui.choose({ title: 'Wombat / 对话标题'.repeat(18), intro: ['本机 Codex'], choices: [{ id: 'row', lines: ['正文仍可见'] }], footer: 'Q 退出' });
     await setup.flush(); await setup.renderOnce();
     const heading = setup.renderer.root.findDescendantById('title')!;
-    assert.equal(heading.height, 1);
+    assert.equal(heading.height, width < 68 ? 1 : 2);
     assert(heading.x + heading.width <= width);
-    const spans = setup.captureSpans().lines[heading.y].spans;
-    const brand = spans.find(span => span.text.includes('Wombat'))!;
-    const divider = spans.find(span => span.text.includes('/'))!;
-    const title = spans.find(span => span.text.includes('对话'))!;
+    const brandNode = setup.renderer.root.findDescendantById('brand')!;
+    const brand = setup.captureSpans().lines[brandNode.y].spans.find(span => span.text.includes('Wombat'))!;
+    const title = setup.captureSpans().lines[heading.y].spans.find(span => span.text.includes('对话'))!;
     assert(brand.fg.equals(RGBA.fromHex('#a9d6b3')));
-    assert(divider.fg.equals(RGBA.fromHex('#65836c')));
-    assert(title.fg.equals(RGBA.fromHex('#dbe9df')));
-    assert(brand.attributes & TextAttributes.BOLD);
-    assert.equal(divider.attributes & TextAttributes.BOLD, 0);
-    assert(title.attributes & TextAttributes.BOLD);
+    assert(title.fg.equals(RGBA.fromHex('#e5f1e8')));
+    assert(brand.attributes & TextAttributes.BOLD); assert(title.attributes & TextAttributes.BOLD);
     assert.match(setup.captureCharFrame(), /正文仍可见/);
   } finally { ui.destroy(); }
 });
 
-test('footer disclosure stays below shortcuts, retains selection, and scrolls independently', async () => {
+test('price disclosure belongs to the scrollable body, retains selection, and keeps the footer fixed', async () => {
   const { ScrollBoxRenderable } = await import('@opentui/core');
   const setup = await createTestRenderer({ width: 80, height: 24 });
   const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
   const base: Frame = { title: 'Wombat / 日报', intro: [], selected: 1,
     choices: [{ id: 'a', lines: ['第一条'] }, { id: 'b', lines: ['第二条'] }],
-    footer: '↑↓ 选择 · ? 金额依据 · Q 退出', shortcuts: { '?': 'explain' } };
+    disclosureLabel: '金额依据', footer: '↑↓ 选择 · ? 价格表 · Q 退出', shortcuts: { '?': 'explain' } };
   try {
     const closed = ui.choose(base); await setup.flush(); await setup.renderOnce();
     const control = setup.renderer.root.findDescendantById('footer-explain')!;
-    assert.match(setup.captureCharFrame(), /› \? 金额依据/);
+    assert.match(setup.captureCharFrame(), /› 金额依据/);
     await setup.mockMouse.click(control.x + 2, control.y);
     assert.equal((await closed).id, 'explain');
     const open = ui.choose({ ...base, disclosure: Array.from({ length: 20 }, (_, i) => `价格说明 ${i}`) });
     await setup.flush(); await setup.renderOnce();
-    const notes = setup.renderer.root.findDescendantById('notes')! as InstanceType<typeof ScrollBoxRenderable>;
-    const panel = setup.renderer.root.findDescendantById('disclosure-panel')!;
+    const notes = setup.renderer.root.findDescendantById('notes')!;
+    const records = setup.renderer.root.findDescendantById('records')! as InstanceType<typeof ScrollBoxRenderable>;
+    const panel = setup.renderer.root.findDescendantById('data-disclosure')!;
     const summary = setup.renderer.root.findDescendantById('footer-explain')!;
     assert(notes.y > summary.y);
     const spans = setup.captureSpans().lines.flatMap(line => line.spans);
     const note = spans.find(span => span.text.includes('价格说明 0'))!;
-    assert(note.fg.equals(RGBA.fromHex('#9db6a6')));
+    assert(note.fg.equals(RGBA.fromHex('#9bb6a4')));
     assert(note.bg.equals(RGBA.fromHex('#1a2e20')));
     const rail = setup.captureSpans().lines[panel.y].spans.find(span => span.text.includes('│'))!;
-    assert(rail.fg.equals(RGBA.fromHex('#56765c')));
-    assert.match(setup.captureCharFrame(), /⌄ \? 金额依据/);
+    assert(rail.fg.equals(RGBA.fromHex('#71997c')));
+    assert.match(setup.captureCharFrame(), /⌄ 金额依据/);
     setup.mockInput.pressArrow('down'); await setup.flush(); await setup.renderOnce();
-    assert(notes.scrollTop > 0);
+    assert(records.scrollTop > 0);
     setup.mockInput.pressKey('?');
     const answer = await open; assert.equal(answer.id, 'explain'); assert.equal(answer.selected, 1);
     const restored = ui.choose({ ...base, selected: answer.selected, viewportStart: answer.viewportStart });
@@ -130,7 +212,7 @@ test('report hierarchy: source colors, full-width rules, inset and selection tra
   const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
   const frame: Frame = {
     title: 'Wombat / 日报', intro: ['本机 Codex'], footer: 'Q 退出',
-    nav: '1 用量 2 对话', activeTab: '1 用量',
+    nav: '1 用量 2 对话', activeTab: '用量',
     controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天',
     choices: [
       { id: 'day', kind: 'subtotal', reportGroup: 'day1', lines: ['9月29日 ›'] },
@@ -150,27 +232,27 @@ test('report hierarchy: source colors, full-width rules, inset and selection tra
   };
   try {
     void ui.choose(frame); await setup.flush(); await setup.renderOnce();
-    color('按天', '#e1f2e5', '#2b4a35');
-    color('按周', '#9eb8a5', '#142820');
-    color('1 用量', '#d7e9dc', '#142820');
-    color('9月29日', '#d4e6da', '#2b4a35');
-    color('gpt-test-model', '#c3d8ca', '#142820');
-    color('9月28日', '#d4e6da', '#1d3628');
+    color('按天', '#e5f1e8', '#2b4a35');
+    color('按周', '#9bb6a4', '#142820');
+    color('用量', '#e5f1e8', '#142820');
+    color('9月29日', '#e5f1e8', '#2b4a35');
+    color('gpt-test-model', '#b7cebe', '#142820');
+    color('9月28日', '#e5f1e8', '#1d3628');
     const heading = setup.renderer.root.findDescendantById('heading')!;
     const navigation = setup.renderer.root.findDescendantById('navigation')!;
     const lines = setup.captureCharFrame().split('\n');
-    assert.match(lines[heading.y + heading.height - 1], /本机 Codex/, 'heading ends with context, not a second rule');
-    assert.equal(lines[navigation.y + navigation.height - 1].slice(navigation.x, navigation.x + navigation.width), '─'.repeat(navigation.width));
+    assert.match(lines[heading.y + heading.height - 1], /─/, 'one shared header rule');
+    assert(navigation.y < heading.y + heading.height - 1, 'navigation sits in the brand row above the shared rule');
     const before = setup.captureCharFrame().split('\n');
     assert.equal(before.find(line => line.includes('gpt-test-model'))!.indexOf('gpt-test-model'), before.find(line => line.includes('9月29日'))!.indexOf('9月29日') + 1);
     const dayNode = setup.renderer.root.findDescendantById('row-0');
     setup.mockInput.pressArrow('down'); await setup.flush(); await setup.renderOnce();
     assert.equal(setup.renderer.root.findDescendantById('row-0'), dayNode, 'moving selection retains native components');
-    color('9月29日', '#d4e6da', '#1d3628');
-    color('gpt-test-model', '#c3d8ca', '#2b4a35');
+    color('9月29日', '#e5f1e8', '#1d3628');
+    color('gpt-test-model', '#b7cebe', '#2b4a35');
     setup.mockInput.pressArrow('down'); await setup.flush(); await setup.renderOnce();
-    color('gpt-test-model', '#c3d8ca', '#142820');
-    color('9月28日', '#d4e6da', '#2b4a35');
+    color('gpt-test-model', '#b7cebe', '#142820');
+    color('9月28日', '#e5f1e8', '#2b4a35');
   } finally { ui.destroy(); }
 });
 
@@ -206,7 +288,7 @@ for (const width of [80, 120, 160]) test(`actual report cells preserve column ge
   const setup = await createTestRenderer({ width, height: width === 80 ? 24 : 32 });
   const ui = new TerminalUI(setup.renderer, terminalThemes.forest, true);
   try {
-    void ui.choose({ title: 'Wombat', intro: ['本机 Codex'], nav: '1 用量 2 对话', activeTab: '1 用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', actions: 'F 筛选 · R 更新', footer: 'Q 退出', tableCells: usageHeaderCells(contentWidth), totalCells: usageTotalCells(summary, contentWidth), choices: [
+    void ui.choose({ title: 'Wombat', intro: ['本机 Codex'], nav: '1 用量 2 对话', activeTab: '用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', actions: 'F 筛选 · R 更新', footer: 'Q 退出', tableCells: usageHeaderCells(contentWidth), totalCells: usageTotalCells(summary, contentWidth), choices: [
       { id: 'day', kind: 'subtotal', reportGroup: 'a', ...itemContent(day, result, contentWidth) },
       { id: 'model', kind: 'model', reportGroup: 'a', ...itemContent(model, result, contentWidth) },
     ] });
@@ -231,14 +313,14 @@ for (const width of [80, 120, 160]) test(`actual report cells preserve column ge
     const text = setup.captureCharFrame();
     assert.match(text, /9月29日 ›/); assert.match(text, /gpt-5\.4/); assert.match(text, /推理强度/); assert.match(text, /金额（美元）/);
     const modelSpan = () => setup.captureSpans().lines.flatMap(line => line.spans).find(span => span.text.includes('gpt-5.4'))!;
-    assert(modelSpan().fg.equals(RGBA.fromHex('#c3d8ca')));
+    assert(modelSpan().fg.equals(RGBA.fromHex('#b7cebe')));
     assert.equal(modelSpan().attributes & TextAttributes.BOLD, 0);
     const row = root.findDescendantById('row-1')!;
     await setup.mockMouse.moveTo(row.x + 3, row.y + row.height - 1); await setup.flush();
-    assert(modelSpan().bg.equals(RGBA.fromHex('#294632')), 'unselected row hover');
+    assert(modelSpan().bg.equals(RGBA.fromHex('#243f30')), 'unselected row hover');
     setup.mockInput.pressArrow('down'); await setup.flush(); await setup.renderOnce();
     assert(modelSpan().bg.equals(RGBA.fromHex('#2b4a35')), 'selected overrides hover');
-    assert(modelSpan().fg.equals(RGBA.fromHex('#c3d8ca')), 'explicit child CSS color survives selection');
+    assert(modelSpan().fg.equals(RGBA.fromHex('#b7cebe')), 'explicit child CSS color survives selection');
     assert.equal(modelSpan().attributes & TextAttributes.BOLD, 0);
   } finally { ui.destroy(); }
 });
@@ -276,7 +358,7 @@ test('consumption meter uses thin native strokes, preserves its surface, and han
       assert.equal(line.slice(meter.x, meter.x + meter.width), '─'.repeat(meter.width));
       const spans = setup.captureSpans().lines[meter.y].spans.filter(span => span.text.includes('─'));
       assert(spans.length > 0);
-      for (const span of spans) assert(span.bg.equals(RGBA.fromHex(i === 0 ? '#223b2b' : '#142820')), 'meter must not paint a full-cell color block');
+      for (const span of spans) assert(span.bg.equals(RGBA.fromHex(i === 0 ? '#2b4a35' : '#142820')), 'meter must not paint a full-cell color block');
       const fill = setup.renderer.root.findDescendantById(`meter-${i}-fill`);
       if (i === 0) assert.equal(fill, undefined);
       else assert(Math.abs(fill!.width - meter.width * (i === 1 ? .5 : 1)) <= 1);
@@ -284,19 +366,20 @@ test('consumption meter uses thin native strokes, preserves its surface, and han
   } finally { ui.destroy(); }
 });
 
-for (const height of [14,24,45]) test(`footer follows native content height up to 55 percent at ${height} rows`,async()=>{
+for (const height of [14,24,45]) test(`data notes scroll with the body without enlarging the footer at ${height} rows`,async()=>{
   const setup=await createTestRenderer({width:80,height});const ui=new TerminalUI(setup.renderer,terminalThemes.forest,true);
-  const base:Frame={title:'Wombat / 日报',intro:[],nav:'1 用量 2 对话',activeTab:'1 用量',footer:'? 金额依据 · Q 退出',choices:[{id:'data',lines:['保留正文']}]};
+  const base:Frame={title:'Wombat / 日报',intro:[],nav:'1 用量 2 对话',activeTab:'用量',disclosureLabel:'金额依据',footer:'Q 退出',choices:[{id:'data',lines:['保留正文']}]};
   try{
-    void ui.choose({...base,disclosure:['简短说明']});await setup.flush();await setup.renderOnce();
+    void ui.choose({...base,disclosure:['简短说明']});await setup.flush();await setup.waitForVisualIdle();
     const small=setup.renderer.root.findDescendantById('footer')!.height;
-    void ui.choose({...base,disclosure:Array.from({length:80},(_,i)=>`说明 ${i}`)});await setup.flush();await setup.renderOnce();
-    const footer=setup.renderer.root.findDescendantById('footer')!,content=setup.renderer.root.findDescendantById('content')!;
-    if(height>=24){
-      assert(footer.height>small,`long content must use more space (${small} -> ${footer.height})`);
-      assert(Math.abs(footer.height-Math.floor(content.height*.55))<=1,`${footer.height} / ${content.height}`);
-    } else assert(footer.height<=Math.ceil(content.height*.55));
-    assert(footer.y+footer.height<=height);assert.match(setup.captureCharFrame(),/保留正文/);
+    void ui.choose({...base,disclosure:Array.from({length:80},(_,i)=>`说明 ${i}`)});await setup.flush();await setup.waitForVisualIdle();
+    const footer=setup.renderer.root.findDescendantById('footer')!;
+    assert.equal(footer.height,small);
+    assert(footer.y+footer.height<=height);
+    const notes=setup.renderer.root.findDescendantById('notes')!;
+    assert(notes.height>=80, 'notes retain their content in the body rather than allocating a second viewport');
+    assert.equal(notes.parent?.id,'data-disclosure');
+    assert.match(setup.captureCharFrame(),/金额依据/);
   }finally{ui.destroy();}
 });
 
@@ -314,7 +397,7 @@ for(const width of [40,80,120]) test(`fee categories flow compactly without spli
     const a=setup.renderer.root.findDescendantById('breakdown-0-0')!,b=setup.renderer.root.findDescendantById('breakdown-0-1')!;
     if(width>=80){assert.equal(a.y,b.y);assert(b.x>a.x);}else assert(b.y>a.y);
     const spans=setup.captureSpans().lines.flatMap(line=>line.spans);
-    assert(spans.find(span=>span.text.includes('$0.0200'))!.fg.equals(RGBA.fromHex('#b5cab9')));
+    assert(spans.find(span=>span.text.includes('$0.0200'))!.fg.equals(RGBA.fromHex('#b7cebe')));
   }finally{ui.destroy();}
 });
 

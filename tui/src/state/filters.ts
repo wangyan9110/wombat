@@ -1,12 +1,13 @@
-import { t, labels } from '@wombat/client/locale';
+import { t, labels, locale } from '@wombat/client/locale';
 import type { UsageRequest } from '@wombat/client';
 import type { FormSpec, FormAnswer, FormField } from '../components/form-model.js';
 import type { FilterOptions } from './filter-options.js';
+import { rangeLabel } from '../screens/format.js';
 
 interface FilterUI { form: (spec: FormSpec) => Promise<FormAnswer>; }
 export interface FilterResult { request: UsageRequest; navigate?: 'usage-tab' | 'threads-tab'; }
-type Period = 'today' | 'recent' | 'week' | 'month' | 'custom';
-const periodNames: Record<Period, string> = labels({ today: "tui.state.filters.today", recent: "tui.state.filters.last_7_days", week: "tui.state.filters.this_week", month: "tui.state.filters.this_month", custom: "tui.state.filters.custom" });
+type Period = 'today' | 'recent' | 'halfyear' | 'year' | 'week' | 'month' | 'custom';
+const periodNames: Record<Period, string> = labels({ today: "tui.state.filters.today", recent: "tui.state.filters.last_30_days", halfyear: "tui.state.filters.last_6_months", year: "tui.state.filters.last_12_months", week: "tui.state.filters.this_week", month: "tui.state.filters.this_month", custom: "tui.state.filters.custom" });
 const effortNames: Record<string, string> = labels({ none: "common.none", minimal: "common.minimal", low: "common.low", medium: "common.medium", high: "common.high", xhigh: "common.extra_high", max: "common.maximum", ultra: "common.ultra" });
 const unknownModel = '\u0000unknown-model';
 function validDay(day: string): boolean { return /^\d{4}-\d{2}-\d{2}$/.test(day) && Number.isFinite(Date.parse(day)) && new Date(day).toISOString().slice(0, 10) === day; }
@@ -17,14 +18,15 @@ function localDay(reference: string, timezone: string): string {
 }
 function periodDates(period: Exclude<Period, 'custom'>, today: string): { since: string; until: string } {
   const mondayOffset = (new Date(today).getUTCDay() + 6) % 7;
-  return { since: period === 'today' ? today : period === 'recent' ? shift(today, -6) : period === 'week' ? shift(today, -mondayOffset) : today.slice(0, 8) + '01', until: shift(today, 1) };
+  if (period === 'halfyear' || period === 'year') { const start = new Date(today); start.setUTCDate(1); start.setUTCMonth(start.getUTCMonth() - (period === 'halfyear' ? 5 : 11)); return { since: start.toISOString().slice(0, 10), until: shift(today, 1) }; }
+  return { since: period === 'today' ? today : period === 'recent' ? shift(today, -29) : period === 'week' ? shift(today, -mondayOffset) : today.slice(0, 8) + '01', until: shift(today, 1) };
 }
 /** UI dates include the final day; the shared request keeps its exclusive endpoint. */
 export async function editTerminalFilters(request: UsageRequest, reference: string, ui: FilterUI, candidates?: FilterOptions, loadError?: string): Promise<FilterResult> {
   const scope = request.scope ?? {}, isUsage = request.action === 'usage';
   const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   let period: string = scope.undated ? 'undated' : !scope.since && !scope.until ? 'auto' : 'custom';
-  if (isUsage && !scope.undated) for (const value of ['today', 'recent', 'week', 'month'] as const) {
+  if (isUsage && !scope.undated) for (const value of ['today', 'recent', 'halfyear', 'year', 'week', 'month'] as const) {
     const range = periodDates(value, localDay(reference, scope.timezone || defaultTimezone));
     if (range.since === scope.since && range.until === scope.until) { period = value; break; }
   }
@@ -48,20 +50,23 @@ export async function editTerminalFilters(request: UsageRequest, reference: stri
     ];
     const fields: FormField[] = isUsage ? [{ id: 'period', label: t("tui.state.filters.time"), options: [
       { value: 'auto', label: scope.threadId ? t("tui.state.filters.full_thread_range") : t("tui.state.filters.follow_report") },
-      ...(['today', 'recent', 'week', 'month', 'custom'] as const).map(value => ({ value, label: periodNames[value] })),
+      ...(['today', 'recent', 'week', 'month', 'halfyear', 'year', 'custom'] as const).map(value => ({ value, label: periodNames[value] })),
       ...(scope.undated ? [{ value: 'undated', label: t("common.unknown_date") }] : []),
     ] }] : [{ id: 'search', label: t("tui.state.filters.search_title_project"), placeholder: t("common.all") }, choiceField('project', t("common.project"))];
     if (isUsage && values.period === 'custom') fields.push({ id: 'since', label: t("tui.state.filters.from"), placeholder: 'YYYY-MM-DD' }, { id: 'until', label: t("tui.state.filters.to"), placeholder: 'YYYY-MM-DD' });
-    const answer = await ui.form({ title: t("tui.state.filters.wombat_filters"), activeTab: isUsage ? 'usage' : 'threads', values, fields,
+    const answer = await ui.form({ title: isUsage ? t(({ day: 'tui.app.daily_report', week: 'tui.app.weekly_report', month: 'tui.app.monthly_report' } as const)[request.group ?? 'day']) : t('common.threads'),
+      heading: t('tui.filters.heading'), intro: [t('common.local_codex') + rangeLabel(scope.since, scope.until, reference, scope.timezone ?? defaultTimezone)], activeTab: isUsage ? 'usage' : 'threads', values, fields,
       ...(isUsage ? { advancedFields, advancedOpen } : {}), error: error ?? loadError, focusId });
     if (answer.action === 'cancel') return { request };
     if (answer.action === 'usage-tab' || answer.action === 'threads-tab') return { request, navigate: answer.action };
     const previousPeriod = values.period;
     values = { ...values, ...answer.values }; answer.changed.forEach(id => touched.add(id)); focusId = answer.focusId; error = undefined;
+    if (answer.action === 'language') { locale.setLocale(locale.getSnapshot().locale === 'zh' ? 'en' : 'zh'); continue; }
+    if (answer.action === 'theme') continue;
     const timezone = values.timezone.trim() || defaultTimezone;
     if (answer.action === 'toggle') { advancedOpen = !advancedOpen; continue; }
     if (answer.action === 'change') {
-      if (values.period !== previousPeriod && ['today', 'recent', 'week', 'month'].includes(values.period)) {
+      if (values.period !== previousPeriod && ['today', 'recent', 'halfyear', 'year', 'week', 'month'].includes(values.period)) {
         try {
           const dates = periodDates(values.period as 'today', localDay(reference, timezone));
           values.since = dates.since; values.until = shift(dates.until, -1);
@@ -84,7 +89,7 @@ export async function editTerminalFilters(request: UsageRequest, reference: stri
         if (since) next.since = since; else delete next.since;
         if (until) next.until = shift(until, 1); else delete next.until;
         delete next.undated;
-      } else if (['today', 'recent', 'week', 'month'].includes(values.period) && (touched.has('period') || touched.has('timezone'))) { Object.assign(next, periodDates(values.period as 'today', localDay(reference, timezone))); delete next.undated; }
+      } else if (['today', 'recent', 'halfyear', 'year', 'week', 'month'].includes(values.period) && (touched.has('period') || touched.has('timezone'))) { Object.assign(next, periodDates(values.period as 'today', localDay(reference, timezone))); delete next.undated; }
       for (const key of ['model', 'reasoningEffort'] as const) if (touched.has(key)) {
         if (key === 'model' && candidates && values.model === unknownModel) { next.modelUnknown = true; delete next.model; continue; }
         const value = values[key].trim(); if (value) next[key] = value; else delete next[key];

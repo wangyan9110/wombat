@@ -4,6 +4,8 @@
 
 This page maintains requirements and acceptance criteria, baselined on 2026-09-30. It does not establish acceptance of every target. See [implementation status](status.en.md) for delivery and gaps and [progress](progress.en.md) for results. The pre-migration code inventory is retired from the current specification; lasting tradeoffs are in the [independent-accounting decision](../decisions/implemented/architecture/2026-09-30-independent-accounting.en.md) and [snapshot decision](../decisions/implemented/architecture/2026-09-30-snapshot-storage.en.md).
 
+Usage defaults to distribution and switches to details or token/estimated-cost views. Scales, peaks, and shares come from the complete query before pagination. Priced subtotals remain distinct from unknown amounts. Threads sort by whole-thread consumption, retaining selected-range context. Opening a section reads again; cancellation or failure opens recovery.
+
 ## Scope
 
 | Item | Requirement |
@@ -20,8 +22,8 @@ No quota, checkup, configuration management, rule diagnostics, automatic repair,
 
 ## User journeys
 
-1. Build a local index initially. With an index, open committed data first and update main lists after synchronization. Explicit refresh saves a fixed snapshot; explicit snapshots never refresh automatically. Failure, incomplete synchronization, and old results must be distinguishable.
-2. Daily reports default to 7 calendar days; weekly to this week plus 3 previous weeks; monthly to this month plus 11 previous months, all through today. Manual dates override. Weeks start Monday; grouping uses each event timestamp and selected timezone. A conversation filter without dates uses its full range.
+1. Build a local index initially. With an index, wait for the current read when opening a main view and update main lists after synchronization. Explicit refresh saves a fixed snapshot; explicit snapshots never refresh automatically. Failure, incomplete synchronization, and old results must be distinguishable.
+2. Daily reports default to 30 calendar days; weekly to this month plus 5 previous months; monthly to this month plus 11 previous months, all through today. Explicit CLI dates override; changing TUI periods restores defaults. Weeks start Monday; grouping uses each event timestamp and selected timezone. A conversation filter without dates uses its full range.
 3. Date/model/effort rows open related conversations with full filters. `matchedUsage` retains incoming conditions and `threadUsage` the whole conversation; a partial cross-day amount must not masquerade as complete.
 4. Conversations expand full turns. Inside turns, chronological order is default; consumption order places measured records first, then operations chronologically. Unassigned measurements remain in Other records without loss or allocation.
 5. Turn shares use complete conversation tokens; step shares use complete turn tokens. Pagination, sorting, and expansion never change denominators; zero denominators display missing values. Returning preserves filters, pagination, selection, and expansion.

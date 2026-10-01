@@ -6,8 +6,8 @@
   },
   "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.",
   "lockfiles": {
-    "pnpm-lock.yaml": "49b3135d15c9503e5e8a45d0bd5c4d7cd0720c802d20f7e24457b1e4e269902f",
-    "core/Cargo.lock": "1d6c509a94d5fbd080a4e80586827a2809fdee2d05279ccf3e7d73044b1acdb7"
+    "pnpm-lock.yaml": "1962285ecc9f258a93a34e4d09fbbf4a5663eaaac1f25b2d6dd03cd2eb1fa9ac",
+    "core/Cargo.lock": "206f8b56c6f3f3b5ea777417c019c7e54ecb7aa794d2038b1c4bd86c6583f2e4"
   },
   "node": [
     {
@@ -235,7 +235,7 @@
     },
     {
       "name": "ajv",
-      "version": "8.17.1",
+      "version": "8.18.0",
       "license": "MIT",
       "role": "development",
       "licenseSource": "installed package",
@@ -1732,6 +1732,20 @@
       ]
     },
     {
+      "name": "doctest-file",
+      "version": "1.1.1",
+      "license": "0BSD",
+      "selectedLicense": "0BSD",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "LICENSE.txt",
+          "sha256": "00515b2bb13879db00e9483244b1bb80d7af9237c58e4de30af52a761d8d2524"
+        }
+      ]
+    },
+    {
       "name": "dyn-clone",
       "version": "1.0.20",
       "license": "MIT OR Apache-2.0",
@@ -2064,6 +2078,24 @@
         {
           "name": "LICENSE",
           "sha256": "7f78b31de4e7a3e2ac8de40e2b409eda313f03637aa62b8416fbde9bdc5ce4c9"
+        }
+      ]
+    },
+    {
+      "name": "interprocess",
+      "version": "2.4.4",
+      "license": "0BSD OR Apache-2.0",
+      "selectedLicense": "0BSD OR Apache-2.0",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "LICENSE-0BSD.txt",
+          "sha256": "8fab50bdd851f4e8282c3d1a2c8e3490d7b664e4b90cc44dd15d37be8c8d473a"
+        },
+        {
+          "name": "LICENSE-APACHE.txt",
+          "sha256": "814fc616d256859d513d7c1a1f76d5a759a6318971cfdc7f9ac934e1d85f58eb"
         }
       ]
     },
@@ -2508,6 +2540,20 @@
         {
           "name": "LICENSE-MIT",
           "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+        }
+      ]
+    },
+    {
+      "name": "recvmsg",
+      "version": "1.0.0",
+      "license": "0BSD",
+      "selectedLicense": "0BSD",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "LICENSE.txt",
+          "sha256": "612938d4e581d578f2377fdaa2978ff9b79e2dd978f6b1ea45418af475258bbb"
         }
       ]
     },
@@ -3164,6 +3210,20 @@
         {
           "name": "LICENSE-MIT",
           "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+        }
+      ]
+    },
+    {
+      "name": "widestring",
+      "version": "1.2.1",
+      "license": "MIT OR Apache-2.0",
+      "selectedLicense": "MIT",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "LICENSE-MIT",
+          "sha256": "508a77d2e7b51d98adeed32648ad124b7b30241a8e70b2e72c99f92d8e5874d1"
         }
       ]
     },

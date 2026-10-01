@@ -41,8 +41,15 @@ pub enum Group {
 #[serde(rename_all = "snake_case")]
 pub enum Sort {
     Tokens,
+    Cost,
     Recent,
     Time,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Presentation {
+    Distribution,
+    Details,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -54,6 +61,7 @@ pub struct Request {
     pub scope: Scope,
     pub group: Option<Group>,
     pub sort: Option<Sort>,
+    pub presentation: Option<Presentation>,
     pub thread_id: Option<String>,
     pub turn_id: Option<String>,
     pub search: Option<String>,
@@ -114,6 +122,8 @@ pub enum Item {
         reasoning_effort: Option<String>,
         usage: UsageSummary,
         scope: Scope,
+        share: Option<f64>,
+        cost_share: Option<f64>,
     },
     Thread {
         id: String,
@@ -140,6 +150,7 @@ pub enum Item {
         usage: UsageSummary,
         matched_usage: UsageSummary,
         share: Option<f64>,
+        cost_share: Option<f64>,
     },
     Measurement {
         id: String,
@@ -150,6 +161,7 @@ pub enum Item {
         reasoning_effort: Option<String>,
         usage: UsageSummary,
         share: Option<f64>,
+        cost_share: Option<f64>,
         sequence: u64,
         time_precision: String,
     },
@@ -172,7 +184,22 @@ pub enum Item {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct Distribution {
+    pub unpriced_tokens: Option<u64>,
+    pub max_tokens: Option<u64>,
+    pub max_cost: Option<String>,
+    pub peak_token_dates: Vec<Option<String>>,
+    pub peak_cost_dates: Vec<Option<String>>,
+    pub peak_token_scopes: Vec<Scope>,
+    pub peak_cost_scopes: Vec<Scope>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct Response {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub distribution: Option<Distribution>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub price_update: Option<crate::pricing_sync::Automatic>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freshness: Option<crate::live::Freshness>,
     pub output_version: u32,

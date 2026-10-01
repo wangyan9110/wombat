@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { accessSync, constants } from 'node:fs';
+import { accessSync, constants, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CoreError } from '../errors.js';
@@ -17,8 +17,10 @@ export function binaryPath(configuredPath?: string): string {
   const dir = path.dirname(fileURLToPath(import.meta.url));
   const name = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
   const override = configuredPath ?? process.env.WOMBAT_CORE_BIN;
+  if (!override && existsSync(path.join(dir, 'native')) && !existsSync(path.join(dir, 'native', `${process.platform}-${process.arch}`, name)))
+    throw new CoreError('UNSUPPORTED_PLATFORM', `此安装包不包含 ${process.platform}/${process.arch} 内核`);
   const candidates = override ? [path.resolve(override)]
-    : [path.join(dir, name), path.join(dir, '..', name), path.join(dir, '..', '..', '..', 'dist', name)];
+    : [path.join(dir, 'native', `${process.platform}-${process.arch}`, name), path.join(dir, name), path.join(dir, '..', name), path.join(dir, '..', '..', '..', 'dist', name)];
   for (const file of candidates) { try { accessSync(file, constants.X_OK); return file; } catch { /* Try the next build location. */ } }
   throw new CoreError('CORE_UNAVAILABLE', 'Rust 内核未构建或不可执行，请先运行 pnpm build');
 }
@@ -35,7 +37,7 @@ export function decode<T>(output: string): T {
 export function invokeCore(request: Request, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
   return invokeOperation('usage_app', request, options, processOptions);
 }
-export function invokePricesCore(request: PricingRequest & { document?: string }, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
+export function invokePricesCore(request: PricingRequest & { document?: string; attempt_id?: string; error_code?: string }, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
   return invokeOperation('prices', request, options, processOptions);
 }
 export function invokeOperation(op: 'usage_app' | 'prices' | 'live_endpoint', request: Request | PricingRequest | Record<string, never>, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
@@ -47,7 +49,9 @@ export function invokeOperation(op: 'usage_app' | 'prices' | 'live_endpoint', re
     throw new CoreError('INVALID_ARGUMENT', '内核超时和响应上限必须是正整数');
   }
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, [], { stdio: ['pipe', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
+    // Explicit developer overrides may be Node fixtures; Windows cannot execute shebang scripts.
+    const script = /\.[cm]js$/.test(binary);
+    const child = spawn(script ? process.execPath : binary, script ? [binary] : [], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
     const chunks: Buffer[] = []; let bytes = 0; let errors = ''; let progress = ''; let failure: Error | null = null;
     let killTimer: ReturnType<typeof setTimeout> | undefined;
     const stop = () => {

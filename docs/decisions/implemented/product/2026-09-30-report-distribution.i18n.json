@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-report-distribution-and-full-range-queries": {
+      "zh": "da6603e8dc275f15e5b2a1a4293e543583415c36b1a7ff8d92d45ca6e87aeec5",
+      "en": "bdcf597d42f217672aaa0c59ccc2a99305becf2464da15cc16b9931a0e6c4c84"
+    },
+    "/decision-note-report-distribution-and-full-range-queries/problem": {
+      "zh": "63ba1efb8ca518005d89ecd42cba73e16f6c4ed4c07efddc935330cdf88d4612",
+      "en": "2bf15db36cd44247ec9ccbd3b91107325629ad00c0a0792d52068a539123db20"
+    },
+    "/decision-note-report-distribution-and-full-range-queries/decision": {
+      "zh": "1f8b724f0d8d588f808d0c637ec882c1a9404a26f65e5eaf90b3f7fb312f36d1",
+      "en": "71aa5d15fe9aeda3fdbc5b773a9ac94ad092c50774937969bb84705662bb0900"
+    },
+    "/decision-note-report-distribution-and-full-range-queries/alternatives-considered": {
+      "zh": "f75428ac7a1b900aad6248bb55578629f6c9ddeeed459575ba1766d1ac153855",
+      "en": "2410e82d861b8f2c49682b1f46c0a4fae108820655f6a6b972d31098601d45f5"
+    },
+    "/decision-note-report-distribution-and-full-range-queries/impact-and-verification": {
+      "zh": "1b1467f228bf955cad97cb04cceab644b8903438ddff55cea54aad3fb3d954e3",
+      "en": "60e41a34b24a31af63e25cd43d8203bec445f6891120b13b936442cc9f22c77a"
+    }
+  }
+}

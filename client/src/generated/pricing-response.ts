@@ -1,8 +1,11 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type Action = "status" | "update";
+export type AutomaticStatus = "checking" | "updated" | "unchanged" | "failed";
+export type Action = "status" | "update" | "auto_update";
 
 export interface Response {
+  automatic?: Automatic | null;
+  downloadRequired?: boolean;
   outputVersion: number;
   action: Action;
   origin: string;
@@ -11,6 +14,13 @@ export interface Response {
   sourceHash?: string | null;
   catalogHash: string;
   catalog: Catalog;
+}
+export interface Automatic {
+  status: AutomaticStatus;
+  attemptId: string;
+  attemptedAt: string;
+  retryAt: string;
+  errorCode?: string | null;
 }
 export interface Catalog {
   revision: string;

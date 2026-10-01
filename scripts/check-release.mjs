@@ -1,3 +1,4 @@
+import { toolCommand } from './run-tool.ts';
 // Source-preview release gate. This script never changes versions, tags, or publishes.
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -24,7 +25,7 @@ const steps = [
 ];
 for (const [label, program, args] of steps) {
   console.log(`\n=== ${label} ===`);
-  const result = spawnSync(program, args, { cwd: root, stdio: 'inherit', timeout: 900_000 });
+  const result = spawnSync(...toolCommand(program, args), { cwd: root, stdio: 'inherit', timeout: 900_000 });
   if (result.error || result.status !== 0) {
     console.error(`Release check stopped at ${label}: ${result.error?.message || `exit ${result.status}`}`);
     process.exit(result.status || 1);

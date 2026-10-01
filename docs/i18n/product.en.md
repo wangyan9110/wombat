@@ -2,7 +2,7 @@
 
 [中文](product.md) | English
 
-This page defines the CLI/TUI presentation language. The [bilingual documentation workflow](README.en.md) owns document pairing. The implementation draws on [DeepSeek Harness LocaleRuntime](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/client/locale) for shared language state, typed dictionaries, and copy ownership; Wombat implements these independently without its plugin system.
+This page defines the CLI/TUI presentation language. The [bilingual documentation workflow](README.en.md) owns document pairing.
 
 ## Usage
 

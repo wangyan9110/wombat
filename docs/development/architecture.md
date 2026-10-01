@@ -38,17 +38,17 @@ flowchart LR
 
 现代逐响应计量与旧累计遥测不能叠加。Token 非重叠分类为输入、缓存读取、缓存创建、输出；推理为输出子集。历史模型和强度只读取日志当时的上下文。工具调用按明确身份连接，不按相邻时间分摊费用。没有轮次归属的计量仍保留在对话“其他记录”。
 
-价格为官方标准 API 等价金额，与订阅实付及来源 reportedCost 分离。价表显式更新由Node宿主从固定OpenAI文档下载，Rust校验和原子保存到产品数据目录；刷新一次性读取当前价表，全次采集保持同版本。每条记录保存计算结果和价表依据；查询旧快照不重新定价。旧政策金额不得与新政策混加。详见[价格口径](../reference/pricing.md)。
+价格为官方标准 API 等价金额，与订阅实付及来源 reportedCost 分离。价表显式或缺价触发的自动更新由Node宿主从固定OpenAI文档下载，Rust决定缺价资格、持久限流、校验和原子保存；刷新一次性读取当前价表，全次采集保持同版本。每条记录保存计算结果和价表依据；查询旧快照不重新定价。旧政策金额不得与新政策混加。详见[价格口径](../reference/pricing.md)。
 
 ## 存储与故障
 
-默认数据目录为 macOS `~/Library/Application Support/Wombat`；其他系统采用 `XDG_DATA_HOME/wombat` 或 `~/.local/share/wombat`。`WOMBAT_DATA_HOME` 可覆盖。快照位于 `usage-v3/`，增量索引位于 `live-v1/`；不替换旧 `latest.json`。
+默认数据目录为 macOS `~/Library/Application Support/Wombat`；Windows 使用 `%LOCALAPPDATA%/Wombat`，Linux 使用 `XDG_DATA_HOME/wombat` 或 `~/.local/share/wombat`。`WOMBAT_DATA_HOME` 可覆盖。快照位于 `usage-v3/`，增量索引位于 `live-v1/`；不替换旧 `latest.json`。
 
 刷新使用进程持有的文件锁。先写私有临时 generation 中的全部文件与哈希，最后提交 manifest，再原子更新新 latest 指针。取消或失败不发布半份快照。单个来源失败与成功来源分别回执；全部来源不可读时保留旧 latest。原日志固定本次读取长度，多文件不声称源头原子一致。
 
 查询固定 snapshotId：用量读取精简账本；轮次读取目标对话；步骤按偏移只读对应片段并校验哈希。分页限制返回量，不能改变比例分母或汇总。实时同步只解析新增完整行；候选事实、游标和投影在SQLite同一事务提交。日志截断/替换触发来源重建，文件消失保留已观察贡献并标partial。候选计量/操作按变化落盘；规范计量以排序差分提交新增、更正和撤销。解析缓存与读取版本共享不可变事实，重复路径/计价依据共享字符串，轮次使用紧凑行位置索引。查询借用账本，对话/轮次先分组再汇总。自动同步不导出快照，显式导出固定选定版本。当前归并与汇总仍读取该来源全部安全事实，尚非常量内存或数据库聚合查询；百万计量规模、持久MVCC和长期资源目标仍待优化。
 
-快照不含用户消息、模型正文、完整命令参数或工具输出。不把来源数据当指令执行。本地按需服务通过私有Unix socket通信，没有HTTP监听；最后调用后约15秒退出。尚未提供配置写入、自动修复、永久后台监控、Web服务或HTML导出。
+快照不含用户消息、模型正文、完整命令参数或工具输出。不把来源数据当指令执行。本地按需服务通过私有 Unix socket 或 Windows 所有者专用命名管道通信，没有 HTTP 监听；最后调用后约15秒退出。尚未提供配置写入、自动修复、永久后台监控、Web服务或HTML导出。
 
 ## 扩展约束
 
@@ -90,7 +90,7 @@ TypeScript 模块使用 pnpm workspace，各有明确的包导出、依赖、构
 
 ### 接口与依赖方向
 
-- `@wombat/client` 导出 `UsageClient`、`createUsageClient`、生成的请求/结果类型、取消和进度接口，以及稳定错误类型。客户端开放固定快照`query`、显式价表`prices`与实时`live`，操作由 Rust 生成的请求联合类型限定。
+- `@wombat/client` 导出 `UsageClient`、`createUsageClient`、生成的请求/结果类型、取消和进度接口，以及稳定错误类型。客户端开放固定快照`query`、价表`prices`与实时`live`，操作由 Rust 生成的请求联合类型限定。
 - `@wombat/client/node` 的 `createNodeClient` 实现本机内核传输，可配置内核路径、超时和响应上限。通用入口不导入该实现，不提供任意命令或文件写入。
 - `@wombat/tui` 的 `startTerminalApp(initial, client)` 接收客户端。OpenTUI 的布局、鼠标、输入、滚动和终端恢复属于 TUI；焦点、展开和导航状态不进入业务契约。
 - `cli/` 创建 Node 客户端，装配交互与机器入口。仅交互入口在加载 OpenTUI 前启用 Node 的 `--experimental-ffi`；用户仍使用同一个 Wombat 命令。普通查询、帮助和 JSON 输出不初始化渲染器。

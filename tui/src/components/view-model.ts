@@ -1,4 +1,4 @@
-export type Tone = 'disclosureMarker' | 'meterForeground' | 'startupBrief' | 'startupBorder' | 'startupSource' | 'startupHeading' | 'startupDescription' | 'startupRule' | 'startupWaiting' | 'startupActive' | 'startupDone' | 'startupMarker' | 'startupActiveMarker' | 'startupState' | 'startupActiveState' | 'startupAssurance' | 'startupDestination' | 'priceSource' | 'priceModel' | 'priceNumber' | 'priceUnavailable' | 'summaryForeground' | 'contextForeground' | 'breakdownForeground' | 'brand' | 'pageTitle' | 'titleDivider' | 'footerForeground' | 'disclosureForeground' | 'disclosureSummary' | 'actionForeground' | 'foreground' | 'muted' | 'border' | 'controlBorder' | 'selectedBorder' | 'accent' | 'selectedForeground' | 'heading' | 'number' | 'subtotalForeground' | 'modelForeground' | 'controlForeground' | 'activeControlForeground' | 'activeTabForeground' | 'operationTime' | 'operationName' | 'operationResult' | 'tablePartForeground' | 'tableMarkerForeground';
+export type Tone = 'focus' | 'warning' | 'disclosureMarker' | 'meterForeground' | 'startupBrief' | 'startupBorder' | 'startupSource' | 'startupHeading' | 'startupDescription' | 'startupRule' | 'startupWaiting' | 'startupActive' | 'startupDone' | 'startupMarker' | 'startupActiveMarker' | 'startupState' | 'startupActiveState' | 'startupAssurance' | 'startupDestination' | 'priceSource' | 'priceModel' | 'priceNumber' | 'priceUnavailable' | 'summaryForeground' | 'contextForeground' | 'breakdownForeground' | 'brand' | 'pageTitle' | 'titleDivider' | 'footerForeground' | 'disclosureForeground' | 'disclosureSummary' | 'actionForeground' | 'foreground' | 'muted' | 'border' | 'controlBorder' | 'selectedBorder' | 'accent' | 'selectedForeground' | 'heading' | 'number' | 'subtotalForeground' | 'modelForeground' | 'controlForeground' | 'activeControlForeground' | 'activeTabForeground' | 'operationTime' | 'operationName' | 'operationResult' | 'tablePartForeground' | 'tableMarkerForeground';
 export interface TextStyle { link?: string; tone?: Tone; bold?: boolean; underline?: boolean; inverse?: boolean; background?: 'background' | 'selectedBackground' | 'subtotalBackground' | 'detailBackground'; }
 export interface Span extends TextStyle { start: number; end: number; }
 export interface RowPaint extends TextStyle { spans?: Span[]; }
@@ -9,6 +9,7 @@ export interface Choice {
   headline?: { label: string; amount: string };
   operation?: { time: string; name: string; result: string };
   bar?: number;
+  distribution?: { label: string; value: string; share: string; ratio?: number; peak: boolean; peakLabel?: string };
   metrics?: Array<{ label: string; value: string; amount?: string }>;
   controls?: Array<{ id: string; label: string; active: boolean }>;
   group?: string;
@@ -33,20 +34,32 @@ export interface Frame {
   footer: string;
   selected?: number;
   pageNavigation?: boolean;
+  requeryOnResize?: boolean;
+  pagination?: { label: string; previous: boolean; next: boolean };
   viewportStart?: number;
   shortcuts?: Record<string, string>;
   nav?: string;
   activeTab?: string;
   tableHeader?: string;
+  tableHeaderBorder?: 'top' | 'bottom';
   tableCells?: TableCell[];
   totalCells?: TableCell[];
   controls?: string;
   controlOptions?: string[];
+  controlLabel?: string;
   controlKind?: 'group' | 'sort';
   activeControl?: string;
-  context?: Array<{ text: string; summary?: boolean }>;
+  tools?: Array<{ id: string; label: string; compactLabel: string; disabled?: boolean }>;
+  distributionHeader?: { maximum: string; metric: string; share: string };
+  peakActions?: Array<{ id: string; label: string }>;
+  totalSecondary?: string;
+  totalNote?: string;
+  disclosureLabel?: string;
+  context?: Array<{ text: string; summary?: boolean; notice?: boolean }>;
   total?: string;
+  totalLabel?: string;
   status?: string;
+  notice?: string;
   actions?: string;
   disclosure?: string[];
   disclosureAction?: { label: string; id: string };

@@ -2,6 +2,8 @@ pub mod adapters;
 pub mod dto;
 pub mod live;
 mod live_index;
+#[cfg(windows)]
+mod live_windows;
 mod log_io;
 pub mod pricing;
 pub mod pricing_sync;
@@ -21,9 +23,7 @@ pub fn hash(value: impl AsRef<[u8]>) -> String {
 }
 
 pub fn home() -> PathBuf {
-    env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("."))
+    std::env::home_dir().unwrap_or_else(|| PathBuf::from("."))
 }
 pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
     let path = path.as_ref();

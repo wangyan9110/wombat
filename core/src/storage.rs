@@ -13,6 +13,12 @@ pub fn data_home() -> Result<PathBuf> {
     if cfg!(target_os = "macos") {
         return Ok(home().join("Library/Application Support/Wombat"));
     }
+    if cfg!(windows) {
+        return Ok(env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home().join("AppData/Local"))
+            .join("Wombat"));
+    }
     Ok(env::var_os("XDG_DATA_HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| home().join(".local/share"))

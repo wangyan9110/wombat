@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-公开的人类可读文档维护中文和英文配对，现有说明已完成配对。两种语言具有同等效力；任一语言可先修改，另一语言在同一改动中同步。术语以[术语表](terminology.md)为准，文档归属以[文档维护约定](../AGENTS.md)为准。配对与确认记录的做法参考 [DeepSeek Harness 文档流程](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/i18n/README.md)，本仓库使用自己的命名和检查范围。
+公开的人类可读文档维护中文和英文配对，现有说明已完成配对。两种语言具有同等效力；任一语言可先修改，另一语言在同一改动中同步。术语以[术语表](terminology.md)为准，文档归属以[文档维护约定](../AGENTS.md)为准。
 
 ## 文件与范围
 

@@ -271,6 +271,19 @@ pub(crate) fn price_with_catalog(
             },
         });
     }
+    // Fetching a catalog can repair missing rates, but cannot repair missing log evidence.
+    if !invalid
+        && model.raw.as_deref().is_some_and(|name| !name.is_empty())
+        && model.provider.as_deref().is_none_or(|p| p == "openai")
+        && model.api_provider.as_deref().is_none_or(|p| p == "openai")
+        && (matched.is_none() || active_rates.is_some())
+        && counts
+            .iter()
+            .zip(rates)
+            .any(|(count, rate)| count.is_some_and(|n| n > 0) && rate.is_none())
+    {
+        result.issues.push("catalogPriceMissing".into());
+    }
     result.known_cost = decimal_string(known_total);
     result.cost = complete.then(|| result.known_cost.clone());
     result.status = status(complete, any_known_usage).into();

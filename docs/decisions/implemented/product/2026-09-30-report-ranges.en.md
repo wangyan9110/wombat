@@ -10,7 +10,7 @@ The seven-day default applied to all groups. The terminal also copied response d
 
 ## Decision
 
-The shared core selects seven days for daily reports, the current week plus three preceding weeks for weekly reports, and the current month plus eleven preceding months for monthly reports, through today in the selected timezone. Explicit dates, complete-thread and undated scopes take precedence. The terminal preserves implicit request dates and displays resolved response dates; “Follow report” restores automatic ranges.
+The shared core selects thirty days for daily reports, the current month plus five preceding months for weekly reports, and the current month plus eleven preceding months for monthly reports, through today in the selected timezone. Explicit dates, complete-thread and undated scopes take precedence. The terminal preserves implicit request dates and displays resolved response dates; “Follow report” restores automatic ranges; changing TUI periods also restores them while retaining model and project filters.
 
 ## Alternatives considered
 
@@ -18,4 +18,4 @@ Only the current week/month limits comparison with preceding periods; all histor
 
 ## Impact and verification
 
-This changes the default range of weekly/monthly requests without dates, without changing collection, snapshots or protocol fields. Fixed date boundaries, synthetic CLI ledgers, native interactions and PTY switching cover verification. Execution results belong in the [progress log](../../../project/progress.en.md).
+This changes the default range of daily/weekly/monthly requests without dates, without changing collection, snapshots or protocol fields. Fixed date boundaries, synthetic CLI ledgers, native interactions and PTY switching cover verification. Execution results belong in the [progress log](../../../project/progress.en.md).

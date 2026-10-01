@@ -1,5 +1,6 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
+export type AutomaticStatus = "checking" | "updated" | "unchanged" | "failed";
 export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
 export type Item =
   | {
@@ -13,6 +14,8 @@ export type Item =
       reasoningEffort?: string | null;
       usage: UsageSummary;
       scope: Scope;
+      share?: number | null;
+      costShare?: number | null;
       kind: "usage";
     }
   | {
@@ -41,6 +44,7 @@ export type Item =
       usage: UsageSummary;
       matchedUsage: UsageSummary;
       share?: number | null;
+      costShare?: number | null;
       kind: "turn";
     }
   | {
@@ -52,6 +56,7 @@ export type Item =
       reasoningEffort?: string | null;
       usage: UsageSummary;
       share?: number | null;
+      costShare?: number | null;
       sequence: number;
       timePrecision: string;
       kind: "measurement";
@@ -75,6 +80,8 @@ export type Item =
     };
 
 export interface Response {
+  distribution?: Distribution | null;
+  priceUpdate?: Automatic | null;
   freshness?: Freshness | null;
   outputVersion: number;
   action: Action;
@@ -86,19 +93,14 @@ export interface Response {
   page: Page;
   quality: Quality;
 }
-export interface Freshness {
-  status: string;
-  checkedAt?: string | null;
-  revision: string;
-  error?: string | null;
-}
-export interface SnapshotRef {
-  snapshotId: string;
-  createdAt: string;
-  /**
-   * Fixed selector for externally located legacy files; v3 uses snapshotId.
-   */
-  selector?: string | null;
+export interface Distribution {
+  unpricedTokens?: number | null;
+  maxTokens?: number | null;
+  maxCost?: string | null;
+  peakTokenDates: (string | null)[];
+  peakCostDates: (string | null)[];
+  peakTokenScopes: Scope[];
+  peakCostScopes: Scope[];
 }
 export interface Scope {
   timezone?: string | null;
@@ -113,6 +115,27 @@ export interface Scope {
   reasoningEffort?: string | null;
   project?: string | null;
   threadId?: string | null;
+}
+export interface Automatic {
+  status: AutomaticStatus;
+  attemptId: string;
+  attemptedAt: string;
+  retryAt: string;
+  errorCode?: string | null;
+}
+export interface Freshness {
+  status: string;
+  checkedAt?: string | null;
+  revision: string;
+  error?: string | null;
+}
+export interface SnapshotRef {
+  snapshotId: string;
+  createdAt: string;
+  /**
+   * Fixed selector for externally located legacy files; v3 uses snapshotId.
+   */
+  selector?: string | null;
 }
 export interface AvailableRange {
   since?: string | null;

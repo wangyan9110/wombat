@@ -5,9 +5,11 @@ import { nextTerminalTheme, terminalTheme, terminalThemes } from '../src/themes/
 test('theme selection falls back safely and cycles through independent palettes', () => {
   assert.equal(terminalTheme('unknown').id, 'forest');
   assert.equal(terminalTheme('paper'), terminalThemes.paper);
-  assert.equal(nextTerminalTheme(terminalThemes.forest).id, 'paper');
-  assert.equal(nextTerminalTheme(terminalThemes.paper).id, 'graphite');
-  assert.equal(nextTerminalTheme(terminalThemes.graphite).id, 'forest');
+  assert.equal(nextTerminalTheme(terminalThemes.forest).id, 'midnight');
+  assert.equal(nextTerminalTheme(terminalThemes.midnight).id, 'paper');
+  assert.equal(nextTerminalTheme(terminalThemes.paper).id, 'amber'
+  );
+  assert.equal(nextTerminalTheme(terminalThemes.amber).id, 'forest');
   for (const theme of Object.values(terminalThemes)) {
     assert.notEqual(theme.foreground, theme.background);
     assert.notEqual(theme.selectedBorder, theme.background);

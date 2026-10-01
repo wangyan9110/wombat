@@ -17,7 +17,7 @@ Wombat 是 Codex Token 用量追踪工具。从用量高峰找到相关对话，
 
 ## 开始使用
 
-需要 macOS Apple Silicon、Node.js **26.4.0+**，以及本机已有的 Codex 日志。
+需要 Node.js **26.4.0+** 和本机已有的 Codex 日志。npm 候选覆盖目标为 macOS（Apple Silicon / Intel）、Linux（x64 / ARM64，glibc）和 Windows x64。各平台验收见[支持矩阵](docs/reference/support-matrix.md)；配置了 CI 目标不代表已经通过发行验收。
 
 以下为 npm 发布后的安装方式；当前尚未公开发布，可先按下方开发说明从源码运行。
 
@@ -143,7 +143,7 @@ WOMBAT_AUTO_PRICES=0 wombat
 
 **你找到消耗最高的轮次了吗？** 如果没找到，欢迎在 [Issues](https://github.com/wangyan9110/wombat/issues) 中告诉我们卡在哪一步，并附上平台、Wombat 版本和复现步骤。描述问题即可，无需分享私人日志。
 
-开发环境与检查方式见[贡献指南](CONTRIBUTING.zh-CN.md)。
+开发环境与检查方式见[贡献指南](CONTRIBUTING.zh-CN.md)。疑似漏洞按[安全说明](SECURITY.zh-CN.md)报告，不要公开私人证据。
 
 ## 开发与发布
 

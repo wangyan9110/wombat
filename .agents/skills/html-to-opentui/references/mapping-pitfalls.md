@@ -16,6 +16,8 @@ The prototype may distinguish a selected report row, a selected conversation, an
 
 Native controls can supply their own default colors even when the surrounding page omits its theme colors. For example, the installed Select may use a colored selected background by default. In `NO_COLOR`, explicitly use the native terminal-default foreground/background APIs for fields and selections, and retain a visible selection indicator or inverse focus on actions. Verify the actual cell color intent and focus transition; merely passing `color: false` to a page wrapper is insufficient.
 
+An unselected rail painted with the page background becomes a visible dark stripe when its row is hovered. If the source rail is transparent, its fallback color must follow the row's current surface. Test selected A plus hovered B; a single selected snapshot misses this interaction. A hovered row is not necessarily another selected row: preserve the source hover behavior while removing unintended selection-like decoration.
+
 ## Typography
 
 **Symptom:** actual terminal text looks heavier or different from the HTML preview.
@@ -80,6 +82,14 @@ A CSS meter only a few pixels high should not automatically become a box with a 
 
 Verify 0%, an intermediate fraction, and 100%. Check that no stray track or fill cell appears at endpoints, the intermediate split is within one cell of rounding, track and progress colors are correct, and selection does not turn it back into a solid strip. The line glyph's actual stroke thickness depends on the terminal font; it is not an exact browser-pixel measurement. Recheck the mapping if the prototype uses a different meter design.
 
+## Painted bounds and visual assets
+
+In OpenTUI 0.5.12, a Box background also colors the character cells containing a rounded border. The border stroke only uses part of each cell, so a selected background on the outer Box can appear as a rectangular halo outside the outline. A native inner fill with parent-colored border cells removes that halo, but does not create pixel-perfect fill up to the curved stroke. Check both interior and exterior paint; asserting that every border cell has the selected background would preserve the defect.
+
+Likewise, `▃` occupies the lower part of its cell. Centering its Box does not center the meter ink relative to neighboring text. Choose an appropriate centered native stroke or another supported rendering policy, then verify complete-row spacing and selected hit/scroll bounds. Do not claim rectangle equality measured glyph alignment.
+
+A logo hidden in CSS `mask: url(...)` can be missed by an HTML/CSS/JS-only source list. Track the asset bytes as well as the declaration. Inspect the installed native image component, protocol capability selection and fallback before substituting text characters. Font-dependent glyphs cannot faithfully represent every compact asset; preserve the graphic or keep the substitution visibly unresolved, rather than repeatedly calling it a completed approximation.
+
 ## Evidence and delivery
 
 Use a small per-component record: source element/state → winning declarations → native properties → cell geometry/style checks → any remaining approximation. Keep private source inventories and captures outside public repositories; public tests should use synthetic data and standalone semantic expectations.
@@ -95,3 +105,9 @@ For an installed app, test the actual installed entry and compare all loaded JS 
 A prototype change and an implementation edit are separate evidence. Keep accepted hashes and mappings; use the incremental workflow to report both-sided changes before modifying code. Never update a baseline just to make checks pass.
 
 A native column can have correct geometry while a text child extends into its neighbor. Test child bounds, actual numeric text and the visible gutter, including breakpoint widths and long values. Native fractional growth can expose rounding differences; use an explicit integer track policy where required rather than silently truncating amounts. Recheck header/data/total alignment after adapting tracks. Screen resize must update related properties together, such as a navigation rule, tab border color and shared baseline margin.
+
+Parent bounds are not the usable content area. Border and padding can be overwritten even when a child passes outer containment. The [comparison helper](comparison-workflow.md#content-bounds-not-just-outer-bounds) can check captured content rectangles. Do not assume `auto`, `100%`, `maxWidth` or clipping alone resolves the mismatch.
+
+In a local OpenTUI 0.5.12 experiment, a percentage column resolved to 33 cells with one border and one padding cell on each side. Its Input resolved to 31 cells instead of the 29-cell content area. Constructing the same component with an integer track produced 29. Changing the child to `auto`, adding `maxWidth:'100%'`, or switching the parent to equal flex growth did not reliably remove the mismatch. Another experiment showed that freezing rendered parent widths did not remove oversized Text descendants; explicitly constraining leaf content width did. These are version-specific observations, not universal percentage-layout rules or proof of an upstream algorithm defect.
+
+For recurrence, isolate synthetic long values and record settled outer/content/leaf bounds. Compare original constraints, integer track construction and explicit leaf constraints separately at initial render and resize. Check exact text after containment passes. Prefer a correction in the owning native component over scattered per-frame coordinate patches; an isolated passing experiment does not establish application fidelity.

@@ -28,7 +28,7 @@ async function fixture() {
   await mkdir(path.join(source, 'sessions'), { recursive: true });
   await mkdir(path.join(source, 'archived_sessions'), { recursive: true });
   await mkdir(workspace, { recursive: true });
-  const env = { ...process.env, WOMBAT_DATA_HOME: data, CODEX_HOME: source };
+  const env = { ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_LANG: 'zh', WOMBAT_DATA_HOME: data, CODEX_HOME: source };
   const first = [
     envelope('2026-09-28T23:40:00Z', 'session_meta', { id: 'thread-a', cwd: workspace, ignored_body: sentinel }),
     envelope('2026-09-28T23:45:00Z', 'turn_context', { turn_id: 'turn-a1', model: 'gpt-5.3-codex', effort: 'medium', cwd: workspace }),
@@ -75,6 +75,48 @@ async function fixture() {
 }
 const allDates = { timezone: 'UTC', since: '2026-09-28', until: '2026-09-30' };
 
+test('distribution uses whole-range scales and shares before pagination; cost order keeps unknown last', async () => {
+  const f = await fixture();
+  try {
+    const snapshotId = f.refresh().snapshotRef.snapshotId;
+    const request = { action: 'usage', snapshotId, scope: allDates, presentation: 'distribution', sort: 'cost', limit: 1 };
+    const first = f.query(request);
+    assert.equal(first.page.total, 2);
+    assert.equal(first.items.length, 1);
+    assert.equal(first.items[0].isSubtotal, true);
+    assert.equal(first.items[0].date, '2026-09-29');
+    assert.equal(first.distribution.maxTokens, 4_000);
+    assert.equal(first.distribution.unpricedTokens, 500);
+    assert.equal(first.distribution.maxCost, '0.0122875');
+    assert.deepEqual(first.distribution.peakTokenDates, ['2026-09-29']);
+    assert.equal(first.items[0].share, 4_000 / 5_100);
+    assert(Math.abs(first.items[0].costShare - 0.0122875 / 0.0151225) < 1e-12);
+    const details = f.query({ ...request, presentation: 'details' });
+    assert.equal(details.page.total, 2); assert.equal(details.page.nextOffset, 1);
+    assert(details.items.length > 1, 'period pagination must retain every model in the period');
+    assert(details.items.every((item: any) => item.date === '2026-09-29'));
+    const second = f.query({ ...request, offset: 1 });
+    assert.deepEqual(second.distribution, first.distribution);
+    assert.equal(second.items[0].date, '2026-09-28');
+    assert.equal(second.items[0].share, 1_100 / 5_100);
+    const threads = f.query({ action: 'threads', snapshotId, scope: allDates, sort: 'cost' });
+    assert.deepEqual(threads.items.map((item: any) => item.title), ['主工程', '归档实验']);
+    assert.equal(threads.items[1].threadUsage.price.status, 'unknown');
+    const linked = f.query({ action: 'threads', snapshotId, scope: { ...allDates, since: '2026-09-29', model: 'gpt-5.4' }, sort: 'tokens' });
+    assert.equal(linked.items[0].threadUsage.tokens.total, 4_600);
+    assert.equal(linked.items[0].matchedUsage.tokens.total, 1_300);
+    const turns = f.query({ action: 'turns', snapshotId, threadId: linked.items[0].id, scope: linked.scope, sort: 'cost' });
+    assert.equal(turns.items.length, 2, 'a report link retains all turns');
+    assert.equal(turns.summary.tokens.total, 4_600);
+    assert(turns.items.some((item: any) => item.matchedUsage.measurementCount === 0));
+    assert(Math.abs(turns.items.reduce((sum: number, item: any) => sum + item.costShare, 0) - 1) < 1e-12);
+    const cli = f.invokeCli(['usage', '--snapshot', snapshotId, '--since', allDates.since, '--until', allDates.until, '--presentation', 'distribution', '--sort', 'cost', '--limit', '1', '--json']);
+    assert.equal(cli.status, first.quality.status === 'partial' ? 2 : 0);
+    assert.deepEqual(cli.value.distribution, first.distribution);
+    assert.equal(cli.value.items.length, 1);
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
+});
+
 test('CLI refresh reads nested Codex settings and prices a current model', async () => {
   const f = await fixture();
   try {
@@ -84,7 +126,7 @@ test('CLI refresh reads nested Codex settings and prices a current model', async
       measurement('2026-09-29T03:00:02Z', 'thread-c', 'turn-c1', 'response-c1', usage(1_000, 100, 100)),
     ]));
     const refreshed = f.invokeCli(['refresh', '--root', f.source, '--json']);
-    assert.equal(refreshed.status, 0);
+    assert.equal(refreshed.status, 0, refreshed.stdout);
     assert.equal(refreshed.value.action, 'refresh');
     const queried = f.invokeCli(['usage', '--model', 'gpt-6-sol', '--since', '2026-09-29', '--until', '2026-09-30', '--json']);
     assert.equal(queried.status, 0);
@@ -92,7 +134,7 @@ test('CLI refresh reads nested Codex settings and prices a current model', async
     assert.equal(queried.value.summary.price.status, 'priced');
     assert.equal(queried.value.summary.price.cost, '0.00282');
     assert.equal(queried.value.items.find((item: any) => !item.isSubtotal).model, 'gpt-6-sol');
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('v3 用量 → 跨日对话 → 轮次 → 操作，Token 和十进制金额全链路守恒', async () => {
@@ -144,7 +186,7 @@ test('v3 用量 → 跨日对话 → 轮次 → 操作，Token 和十进制金�
     assert.equal(back.scope.since, null);
     assert.equal(back.scope.until, null);
     assert.deepEqual(back.availableRange, { since: '2026-09-28', until: '2026-09-30' });
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('固定快照分页前排序，更新不改变旧页总量、费用或占比', async () => {
@@ -174,7 +216,7 @@ test('固定快照分页前排序，更新不改变旧页总量、费用或占�
     const oldNext = f.query({ action: 'threads', snapshotId, offset: 1, limit: 1 });
     assert.deepEqual(oldNext.summary, threads.summary);
     assert.equal(oldNext.items[0].title, '归档实验');
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('对话搜索汇总对应命中集合，周/月边界只计所选日期', async () => {
@@ -194,7 +236,7 @@ test('对话搜索汇总对应命中集合，周/月边界只计所选日期', a
     }
     const shifted = f.query({ action: 'usage', snapshotId, scope: { timezone: 'Asia/Shanghai', since: '2026-09-29', until: '2026-09-30' } });
     assert.equal(shifted.summary.tokens.total, 5_100);
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('部分来源失败保留成功账本，全部失败保留旧快照', async () => {
@@ -212,7 +254,7 @@ test('部分来源失败保留成功账本，全部失败保留旧快照', async
     const failed = f.raw({ action: 'refresh', roots: [path.join(f.root, 'nonexistent-source')] });
     assert.equal(failed.ok, false);
     assert.equal(await readFile(path.join(f.data, 'usage-v3', 'latest.json'), 'utf8'), latest);
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('日期按真实时区跨夏令时和年份分组，不以固定24小时切日', async () => {
@@ -237,7 +279,7 @@ test('日期按真实时区跨夏令时和年份分组，不以固定24小时切
     assert.deepEqual(months.items.filter((r: any) => r.isSubtotal).map((r: any) => [r.date, r.endDate, r.usage.tokens.total]), [
       ['2027-01-01', '2027-01-01', 110], ['2026-12-31', '2026-12-31', 110],
     ]);
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('无 TTY CLI 与 Rust 查询一致，JSON stdout 只有最终结果', async () => {
@@ -254,7 +296,7 @@ test('无 TTY CLI 与 Rust 查询一致，JSON stdout 只有最终结果', async
     assert.deepEqual(cliResult.value, native);
     const bad = f.invokeCli(['turns', '--json']);
     assert.equal(bad.status, 1); assert.equal(bad.value.error.code, 'INVALID_ARGUMENT');
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('聚合超出安全整数范围时拒绝发布，保留上次可查询快照', async () => {
@@ -274,7 +316,7 @@ test('聚合超出安全整数范围时拒绝发布，保留上次可查询快�
     const current = f.query({ action: 'threads' });
     assert.equal(current.snapshotRef.snapshotId, prior.snapshotRef.snapshotId);
     assert.equal(current.summary.tokens.total, 5_100);
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('快照不持久化正文，分片损坏和路径穿越被拒绝', async () => {
@@ -299,7 +341,7 @@ test('快照不持久化正文，分片损坏和路径穿越被拒绝', async ()
     assert.equal(f.raw({ action: 'usage', snapshotId, scope: allDates }).code, 'SNAPSHOT_CORRUPT');
     await writeFile(manifestFile, manifestText);
     assert.equal(f.raw({ action: 'usage', snapshotId: '../../outside' }).code, 'INVALID_ARGUMENT');
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('v1/v2 快照只读保留金额政策、部分计价和未知状态，不伪造轮次', async () => {
@@ -328,7 +370,7 @@ test('v1/v2 快照只读保留金额政策、部分计价和未知状态，不�
       assert.equal(detail.ok, false); assert.equal(detail.code, 'DETAIL_UNAVAILABLE');
       assert.equal(await readFile(file, 'utf8'), bytes);
     }
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('此对话全部用量保留无日期计量；未知日期分项能精确关联', async () => {
@@ -351,7 +393,7 @@ test('此对话全部用量保留无日期计量；未知日期分项能精确�
     const dated = f.query({ action: 'usage', snapshotId, scope: { ...allDates, threadId: thread.id } });
     assert.equal(dated.summary.tokens.total, 4_600);
     assert.equal(f.raw({ action: 'usage', scope: { ...allDates, undated: true } }).code, 'INVALID_ARGUMENT');
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
 test('CLI automatic daily, weekly and monthly ranges include older data while explicit dates stay fixed', async () => {
@@ -368,7 +410,7 @@ test('CLI automatic daily, weekly and monthly ranges include older data while ex
     }
     await writeFile(path.join(f.source, 'sessions', 'report-ranges.jsonl'), jsonl(rows));
     const snapshot = f.refresh().snapshotRef.snapshotId;
-    for (const [group, expected] of [['day', 110], ['week', 330], ['month', 770]] as const) {
+    for (const [group, expected] of [['day', 330], ['week', 770], ['month', 770]] as const) {
       const args = ['usage', '--snapshot', snapshot, '--group', group, '--model', model, '--timezone', 'UTC', '--json'];
       const result = f.invokeCli(args);
       assert.equal(result.status, 0);
@@ -382,5 +424,5 @@ test('CLI automatic daily, weekly and monthly ranges include older data while ex
       assert.equal(explicit.value.scope.since, day(10));
       assert.equal(explicit.value.scope.until, today);
     }
-  } finally { await rm(f.root, { recursive: true, force: true }); }
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });

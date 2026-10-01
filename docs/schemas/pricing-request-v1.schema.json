@@ -16,7 +16,8 @@
       "type": "string",
       "enum": [
         "status",
-        "update"
+        "update",
+        "auto_update"
       ]
     }
   }

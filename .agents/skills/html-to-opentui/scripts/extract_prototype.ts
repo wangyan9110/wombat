@@ -11,14 +11,35 @@ import type { Inventory, Location } from './types.ts';
 import { args, main, writeJson } from './io.ts';
 export function extract(htmlPath: string, extraSources: string[] = []): Inventory {
   const html = resolve(htmlPath);
-  const result: Inventory = { schemaVersion: 3, hashEncoding: 'raw-bytes', computed: false, executed: false, sources: [], rules: [], issues: [], scripts: [], elements: [] };
+  const result: Inventory = { schemaVersion: 3, hashEncoding: 'raw-bytes', computed: false, executed: false, sources: [], assets: [], rules: [], issues: [], scripts: [], elements: [] };
   const seen = new Set<string>(), visitedJs = new Set<string>();
-  function source(file: string): string | undefined {
+  function fingerprint(file: string): Buffer | undefined {
     try {
       const bytes = readFileSync(file);
       if (!seen.has(file)) { seen.add(file); result.sources.push({ path: file, sha256: createHash('sha256').update(bytes).digest('hex') }); }
-      return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^\uFEFF/, '');
+      return bytes;
     } catch (error) { result.issues.push({ source: file, reason: String(error) }); return undefined; }
+  }
+  function source(file: string): string | undefined {
+    const bytes = fingerprint(file); if (!bytes) return;
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^\uFEFF/, ''); }
+    catch (error) { result.issues.push({ source: file, reason: String(error) }); return; }
+  }
+  function asset(ref: string, location: Location, usage: string): void {
+    // Same-document SVG fragments are already fingerprinted with their owner.
+    if (ref.startsWith('#')) { result.assets!.push({ ...location, reference: ref, path: location.source, usage }); return; }
+    const path = local(ref, location.source);
+    result.assets!.push({ ...location, reference: ref, path, usage });
+    if (path) fingerprint(path);
+  }
+  function assetUrls(value: string, location: Location, usage: string): void {
+    valueParser(value).walk(node => {
+      if (node.type !== 'function' || node.value.toLowerCase() !== 'url') return;
+      const parts = node.nodes.filter(n => n.type !== 'space' && n.type !== 'comment');
+      if (parts.length === 1 && ['string', 'word'].includes(parts[0].type)) asset(parts[0].value, location, usage);
+      else result.issues.push({ ...location, reason: 'computed or unsupported asset URL; unresolved' });
+      return false;
+    });
   }
   function local(ref: string, origin: string, module = false): string | undefined {
     if (/^[a-z][a-z\d+.-]*:|^\/\//i.test(ref) || !ref.split(/[?#]/)[0] || module && !ref.startsWith('.') && !ref.startsWith('/')) {
@@ -35,6 +56,7 @@ export function extract(htmlPath: string, extraSources: string[] = []): Inventor
     let root: postcss.Root;
     try { root = postcss.parse(content, { from: file }); }
     catch (error) { result.issues.push({ source: file, reason: String(error) }); return; }
+    root.walkDecls(decl => assetUrls(decl.value, { source: file, line: (decl.source?.start?.line ?? 1) + offset }, 'css:' + decl.prop));
     function visit(container: postcss.Container, active: string[]): void {
       for (const node of container.nodes ?? []) {
         const location = { source: file, line: (node.source?.start?.line ?? 1) + offset, column: (node.source?.start?.column ?? 1) + ((node.source?.start?.line ?? 1) === 1 ? columnOffset : 0) };
@@ -108,7 +130,14 @@ export function extract(htmlPath: string, extraSources: string[] = []): Inventor
       // Omit synthetic html/head/body nodes inserted by the HTML parser.
       if (node.sourceCodeLocation) result.elements.push({ ...location, tag: node.tagName, attributes, text: ['script','style'].includes(node.tagName) ? '' : node.childNodes.filter(n => 'value' in n).map(n => (n as DefaultTreeAdapterTypes.TextNode).value).join('') });
       if (node.tagName === 'base') result.issues.push({ ...location, reason: 'HTML base URL not applied' });
-      if ('style' in attributes) result.issues.push({ ...location, reason: 'element style attribute requires DOM matching' });
+      if ('style' in attributes) {
+        result.issues.push({ ...location, reason: 'element style attribute requires DOM matching' });
+        assetUrls(attributes.style, location, 'html:style');
+      }
+      if (['img', 'image', 'use', 'source', 'video'].includes(node.tagName)) {
+        for (const name of ['src', 'href', 'xlink:href', 'poster']) if (attributes[name]) asset(attributes[name], location, 'html:' + node.tagName + ':' + name);
+        if (attributes.srcset) result.issues.push({ ...location, reference: attributes.srcset, reason: 'srcset candidates require explicit asset review' });
+      }
       for (const [name, value] of Object.entries(attributes)) if (/^on/i.test(name)) {
         result.issues.push({ ...location, reason: 'inline event handler requires element/action mapping: ' + name });
         const attr = node.sourceCodeLocation?.attrs?.[name];
@@ -132,7 +161,7 @@ export function extract(htmlPath: string, extraSources: string[] = []): Inventor
   }
   walk(parse(content, { sourceCodeLocationInfo: true }));
   for (const extra of extraSources) {
-    const file = resolve(extra); if (/\.[cm]?[jt]sx?$/.test(extname(file))) jsFile(file); else source(file);
+    const file = resolve(extra); if (/\.[cm]?[jt]sx?$/.test(extname(file))) jsFile(file); else fingerprint(file);
   }
   return result;
 }

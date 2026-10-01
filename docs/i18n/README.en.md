@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-Public human-facing documentation is maintained in Chinese and English pairs; existing prose pages are now fully paired. Both languages have equal authority; either may be edited first, and its counterpart is updated in the same change. Use the [terminology table](terminology.md) for terms and the [documentation rules](../AGENTS.md) for ownership. The pairing and confirmation-record approach draws on the [DeepSeek Harness documentation workflow](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/i18n/README.md); this repository uses its own naming and check scope.
+Public human-facing documentation is maintained in Chinese and English pairs; existing prose pages are now fully paired. Both languages have equal authority; either may be edited first, and its counterpart is updated in the same change. Use the [terminology table](terminology.md) for terms and the [documentation rules](../AGENTS.md) for ownership.
 
 ## Files and scope
 

@@ -1,0 +1,22 @@
+name: Bug report / 问题报告
+description: Report a reproducible issue with synthetic data / 使用合成数据报告可复现问题
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read SECURITY.md for vulnerabilities. Never attach real logs, credentials, titles or personal paths.
+        漏洞请先阅读 SECURITY.zh-CN.md。不要上传真实日志、凭据、标题或个人路径。
+  - type: textarea
+    id: environment
+    attributes:
+      label: Version and environment / 版本与环境
+      description: Wombat and Node versions, OS, architecture, terminal, installation method / Wombat 与 Node 版本、系统、架构、终端、安装方式
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal synthetic reproduction / 最小合成复现
+      description: Steps, expected result and actual behavior / 步骤、预期结果与实际行为
+    validations:
+      required: true

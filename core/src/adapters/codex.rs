@@ -44,12 +44,7 @@ impl AgentAdapter for CodexAdapter {
             vec![
                 env::var_os("CODEX_HOME")
                     .map(PathBuf::from)
-                    .unwrap_or_else(|| {
-                        env::var_os("HOME")
-                            .map(PathBuf::from)
-                            .unwrap_or_else(|| PathBuf::from("."))
-                            .join(".codex")
-                    }),
+                    .unwrap_or_else(|| crate::home().join(".codex")),
             ]
         } else {
             request.roots.clone()

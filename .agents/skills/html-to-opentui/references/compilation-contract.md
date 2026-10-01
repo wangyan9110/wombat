@@ -10,6 +10,8 @@ The executable tools currently implement source inventory, source freshness, map
 
 Keep the compiler/adaptation tools separate from product business services. Target products supply their own data client and public model. Generated product code should use OpenTUI and the host's approved public interfaces, without importing private prototype sources or this skill package. Do not copy demonstration data into production defaults.
 
+For translation across the three source languages, follow [source-to-native translation](source-to-native.md) and its HTML/CSS/JavaScript guides. Preserve structure, cascade/layout, control/data flow and observable effects together; a component tree and column configuration alone do not establish fidelity.
+
 ## Intermediate representation
 
 Keep these concerns separate, with stable IDs and source locations:
@@ -23,6 +25,10 @@ Keep these concerns separate, with stable IDs and source locations:
 | Transition | From/action/to, guard if any, keyboard/mouse binding, retained data, focus destination |
 | Effect | Data request, cancellation, actual progress, error result; narrow host adapter |
 | Provenance | Source paths/hashes, selectors/symbols, observation scenario, confidence/unresolved reasons |
+| Coverage | Encountered constructs, conditions/dependencies, native/adapted/unresolved/out-of-scope decision, target symbols and verification status |
+| Lifecycle | State/effect owners, initialization, updates, concurrency, disposal and intentional resets |
+
+The optional `coverage`, `environment`, `stateOwnership`, `effects`, component `structure`, transition `event`/reads/writes and scenario `outcomes` fields express these broader semantics. The `native` field names an API verified in the installed target version instead of restricting the plan to five widget classes. These are authoring fields; the existing scripts do not consume them as an executable compiler or run behavioral assertions. Keep the serialized inventory and incremental `Bindings` contracts separate.
 
 For a JS click handler that sets a period, clears selection and redraws, preserve those state changes as a named action. Bind both pointer and keyboard inputs to that action. Rendering should update native components without discarding input drafts, stable selection IDs or scroll unnecessarily. A prototype's full DOM replacement is not a requirement to destroy the entire terminal tree.
 

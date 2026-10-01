@@ -86,6 +86,16 @@
             }
           ]
         },
+        "presentation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Presentation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "threadId": {
           "type": [
             "string",
@@ -226,8 +236,16 @@
       "type": "string",
       "enum": [
         "tokens",
+        "cost",
         "recent",
         "time"
+      ]
+    },
+    "Presentation": {
+      "type": "string",
+      "enum": [
+        "distribution",
+        "details"
       ]
     },
     "Mode": {

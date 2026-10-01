@@ -4,7 +4,7 @@ import { createTestRenderer } from '@opentui/core/testing';
 import { TerminalUI } from '../src/components/terminal-ui.js';
 import { terminalThemes } from '../src/themes/index.js';
 import type { Frame } from '../src/components/view-model.js';
-const frame: Frame = { title: 'Wombat / 日报', intro: ['9月24日—30日'], nav: '1 用量      2 对话', activeTab: '1 用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', footer: 'Q 退出', choices: [
+const frame: Frame = { title: 'Wombat / 日报', intro: ['9月24日—30日'], nav: '1 用量      2 对话', activeTab: '用量', controlKind: 'group', controlOptions: ['按天', '按周', '按月'], activeControl: '按天', footer: 'Q 退出', choices: [
   { id: 'day', reportGroup: 'a', kind: 'subtotal', lines: ['9月29日 ›   110 Token · $0.20'] },
   { id: 'model', reportGroup: 'a', kind: 'model', lines: ['gpt-5.4 · 高 · 110 Token · $0.20'] },
   { id: 'next-day', reportGroup: 'b', kind: 'subtotal', lines: ['9月28日 ›   200 Token · $0.30'] },
@@ -16,14 +16,14 @@ for (const [width, height] of [[40, 14], [80, 24], [120, 32]]) test(`OpenTUI ${w
     const answer = ui.choose(frame);
     await setup.flush(); await setup.flush();
     const text = setup.captureCharFrame();
-    assert.match(text, /╭──────╮ ╭──────╮ ╭──────╮/);
+    assert(text.split('\n').some(line => ['按天', '按周', '按月'].every(label => line.includes(label))), 'period labels share one compact control row');
     assert.match(text, /按天/); assert.match(text, /9月29日/); assert.match(text, /110 Token/);
     setup.mockInput.pressArrow('down'); await setup.flush();
     setup.mockInput.pressKey('RETURN');
     assert.equal((await answer).id, 'model');
     const mouseAnswer = ui.choose(frame); await setup.flush();
     const week = setup.renderer.root.findDescendantById('group:1')!;
-    assert(week); await setup.mockMouse.click(week.x + 2, week.y + 1);
+    assert(week); await setup.mockMouse.click(week.x + 2, week.y);
     assert.equal((await mouseAnswer).id, 'group:1');
   } finally { ui.destroy(); }
 });
@@ -50,7 +50,7 @@ test('themes produce identical text with distinct native cell styles', async () 
     try { void ui.choose(frame); await setup.flush(); texts.push(setup.captureCharFrame()); colors.push(JSON.stringify(setup.captureSpans())); }
     finally { ui.destroy(); }
   }
-  assert.equal(new Set(texts).size, 1); assert.equal(new Set(colors).size, 3);
+  assert.equal(new Set(texts).size, 1); assert.equal(new Set(colors).size, 4);
 });
 test('native input handles Chinese paste and cancel; narrow errors remain visible', async () => {
   const setup = await createTestRenderer({ width: 40, height: 14 });

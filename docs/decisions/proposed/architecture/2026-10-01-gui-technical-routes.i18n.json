@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-gui-technical-routes": {
+      "zh": "37bf6ac2327c7ebb8b1dacee679f3fb1c04670e597470344c64948b2a06db24e",
+      "en": "3f3935659ca0da2e174c996293ab4385f35d3d8dec8a8bde2853247b27afb167"
+    },
+    "/decision-note-gui-technical-routes/problem": {
+      "zh": "8630ac59074058f0c715f81d78d4274ae5ba7c38c6a4a9ce2af1febf22e2cd5e",
+      "en": "bb6a4b2e635321a4474d37b9f1d2180730918b1635b1c7cdff2a84dc7349c96f"
+    },
+    "/decision-note-gui-technical-routes/proposal": {
+      "zh": "ca258a5d37ffa6a0ba7c117647724fda51cdfe6385c17e4b18e9127ab0445f72",
+      "en": "986dd8097aac4d3d9e25cf3e2cef01c77daedde5ce18afa375f7c433f9d8bc72"
+    },
+    "/decision-note-gui-technical-routes/proposal/selected-framework-and-core-integration": {
+      "zh": "71fea878ce4753d48a91b26ae206fe106daa4becdd82952e33e984fbaf9d9b0b",
+      "en": "b5ea6e299a86eb34c4bc49d0e76c7b6962d526b5f7d32799d1d3cf660898e9a0"
+    },
+    "/decision-note-gui-technical-routes/proposal/the-role-of-gui-and-cli-and-cli-web": {
+      "zh": "744f50f3f180288bf56b16a91dc669d20c67cb057cdc5222ce15e80990af4b6c",
+      "en": "a5bb2f649b9c7f1a80cb92de9c3ff8bd12b1feceac270ab5649c9d6b98789d60"
+    },
+    "/decision-note-gui-technical-routes/proposal/candidate-reuse-between-desktop-and-web": {
+      "zh": "5fb886966eb605b384afd2f281a518e76d4a93f3b235cb35b61815800581b06f",
+      "en": "5a565dc8ff6a3ffedc824abedb6ee932b64c593b289e52e72e4fb20a4c645a9c"
+    },
+    "/decision-note-gui-technical-routes/proposal/host-and-communication-boundaries": {
+      "zh": "d4acc1592282f9d4b70269df8243053c24107f5eb679be38bc90935d60bf1a4c",
+      "en": "a43ccb234266e26641beb4b81d504c2400545ae8bffc76e667f82caa7c34cda4"
+    },
+    "/decision-note-gui-technical-routes/alternatives-considered": {
+      "zh": "1ffe40a37532c7a9a944e26b3c47fdd7306d93d98a2e9efc28f23fdc045f4d7a",
+      "en": "07f0b71e7b24ecf5a1884cdabfe0b7d8000d621ce6acfdc19027c0f0b92ec524"
+    },
+    "/decision-note-gui-technical-routes/alternatives-considered/limits-of-performance-conclusions": {
+      "zh": "30f0b09b3b1b4f0ca022e88c6bfefc645751ddccce94d5143c2194511c469a0e",
+      "en": "8b98b9e23de5496063ad94fa013c3950f582b2856f1890db3f8a9ceeb87858d4"
+    },
+    "/decision-note-gui-technical-routes/acceptance-criteria": {
+      "zh": "df9e9560d530e0feb74cc3f7b9cab6e5fdd84e3fe429f9b796961a1e145cac23",
+      "en": "a7cc2a4eac644e929d828015be9d822756a387509f9f8ff650b8f95e83d8084b"
+    }
+  }
+}

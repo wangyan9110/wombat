@@ -1,0 +1,150 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: Verify ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15, target: darwin-arm64 }
+          - { runner: macos-15-intel, target: darwin-x64 }
+          - { runner: ubuntu-24.04, target: linux-x64 }
+          - { runner: ubuntu-24.04-arm, target: linux-arm64 }
+          - { runner: windows-2025, target: win32-x64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      WOMBAT_AUTO_PRICES: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - name: Install locked tools and dependencies
+        run: |
+          echo "CODEX_HOME=$RUNNER_TEMP/wombat-source" >> "$GITHUB_ENV"
+          echo "WOMBAT_DATA_HOME=$RUNNER_TEMP/wombat-data" >> "$GITHUB_ENV"
+          npm install --global corepack@0.33.0
+          corepack pnpm install --frozen-lockfile
+          rustup show
+          rustup component add rustfmt clippy
+          cargo fetch --locked --manifest-path core/Cargo.toml
+      - name: Inventory native dependencies on this target
+        if: matrix.target != 'darwin-arm64'
+        run: corepack pnpm licenses:generate
+      - name: Release gate and scoped npm installation
+        run: corepack pnpm npm:pack -- --name @wangyan9110/wombat --current-platform
+      - name: Real POSIX terminal journeys
+        if: runner.os != 'Windows'
+        run: |
+          node --input-type=module -e 'import{createRequire}from"node:module";import{chmodSync,existsSync}from"node:fs";import path from"node:path";const r=createRequire(import.meta.url);const p=path.join(path.dirname(r.resolve("node-pty/package.json")),"prebuilds",`${process.platform}-${process.arch}`,"spawn-helper");if(existsSync(p))chmodSync(p,0o755);'
+          node --import tsx scripts/smoke-usage-v1-terminal.ts > terminal-evidence.json
+      - name: Export verified native artifact
+        run: corepack pnpm native:export
+      - name: Real Windows terminal journey
+        if: runner.os == 'Windows'
+        run: node --import tsx scripts/smoke-windows-terminal.ts > terminal-evidence.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-${{ matrix.target }}
+          path: dist/native-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: terminal-${{ matrix.target }}
+          path: terminal-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+  npm-candidate:
+    name: Assemble universal npm candidate
+    needs: verify
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: native-*
+          path: native-artifacts
+          merge-multiple: true
+      - name: Build and verify universal archive
+        run: |
+          npm install --global corepack@0.33.0
+          corepack pnpm install --frozen-lockfile
+          rustup show
+          rustup component add rustfmt clippy
+          cargo fetch --locked --manifest-path core/Cargo.toml
+          corepack pnpm npm:pack -- --name @wangyan9110/wombat --native-dir native-artifacts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-candidate
+          path: dist/npm/**/*.tgz
+          if-no-files-found: error
+          retention-days: 14
+  dependency-audit:
+    name: Dependency advisories
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - run: |
+          npm install --global corepack@0.33.0
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm audit --audit-level moderate
+          cargo install --locked cargo-audit --version 0.22.2
+          cargo audit --file core/Cargo.lock
+  install-candidate:
+    name: Install final npm package (${{ matrix.runner }})
+    needs: npm-candidate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm, windows-2025]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: npm-candidate
+          path: candidate
+      - name: Install and exercise the exact assembled package
+        run: |
+          archive=$(find candidate -name '*.tgz' -type f)
+          node scripts/verify-npm-install.ts --archive "$archive"

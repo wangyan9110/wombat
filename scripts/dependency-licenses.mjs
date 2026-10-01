@@ -1,3 +1,4 @@
+import { toolCommand } from './run-tool.ts';
 // Local metadata only: no installs, dependency upgrades, or network requests.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -11,7 +12,7 @@ const check = process.argv.includes('--check');
 const hash = data => createHash('sha256').update(data).digest('hex');
 const read = file => readFileSync(file, 'utf8');
 function run(program, args) {
-  const result = spawnSync(program, args, { cwd: root, encoding: 'utf8', timeout: 60000, maxBuffer: 32 * 1024 * 1024 });
+  const result = spawnSync(...toolCommand(program, args), { cwd: root, encoding: 'utf8', timeout: 60000, maxBuffer: 32 * 1024 * 1024 });
   if (result.error || result.status !== 0) throw new Error(`${program} metadata failed: ${result.error?.message || result.stderr.trim()}`);
   return JSON.parse(result.stdout);
 }

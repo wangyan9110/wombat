@@ -15,7 +15,6 @@ Keep repository-wide rules at the root and add local rules where modules, docs, 
 ## Alternatives considered
 
 - **Keep only the root file**: module detail would remain in every session's baseline context, while docs and Skills would lack nearby ownership.
-- **Copy all DeepSeek Harness directories, templates, and checks**: those serve a larger plugin repository and a fully bilingual corpus, adding workflows and a bulk migration with no matching Wombat content.
 
 ## Consequences and verification
 

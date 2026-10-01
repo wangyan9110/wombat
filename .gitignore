@@ -6,6 +6,16 @@ __pycache__/
 *.pyc
 *.tgz
 core/target/
+/native-artifacts/
+/terminal-evidence.json
+
+# Local credentials and environment overrides are never publication inputs.
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
 
 # Internal planning and design archives live outside the public repository.
 /internal/

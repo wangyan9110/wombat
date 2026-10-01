@@ -23,7 +23,7 @@ for(const [width,height] of [[40,14],[80,24],[120,32]])test(`price table/cards p
    assert(pair(1).x+pair(1).width<=width);
   }
   const span=setup.captureSpans().lines.flatMap(line=>line.spans).find(span=>span.text.includes('model-0'))!;
-  assert(span.fg.equals(RGBA.fromHex('#dbeee0')));assert(span.attributes&TextAttributes.BOLD);assert(span.bg.equals(RGBA.fromHex('#223b2b')));
+  assert(span.fg.equals(RGBA.fromHex('#e5f1e8')));assert(span.attributes&TextAttributes.BOLD);assert(span.bg.equals(RGBA.fromHex('#2b4a35')));
  }finally{ui.destroy();}
 });
 test('price browser supports cross-page arrows, resize, tiers, expansion, exact model thresholds and return',async()=>{
@@ -36,14 +36,14 @@ test('price browser supports cross-page arrows, resize, tiers, expansion, exact 
  try{
   await visible('model-0');
   const activeTab=setup.renderer.root.findDescendantById('threads-tab')!;
-  const tabSpan=setup.captureSpans().lines[activeTab.y].spans.find(span=>span.text.includes('2 对话'))!;
-  assert(tabSpan.fg.equals(RGBA.fromHex('#d7e9dc')), 'price page retains its originating entry');
+  const tabSpan=setup.captureSpans().lines[activeTab.y].spans.find(span=>span.text.includes('对话'))!;
+  assert(tabSpan.fg.equals(RGBA.fromHex('#e5f1e8')), 'price page retains its originating entry');
   await press('RETURN');await visible('200,000 Token');assert.doesNotMatch(setup.captureCharFrame(),/272,000/);
   assert.match(setup.captureCharFrame(),/查看官方模型价格/);
   assert.doesNotMatch(setup.captureCharFrame(),/https:\/\/example/);
   const source=setup.renderer.root.findDescendantById('price-source-0') as TextRenderable;
   assert.equal(source.chunks[0]?.link?.url,'https://example.test/models/0');
-  const tier=setup.renderer.root.findDescendantById('sort:1')!;await setup.mockMouse.click(tier.x+1,tier.y+1);await visible('$0.25');
+  const tier=setup.renderer.root.findDescendantById('sort:1')!;await setup.mockMouse.click(tier.x+1,tier.y);await visible('$0.25');
   await press('s');await visible('$0.125');await press('s');await visible('$0.25');
   await press('ARROW_DOWN');await press('RETURN');await visible('此模型未列长上下文档');
   await press('END');await visible('model-11');setup.resize(40,20);await setup.flush();await setup.renderOnce();assert.match(setup.captureCharFrame(),/model-11/);

@@ -1,6 +1,11 @@
 {
   "pairs": [
     {
+      "zh": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.i18n.json"
+    },
+    {
       "zh": "docs/decisions/proposed/architecture/2026-09-30-live-usage.md",
       "en": "docs/decisions/proposed/architecture/2026-09-30-live-usage.en.md",
       "record": "docs/decisions/proposed/architecture/2026-09-30-live-usage.i18n.json"
@@ -144,6 +149,26 @@
       "zh": "docs/decisions/implemented/architecture/2026-09-30-snapshot-storage.md",
       "en": "docs/decisions/implemented/architecture/2026-09-30-snapshot-storage.en.md",
       "record": "docs/decisions/implemented/architecture/2026-09-30-snapshot-storage.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-09-30-automatic-prices.md",
+      "en": "docs/decisions/implemented/architecture/2026-09-30-automatic-prices.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-09-30-automatic-prices.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/product/2026-09-30-report-distribution.md",
+      "en": "docs/decisions/implemented/product/2026-09-30-report-distribution.en.md",
+      "record": "docs/decisions/implemented/product/2026-09-30-report-distribution.i18n.json"
+    },
+    {
+      "zh": "SECURITY.zh-CN.md",
+      "en": "SECURITY.md",
+      "record": "SECURITY.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.md",
+      "en": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.i18n.json"
     }
   ],
   "legacyUnpaired": [],

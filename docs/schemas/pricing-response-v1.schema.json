@@ -3,6 +3,19 @@
   "title": "Response",
   "type": "object",
   "properties": {
+    "automatic": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Automatic"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "downloadRequired": {
+      "type": "boolean"
+    },
     "outputVersion": {
       "type": "integer",
       "minimum": 0,
@@ -44,11 +57,51 @@
     "catalog"
   ],
   "definitions": {
+    "Automatic": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/AutomaticStatus"
+        },
+        "attemptId": {
+          "type": "string"
+        },
+        "attemptedAt": {
+          "type": "string"
+        },
+        "retryAt": {
+          "type": "string"
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "attemptId",
+        "attemptedAt",
+        "retryAt"
+      ]
+    },
+    "AutomaticStatus": {
+      "type": "string",
+      "enum": [
+        "checking",
+        "updated",
+        "unchanged",
+        "failed"
+      ]
+    },
     "Action": {
       "type": "string",
       "enum": [
         "status",
-        "update"
+        "update",
+        "auto_update"
       ]
     },
     "Catalog": {

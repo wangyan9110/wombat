@@ -6,16 +6,33 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
-const binary = path.resolve('dist/wombat-core');
+const binary = path.resolve('dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
 const cli = path.resolve('dist/wombat.js');
 const row = (r: string, input = 100) => JSON.stringify({type:'event_msg',timestamp:'2026-09-29T00:00:01Z',payload:{type:'token_usage_record',thread_id:'t',turn_id:'u',response_id:r,usage:{input_tokens:input,cached_input_tokens:60,cache_write_input_tokens:0,output_tokens:10,reasoning_output_tokens:2,total_tokens:input+10}}});
 
-test('live CLI resumes, keeps fixed views, exports only explicitly and streams append updates', { skip: process.platform === 'win32', timeout: 30_000 }, async () => {
+test('default source uses the user profile without CODEX_HOME', { timeout: 40_000 }, async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-profile-'));
+  const profile = path.join(dir, 'profile');
+  const sessions = path.join(profile, '.codex', 'sessions');
+  await mkdir(sessions, { recursive: true });
+  await writeFile(path.join(sessions, 'one.jsonl'), JSON.stringify({ type: 'session_meta', payload: { id: 't' } }) + '\n' + row('one') + '\n');
+  const env: NodeJS.ProcessEnv = { ...process.env, USERPROFILE: profile, WOMBAT_DATA_HOME: path.join(dir, 'data'), WOMBAT_AUTO_PRICES: '0' };
+  delete env.CODEX_HOME; delete env.WOMBAT_CORE_BIN;
+  if (process.platform === 'win32') delete env.HOME; else env.HOME = profile;
+  try {
+    const result = spawnSync(process.execPath, [cli, 'usage', '--fresh', '--json'], { env, encoding: 'utf8', timeout: 15000 });
+    assert.ifError(result.error);
+    assert.ok([0, 2].includes(result.status!), result.stdout + result.stderr);
+    assert.equal(JSON.parse(result.stdout).summary.tokens.total, 110);
+  } finally { await rm(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
+});
+
+test('live CLI resumes, keeps fixed views, exports only explicitly and streams append updates', { timeout: 30_000 }, async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'wombat-live-'));
   const source = path.join(dir,'source'), data = path.join(dir,'data'), log = path.join(source,'sessions','one.jsonl');
   await mkdir(path.dirname(log), {recursive:true});
   await writeFile(log, JSON.stringify({type:'session_meta',payload:{id:'t'}})+'\n'+JSON.stringify({type:'turn_context',payload:{turn_id:'u',model:'gpt-5.4',effort:'high'}})+'\n'+row('one')+'\n');
-  const env: NodeJS.ProcessEnv = {...process.env, WOMBAT_DATA_HOME:data, CODEX_HOME:source}; delete env.WOMBAT_CORE_BIN;
+  const env: NodeJS.ProcessEnv = {...process.env, WOMBAT_AUTO_PRICES:'0', WOMBAT_DATA_HOME:data, CODEX_HOME:source}; delete env.WOMBAT_CORE_BIN;
   let service: ReturnType<typeof spawn> | undefined;
   const start = async () => { service = spawn(binary,['--serve-usage'],{env,stdio:'ignore'}); await delay(100); };
   const stop = async () => { if(service && service.exitCode === null) { const exited=new Promise(resolve=>service!.once('exit',resolve)); service.kill(); await exited; } };
@@ -49,7 +66,9 @@ test('live CLI resumes, keeps fixed views, exports only explicitly and streams a
       await until(()=>results.some(r=>r.summary?.tokens.total===330));
       const historical=run(['usage','--snapshot',snapshot.snapshotRef.snapshotId]); assert.equal(historical.summary.tokens.total,220);
       const stable=run(['usage','--fresh']); const again=run(['usage','--fresh']); assert.equal(stable.snapshotRef.snapshotId,again.snapshotRef.snapshotId);
-      const exit=new Promise(resolve=>watch.once('close',resolve)); watch.kill('SIGINT'); assert.equal(await exit,130);
+      const exit=new Promise(resolve=>watch.once('close',resolve)); watch.kill('SIGINT');
+      const code = await exit;
+      if (process.platform !== 'win32') assert.equal(code,130); // Windows kill does not deliver a console Ctrl-C event.
     } finally { if(watch.exitCode===null)watch.kill('SIGKILL'); }
   } finally { await stop(); await rm(dir,{recursive:true,force:true}); }
 });

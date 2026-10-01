@@ -2,7 +2,8 @@
 
 export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
 export type Group = "day" | "week" | "month";
-export type Sort = "tokens" | "recent" | "time";
+export type Sort = "tokens" | "cost" | "recent" | "time";
+export type Presentation = "distribution" | "details";
 export type Mode = "auto" | "fresh" | "cached";
 
 export interface Request {
@@ -17,6 +18,7 @@ export interface Request1 {
   scope?: Scope;
   group?: Group | null;
   sort?: Sort | null;
+  presentation?: Presentation | null;
   threadId?: string | null;
   turnId?: string | null;
   search?: string | null;

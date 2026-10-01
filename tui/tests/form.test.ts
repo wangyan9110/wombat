@@ -13,13 +13,13 @@ for (const [width,height] of [[40,14],[80,24],[120,32]]) test(`native filter for
   const flush=async()=>{await setup.flush();await setup.renderOnce();await setup.flush();};
   const press=async(name:string)=>{setup.mockInput.pressKey(name);await flush();};
   try{
-    await flush(); assert.match(setup.captureCharFrame(),/Wombat \/ 筛选/);
+    await flush(); assert.match(setup.captureCharFrame(),/筛选/);
     assert.match(setup.captureCharFrame(),/其他筛选/);
     const select=setup.renderer.root.findDescendantById('input-period') as SelectRenderable;
     assert(select instanceof SelectRenderable); assert.equal(select.height,1);
-    await press('RETURN'); assert.equal(select.height,6);
-    assert.match(setup.captureCharFrame(),/Wombat \/ 筛选/);
-    for (let i = 0; i < 5; i++) await press('ARROW_DOWN'); await press('RETURN'); // automatic -> custom, in place
+    await press('RETURN'); assert.equal(select.height,8);
+    assert.match(setup.captureCharFrame(),/筛选/);
+    for (let i = 0; i < 7; i++) await press('ARROW_DOWN'); await press('RETURN'); // automatic -> custom, in place
     const from=setup.renderer.root.findDescendantById('input-since') as InputRenderable;
     const until=setup.renderer.root.findDescendantById('input-until') as InputRenderable;
     assert(from instanceof InputRenderable); assert(until instanceof InputRenderable);
@@ -50,7 +50,10 @@ test('native form input keeps literal shortcut letters, survives resize, and can
     assert.equal(search.value,'中文 q a t 1'); assert(search.focused);
     const a=setup.renderer.root.findDescendantById('field-search')!;const b=setup.renderer.root.findDescendantById('field-project')!;
     assert.equal(a.x,b.x);assert(b.y>a.y);
+    // Actions scroll with the form; focus navigation reveals them after a short resize.
+    for (let i=0;i<3;i++) { setup.mockInput.pressKey('TAB'); await setup.flush(); await setup.renderOnce(); }
     const cancel=setup.renderer.root.findDescendantById('form-cancel')!;
+    assert(cancel.y >= 0 && cancel.y + cancel.height <= 14);
     await setup.mockMouse.click(cancel.x+1,cancel.y);
     assert.equal((await running).request,original);
   }finally{ui.destroy();}
@@ -64,12 +67,12 @@ test('native select mouse selection and Escape revert stay in the form; fields u
     await setup.flush(); await setup.renderOnce();
     let select=setup.renderer.root.findDescendantById('input-period') as SelectRenderable;
     await setup.mockMouse.click(select.x+1,select.y);await setup.flush();await setup.renderOnce();
-    assert.equal(select.height,6);
+    assert.equal(select.height,8);
     await setup.mockMouse.click(select.x+1,select.y+1);await setup.flush();await setup.renderOnce(); // today
     select=setup.renderer.root.findDescendantById('input-period') as SelectRenderable;
     assert.equal(select.getSelectedOption()!.value,'today');assert.equal(select.height,1);
     const span=setup.captureSpans().lines.flatMap(line=>line.spans).find(span=>span.text.includes('今天'))!;
-    assert(span.fg.equals(RGBA.fromHex('#d9eddf')));assert(span.bg.equals(RGBA.fromHex('#203d2c')));
+    assert(span.fg.equals(RGBA.fromHex('#e5f1e8')));assert(span.bg.equals(RGBA.fromHex('#1d3628')));
     setup.mockInput.pressKey('RETURN');await setup.flush();setup.mockInput.pressArrow('down');await setup.flush();setup.mockInput.pressEscape();await setup.waitForFrame(()=>select.height===1);
     assert.equal(select.getSelectedOption()!.value,'today');assert.equal(select.height,1);
     setup.mockInput.pressEscape();assert.equal((await running).request,original);
@@ -132,7 +135,7 @@ test('form navigation keeps its baseline through short and tall resizes', async 
     void ui.form({ title: 'Wombat / 筛选', activeTab: 'usage', values: {}, fields: [{ id: 'search', label: '搜索' }] });
     for (const height of [24, 14, 32, 19, 20]) {
       setup.resize(80, height); await setup.flush(); await setup.waitForVisualIdle();
-      const nav = setup.renderer.root.findDescendantById('form-navigation')!;
+      const nav = setup.renderer.root.findDescendantById('navigation')!;
       const tab = setup.renderer.root.findDescendantById('usage-tab')!;
       assert.equal(nav.y + nav.height, tab.y + tab.height, `navigation baseline at ${height}`);
       const help = setup.renderer.root.findDescendantById('form-help')!;

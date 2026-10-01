@@ -98,6 +98,14 @@ fn directory() -> Result<PathBuf> {
     builder.create(&path)?;
     Ok(path)
 }
+#[cfg(windows)]
+fn socket_path() -> Result<PathBuf> {
+    Ok(PathBuf::from(format!(
+        r"\\.\pipe\wombat-{}",
+        &crate::hash(fs::canonicalize(directory()?)?.to_string_lossy().as_bytes())[..24]
+    )))
+}
+#[cfg(unix)]
 fn socket_path() -> Result<PathBuf> {
     let root = directory()?;
     // Unix-domain paths are short even when the product data directory is deeply nested.
@@ -531,32 +539,34 @@ fn query(request: Request, shared: &Shared, jobs: &mpsc::SyncSender<Job>) -> Res
         freshness,
     })
 }
-#[cfg(unix)]
 pub fn serve() -> Result<()> {
+    #[cfg(windows)]
+    use crate::live_windows::Listener as UnixListener;
     use notify::Watcher;
     use std::io::{BufRead, BufReader, Write};
+    #[cfg(unix)]
     use std::os::unix::{
         fs::{OpenOptionsExt, PermissionsExt},
         net::UnixListener,
     };
     let root = directory()?;
-    let lock = fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(false)
-        .mode(0o600)
-        .open(root.join("service.lock"))?;
+    let mut options = fs::OpenOptions::new();
+    options.read(true).write(true).create(true).truncate(false);
+    #[cfg(unix)]
+    options.mode(0o600);
+    let lock = options.open(root.join("service.lock"))?;
     if lock.try_lock().is_err() {
         return Ok(());
     }
     let socket = socket_path()?;
+    #[cfg(unix)]
     match fs::remove_file(&socket) {
         Ok(()) => {}
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
         Err(e) => return Err(e.into()),
     }
     let listener = UnixListener::bind(&socket)?;
+    #[cfg(unix)]
     fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))?;
     listener.set_nonblocking(true)?;
     let shared: Shared = Arc::new((Mutex::new(BTreeMap::new()), Condvar::new()));
@@ -713,6 +723,7 @@ pub fn serve() -> Result<()> {
                         let _ = stream.write_all(&bytes);
                     }
                     let _ = stream.write_all(b"\n");
+                    drop(stream);
                     active.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
                 });
             }
@@ -730,13 +741,7 @@ pub fn serve() -> Result<()> {
     }
     drop(jobs);
     let _ = worker.join();
+    #[cfg(unix)]
     let _ = fs::remove_file(socket);
     Ok(())
-}
-#[cfg(not(unix))]
-pub fn serve() -> Result<()> {
-    Err(operation_error(
-        "UNSUPPORTED_PLATFORM",
-        "此平台的实时用量接口尚未提供",
-    ))
 }

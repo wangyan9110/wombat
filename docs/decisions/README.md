@@ -28,3 +28,7 @@
 | implemented | [日周月默认范围](implemented/product/2026-09-30-report-ranges.md) |
 | implemented | [仓库规则与双语确认](implemented/process/2026-09-30-repository-guidance.md) |
 | proposed | [实时用量完整方案（部分交付）](proposed/architecture/2026-09-30-live-usage.md) |
+| proposed | [GUI 与 CLI 及 CLI+Web 技术路线调研](proposed/architecture/2026-10-01-gui-technical-routes.md) |
+| implemented | [缺价触发官方价格检查](implemented/architecture/2026-09-30-automatic-prices.md) |
+| implemented | [报表分布与完整范围查询](implemented/product/2026-09-30-report-distribution.md) |
+| implemented | [跨平台 npm 与本地通信](implemented/architecture/2026-09-30-portable-npm.md) |

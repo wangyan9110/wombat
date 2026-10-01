@@ -9,7 +9,7 @@
 - The package root exports `createUsageClient`, types, and `CoreError` and calls business operations through an injected transport; it loads no Node or terminal library.
 - `createNodeClient` from `@wombat/client/node` manages the local core subprocess, cancellation, timeouts, and response limits.
 - `UsageClient.live` provides auto/fresh/cached queries and freshness; the Node host manages a shared local service, while `query` retains the fixed-snapshot interface.
-- `UsageClient.prices` provides offline inspection and explicit official price updates; the Node host retrieves a fixed HTTPS document, and Rust validates, stores, and applies the prices.
+- `UsageClient.prices` provides offline inspection, explicit updates, and `auto_update` checks for missing prices. The Node live client triggers fixed-HTTPS downloads; Rust owns eligibility, persistent throttling, validation, storage, and pricing.
 - Generated files live in `src/generated/`; field and version authority remains with the Rust DTO and [contracts](../docs/development/contracts.en.md).
 
 - Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).

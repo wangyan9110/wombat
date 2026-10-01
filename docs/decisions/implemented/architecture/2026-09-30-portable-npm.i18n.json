@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-portable-npm-distribution-and-local-transport": {
+      "zh": "7c8436887af4918f42e6c8544dcca1d28491c9a4eb75fe899554b5eaeda4a27d",
+      "en": "b5c2716e79f5f0fd4513a953a32326dc67184a7e149d9a9839b8bad47df0f35b"
+    },
+    "/decision-portable-npm-distribution-and-local-transport/problem": {
+      "zh": "8ba13527d93e6b2327a621f240e10d0e730c7d95787bbe37a1901c6d06f1e7a9",
+      "en": "8a3bf5ac4335a0c22d7252847aea0fd9131ce28b66b1fdf4c325beed7ae43b0e"
+    },
+    "/decision-portable-npm-distribution-and-local-transport/decision": {
+      "zh": "f163c71e00a7bf1efa64bf161570633978feb35e4077a94a69fda5d99c6b774b",
+      "en": "a1dc7755073290fde9794fdce2c56cb05adeab69e6a54101f9da8110a10c6233"
+    },
+    "/decision-portable-npm-distribution-and-local-transport/alternatives-considered": {
+      "zh": "67b263c8ac5e27f9fe334ca125c127739f5cea74a2ca9865f8478148b56340b5",
+      "en": "e3f4433794de0f0719f0235b6c6dc161b49ec8439831da55ef83eb7066c5586b"
+    },
+    "/decision-portable-npm-distribution-and-local-transport/impact-and-verification": {
+      "zh": "8fd8dac1270e5cea8b3c13c9ccd8c528c086848397da4e02fb1bfa882f83830d",
+      "en": "a4f5dd974b101ad3c2996e47e083f51c65ee69879fe3e850dc0e96051f0fc8f1"
+    }
+  }
+}

@@ -9,7 +9,7 @@ Follow the [version-one specification](../project/specification.en.md) and [arch
 - Deliver new capabilities through both terminal interaction and a JSON entry requiring no TTY. Define DTOs in Rust and generate schemas, TS, and runtime validators; do not maintain fields independently on each side.
 - Source adapters normalize facts. Pricing, aggregation, deduplication, and project attribution stay out of Node.
 - Runtime, builds, types, and tests do not depend on ccusage. Lock general libraries as needed; independent synthetic truth establishes accounting acceptance.
-- Original sources are read-only and basic refresh is offline. Snapshots store allowlisted metadata; no text replay or arbitrary execution interface is provided.
+- Original sources are read-only. Live refresh downloads official prices when missing rates can be resolved; WOMBAT_AUTO_PRICES=0 disables this. Snapshots store allowlisted metadata; no text replay or arbitrary execution interface is provided.
 - Keep missing, zero, partially priced, and unknown distinct. Output amounts as decimal strings; lists round for display only.
 - Date ranges include since and exclude until. Use timezone calendar days, Monday week boundaries, and each measurement's date for conversations and turns spanning days.
 - Preserve existing user work before changes. Removing old code must not remove user data directories, identity registrations, or recovery materials.

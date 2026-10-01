@@ -14,7 +14,7 @@ function scripted(events: Event[]) {
 }
 const reference = '2026-09-30T06:26:00Z';
 test('same-page usage fields retain local calendar presets and reset pagination', async () => {
-  for (const [period,since,until] of [['today','2026-09-30','2026-10-01'],['recent','2026-09-24','2026-10-01'],['week','2026-09-28','2026-10-01'],['month','2026-09-01','2026-10-01']]) {
+  for (const [period,since,until] of [['today','2026-09-30','2026-10-01'],['recent','2026-09-01','2026-10-01'],['halfyear','2026-04-01','2026-10-01'],['year','2025-10-01','2026-10-01'],['week','2026-09-28','2026-10-01'],['month','2026-09-01','2026-10-01']]) {
     const s = scripted([{action:'change',patch:{period}}, {action:'apply'}]);
     const {request} = await editTerminalFilters({ action:'usage',offset:50,scope:{timezone:'Asia/Shanghai'} },reference,s.ui);
     assert.deepEqual(s.forms[0].fields.map(field=>field.id),['period']);
@@ -105,7 +105,7 @@ test('dropdowns retain exact project paths and current values; unknown model dif
 test('calendar choices match supported presets; empty custom dates cannot silently revert to seven days', async()=>{
   const s=scripted([{action:'change',patch:{period:'custom'}},{action:'apply'},{action:'apply',patch:{since:'2020-01-01'}}]);
   const result=await editTerminalFilters({action:'usage'},reference,s.ui);
-  assert.deepEqual(s.forms[0].fields[0].options!.map(option=>option.value),['auto','today','recent','week','month','custom']);
+  assert.deepEqual(s.forms[0].fields[0].options!.map(option=>option.value),['auto','today','recent','week','month','halfyear','year','custom']);
   assert.equal(s.forms[0].values.period,'auto');
   assert.equal(s.forms[2].error,'请填写起始或截止日期');
   assert.equal(result.request.scope?.since,'2020-01-01');assert.equal(result.request.scope?.until,undefined);

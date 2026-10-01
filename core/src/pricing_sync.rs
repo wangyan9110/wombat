@@ -11,6 +11,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, fs, io::Read, path::Path};
 
+mod automatic;
+use automatic::automatic_at;
+pub use automatic::{Automatic, AutomaticStatus};
+
 pub const SOURCE: &str = "https://developers.openai.com/api/docs/pricing.md";
 pub const MAX_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
 const LONG_NOTE: &str = "Short context: ≤272K input tokens. Long context: >272K input tokens.";
@@ -22,6 +26,7 @@ const CODEX_HEADER: &str = "| Category | Model | Input | Cached input | Output |
 pub enum Action {
     Status,
     Update,
+    AutoUpdate,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -31,6 +36,10 @@ pub struct Request {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Response {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub automatic: Option<Automatic>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub download_required: bool,
     pub output_version: u32,
     pub action: Action,
     pub origin: String,
@@ -52,6 +61,8 @@ struct Stored {
 struct HostRequest {
     action: Action,
     document: Option<String>,
+    attempt_id: Option<String>,
+    error_code: Option<String>,
 }
 
 fn changed(message: &str) -> anyhow::Error {
@@ -250,6 +261,8 @@ fn response(stored: Option<&Stored>, action: Action, updated: bool) -> Result<Re
         crate::hash(serde_json::to_vec(&catalog)?)
     };
     Ok(Response {
+        automatic: None,
+        download_required: false,
         output_version: 1,
         action,
         origin: if stored.is_some() {
@@ -330,6 +343,17 @@ fn update_at(root: &Path, document: String) -> Result<Response> {
 pub fn dispatch(args: &serde_json::Value) -> Result<serde_json::Value> {
     let request: HostRequest = serde_json::from_value(args.clone())
         .map_err(|_| operation_error("INVALID_ARGUMENT", "无效价表请求"))?;
+    let root = crate::storage::data_home()?.join("prices");
+    if request.action == Action::AutoUpdate {
+        return Ok(serde_json::to_value(automatic_at(
+            &root,
+            request,
+            chrono::Utc::now().timestamp_millis(),
+        )?)?);
+    }
+    if request.attempt_id.is_some() || request.error_code.is_some() {
+        return Err(operation_error("INVALID_ARGUMENT", "无效自动价表请求"));
+    }
     let result = match (request.action, request.document) {
         (Action::Status, None) => current()?,
         (Action::Update, Some(document)) => {

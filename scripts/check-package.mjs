@@ -1,3 +1,4 @@
+import { toolCommand } from './run-tool.ts';
 // Verify the archive users install, using a temporary install and synthetic state.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -35,7 +36,7 @@ if (process.platform !== 'win32' && !(statSync(path.join(root, `dist/${binary}`)
   throw new Error(`dist/${binary} is not executable`);
 
 function run(program, args, options = {}) {
-  const result = spawnSync(program, args, {
+  const result = spawnSync(...toolCommand(program, args), {
     cwd: options.cwd ?? root, env: options.env ?? process.env, encoding: 'utf8',
     input: options.input, timeout: options.timeout ?? 180_000, maxBuffer: 4 * 1024 * 1024,
   });
@@ -89,5 +90,5 @@ try {
   if (live.freshness?.status !== 'current' || live.summary?.measurementCount !== 0) throw new Error('Installed CLI live service failed');
   console.log(`Package verified: ${pack[0].filename}, ${entries.size} files, isolated install, CLI and core smoke passed (${process.platform}/${process.arch}). No publication performed.`);
 } finally {
-  rmSync(scratch, { recursive: true, force: true });
+  rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 });
 }

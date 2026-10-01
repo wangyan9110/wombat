@@ -17,7 +17,7 @@ Analysis runs locally. No API key or model call is needed.
 
 ## Get started
 
-You need macOS Apple Silicon, Node.js **26.4.0+**, and local Codex logs.
+You need Node.js **26.4.0+** and local Codex logs. npm candidates target macOS (Apple Silicon / Intel), Linux (x64 / ARM64, glibc), and Windows x64. Platform acceptance is tracked in the [support matrix](docs/reference/support-matrix.en.md); a configured CI target is not a verified release.
 
 These npm commands apply after publication; the package is not publicly released yet. For now, use the source setup in the development section below.
 
@@ -143,7 +143,7 @@ See [privacy details](docs/reference/privacy.en.md) and [price update behavior](
 
 **Could you find your highest-usage turn?** If you got stuck, [tell us which step failed](https://github.com/wangyan9110/wombat/issues), along with your platform, Wombat version, and steps to reproduce. You can describe the problem without sharing private logs.
 
-For development setup and checks, see [Contributing](CONTRIBUTING.md).
+For development setup and checks, see [Contributing](CONTRIBUTING.md). Report suspected vulnerabilities through the [security policy](SECURITY.md), without posting private evidence publicly.
 
 ## Development and releases
 

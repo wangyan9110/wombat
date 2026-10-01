@@ -42,7 +42,7 @@ test('weekly and monthly reports keep bilingual headers and compact model labels
       await setup.flush(); await setup.renderOnce();
       const root = setup.renderer.root;
       assert.equal(root.findDescendantById('title')!.height, 1, `${language}/${period}/${width}: title`);
-      assert.equal(root.findDescendantById('table-header-grid')!.height, 1, `${language}/${period}/${width}: table header`);
+      assert.equal(root.findDescendantById('table-header-grid')!.height, language === 'en' && width === 120 ? 2 : 1, `${language}/${period}/${width}: table header`);
       if (width === 40) {
         const label = root.findDescendantById('row-1-label')!;
         const grid = root.findDescendantById('row-1-grid')!;
@@ -50,7 +50,7 @@ test('weekly and monthly reports keep bilingual headers and compact model labels
         assert.equal(label.height, 1);
         assert(grid.y > label.y, 'numeric tracks follow the complete model label');
       }
-      if (width === 120) assert.equal(root.findDescendantById('table-header')!.height, 2, 'header text plus one rule');
+      if (width === 120) assert.equal(root.findDescendantById('table-header')!.height, language === 'en' ? 3 : 2, 'header text plus one rule');
     } finally { ui.destroy(); locale.setLocale('zh'); }
   }
 });
@@ -75,7 +75,7 @@ test('native terminal switches languages and preserves source titles and query s
       setup.mockInput.pressKey('2'); await setup.waitForFrame(frame => frame.includes('原始中文标题'));
       setup.mockInput.pressKey('f'); await setup.waitForFrame(frame => frame.includes('Filters'));
       setup.mockInput.pressEscape(); await new Promise(resolve => setTimeout(resolve, 80)); await setup.waitForFrame(frame => frame.includes('原始中文标题'));
-      setup.mockInput.pressKey('l'); await setup.waitForFrame(frame => frame.includes('1 用量'));
+      setup.mockInput.pressKey('l'); await setup.waitForFrame(frame => frame.includes('用量'));
       setup.mockInput.pressKey('q'); assert.equal(await run, 0);
     } finally { if (!ui.signal.aborted) setup.mockInput.pressCtrlC(); await run; locale.setLocale('zh'); }
   }

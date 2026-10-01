@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-check-official-prices-when-rates-are-missing": {
+      "zh": "3910ab4d8a617659cac7a01a559cad4dee39f86ee4d86bfb5698967227f8f757",
+      "en": "4817565c11ded3875b3c780af19c1789c0f8705bd089d226210abfc998903f3c"
+    },
+    "/decision-note-check-official-prices-when-rates-are-missing/problem": {
+      "zh": "2eb669a656b3f488a0ee4d8c351ea39071ec2f4e43aa59a0a79517ae43db5ec7",
+      "en": "453780a9dd53bbbbfc096a54d3bff7efbecc6e23be16235dfc446c9027d15a55"
+    },
+    "/decision-note-check-official-prices-when-rates-are-missing/decision": {
+      "zh": "07ed87670c39c29a67556925b3791461117b73aaa02337dc690296bbbd948bc3",
+      "en": "69f725d4afad550b3bb043a9d3ba5e33d387fb2c3ab29cc5732f3d3e6c25ccf0"
+    },
+    "/decision-note-check-official-prices-when-rates-are-missing/alternatives-considered": {
+      "zh": "84c91be15ffceedc4cc7458f2aef53f42695fd6f38d820c40046a2f2b61c7815",
+      "en": "f2419dafffd0088b0e4002aca29f18d2fddbd5cf01dfe72af16b49d47c28f598"
+    },
+    "/decision-note-check-official-prices-when-rates-are-missing/impact-and-verification": {
+      "zh": "22b2a031ed9028471ee5b499a8549cc3d8541fcc4b55c865ff74b9fad94c15a4",
+      "en": "45efdd8286362f391665463e76f976dad74018d744429a9fd216fb6d9e94db10"
+    }
+  }
+}

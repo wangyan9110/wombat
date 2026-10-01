@@ -10,12 +10,12 @@
       "en": "892c50e216a66c76579f2f711ae1ff5d1c99f15ab605721ee9a01be9da9a730a"
     },
     "/wombat-architecture/identity-and-accounting": {
-      "zh": "ec421c2ae49c3e2d71ab0837f6ed903b977e33cc0f699b1e1977e123aeebd6e8",
-      "en": "d5d24bfc87821b9928497824517e50e0a9d50d66016290966cd351dfa72fdfe0"
+      "zh": "5a9510fb0c2ad31a884dc0d8a657c45d1dbf70291187fafe7d13e7089f5e94f7",
+      "en": "1d599e893648fa364cd00b11dab045f6d3c80bf7239836ab38764f71fc0148c5"
     },
     "/wombat-architecture/storage-and-failures": {
-      "zh": "01134d14f8b698876ed972806b0b0faaae1a5feadd8dcc1cd6b4933f50804177",
-      "en": "a38096655494934801551a756313f0ddcd0af4f5d0824e97557f2db91dbd6b56"
+      "zh": "e31daa349fa55c0a0c84dc7ed66981d58e2658d9e36100a7934daa6d62ae7c64",
+      "en": "05d8975b5b68a92d168430904307443613ea0d7634bc99154a03ade43a2b98e5"
     },
     "/wombat-architecture/extension-constraints": {
       "zh": "391a7a7fc5afc2feaf230ba7eb35bb99229db00bbd61f339b0c79ee36356a59d",
@@ -26,8 +26,8 @@
       "en": "e8dc3b6128dc1750d8bb1a4d4725be3ab72a4f349b9110fd6ce5dd3bf4579013"
     },
     "/wombat-architecture/independent-modules/interfaces-and-dependency-direction": {
-      "zh": "a805e3ae4c7f5296ce90bcc5f998eee31dba7df000799eeefc2b3e4ee03fdeed",
-      "en": "920435f6a3fb8a89fb7902ce731bbf3af1797fa85feaa8d63d05c8e1c9d19f68"
+      "zh": "1e65187b48e84180a573303449279557c3ee67f992d40352720157a34157343d",
+      "en": "3375c92ee6b3fb4dc993f4b4399083c3cc7c5a98124351428227247e974e9e42"
     },
     "/wombat-architecture/independent-modules/verification-boundaries": {
       "zh": "06f5c9c1ba5516d7a133c959a4ebd39d5d04514a984b682325272e5e67dfe7c3",

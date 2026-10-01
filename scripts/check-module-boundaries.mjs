@@ -12,7 +12,7 @@ for (const [module, imports] of Object.entries(allowed)) {
       if (spec.startsWith('@wombat/') && !imports.includes(spec)) issues.push(`${file}: 未允许的模块依赖 ${spec}`);
       if (module !== 'tui' && (spec.startsWith('@opentui/') || spec.startsWith('@inquirer/'))) issues.push(`${file}: 终端库只能由 tui 使用`);
       if (module === 'tui' && /^(node:|child_process|fs$)/.test(spec)) issues.push(`${file}: TUI 不得直接访问宿主业务资源 ${spec}`);
-      if (module === 'client' && !file.startsWith('client/src/node/') && /^(node:|child_process|fs$)/.test(spec)) issues.push(`${file}: 通用客户端不得依赖 Node ${spec}`);
+      if (module === 'client' && !file.startsWith(path.join('client', 'src', 'node') + path.sep) && /^(node:|child_process|fs$)/.test(spec)) issues.push(`${file}: 通用客户端不得依赖 Node ${spec}`);
     }
   }
 }

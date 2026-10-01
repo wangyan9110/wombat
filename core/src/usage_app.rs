@@ -6,6 +6,7 @@ use crate::usage_store::{self, PricedMeasurement, Snapshot};
 use anyhow::Result;
 use chrono::{DateTime, Datelike, Duration, Months, NaiveDate, Utc};
 use chrono_tz::Tz;
+use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -84,6 +85,57 @@ fn share(value: Option<u64>, total: Option<u64>) -> Option<f64> {
         .zip(total)
         .filter(|(_, t)| *t > 0)
         .map(|(v, t)| v as f64 / t as f64)
+}
+fn known_cost(summary: &UsageSummary) -> Option<Decimal> {
+    if summary.measurement_count == 0 || summary.price.status.as_ref() == "unknown" {
+        return None;
+    }
+    summary
+        .price
+        .cost
+        .as_ref()
+        .unwrap_or(&summary.price.known_cost)
+        .parse()
+        .ok()
+}
+fn unpriced_tokens(rows: &[&PricedMeasurement]) -> Result<Option<u64>> {
+    let mut sum = 0u64;
+    for row in rows {
+        if row.price.components.is_empty() && row.price.status.as_ref() != "priced" {
+            return Ok(None);
+        }
+        for component in &row.price.components {
+            if component.cost.is_none() {
+                let Some(tokens) = component.tokens else {
+                    return Ok(None);
+                };
+                sum = sum
+                    .checked_add(tokens)
+                    .filter(|v| *v <= MAX_SAFE_INTEGER)
+                    .ok_or_else(|| {
+                        operation_error("RESOURCE_LIMIT", "未计价Token超出安全整数范围")
+                    })?;
+            }
+        }
+    }
+    Ok(Some(sum))
+}
+fn cost_share(value: &UsageSummary, total: &UsageSummary) -> Option<f64> {
+    known_cost(value)
+        .zip(known_cost(total))
+        .filter(|(_, total)| *total > Decimal::ZERO)
+        .and_then(|(value, total)| (value / total).to_f64())
+}
+fn consumption_order(
+    a: &UsageSummary,
+    b: &UsageSummary,
+    sort: &Option<Sort>,
+) -> std::cmp::Ordering {
+    if *sort == Some(Sort::Cost) {
+        known_cost(b).cmp(&known_cost(a))
+    } else {
+        b.tokens.total.cmp(&a.tokens.total)
+    }
 }
 fn dimensions(rows: &[&PricedMeasurement]) -> (Vec<String>, Vec<String>) {
     (
@@ -226,6 +278,7 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
             || request.turn_id.is_some()
             || request.group.is_some()
             || request.sort.is_some()
+            || request.presentation.is_some()
             || request.search.is_some()
             || request.offset.is_some()
             || request.limit.is_some()
@@ -237,6 +290,9 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
     }
     if request.group.is_some() && request.action != Action::Usage {
         return Err(invalid("分组仅适用于用量"));
+    }
+    if request.presentation.is_some() && request.action != Action::Usage {
+        return Err(invalid("展示分组仅适用于用量"));
     }
     if request.search.is_some() && request.action != Action::Threads {
         return Err(invalid("搜索仅适用于对话"));
@@ -312,6 +368,8 @@ pub fn execute(request: Request) -> Result<Response> {
         let rows = snapshot.ledger()?;
         let selected = rows.iter().collect::<Vec<_>>();
         return Ok(Response {
+            distribution: None,
+            price_update: None,
             freshness: None,
             output_version: 3,
             action: Action::Refresh,
@@ -466,12 +524,103 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
         }
         Action::Refresh => unreachable!(),
     };
-    let total = items.len();
     let offset = request.offset.unwrap_or(0);
     let limit = request.limit.unwrap_or(50);
-    items = items.into_iter().skip(offset).take(limit).collect();
-    let next = offset.saturating_add(items.len());
+    let mut period_count = None;
+    let distribution = if request.action == Action::Usage {
+        let mut groups: Vec<Vec<Item>> = vec![];
+        for item in items {
+            if matches!(
+                item,
+                Item::Usage {
+                    is_subtotal: true,
+                    ..
+                }
+            ) {
+                groups.push(vec![]);
+            }
+            groups.last_mut().unwrap().push(item);
+        }
+        fn group_usage(group: &[Item]) -> &UsageSummary {
+            match &group[0] {
+                Item::Usage { usage, .. } => usage,
+                _ => unreachable!(),
+            }
+        }
+        if matches!(request.sort, Some(Sort::Tokens | Sort::Cost)) {
+            groups.sort_by(|a, b| consumption_order(group_usage(a), group_usage(b), &request.sort));
+        }
+        let max_tokens = groups
+            .iter()
+            .filter_map(|g| group_usage(g).tokens.total)
+            .max();
+        let max_cost = groups
+            .iter()
+            .filter_map(|g| known_cost(group_usage(g)))
+            .max();
+        let mut stats = Distribution {
+            unpriced_tokens: unpriced_tokens(&selected)?,
+            max_tokens,
+            max_cost: max_cost.map(|v| v.to_string()),
+            peak_token_dates: vec![],
+            peak_cost_dates: vec![],
+            peak_token_scopes: vec![],
+            peak_cost_scopes: vec![],
+        };
+        if request.presentation.is_some() {
+            period_count = Some(groups.len());
+        }
+        items = vec![];
+        for (index, group) in groups.into_iter().enumerate() {
+            for mut item in group {
+                if let Item::Usage {
+                    date,
+                    scope,
+                    is_subtotal,
+                    usage,
+                    share: ratio,
+                    cost_share: money_ratio,
+                    ..
+                } = &mut item
+                {
+                    *ratio = share(usage.tokens.total, summary.tokens.total);
+                    *money_ratio = cost_share(usage, &summary);
+                    if *is_subtotal {
+                        if max_tokens.is_some_and(|v| v > 0) && usage.tokens.total == max_tokens {
+                            stats.peak_token_dates.push(date.clone());
+                            stats.peak_token_scopes.push(scope.clone());
+                        }
+                        if max_cost.is_some_and(|v| v > Decimal::ZERO)
+                            && known_cost(usage) == max_cost
+                        {
+                            stats.peak_cost_dates.push(date.clone());
+                            stats.peak_cost_scopes.push(scope.clone());
+                        }
+                    } else if request.presentation == Some(Presentation::Distribution) {
+                        continue;
+                    }
+                }
+                if period_count.is_none() || (index >= offset && index - offset < limit) {
+                    items.push(item);
+                }
+            }
+        }
+        Some(stats)
+    } else {
+        None
+    };
+    let total = period_count.unwrap_or(items.len());
+    if period_count.is_none() {
+        items = items.into_iter().skip(offset).take(limit).collect();
+    }
+    let next = offset.saturating_add(if period_count.is_some() {
+        total.saturating_sub(offset).min(limit)
+    } else {
+        items.len()
+    });
     Ok(Response {
+        distribution,
+        price_update: None,
         freshness: None,
         output_version: 3,
         action: request.action,
@@ -492,10 +641,10 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
 
 fn default_report_start(today: NaiveDate, group: &Group) -> Result<NaiveDate> {
     let start = match group {
-        Group::Day => today.checked_sub_signed(Duration::days(6)),
-        Group::Week => bucket(today, group)?
-            .0
-            .checked_sub_signed(Duration::weeks(3)),
+        Group::Day => today.checked_sub_signed(Duration::days(29)),
+        Group::Week => today
+            .with_day(1)
+            .and_then(|d| d.checked_sub_months(Months::new(5))),
         Group::Month => today
             .with_day(1)
             .and_then(|d| d.checked_sub_months(Months::new(11))),
@@ -565,6 +714,8 @@ fn usage_items(
             .and_then(|d| date(d).ok()?.pred_opt())
             .map(|d| d.to_string());
         items.push(Item::Usage {
+            share: None,
+            cost_share: None,
             date: display_start.clone(),
             end_date: display_end.clone(),
             is_subtotal: true,
@@ -591,6 +742,8 @@ fn usage_items(
             specific.reasoning_effort = effort.clone();
             specific.effort_unknown = effort.is_none().then_some(true);
             items.push(Item::Usage {
+                share: None,
+                cost_share: None,
                 date: display_start.clone(),
                 end_date: display_end.clone(),
                 is_subtotal: false,
@@ -702,7 +855,7 @@ fn thread_items(
     result.sort_by(|a, b| {
         let Item::Thread {
             id: aid,
-            matched_usage: au,
+            thread_usage: au,
             last_activity_at: at,
             ..
         } = a
@@ -711,7 +864,7 @@ fn thread_items(
         };
         let Item::Thread {
             id: bid,
-            matched_usage: bu,
+            thread_usage: bu,
             last_activity_at: bt,
             ..
         } = b
@@ -721,9 +874,7 @@ fn thread_items(
         if request.sort == Some(Sort::Recent) {
             bt.cmp(at).then(aid.cmp(bid))
         } else {
-            bu.tokens
-                .total
-                .cmp(&au.tokens.total)
+            consumption_order(au, bu, &request.sort)
                 .then(bt.cmp(at))
                 .then(aid.cmp(bid))
         }
@@ -770,6 +921,7 @@ fn turn_items(
         let ratio = share(usage.tokens.total, total.tokens.total);
         let (models, reasoning_efforts) = dimensions(current);
         result.push(Item::Turn {
+            cost_share: cost_share(&usage, total),
             id: turn_id.clone(),
             thread_id: id.into(),
             ordinal: turn.turn.as_ref().map(|t| t.ordinal),
@@ -811,9 +963,7 @@ fn turn_items(
         if request.sort == Some(Sort::Time) {
             at.cmp(bt).then(ao.cmp(bo)).then(ai.cmp(bi))
         } else {
-            bu.tokens
-                .total
-                .cmp(&au.tokens.total)
+            consumption_order(au, bu, &request.sort)
                 .then(at.cmp(bt))
                 .then(ai.cmp(bi))
         }
@@ -830,6 +980,7 @@ fn step_items(
         let usage = summarize(&[&row])?;
         let r = std::sync::Arc::unwrap_or_clone(row.fact);
         items.push(Item::Measurement {
+            cost_share: cost_share(&usage, total),
             id: r.id,
             thread_id: r.thread_id,
             turn_id: r.turn_id,
@@ -878,14 +1029,10 @@ fn step_items(
         }
     }
     items.sort_by(|a, b| {
-        if request.sort == Some(Sort::Tokens) {
+        if matches!(request.sort, Some(Sort::Tokens | Sort::Cost)) {
             match (a, b) {
                 (Item::Measurement { usage: au, .. }, Item::Measurement { usage: bu, .. }) => {
-                    return bu
-                        .tokens
-                        .total
-                        .cmp(&au.tokens.total)
-                        .then(key(a).cmp(&key(b)));
+                    return consumption_order(au, bu, &request.sort).then(key(a).cmp(&key(b)));
                 }
                 (Item::Measurement { .. }, _) => return std::cmp::Ordering::Less,
                 (_, Item::Measurement { .. }) => return std::cmp::Ordering::Greater,
@@ -904,10 +1051,10 @@ mod report_range_tests {
     #[test]
     fn automatic_reports_cover_calendar_weeks_and_months_across_boundaries() {
         for (today, daily, weekly, monthly) in [
-            ("2026-09-30", "2026-09-24", "2026-09-07", "2025-10-01"),
-            ("2026-01-01", "2025-12-26", "2025-12-08", "2025-02-01"),
-            ("2024-03-01", "2024-02-24", "2024-02-05", "2023-04-01"),
-            ("2026-03-08", "2026-03-02", "2026-02-09", "2025-04-01"),
+            ("2026-09-30", "2026-09-01", "2026-04-01", "2025-10-01"),
+            ("2026-01-01", "2025-12-03", "2025-08-01", "2025-02-01"),
+            ("2024-03-01", "2024-02-01", "2023-10-01", "2023-04-01"),
+            ("2026-03-08", "2026-02-07", "2025-10-01", "2025-04-01"),
         ] {
             for (group, expected) in [
                 (Group::Day, daily),

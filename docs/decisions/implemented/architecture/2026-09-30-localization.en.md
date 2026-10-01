@@ -10,13 +10,12 @@ Chinese CLI/TUI copy was spread across presentation functions, and some interact
 
 ## Decision
 
-Drawing on DeepSeek Harness's locale service, copy ownership checks, and section-based pairing, Wombat uses the portable `@wombat/client/locale` presentation entry, complete Chinese and English message dictionaries, typed parameters, immutable language state, and subscriptions. Action identifiers are independent of copy, and module-level labels resolve lazily; language does not enter the Rust business protocol.
+Wombat uses the portable `@wombat/client/locale` presentation entry, complete Chinese and English message dictionaries, typed parameters, immutable language state, and subscriptions. Action identifiers are independent of copy, and module-level labels resolve lazily; language does not enter the Rust business protocol.
 
 Documentation structure is compared through a Markdown syntax tree, with section hashes keyed by English heading paths. Both languages are paired within the same topic directory, using JSON records and an explicit pairing manifest. Legacy monolingual pages are now paired; old records migrate only when their original hashes match. Review still owns semantics; hashes record confirmation only.
 
 ## Alternatives considered
 
-- Import the upstream plugin locale system wholesale: it serves browsers, Host settings, and dynamic language plugins, whose dependencies the current Wombat CLI/TUI does not need.
 - Retain whole-file hashes and regular-expression checks: less implementation, but no accurate comparison of nested lists, tables, or section changes.
 - Add persistent preferences and arbitrary language packs together: this iteration keeps command options, environment variables, and session switching to avoid widening configuration writes and plugin lifecycle scope.
 

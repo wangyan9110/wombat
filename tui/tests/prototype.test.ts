@@ -55,14 +55,14 @@ for (const [width, height] of [[40, 14], [40, 24], [80, 24], [120, 32], [160, 40
     assert.match(setup.captureCharFrame(), /\$0.40/);
     if (height >= 20) {
       const total = root.findDescendantById('total')!;
-      assert.match(setup.captureCharFrame().split('\n')[total.y], /━/);
-      const stroke = setup.captureSpans().lines[total.y].spans.find(span => span.text.includes('━'))!;
-      assert(stroke.fg.equals(RGBA.fromHex('#71997c')));
+      assert.match(setup.captureCharFrame().split('\n')[total.y], /─/);
+      const stroke = setup.captureSpans().lines[total.y].spans.find(span => span.text.includes('─'))!;
+      assert(stroke.fg.equals(RGBA.fromHex('#3c5b49')));
     }
     setup.mockInput.pressArrow('down'); await setup.flush(); await setup.waitForVisualIdle();
     capture('usage-model-selected');
     const model = setup.captureSpans().lines.flatMap(line => line.spans).find(span => span.text.includes('gpt-5.4'));
-    assert(model); assert(model.fg.equals(RGBA.fromHex(width < 68 ? '#91b49c' : '#c3d8ca'))); assert(model.bg.equals(RGBA.fromHex('#2b4a35')));
+    assert(model); assert(model.fg.equals(RGBA.fromHex(width < 68 ? '#86ad93' : '#b7cebe'))); assert(model.bg.equals(RGBA.fromHex('#2b4a35')));
     await show('threads', [thread]); capture('threads');
     assert.equal(root.findDescendantById('meter-0'), undefined, 'conversation cards have no consumption meter');
     assert.match(setup.captureCharFrame(), /合成对话/);
@@ -84,7 +84,7 @@ for (const width of [40, 67, 68, 80, 119, 120, 160]) test(`period controls and c
         const button = root.findDescendantById(`group:${index}`)!;
         const label = root.findDescendantById(`group:${index}-label`)!;
         assert.equal(label.height, 1);
-        assert(label.x >= button.x + 1 && label.x + label.width < button.x + button.width);
+        assert(label.x >= button.x + (width < 68 ? 0 : 1) && label.x + label.width <= button.x + button.width - (width < 68 ? 0 : 1));
         assert(setup.captureCharFrame().split('\n')[label.y].includes(caption));
       }
       const date = root.findDescendantById('row-0-label') ?? root.findDescendantById('row-0-column-0')!.getChildren()[0];
@@ -114,15 +114,16 @@ test('loading activity survives resize, cancels locally, and never reappears aft
   try {
     await setup.flush(); await setup.waitForVisualIdle();
     captures.push({ name: 'loading-brief-80x24', width: 80, height: 24, plain: setup.captureCharFrame(), spans: setup.captureSpans(), geometry: geometry(setup.renderer.root) });
-    const mark = setup.renderer.root.findDescendantById('startup-activity-mark')!;
-    const left = mark.x;
+    const mark = setup.renderer.root.findDescendantById('startup-mark')!;
+    const opacity = mark.opacity;
     await new Promise(resolve => setTimeout(resolve, 200)); await setup.flush();
-    assert(mark.x > left, 'indeterminate marker moves without assigning a completion percentage');
+    assert.notEqual(mark.opacity, opacity, 'brand opacity pulses without assigning a completion percentage');
     await new Promise(resolve => setTimeout(resolve, 500)); await setup.flush(); await setup.waitForVisualIdle();
-    assert.match(setup.captureCharFrame(), /核对本机记录/);
+    assert.match(setup.captureCharFrame(), /核对新增记录/);
     captures.push({ name: 'loading-expanded-80x24', width: 80, height: 24, plain: setup.captureCharFrame(), spans: setup.captureSpans(), geometry: geometry(setup.renderer.root) });
     progress('保存用量'); await setup.flush();
-    assert.match(setup.captureCharFrame(), /已完成/);
+    assert.match(setup.captureCharFrame(), /保存用量/);
+    assert.doesNotMatch(setup.captureCharFrame(), /已完成/);
     setup.resize(40, 14); await setup.flush();
     assert.match(setup.captureCharFrame(), /取消读取/);
     setup.mockInput.pressEscape(); await cancelled;
@@ -143,7 +144,7 @@ test('saved snapshots and combined synchronization do not invent loading phases'
   assert.equal(combined.stages.filter(stage => stage.status === 'done').length, 0);
   try {
     locale.setLocale('en');
-    assert.match(loadingContent({ spec: { kind: 'open', activeTab: 'threads' }, cancelling: false }).heading, /Conversations/);
+    assert.match(loadingContent({ spec: { kind: 'open', activeTab: 'threads' }, cancelling: false }).heading, /Threads/);
   } finally { locale.setLocale('zh'); }
 });
 

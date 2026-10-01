@@ -1,4 +1,4 @@
-import { t } from '@wombat/client/locale';
+import { t, locale } from '@wombat/client/locale';
 import { CoreError, type UsageClient, type PricingResult } from '@wombat/client';
 import type { TerminalUI } from '../components/terminal-ui.js';
 import { priceFrame, pricePageSize, type PriceViewState } from '../screens/prices.js';
@@ -28,9 +28,11 @@ export async function browsePrices(client: UsageClient, ui: TerminalUI, activeTa
     if (prices && !prices.catalog.models.length) frame.choices = [{id:'update-prices',lines:[t("common.update_prices_online")]}];
     if (prices && !prices.catalog.models.length) { frame.layout = undefined; frame.status = notice; frame.footer = t("common.u_update_prices_online_esc_back"); }
     const answer = await ui.choose(frame);
+    if (answer.id === 'language') { locale.setLocale(locale.getSnapshot().locale === 'zh' ? 'en' : 'zh'); continue; }
     if (answer.id === 'quit' || answer.id === 'back' || answer.id === 'usage-tab' || answer.id === 'threads-tab') return answer.id;
     if (answer.id === 'tab') return 'threads-tab';
     if (answer.id === 'update-prices' || answer.id === 'retry') { await read(answer.id === 'retry' ? 'status' : 'update'); continue; }
+    if (answer.id === 'explain') { state.notes = !state.notes; continue; }
     if (!prices) continue;
     if (answer.id.startsWith('model:')) { const id=answer.id.slice(6); state.cursor=[...prices.catalog.models].sort((a,b)=>a.id.localeCompare(b.id,'en',{numeric:true})).findIndex(model=>model.id===id); state.expanded=state.expanded===id?undefined:id; }
     else if (answer.id.startsWith('sort:')) { state.tier=answer.id==='sort:1'?'long':'standard';state.expanded=undefined; }

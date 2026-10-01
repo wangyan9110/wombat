@@ -33,17 +33,20 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 ## 官方价表
 
+实时查询发现可补齐的缺价会自动检查官方价表；失败保留现有结果并返回 `priceUpdate`。失败15分钟、成功24小时内不重复下载；设置 `WOMBAT_AUTO_PRICES=0` 可关闭自动联网，`--cached` 和 `--snapshot` 始终不触发自动更新。手动 `prices update` 不受自动重试间隔限制。
+
 `prices`（或 `prices status`）离线查看当前完整价表；`prices update` 从固定官方地址联网下载并校验，默认输出简要结果，`--json` 返回 `outputVersion:1`、action、origin、updated、source、sourceHash、catalogHash和完整catalog。价格响应/错误版本独立于用量v3；错误仍为`{outputVersion:1,error:{code,message}}`，退出码1或取消130。常见失败包括PRICE_FETCH_FAILED、PRICE_SOURCE_CHANGED、PRICE_CACHE_INVALID、OUTPUT_LIMIT、TIMEOUT和UPDATE_BUSY。
 
 更新成功后，下一次实时同步按新价表生成完整读取版本；执行`refresh`可另存快照，旧快照金额保留。更新不支持自定义URL、导入路径或用量筛选。网络范围、代理、支持模型表与保存规则见[价格口径](../reference/pricing.md#联网更新价表)。
 
 ## 筛选与分页
 
-- `usage --group day|week|month`：省略日期时，day 默认近7个自然日，week 默认本周及之前3周，month 默认本月及之前11个月，均截止今天（响应 until 为明天，不包含）。显式 since/until 优先，切换分组不改变手动范围；限定对话且省略日期时展示该对话全部范围。周一起始；按事件时间及所选时区归日。
+- `usage --group day|week|month`：省略日期时，day 默认近30个自然日，week 默认本月及之前5个月，month 默认本月及之前11个月，均截止今天（响应 until 为明天，不包含）。显式 since/until 优先，切换分组不改变手动范围；限定对话且省略日期时展示该对话全部范围。周一起始；按事件时间及所选时区归日。
 - `--since` 包含起日，`--until` 不包含截止日。缺省时区 UTC；终端使用系统时区。
 - `--model`、`--effort`、`--project` 精确匹配；项目是已观察到的目录证据，不是路径子串。`--model-unknown`、`--effort-unknown`、`--undated` 分别筛选缺失模型、强度和日期，不能与对应具体值或日期范围同时指定。
-- `threads --search TEXT` 搜索标题或项目，`--sort tokens|recent`；轮次与步骤使用 `tokens|time`。
+- `threads --search TEXT` 搜索标题或项目，`--sort tokens|cost|recent`，按完整对话消耗排序；轮次与步骤使用 `tokens|cost|time`。
 - `--snapshot ID` 固定快照；旧 v1/v2 可显式传文件。后续分页应继续传同一快照，不能重新查询 latest。外部旧文件的固定定位符返回在 snapshotRef.selector，优先于 snapshotId 用于续查。
+- `usage --presentation distribution|details`：默认 details 保持分类明细；distribution 只返回时段小计。显式指定此参数时按日期组分页，limit 是时段数，明细保留该时段的全部模型行；省略时维持逐行分页。`--sort time|tokens|cost` 按日期倒序或消耗倒序；完整范围的 distribution 刻度、峰值筛选、未计价 Token 与金额占比在分页前计算，未知金额排在已知金额之后。
 - `--limit 1..500 --offset N`，默认50。完整范围排序、金额、分类、占比均在分页前计算。
 
 ## JSON

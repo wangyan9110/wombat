@@ -8,8 +8,7 @@
     "node": ">=26.4.0"
   },
   "bin": {
-    "wombat": "./dist/wombat.js",
-    "wombat-core": "./dist/wombat-core"
+    "wombat": "./dist/wombat.js"
   },
   "files": [
     "dist/*.js",
@@ -23,6 +22,8 @@
     "licenses/",
     "CONTRIBUTING.md",
     "CONTRIBUTING.zh-CN.md",
+    "SECURITY.md",
+    "SECURITY.zh-CN.md",
     "docs/README.md",
     "docs/README.en.md",
     "docs/guides/cli.md",
@@ -82,7 +83,8 @@
     "release:check": "node scripts/check-release.mjs",
     "package:bundle": "node scripts/create-release-bundle.mjs",
     "release:bundle": "node scripts/check-release.mjs && node scripts/create-release-bundle.mjs",
-    "npm:pack": "node scripts/prepare-npm-package.mjs",
+    "npm:pack": "node scripts/prepare-npm-package.ts",
+    "native:export": "node scripts/export-native.ts",
     "i18n:check": "node scripts/check-ui-i18n.mjs",
     "test:repo": "node --test scripts/*.test.mjs",
     "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
@@ -100,7 +102,7 @@
     "@wombat/client": "workspace:*",
     "@wombat/tui": "workspace:*",
     "@xterm/headless": "5.5.0",
-    "ajv": "8.17.1",
+    "ajv": "8.18.0",
     "esbuild": "^0.25.0",
     "json-schema-to-typescript": "15.0.4",
     "mdast-util-from-markdown": "2.0.2",

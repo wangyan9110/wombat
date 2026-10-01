@@ -1,3 +1,4 @@
+import { automaticPriceText } from '@wombat/client/locale';
 import { t, locale, labels } from '@wombat/client/locale';
 import stringWidth from 'string-width';
 import { terminalText } from './display-text.js';
@@ -166,6 +167,8 @@ export function renderUsageResult(result: UsageResult, width = 120): string {
     lines.push(result.action === 'refresh' ? t("cli.format.records_saved") : result.page.total > 0 ? t("cli.format.no_records_on_this_page_value", { p0: result.page.total }) : t("common.no_records"));
   if (result.items.length > 0 && result.page.total > result.items.length)
     lines.push(`${result.page.offset + 1}—${result.page.offset + result.items.length} / ${result.page.total}`);
+  const priceUpdate = automaticPriceText(result);
+  if (priceUpdate) lines.push('', priceUpdate);
   const quality = qualityLine(result);
   if (quality)
     lines.push('', quality);

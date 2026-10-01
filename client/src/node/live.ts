@@ -23,12 +23,17 @@ function exchange(socket: string, request: LiveRequest, options: QueryOptions, c
       bytes += chunk.length;
       if (bytes > (config.maxResponseBytes ?? 256_000_000)) { finish(new CoreError('OUTPUT_LIMIT', '实时用量响应超过上限')); return; }
       chunks.push(chunk);
+      // A complete response is newline-delimited. Named-pipe servers retain their
+      // send buffer until the client closes; waiting only for EOF would deadlock.
+      if (chunk.includes(10)) {
+        try { finish(undefined, decode(Buffer.concat(chunks).toString('utf8'))); }
+        catch (error) { finish(error as Error); }
+      }
     });
     client.on('end', () => { try { finish(undefined, decode(Buffer.concat(chunks).toString('utf8'))); } catch (e) { finish(e as Error); } });
   });
 }
 export async function queryLive(request: LiveRequest, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
-  if (process.platform === 'win32') throw new CoreError('UNSUPPORTED_PLATFORM', 'Windows 实时接口尚未提供，请使用 --snapshot 查询已有快照');
   if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
   if (request.query.action === 'refresh') options.onProgress?.('同步本机日志并保存用量');
   const endpoint = await invokeOperation('live_endpoint', {}, options, config) as { protocolVersion?: number; socket?: string };
@@ -41,7 +46,7 @@ export async function queryLive(request: LiveRequest, options: QueryOptions, con
       if (!['ENOENT', 'ECONNREFUSED'].includes((error as NodeJS.ErrnoException).code ?? '') || Date.now() >= deadline) throw error;
       if (!started) {
         // This shared service owns its lifecycle. Never attach it to caller process-tree cleanup.
-        const child = spawn(binaryPath(config.binaryPath), ['--serve-usage'], { detached: true, stdio: 'ignore' });
+        const child = spawn(binaryPath(config.binaryPath), ['--serve-usage'], { detached: true, windowsHide: true, stdio: 'ignore' });
         child.on('error', () => {}); child.unref(); started = true;
       }
       try { await delay(75, undefined, { signal: options.signal }); }
