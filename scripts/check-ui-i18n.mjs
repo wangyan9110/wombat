@@ -25,7 +25,7 @@ export function findCopy(file, content) {
   visit(source);
   return errors;
 }
-function files(dir) { return readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(`${dir}/${entry.name}`) : entry.name.endsWith('.ts') ? [`${dir}/${entry.name}`] : []); }
+function files(dir) { return readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(`${dir}/${entry.name}`) : /\.tsx?$/.test(entry.name) ? [`${dir}/${entry.name}`] : []); }
 function dictionary(file) {
   const tree = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true), result = {};
   function visit(node) { if (ts.isPropertyAssignment(node) && ts.isStringLiteral(node.initializer)) result[node.name.text] = node.initializer.text; ts.forEachChild(node, visit); }
@@ -41,7 +41,7 @@ export function dictionaryErrors(zh, en) {
   return errors;
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const errors = [...files('cli/src'), ...files('tui/src')].flatMap(file => findCopy(file, readFileSync(file, 'utf8')));
+  const errors = [...files('cli/src'), ...files('tui/src'), ...files('ui/src')].flatMap(file => findCopy(file, readFileSync(file, 'utf8')));
   errors.push(...dictionaryErrors(dictionary('client/src/locale/zh.ts'), dictionary('client/src/locale/en.ts')));
   if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
   else console.log('Product locale dictionaries, parameters and copy ownership passed.');

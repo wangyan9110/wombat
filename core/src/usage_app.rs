@@ -61,7 +61,16 @@ fn checked_sum(
     Ok(complete.then_some(sum))
 }
 pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
+    let input_total = checked_sum(rows, |t| {
+        t.input?
+            .checked_add(t.cache_read?)?
+            .checked_add(t.cache_create?)
+    })?;
+    let cache_read = checked_sum(rows, |t| t.cache_read)?;
     Ok(UsageSummary {
+        input_total,
+        cache_hit_rate: share(cache_read, input_total),
+        unpriced_tokens: unpriced_tokens(rows)?,
         tokens: TokenUsage {
             input: checked_sum(rows, |t| t.input)?,
             cache_read: checked_sum(rows, |t| t.cache_read)?,
@@ -186,6 +195,16 @@ fn matches(
     {
         return false;
     }
+    if scope.project_unknown == Some(true)
+        && r.thread_id
+            .as_deref()
+            .and_then(|id| projects.get(id))
+            .copied()
+            .flatten()
+            .is_some()
+    {
+        return false;
+    }
     if scope.project.as_ref().is_some_and(|v| {
         r.thread_id
             .as_deref()
@@ -282,6 +301,7 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
             || request.search.is_some()
             || request.offset.is_some()
             || request.limit.is_some()
+            || request.locate_thread_id.is_some()
             || serde_json::to_value(&request.scope)?
                 .as_object()
                 .is_some_and(|o| o.values().any(|v| !v.is_null())))
@@ -293,6 +313,12 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
     }
     if request.presentation.is_some() && request.action != Action::Usage {
         return Err(invalid("展示分组仅适用于用量"));
+    }
+    if request.locate_thread_id.is_some() && request.action != Action::Threads {
+        return Err(invalid("定位仅适用于对话"));
+    }
+    if request.scope.project_unknown == Some(true) && request.scope.project.is_some() {
+        return Err(invalid("未知项目与具体项目冲突"));
     }
     if request.search.is_some() && request.action != Action::Threads {
         return Err(invalid("搜索仅适用于对话"));
@@ -368,6 +394,7 @@ pub fn execute(request: Request) -> Result<Response> {
         let rows = snapshot.ledger()?;
         let selected = rows.iter().collect::<Vec<_>>();
         return Ok(Response {
+            facets: None,
             distribution: None,
             price_update: None,
             freshness: None,
@@ -469,12 +496,14 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
             .threads
             .iter()
             .filter(|t| {
-                t.thread
-                    .title
-                    .as_deref()
-                    .unwrap_or("")
-                    .to_lowercase()
-                    .contains(&needle)
+                t.thread.id.to_lowercase().contains(&needle)
+                    || t.thread.upstream_id.to_lowercase().contains(&needle)
+                    || t.thread
+                        .title
+                        .as_deref()
+                        .unwrap_or("")
+                        .to_lowercase()
+                        .contains(&needle)
                     || t.thread
                         .project
                         .as_deref()
@@ -499,7 +528,12 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
         })
         .collect::<Vec<_>>();
     let mut summary = summarize(&selected)?;
+    let dimensional = matches!(
+        request.presentation,
+        Some(Presentation::Projects | Presentation::Models)
+    );
     let mut items = match request.action {
+        Action::Usage if dimensional => dimension_items(&selected, &request, &projects, &summary)?,
         Action::Usage => usage_items(
             &selected,
             &request.scope,
@@ -520,14 +554,19 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
             let id = request.thread_id.as_deref().unwrap();
             let data = snapshot.turn(id, request.turn_id.as_deref().unwrap())?;
             summary = summarize(&data.measurements.iter().collect::<Vec<_>>())?;
-            step_items(data, &summary, &request)?
+            step_items(
+                data,
+                &summary,
+                &request,
+                &selected.iter().map(|r| r.fact.id.as_str()).collect(),
+            )?
         }
         Action::Refresh => unreachable!(),
     };
-    let offset = request.offset.unwrap_or(0);
     let limit = request.limit.unwrap_or(50);
+    let offset = request.locate_thread_id.as_ref().and_then(|id| items.iter().position(|item| matches!(item, Item::Thread { id: current, upstream_id, .. } if current == id || upstream_id.as_ref() == Some(id)))).map(|index| index / limit * limit).unwrap_or(request.offset.unwrap_or(0));
     let mut period_count = None;
-    let distribution = if request.action == Action::Usage {
+    let distribution = if request.action == Action::Usage && !dimensional {
         let mut groups: Vec<Vec<Item>> = vec![];
         for item in items {
             if matches!(
@@ -619,6 +658,34 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
         items.len()
     });
     Ok(Response {
+        facets: (request.action == Action::Usage).then(|| {
+            let (models, reasoning_efforts) = dimensions(&rows);
+            Facets {
+                directories: projects
+                    .values()
+                    .filter_map(|p| p.map(str::to_owned))
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect(),
+                has_unassigned: rows.iter().any(|r| {
+                    r.fact
+                        .thread_id
+                        .as_deref()
+                        .and_then(|id| projects.get(id))
+                        .copied()
+                        .flatten()
+                        .is_none()
+                }),
+                models,
+                reasoning_efforts,
+                agents: rows
+                    .iter()
+                    .map(|r| r.fact.agent_kind.clone())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect(),
+            }
+        }),
         distribution,
         price_update: None,
         freshness: None,
@@ -756,6 +823,62 @@ fn usage_items(
     }
     Ok(items)
 }
+fn dimension_items(
+    rows: &[&PricedMeasurement],
+    request: &Request,
+    projects: &BTreeMap<&str, Option<&str>>,
+    total: &UsageSummary,
+) -> Result<Vec<Item>> {
+    let mut groups: BTreeMap<Option<String>, Vec<&PricedMeasurement>> = BTreeMap::new();
+    let by_project = request.presentation == Some(Presentation::Projects);
+    for row in rows {
+        let key = if by_project {
+            row.fact
+                .thread_id
+                .as_deref()
+                .and_then(|id| projects.get(id))
+                .copied()
+                .flatten()
+                .map(str::to_owned)
+        } else {
+            row.fact.model.raw.clone()
+        };
+        groups.entry(key).or_default().push(row);
+    }
+    let mut items = vec![];
+    for (key, rows) in groups {
+        let usage = summarize(&rows)?;
+        let mut scope = request.scope.clone();
+        if by_project {
+            scope.project = key.clone();
+            scope.project_unknown = key.is_none().then_some(true);
+        } else {
+            scope.model = key.clone();
+            scope.model_unknown = key.is_none().then_some(true);
+        }
+        items.push(Item::Usage {
+            date: None,
+            end_date: None,
+            is_subtotal: true,
+            model: if by_project { None } else { key },
+            reasoning_effort: None,
+            share: share(usage.tokens.total, total.tokens.total),
+            cost_share: cost_share(&usage, total),
+            usage,
+            scope,
+        });
+    }
+    items.sort_by(|a, b| {
+        let Item::Usage { usage: a, .. } = a else {
+            unreachable!()
+        };
+        let Item::Usage { usage: b, .. } = b else {
+            unreachable!()
+        };
+        consumption_order(a, b, &request.sort)
+    });
+    Ok(items)
+}
 fn group_measurements<'a>(
     rows: &[&'a PricedMeasurement],
     key: impl Fn(&'a PricedMeasurement) -> Option<&'a str>,
@@ -775,7 +898,8 @@ fn thread_items(
     request: &Request,
 ) -> Result<Vec<Item>> {
     let search = request.search.as_deref().unwrap_or("").to_lowercase();
-    let scoped = request.scope.since.is_some()
+    let scoped = request.scope.project_unknown == Some(true)
+        || request.scope.since.is_some()
         || request.scope.until.is_some()
         || request.scope.model.is_some()
         || request.scope.reasoning_effort.is_some()
@@ -810,7 +934,12 @@ fn thread_items(
         {
             continue;
         }
+        if request.scope.project_unknown == Some(true) && t.project.is_some() {
+            continue;
+        }
         if !search.is_empty()
+            && !t.id.to_lowercase().contains(&search)
+            && !t.upstream_id.to_lowercase().contains(&search)
             && !t
                 .title
                 .as_deref()
@@ -839,6 +968,11 @@ fn thread_items(
             .unwrap_or_default();
         let (models, reasoning_efforts) = dimensions(full);
         result.push(Item::Thread {
+            upstream_id: Some(t.upstream_id.clone()),
+            matched_last_activity_at: matched
+                .iter()
+                .filter_map(|r| r.fact.timestamp.clone())
+                .max(),
             id: t.id.clone(),
             agent_kind: t.agent_kind.clone(),
             source_instance_id: t.source_instance_id.clone(),
@@ -855,8 +989,8 @@ fn thread_items(
     result.sort_by(|a, b| {
         let Item::Thread {
             id: aid,
-            thread_usage: au,
-            last_activity_at: at,
+            matched_usage: au,
+            matched_last_activity_at: at,
             ..
         } = a
         else {
@@ -864,8 +998,8 @@ fn thread_items(
         };
         let Item::Thread {
             id: bid,
-            thread_usage: bu,
-            last_activity_at: bt,
+            matched_usage: bu,
+            matched_last_activity_at: bt,
             ..
         } = b
         else {
@@ -974,12 +1108,14 @@ fn step_items(
     data: usage_store::TurnData,
     total: &UsageSummary,
     request: &Request,
+    matched: &BTreeSet<&str>,
 ) -> Result<Vec<Item>> {
     let mut items = vec![];
     for row in data.measurements {
         let usage = summarize(&[&row])?;
         let r = std::sync::Arc::unwrap_or_clone(row.fact);
         items.push(Item::Measurement {
+            matches_scope: matched.contains(r.id.as_str()),
             cost_share: cost_share(&usage, total),
             id: r.id,
             thread_id: r.thread_id,

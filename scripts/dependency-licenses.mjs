@@ -75,6 +75,7 @@ visit(run('corepack', ['pnpm', 'list', ...workspaceArgs, '--depth', 'Infinity', 
 const binaryParents = {
   '@esbuild/': 'esbuild',
   '@rollup/rollup-': 'rollup',
+  '@rolldown/binding-': 'rolldown',
   '@opentui/core-': '@opentui/core',
 };
 const nodeEntries = [];

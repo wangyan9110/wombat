@@ -2,3 +2,5 @@ packages:
   - client
   - tui
   - cli
+  - ui
+  - web

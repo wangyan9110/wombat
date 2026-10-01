@@ -20,6 +20,8 @@ export type Item =
     }
   | {
       id: string;
+      upstreamId?: string | null;
+      matchedLastActivityAt?: string | null;
       agentKind: string;
       sourceInstanceId: string;
       title?: string | null;
@@ -48,6 +50,7 @@ export type Item =
       kind: "turn";
     }
   | {
+      matchesScope?: boolean;
       id: string;
       threadId?: string | null;
       turnId?: string | null;
@@ -80,6 +83,7 @@ export type Item =
     };
 
 export interface Response {
+  facets?: Facets | null;
   distribution?: Distribution | null;
   priceUpdate?: Automatic | null;
   freshness?: Freshness | null;
@@ -92,6 +96,16 @@ export interface Response {
   items: Item[];
   page: Page;
   quality: Quality;
+}
+/**
+ * Observed dimensions, not a project registry or a configuration inventory.
+ */
+export interface Facets {
+  directories: string[];
+  hasUnassigned: boolean;
+  models: string[];
+  reasoningEfforts: string[];
+  agents: string[];
 }
 export interface Distribution {
   unpricedTokens?: number | null;
@@ -114,6 +128,7 @@ export interface Scope {
   undated?: boolean | null;
   reasoningEffort?: string | null;
   project?: string | null;
+  projectUnknown?: boolean | null;
   threadId?: string | null;
 }
 export interface Automatic {
@@ -145,6 +160,12 @@ export interface AvailableRange {
   until?: string | null;
 }
 export interface UsageSummary {
+  /**
+   * All input, including cache reads and writes. Existing tokens.input stays uncached.
+   */
+  inputTotal?: number | null;
+  cacheHitRate?: number | null;
+  unpricedTokens?: number | null;
   tokens: TokenUsage;
   price: PriceResult;
   measurementCount: number;

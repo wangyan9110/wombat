@@ -160,3 +160,7 @@ Use the [wombat-release Skill](.agents/skills/wombat-release/SKILL.md) for build
 ## License
 
 [MIT](LICENSE). See [Third-party notices](THIRD_PARTY_NOTICES.md) for dependency licenses.
+
+## Local Web
+
+After building, run `node dist/wombat.js web` and open the printed link. With the new build installed, use `wombat web`. The new Web UI provides usage, conversations, turns, filters, and prices using the revised page layout. Grouping currently uses historical directories; optimization is not yet available. Ctrl+C stops the service. Access is local only; see the [CLI guide](docs/guides/cli.en.md) for options. Tauri 2 is selected for desktop; desktop implementation and removal of the old TUI remain pending.

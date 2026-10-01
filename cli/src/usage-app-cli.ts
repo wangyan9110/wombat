@@ -19,7 +19,7 @@ export interface Invocation {
   verify: boolean;
 }
 const actions = new Set(['refresh', 'usage', 'threads', 'turns', 'steps']);
-const valued = new Set(['root', 'snapshot', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'presentation', 'sort', 'search', 'limit', 'offset', 'root']);
+const valued = new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'presentation', 'sort', 'search', 'limit', 'offset', 'locate-thread']);
 function invalid(message: string): never { throw new CoreError('INVALID_ARGUMENT', message); }
 export function parseUsageArgs(argv: string[], tty = false): Invocation {
   let action: UsageRequest['action'] = 'usage';
@@ -42,7 +42,7 @@ export function parseUsageArgs(argv: string[], tty = false): Invocation {
       help = true;
       continue;
     }
-    if (['--model-unknown', '--effort-unknown', '--undated'].includes(arg)) { if (unknownFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", { p0: arg })); unknownFlags.add(arg); continue; }
+    if (['--model-unknown', '--effort-unknown', '--undated', '--project-unknown'].includes(arg)) { if (unknownFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", { p0: arg })); unknownFlags.add(arg); continue; }
     if (arg === '--json') {
       if (json)
         invalid(t("cli.usage-app-cli.json_cannot_be_repeated"));
@@ -76,7 +76,7 @@ export function parseUsageArgs(argv: string[], tty = false): Invocation {
   if (action === 'refresh' && unknownFlags.size) invalid(t("cli.usage-app-cli.refresh_does_not_support_query_filters"));
   const request: UsageRequest = { action };
   const scope: NonNullable<UsageRequest['scope']> = {};
-  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn'] : [])]);
+  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search', 'locate-thread'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn'] : [])]);
   for (const name of [...values.keys(), ...(roots.length ? ['root'] : [])])
     if (!allowed.has(name))
       invalid(t("cli.usage-app-cli.value_does_not_support_value", { p0: action, p1: name }));
@@ -101,13 +101,15 @@ export function parseUsageArgs(argv: string[], tty = false): Invocation {
     }
     scope.timezone = timezone;
   }
-  for (const [flag, key] of [['model', 'model'], ['effort', 'reasoningEffort'], ['project', 'project']] as const) {
+  for (const [flag, key] of [['agent', 'agentKind'], ['source', 'sourceInstanceId'], ['model', 'model'], ['effort', 'reasoningEffort'], ['project', 'project']] as const) {
     const value = values.get(flag);
     if (value)
       scope[key] = value;
   }
   if (unknownFlags.has('--model-unknown')) { if (scope.model) invalid(t("cli.usage-app-cli.model_unknown_cannot_be_combined_with")); scope.modelUnknown = true; }
   if (unknownFlags.has('--effort-unknown')) { if (scope.reasoningEffort) invalid(t("cli.usage-app-cli.effort_unknown_cannot_be_combined_with")); scope.effortUnknown = true; }
+  if (unknownFlags.has('--project-unknown')) { if (scope.project) invalid(t('webui.projectConflict')); scope.projectUnknown = true; }
+  if (values.get('locate-thread')) request.locateThreadId = values.get('locate-thread');
   const thread = values.get('thread');
   if (thread) {
     if (action === 'turns' || action === 'steps')
@@ -129,7 +131,7 @@ export function parseUsageArgs(argv: string[], tty = false): Invocation {
     request.group = group as UsageRequest['group'];
   }
   const presentation = values.get('presentation');
-  if (presentation) { if (!['distribution', 'details'].includes(presentation)) invalid(t('cli.usage-app-cli.presentation_invalid')); request.presentation = presentation as UsageRequest['presentation']; }
+  if (presentation) { if (!['distribution', 'details', 'projects', 'models'].includes(presentation)) invalid(t('cli.usage-app-cli.presentation_invalid')); request.presentation = presentation as UsageRequest['presentation']; }
   const sort = values.get('sort');
   if (sort) {
     const choices = action === 'threads' ? ['tokens', 'cost', 'recent'] : ['tokens', 'cost', 'time'];
@@ -167,13 +169,14 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
   try {
     argv = configureLanguage(argv);
     if (argv[0] === 'prices') return await runPricingCli(argv.slice(1));
+    if (argv[0] === 'web') return await (await import('./web-cli.js')).runWebCli(argv.slice(1));
     const invocation = parseUsageArgs(argv, Boolean(process.stdin.isTTY && process.stdout.isTTY));
     if (invocation.version) {
       process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', version: packageMetadata.version }) + '\n' : 'Wombat ' + packageMetadata.version + '\n');
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     if (invocation.interactive)

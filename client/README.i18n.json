@@ -12,6 +12,10 @@
     "/typed-client/limits-and-verification": {
       "zh": "4f969c9476ec586804818b4c68cdfdec23d80f8b4af7fec198471cb5b9d9b27c",
       "en": "2cd0089b4696150953a7bcb087c6c75531825a65cecf51a761ef998434bb239d"
+    },
+    "/typed-client/http-transport": {
+      "zh": "594fb57e73b71cf5c4fe6e83bfd022aa0e4998101a223a52bf22d9381f414410",
+      "en": "17bbaad548af280502a6c72022c82cd9042db01832643c781573f46098833098"
     }
   }
 }

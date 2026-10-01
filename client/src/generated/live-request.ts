@@ -3,7 +3,7 @@
 export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
 export type Group = "day" | "week" | "month";
 export type Sort = "tokens" | "cost" | "recent" | "time";
-export type Presentation = "distribution" | "details";
+export type Presentation = "distribution" | "details" | "projects" | "models";
 export type Mode = "auto" | "fresh" | "cached";
 
 export interface Request {
@@ -24,6 +24,7 @@ export interface Request1 {
   search?: string | null;
   offset?: number | null;
   limit?: number | null;
+  locateThreadId?: string | null;
 }
 export interface Scope {
   timezone?: string | null;
@@ -37,5 +38,6 @@ export interface Scope {
   undated?: boolean | null;
   reasoningEffort?: string | null;
   project?: string | null;
+  projectUnknown?: boolean | null;
   threadId?: string | null;
 }

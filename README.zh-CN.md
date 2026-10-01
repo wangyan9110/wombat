@@ -160,3 +160,7 @@ node dist/wombat.js
 ## 许可证
 
 [MIT](LICENSE)。依赖许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
+
+## 本机 Web
+
+完成构建后执行 `node dist/wombat.js web`，打开输出链接。也可在已安装的新构建中运行 `wombat web`。新版 Web 已接入用量、对话、轮次、筛选与价表，布局按新版页面实现。项目暂按历史目录归组，优化能力尚未接入。Ctrl+C 停止服务。仅本机访问，更多参数见 [CLI 指南](docs/guides/cli.md)。桌面框架已选 Tauri 2，桌面实现和旧 TUI 移除待后续。

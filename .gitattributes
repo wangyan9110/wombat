@@ -6,3 +6,5 @@
 *.ico binary
 *.tgz binary
 *.wasm binary
+# Generated upstream notices preserve their original line-end whitespace.
+licenses/*-dependencies.txt whitespace=-blank-at-eol

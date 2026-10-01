@@ -28,6 +28,10 @@
     "/cli-and-automation/legacy-migration": {
       "zh": "383bff99465e5f7dc7f05854504c4d5c2a7d60e10133fa09b1de10ffd8955eef",
       "en": "23d63bd1a8fdb7fda73662d8ad00b27374af900449809f8f0314a8d984ede9a0"
+    },
+    "/cli-and-automation/local-web": {
+      "zh": "d129bcdc03868039c7dd546e1fb82cdcadfddf197b98851e7cff30b5bf6c5191",
+      "en": "148bbd823e1b334624f89320fa700fece868737c58f4d8d9e812cada2926243c"
     }
   }
 }

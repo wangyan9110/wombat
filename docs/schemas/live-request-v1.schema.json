@@ -58,6 +58,7 @@
             "undated": null,
             "reasoningEffort": null,
             "project": null,
+            "projectUnknown": null,
             "threadId": null
           },
           "allOf": [
@@ -129,6 +130,12 @@
           ],
           "minimum": 0,
           "maximum": 9007199254740991
+        },
+        "locateThreadId": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false,
@@ -215,6 +222,12 @@
             "null"
           ]
         },
+        "projectUnknown": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "threadId": {
           "type": [
             "string",
@@ -245,7 +258,9 @@
       "type": "string",
       "enum": [
         "distribution",
-        "details"
+        "details",
+        "projects",
+        "models"
       ]
     },
     "Mode": {

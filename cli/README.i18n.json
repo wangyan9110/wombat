@@ -12,6 +12,10 @@
     "/cli-command-entry/limits-and-verification": {
       "zh": "12c9c0385e44206a9b2b33221a156bb212f0b5f14041e20c8649d22c560d9065",
       "en": "35fc9510fdca89b18ea5add1e68d0fa716d14bf349272c90f201ea12e392db67"
+    },
+    "/cli-command-entry/web-assembly": {
+      "zh": "fdea56357f286cb18e752f36cdacc235117c1e08619b55847523a170691af998",
+      "en": "3e8028fb5400defc625cf44091d5614a06120a54f7a6e3b96cfc7d0b1e81abd2"
     }
   }
 }

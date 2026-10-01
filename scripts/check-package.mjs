@@ -14,7 +14,7 @@ const binary = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
 const digest = file => createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex');
 const cargoVersion = readFileSync(path.join(root, 'core/Cargo.toml'), 'utf8')
   .match(/^version = "([^"]+)"$/m)?.[1];
-for (const file of ['cli/package.json', 'client/package.json', 'tui/package.json']) {
+for (const file of ['cli/package.json', 'client/package.json', 'tui/package.json', 'ui/package.json', 'web/package.json']) {
   if (readJson(file).version !== pkg.version) throw new Error(`Version mismatch: ${file}`);
 }
 if (cargoVersion !== pkg.version) throw new Error('Version mismatch: core/Cargo.toml');
@@ -52,7 +52,7 @@ try {
   if (pack.length !== 1 || !pack[0].filename) throw new Error('npm pack did not produce one archive');
   const archive = path.join(scratch, pack[0].filename);
   const entries = new Set(pack[0].files.map(file => file.path));
-  for (const file of ['dist/wombat.js', `dist/${binary}`, 'LICENSE',
+  for (const file of ['dist/wombat.js', 'dist/web/index.html', `dist/${binary}`, 'LICENSE',
     'THIRD_PARTY_NOTICES.md', 'dist/licenses/node-dependencies.txt', 'dist/licenses/rust-dependencies.txt']) {
     if (!entries.has(file)) throw new Error(`Archive is missing ${file}`);
   }
@@ -88,6 +88,9 @@ try {
   if (noSnapshot.error?.code !== 'NO_SNAPSHOT') throw new Error('Installed CLI did not reach the packaged core');
   const live = JSON.parse(run(process.execPath, [installed, 'usage', '--fresh', '--json'], { cwd: install, env }));
   if (live.freshness?.status !== 'current' || live.summary?.measurementCount !== 0) throw new Error('Installed CLI live service failed');
+  run(process.execPath, ['--import', 'tsx', '--test', 'tests/e2e/web.test.ts'], {
+    env: { ...env, WOMBAT_WEB_TEST_ENTRY: installed }, timeout: 60_000,
+  });
   console.log(`Package verified: ${pack[0].filename}, ${entries.size} files, isolated install, CLI and core smoke passed (${process.platform}/${process.arch}). No publication performed.`);
 } finally {
   rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 });

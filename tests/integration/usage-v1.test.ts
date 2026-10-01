@@ -426,3 +426,46 @@ test('CLI automatic daily, weekly and monthly ranges include older data while ex
     }
   } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
+
+test('Web dimensions conserve totals, all-input includes cache, IDs locate pages and ranking uses matches', async () => {
+  const f = await fixture();
+  try {
+    await writeFile(path.join(f.source,'sessions','unknown.jsonl'),jsonl([
+      envelope('2026-09-29T03:00:00Z','session_meta',{id:'thread-unknown-directory'}),
+      envelope('2026-09-29T03:00:01Z','turn_context',{turn_id:'unknown-turn',model:'gpt-5.4'}),
+      measurement('2026-09-29T03:00:02Z','thread-unknown-directory','unknown-turn','unknown-response',usage(2000,500,100)),
+    ]));
+    const snapshotId=f.refresh().snapshotRef.snapshotId;
+    const query=(args:object)=>f.query({snapshotId,scope:allDates,...args});
+    const grouped=query({action:'usage',presentation:'projects',sort:'tokens'});
+    assert.equal(grouped.summary.tokens.total,7200);
+    assert.equal(grouped.summary.tokens.input,5100);
+    assert.equal(grouped.summary.inputTotal,6400);
+    assert.equal(grouped.summary.cacheHitRate,1300/6400);
+    assert.equal(grouped.summary.unpricedTokens,500);
+    assert.equal(grouped.items.reduce((n:number,i:any)=>n+i.usage.tokens.total,0),7200);
+    assert.deepEqual(grouped.items.map((i:any)=>i.usage.tokens.total),[5100,2100]);
+    assert.equal(grouped.items[1].scope.projectUnknown,true);
+    assert.equal(grouped.facets.hasUnassigned,true);
+    assert.deepEqual(grouped.facets.directories,[f.workspace]);
+    for(const row of grouped.items){assert.equal(query({action:'threads',scope:row.scope}).summary.tokens.total,row.usage.tokens.total);}
+    const models=query({action:'usage',presentation:'models'});
+    assert.equal(models.items.reduce((n:number,i:any)=>n+i.usage.tokens.total,0),7200);
+    const scope={...allDates,model:'gpt-5.4'};
+    const ranked=query({action:'threads',scope,sort:'tokens',limit:1});
+    assert.equal(ranked.items[0].upstreamId,'thread-unknown-directory');
+    assert.equal(ranked.items[0].matchedUsage.tokens.total,2100);
+    const located=query({action:'threads',scope,sort:'tokens',limit:1,locateThreadId:'thread-a'});
+    assert.equal(located.page.offset,1);
+    assert.equal(located.items[0].upstreamId,'thread-a');
+    assert.equal(Date.parse(located.items[0].matchedLastActivityAt),Date.parse('2026-09-29T01:01:00Z'));
+    assert.equal(query({action:'threads',search:located.items[0].id}).items[0].id,located.items[0].id);
+    assert.equal(query({action:'threads',search:'thread-unknown-directory'}).items.length,1);
+    const turns=query({action:'turns',scope,threadId:located.items[0].id,sort:'time'});
+    const events=query({action:'steps',scope,threadId:located.items[0].id,turnId:turns.items[0].id,sort:'time'});
+    assert(events.items.filter((i:any)=>i.kind==='measurement').every((i:any)=>i.matchesScope===false));
+    const cli=f.invokeCli(['usage','--snapshot',snapshotId,'--since',allDates.since,'--until',allDates.until,'--presentation','projects','--project-unknown','--agent','codex','--json']);
+    assert.equal(cli.status,0,cli.stdout);assert.equal(cli.value.summary.tokens.total,2100);
+    assert.equal(f.raw({action:'usage',snapshotId,scope:{project:f.workspace,projectUnknown:true}}).ok,false);
+  } finally { await rm(f.root,{recursive:true,force:true,maxRetries:20,retryDelay:100}); }
+});

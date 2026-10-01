@@ -62,3 +62,11 @@ Exit codes: 0 for success or an empty range; 2 for usable but incomplete reads o
 ## Legacy migration
 
 Usage and conversations in v1/v2 remain readable without writes. Missing turns and effort are not invented; legacy amounts retain their original policy. Refresh creates v3 without changing old files or recovery material. Former scan/report/checkup/quota/codex/observe/compare commands and their output protocols are retired. Commands without replacement capabilities have no placeholder entry.
+
+## Local Web
+
+Run `wombat web` and open the printed link. `--port 0` selects a port automatically by default; repeat `--root <directory>` to restrict sources, use `--lang zh/en` for the initial language, and `--json` for one startup JSON record. Ctrl+C stops the service; closing a tab does not exit the CLI.
+
+Access is local only; restart requires a new link. Pages provide usage, conversations, turns, sources, and prices; date, model, effort, and directory filters are retained in the URL. Reloading reads a local version again; use Refresh data to recover an expired version. Existing business interfaces are connected over HTTP and source logs remain read-only; remote deployment is unsupported. See [architecture](../development/architecture.en.md).
+
+New queries: `usage --presentation projects|models` groups by historical directory or model; `--project-unknown` selects missing directory evidence, `--agent` / `--source` limits sources, and `threads --locate-thread ID` returns the page containing a full ID. Conversation sorting uses matching usage/latest matching measurement; full-conversation usage remains separate.

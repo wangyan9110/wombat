@@ -62,3 +62,11 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 ## 旧版迁移
 
 保留 v1/v2 用量与对话的只读读取。缺轮次/强度不伪造，旧金额保留旧政策。执行 refresh 创建 v3，旧文件和恢复材料保持不变。原 scan/report/checkup/quota/codex/observe/compare 等命令及旧输出协议已退出当前产品；没有替代能力的命令不留占位入口。
+
+## 本机 Web
+
+执行 `wombat web` 并打开输出链接。`--port 0` 默认自动选端口；可重复 `--root <目录>` 限定来源，`--lang zh/en` 选择初始语言，`--json` 输出一行启动信息。Ctrl+C 关闭服务，关闭标签不退出 CLI。
+
+仅本机可访问，重启后须打开新链接。页面提供用量、对话、轮次、来源与价表；日期、模型、强度、目录筛选同步写入地址。浏览器刷新会重新读取本机版本，过期版本可点更新数据恢复。既有业务接口已通过 HTTP 打通，原始日志仍只读；不支持远程部署。详情见[架构](../development/architecture.md)。
+
+新增查询：`usage --presentation projects|models` 按历史目录或模型归组；`--project-unknown` 筛选无目录证据记录，`--agent` / `--source` 限定来源，`threads --locate-thread ID` 返回完整 ID 所在页。对话排序按当前筛选匹配量/最近匹配计量；完整对话量仍独立返回。

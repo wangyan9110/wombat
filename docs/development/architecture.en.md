@@ -1,108 +1,77 @@
-# Wombat architecture
+# Wombat Architecture
 
 [中文](architecture.md) | English
 
-This version follows the [usage and conversation specification](../project/specification.en.md), using a shared Rust core, Node CLI, and Chinese/English terminal. See [progress](../project/progress.en.md) and [implementation status](../project/status.en.md) for actual verification.
+Wombat uses a shared Rust core, generated contracts, and replaceable hosts. The product direction is GUI, CLI, and CLI+Web; Tauri 2 is the selected desktop framework. The local Web foundation ships first. The existing TUI remains as a migration baseline; the desktop host and TUI removal are not implemented. A revised product specification is being prepared separately; this slice connects existing business interfaces without migrating old pages; new pages await the revised product specification. See the [support matrix](../reference/support-matrix.en.md) and [progress](../project/progress.en.md) for actual support and verification.
 
-## Data flow
+## Data Flow
 
 ```mermaid
 flowchart LR
-  L[Read-only Agent logs] --> A[Source adapters]
-  A --> F[Measurements / conversations / turns / operations]
-  F --> P[Offline catalog and decimal pricing]
-  P --> D[SQLite incremental index / versioned views]
-  D --> Q
-  P --> S[Explicit immutable snapshots and shards]
-  S --> Q[Shared queries]
-  Q --> N[client/node restricted transport]
-  N --> I[client typed interface]
-  I --> C[cli JSON / 文本]
-  I --> T[tui OpenTUI usage / conversations]
+  L[Read-only Agent logs] --> A[Rust adapters / measurements / pricing]
+  A --> D[SQLite incremental index / versioned views]
+  A --> S[Immutable snapshots]
+  D --> Q[Rust shared queries]
+  S --> Q
+  Q --> N[client/node]
+  N --> C[CLI JSON / text]
+  N --> W[web loopback host]
+  N --> T[Transitional OpenTUI]
+  W --> H[client/http]
+  H --> U[ui React]
+  F[Future Tauri transport] -. UsageClient .-> U
 ```
 
-- `core/src/adapters/`: static registration and source protocol, with Codex registered in version one. Adapters own source formats, cache semantics, identity, replay, and historical settings. The public model does not require other agents to have turns or JSONL.
-- `core/src/pricing.rs`, `pricing_sync.rs`, `core/prices/`: deterministic provider/model matching, standard API conversion, components, pricing basis, and revisions using a locked decimal library. Unpriced fields remain unknown.
-- `core/src/live.rs`, `live_index.rs`: on-demand service, SQLite WAL transactions, notifications/polling, scope isolation, and short-lived revisions; `codex/incremental.rs` stores append cursors and parser state.
-- `core/src/usage_store.rs`: v3 generations, manifests, compact measurement ledgers, per-conversation JSONL partitions, turn offsets/hashes, and narrow read-only v1/v2 compatibility.
-- `core/src/usage_app.rs`, `usage_app_dto.rs`: refresh, usage, threads, turns, steps; filtering, sorting, and aggregation across the complete range before pagination. Rust schemas generate Node types and validators.
-- `client/src/`: Rust-generated contracts, request/response validation, and an injectable typed client. The portable entry loads neither Node nor terminal libraries.
-- `client/src/locale/`: shared presentation-only language service, typed dictionaries, and subscriptions for CLI/TUI; no core-protocol changes. See the [language contract](../i18n/product.en.md).
-- `client/src/node/`: narrow core requests, process lifecycles, cancellation, timeouts, and output limits. Core stdout carries final JSON; stderr carries progress.
-- `cli/src/`: arguments, JSON/text output, exit codes, and interactive startup assembly. Help and machine queries do not load OpenTUI.
-- `tui/src/`: OpenTUI's two views, page state, components, filters, input, and semantic themes. It does not parse sources, price usage, or recompute totals from pages.
+## Independent Modules
 
-## Identity and accounting
+| Module | Responsibility and public boundary |
+|---|---|
+| `core/` | Adapters, accounting, pricing, storage, live service, and queries; an independent Rust library and executable, without UI framework dependencies |
+| `client/` | Rust-generated DTOs, schema validation, `UsageClient`, stable errors, cancellation, and progress; the generic entry imports neither Node nor terminal libraries |
+| `client/src/node/` | Restricted core communication, subprocesses, live connections, official price downloads, timeouts, and output limits; exported as `@wombat/client/node` |
+| `client/src/http/` | Browser HTTP transport and streamed progress; exported as `@wombat/client/http`, with business fields still validated by generated contracts |
+| `client/src/locale/` | Shared typed Chinese/English dictionaries, language subscriptions, and presentation formatting; source content and protocol values stay untranslated |
+| `web/` | `startWebHost` receives a client, built assets, startup scope, and port; owns local HTTP, authentication, static files, and connection cleanup, without business algorithms |
+| `ui/` | React / TypeScript / Vite frontend; `App` receives `UsageClient` and implements the revised usage, conversation, turn, source, and price pages. The browser entry wires HTTP; no Node/Tauri dependency |
+| `cli/` | Arguments, JSON/text, exit codes, Web startup/shutdown, and transitional TUI assembly; ordinary queries, Web, and help do not initialize OpenTUI |
+| `tui/` | Transitional OpenTUI pages, keyboard/mouse handling, themes, and state; still accesses business operations through an injected client |
 
-Agent, source instance, and upstream identity define namespaces. Same-name projects/conversations or identical IDs in different roots do not merge automatically; only explicit copies deduplicate. Verifiable stable legacy identities remain usable read-only, without deleting existing registrations or user data.
+Dependencies point from `cli → web + client/node + tui`, `web → client`, `ui → client + client/http + client/locale`, and `tui → client + client/locale`. The core has no presentation dependencies. Modules use only public package entries or versioned protocols, never each other's internal source; static boundary checks cover all TS/TSX modules. Each module declares dependencies, build, and test entries under one pnpm lockfile; Rust uses Cargo. This remains one modular monolith and installation package.
 
-Modern per-response measurements and legacy cumulative telemetry must not be added together. Non-overlapping token categories are input, cache read, cache creation, and output; reasoning is an output subset. Historical models/effort use context recorded at the time. Tool calls link by explicit identity rather than cost allocation by nearby timestamps. Measurements without a turn stay in the conversation's Other records.
+Business rules stay in Rust: adapters own source semantics and identity; `pricing.rs` / `pricing_sync.rs` own amounts and catalog eligibility; `live.rs` / `live_index.rs` own incremental indexes and versions; `usage_store.rs` owns immutable snapshots; `usage_app.rs` / `usage_app_dto.rs` own operations, filters, sorting, full-scope totals, and pagination. Lists never recompute totals, shares, or pricing from the current page.
 
-Prices are official-standard API equivalents, separate from subscription spending and source reportedCost. Explicit updates and automatic updates triggered by missing rates are downloaded from fixed OpenAI documents by Node. Rust owns eligibility, persistent throttling, validation, and atomic publication. A refresh reads the catalog once and uses one revision throughout collection. Each record stores computed results and catalog basis; old snapshots are not repriced and old-policy amounts cannot mix with the new policy. See [pricing](../reference/pricing.en.md).
+## Web Host and Lifecycle
 
-## Storage and failures
+`wombat web` starts a Node HTTP service on an automatically assigned port, bound only to `127.0.0.1`, and prints the complete browser link. `--root` fixes source scope at startup. The browser cannot supply new roots or arbitrary snapshot paths; it can continue querying only snapshot identities already returned by this host. The host remembers up to 128 identities; live versions retain the core's own expiry rules. Expired versions fail explicitly; refresh returns to the current version.
 
-The default macOS directory is `~/Library/Application Support/Wombat`; Windows uses `%LOCALAPPDATA%/Wombat`, and Linux uses `XDG_DATA_HOME/wombat` or `~/.local/share/wombat`. Override with `WOMBAT_DATA_HOME`. Snapshots live in `usage-v3/`, incremental indexes in `live-v1/`; neither replaces old `latest.json`.
+Each startup generates a random token in the URL fragment. The browser moves it into sessionStorage and clears the fragment. APIs require a Bearer token, exact Origin/Host, and JSON POST; CORS is disabled. The root page contains no business data, and CSP forbids remote scripts and embedding. The token grants local service access; it is not a source API key. A server restart requires a new link.
 
-Refresh holds a process-owned file lock. Write all files and hashes into a private temporary generation, commit its manifest, then atomically update the new latest pointer. Cancellation/failure never publishes a partial snapshot. Failed and successful sources receive separate receipts; if all sources are unreadable, retain old latest. Each original log has a fixed read length for the run; multiple files are not an atomic source snapshot.
+Only `/api/query`, `/api/live`, and `/api/prices` are exposed, matching generated product requests. Both requests and responses are validated. HTTP uses NDJSON progress/result/error envelopes without redefining business DTOs. Limits are 64 KiB input, 16 MiB output, eight concurrent requests, and a 120-second timeout. Disconnects cancel the corresponding call; CLI exit signals close the listener and cancel its own requests. The shared core service follows its existing idle lifecycle; one departing Web client does not terminate another entry's service. Closing a browser tab does not exit the CLI.
 
-Queries fix snapshotId: usage reads the compact ledger, turns read the target conversation, and steps read only the indexed fragment and validate its hash. Pagination limits output without changing totals or share denominators. Live sync parses new complete lines; candidate facts, cursors, and projections commit in one SQLite transaction. Truncation/replacement rebuilds the source; missing files retain observed contributions and mark partial. Candidate measurements/operations persist changes; sorted differences publish canonical additions, corrections, and retractions. Parser caches and read revisions share immutable facts; repeated paths/pricing basis share strings; turns use compact row-position indexes. Queries borrow the ledger and group conversations/turns before aggregation. Automatic sync does not export snapshots; explicit export fixes a selected revision. Reconciliation and aggregation still read all safe facts for the source, so memory is not constant and queries do not use database aggregates. Million-measurement scale, persistent MVCC, and long-running resource goals need further work.
+Static files come only from the built asset directory. Startup loads allowed file types, with no directory listing or source access. Node and browser output is bounded; these limits do not verify million-record memory goals. The service does not support LAN, remote, or hosted deployment and exposes no generic file writes, shell execution, or core dispatch.
 
-Snapshots contain no user messages, model text, full command arguments, or tool output. Source data never becomes executable instructions. The local on-demand service uses a private Unix socket or an owner-only Windows named pipe and has no HTTP listener; it exits about 15 seconds after the last call. Configuration writes, automatic repair, permanent monitoring, Web service, and HTML export are absent.
+The browser opens the revised usage page and queries local records without migrating old TUI pages. URLs retain scope, filters, search, sorting, pagination, and selection; pagination pins a version, and cancellation/failure retains the prior result. Rust supplies all-input totals, cache hit rates, directory/model groups, matching-usage sorting, and ID page location, also available to the CLI. Project registration and optimization rules remain unimplemented; see [frontend boundaries](../../ui/README.en.md).
 
-## Extension constraints
+## Identity and Accounting
 
-Add the next agent through an adapter and tests for capability differences, identity isolation, token semantics, dates, unknown prices, and failures. Do not add source-specific branches to public queries. Future hosts may reuse DTOs and operations; desktop delivery is outside this work. Business code, builds, and routine tests are independent of ccusage; its boundary lessons and tradeoffs are recorded in the [independent accounting decision](../decisions/implemented/architecture/2026-09-30-independent-accounting.en.md).
+Identity is isolated by agent, source instance, and upstream identity; only explicit copies are deduplicated. Identically named projects/conversations or matching IDs under different roots are not automatically merged. The public model does not require every agent to expose turns or JSONL.
 
-<a id="独立模块"></a>
+Modern per-response measurements and legacy cumulative telemetry must not be added together. Nonoverlapping token categories are input, cache read, cache write, and output; reasoning is a subset of output. Historical models and effort use the context recorded at the time. Tool calls link through explicit identity without allocating costs; measurements without turn identity remain in “Other records.”
 
-## Independent modules
+Amounts are standard official API equivalents, separate from subscription payments. Node downloads fixed official sources; Rust owns missing-price eligibility, persistent throttling, validation, and atomic storage. Cached queries, fixed versions, and WOMBAT_AUTO_PRICES=0 disable automatic networking. Each collection uses one catalog version; old snapshots are not repriced and policies are not mixed. See [pricing](../reference/pricing.en.md) and the [independent accounting decision](../decisions/implemented/architecture/2026-09-30-independent-accounting.en.md).
 
-`core/`, `client/`, `tui/`, and `cli/` are peer root modules. Their source and public interfaces have moved; OpenTUI is 0.5.12 and product Node requires 26.4.0 or newer. See [implementation status](../project/status.en.md) for migrated-chain and terminal acceptance. Historical checks of former renderers do not establish acceptance of the new chain.
+## Storage and Failures
 
-```text
-core/
-  Cargo.toml
-  src/
-  tests/
-client/
-  package.json
-  src/
-    generated/
-    node/
-  tests/
-tui/
-  package.json
-  src/
-    screens/
-    components/
-    state/
-    themes/
-  tests/
-cli/
-  package.json
-  src/
-  tests/
-tests/
-scripts/
-docs/
-```
+Default data directories are `~/Library/Application Support/Wombat` on macOS, `%LOCALAPPDATA%/Wombat` on Windows, and `XDG_DATA_HOME/wombat` or `~/.local/share/wombat` on Linux; `WOMBAT_DATA_HOME` overrides them. Snapshots live in `usage-v3/`, indexes in `live-v1/`; the old `latest.json` is not replaced.
 
-TypeScript modules use pnpm workspaces, explicit exports, dependencies, builds, typechecks, and tests with one root lockfile. Rust uses Cargo independently. Cross-module calls use public package entries or versioned protocols. `scripts/check-module-boundaries.mjs` checks import direction and rejects internal-source imports across directories. The modules still install and ship as one product; separate repositories or manually installed background services are unnecessary.
+Refresh holds a process file lock, writes a private generation, shards, and hashes, then commits the manifest and atomically updates latest. Cancellation never publishes a partial snapshot. Source failures retain separate receipts; total failure preserves the previous latest. Source reads use the captured length and make no cross-file atomicity claim. v1/v2 retain narrow read-only compatibility.
 
-### Interfaces and dependency direction
+Fixed queries read the compact ledger, target conversation, or verified turn segment. Live appends process complete lines only; facts, cursors, and projections commit in one SQLite transaction. Truncation/replacement rebuilds the source; disappearing files preserve observed contributions and mark partial. Read-only versions share safe facts and indexes; automatic synchronization does not export snapshots. Merging and aggregation still depend on all safe facts for a source, rather than constant memory or database aggregation. Persistent MVCC and long-term scale goals remain undelivered.
 
-- `@wombat/client` exports `UsageClient`, `createUsageClient`, generated request/result types, cancellation/progress interfaces, and stable errors. It provides fixed-snapshot `query`, catalog `prices`, and live `live`, with operations limited by Rust-generated request unions.
-- `@wombat/client/node` implements local transport through `createNodeClient`, with configurable binary path, timeout, and response limit. The portable entry does not import it and offers no arbitrary commands or file writes.
-- `@wombat/tui` receives a client in `startTerminalApp(initial, client)`. OpenTUI layout, mouse, input, scrolling, and terminal restoration belong to TUI. Focus, expansion, and navigation stay outside business contracts.
-- `cli/` creates the Node client and assembles interactive/machine entries. Only interactive startup enables Node `--experimental-ffi` before loading OpenTUI; users keep one Wombat command. Ordinary queries, help, and JSON never initialize the renderer.
+Snapshots exclude message bodies, complete command arguments, and tool output; source data is never an instruction. The on-demand core service still uses a private Unix socket or owner-only Windows named pipe and exits about 15 seconds after its last call. HTTP exists only in the explicitly started Web host. Configuration writes, repair, permanent monitoring, and HTML report export are unavailable.
 
-Dependency direction is `cli → tui + client/node`, `tui → client public interfaces`, and `client/node → core` through the protocol. `core` does not depend on presentation modules; `client` does not depend on `tui` or `cli`. Rust owns sources, accounting, pricing, filters, sorting, aggregation, snapshots, and queries; presentation owns formatting and interaction.
+## Build and Verification
 
-New agents extend Rust adapters; new interfaces provide separate presentation modules and narrow host transports for the same `UsageClient`. Future hosts need neither terminal components nor the Node implementation. This work creates no empty GUI project.
+Node.js 26.4.0 or newer is required. Build order is core, client, Web frontend and host, transitional TUI, CLI, then distribution assembly. Static frontend assets ship under `dist/web/`; Vite is not needed at runtime. React DOM is the browser rendering layer; Tauri 2 remains the selected desktop host. Desktop transport and lifecycle require separate implementation; local HTTP checks do not validate Tauri.
 
-### Verification boundaries
-
-Core algorithm tests need neither Node nor OpenTUI. Client protocol tests use synthetic transports and controlled subprocesses. TUI components/state use injected synthetic clients without real logs. Package tests and root integration tests with the real core stay separate. Build order is core, client, TUI, CLI, then release assembly.
-
-Terminal acceptance covers control borders, date subtotal backgrounds, group-selection rails, hierarchy, complete keyboard/mouse paths, 40/80/120 columns, resizing, query cancellation, themes, and exit restoration. OpenTUI memory tests, real PTYs, visual comparison, and clean installation prove different things. Build success or test counts do not establish complete visual equivalence. Only progress and acceptance materials record actual passes.
+Protocol and host tests use synthetic clients. End-to-end tests start HTTP from the distribution entry and compare real Rust and CLI ground truth, fixed-version drill-down, authentication, and shutdown. Browser interaction, narrow layouts, failure/cancellation, installed assets, and other platforms require separate verification; only verified scope enters progress records. See the [workflow](workflow.en.md) and [local Web decision](../decisions/implemented/architecture/2026-10-01-local-web.en.md).

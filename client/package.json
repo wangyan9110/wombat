@@ -15,6 +15,10 @@
     "./locale": {
       "types": "./dist/locale/index.d.ts",
       "import": "./dist/locale/index.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js"
     }
   },
   "files": [

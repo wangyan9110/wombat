@@ -24,6 +24,16 @@
     "Response": {
       "type": "object",
       "properties": {
+        "facets": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Facets"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "distribution": {
           "anyOf": [
             {
@@ -97,6 +107,46 @@
         "items",
         "page",
         "quality"
+      ]
+    },
+    "Facets": {
+      "description": "Observed dimensions, not a project registry or a configuration inventory.",
+      "type": "object",
+      "properties": {
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hasUnassigned": {
+          "type": "boolean"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reasoningEfforts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "directories",
+        "hasUnassigned",
+        "models",
+        "reasoningEfforts",
+        "agents"
       ]
     },
     "Distribution": {
@@ -231,6 +281,12 @@
             "null"
           ]
         },
+        "projectUnknown": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "threadId": {
           "type": [
             "string",
@@ -360,6 +416,32 @@
     "UsageSummary": {
       "type": "object",
       "properties": {
+        "inputTotal": {
+          "description": "All input, including cache reads and writes. Existing tokens.input stays uncached.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null,
+          "maximum": 9007199254740991
+        },
+        "cacheHitRate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "unpricedTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null,
+          "maximum": 9007199254740991
+        },
         "tokens": {
           "$ref": "#/definitions/TokenUsage"
         },
@@ -667,6 +749,20 @@
             "id": {
               "type": "string"
             },
+            "upstreamId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "matchedLastActivityAt": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
             "agentKind": {
               "type": "string"
             },
@@ -812,6 +908,10 @@
         {
           "type": "object",
           "properties": {
+            "matchesScope": {
+              "type": "boolean",
+              "default": false
+            },
             "id": {
               "type": "string"
             },

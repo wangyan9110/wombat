@@ -28,3 +28,7 @@ Updated 2026-09-30. This page tracks current delivery and unfinished boundaries.
 | Product outcomes | Record real user tasks separately; test counts do not establish usability, savings, or user value |
 
 Future candidates are in the [roadmap](roadmap.en.md). This page does not duplicate individual styling fixes, old test counts, or retired commands; historical evidence explains the corresponding builds.
+
+## First Web Delivery · 2026-10-01
+
+`ui/`, `web/`, and the HTTP client provide revised usage, conversation, turn, source, and price pages, started by the CLI. New grouping and matching-usage sorting use shared Rust contracts. Desktop still uses the selected Tauri 2; project registration, optimization rules, TUI removal, and other-platform browser verification remain pending. See [frontend scope](../../ui/README.en.md) and [verification](progress.en.md).

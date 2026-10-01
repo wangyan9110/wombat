@@ -15,6 +15,7 @@
     "dist/wombat-core",
     "dist/wombat-core.exe",
     "dist/licenses/",
+    "dist/web/",
     "README.md",
     "README.zh-CN.md",
     "LICENSE",
@@ -59,7 +60,7 @@
   ],
   "scripts": {
     "dev": "node --import tsx cli/src/index.ts",
-    "build": "node scripts/build-core.mjs && pnpm --filter @wombat/client build && pnpm --filter @wombat/tui build && pnpm --filter @wombat/cli build && node scripts/build-cli.mjs",
+    "build": "node scripts/build-core.mjs && pnpm --filter @wombat/client build && pnpm --filter @wombat/ui build && pnpm --filter @wombat/web build && pnpm --filter @wombat/tui build && pnpm --filter @wombat/cli build && node scripts/build-cli.mjs && node scripts/build-web.ts",
     "build:core": "node scripts/build-core.mjs",
     "typecheck": "pnpm -r typecheck && tsc --noEmit -p tsconfig.json && node scripts/check-module-boundaries.mjs",
     "test": "pnpm run test:core && pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
@@ -110,7 +111,8 @@
     "micromark-extension-gfm": "3.0.0",
     "node-pty": "1.1.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@wombat/web": "workspace:*"
   },
   "license": "MIT",
   "description": "Local Codex token usage tracker. Find usage peaks and drill into conversations, turns, and estimated API costs in your terminal.",

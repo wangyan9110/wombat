@@ -4,6 +4,10 @@
     "/wombat-roadmap": {
       "zh": "67e3b17fae795371e9b6cd807f39e86b1a1d888bb2b8535e5dc25e8cf8b753cd",
       "en": "ffaa0b89b851c51ccad37aecf4db8a8e9c460041f0cb99ec862b2a5dacd818e2"
+    },
+    "/wombat-roadmap/current-migration-sequence": {
+      "zh": "a8f60892e4ce2540aae30792db6b8f72ea0c6504497232a06f115e280a6c8c36",
+      "en": "497efe8f2e6ef2897a546076b6cd00235ba1246b2f4d8b41c98473972f846f95"
     }
   }
 }

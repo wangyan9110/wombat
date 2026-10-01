@@ -18,6 +18,7 @@ pub struct Scope {
     pub undated: Option<bool>,
     pub reasoning_effort: Option<String>,
     pub project: Option<String>,
+    pub project_unknown: Option<bool>,
     pub thread_id: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -50,6 +51,8 @@ pub enum Sort {
 pub enum Presentation {
     Distribution,
     Details,
+    Projects,
+    Models,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -67,10 +70,18 @@ pub struct Request {
     pub search: Option<String>,
     pub offset: Option<usize>,
     pub limit: Option<usize>,
+    pub locate_thread_id: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UsageSummary {
+    /// All input, including cache reads and writes. Existing tokens.input stays uncached.
+    #[serde(default)]
+    pub input_total: Option<u64>,
+    #[serde(default)]
+    pub cache_hit_rate: Option<f64>,
+    #[serde(default)]
+    pub unpriced_tokens: Option<u64>,
     pub tokens: TokenUsage,
     pub price: PriceResult,
     pub measurement_count: usize,
@@ -127,6 +138,10 @@ pub enum Item {
     },
     Thread {
         id: String,
+        #[serde(default)]
+        upstream_id: Option<String>,
+        #[serde(default)]
+        matched_last_activity_at: Option<String>,
         agent_kind: String,
         source_instance_id: String,
         title: Option<String>,
@@ -153,6 +168,8 @@ pub enum Item {
         cost_share: Option<f64>,
     },
     Measurement {
+        #[serde(default)]
+        matches_scope: bool,
         id: String,
         thread_id: Option<String>,
         turn_id: Option<String>,
@@ -197,6 +214,8 @@ pub struct Distribution {
 #[serde(rename_all = "camelCase")]
 pub struct Response {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub facets: Option<Facets>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub distribution: Option<Distribution>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub price_update: Option<crate::pricing_sync::Automatic>,
@@ -211,4 +230,15 @@ pub struct Response {
     pub items: Vec<Item>,
     pub page: Page,
     pub quality: Quality,
+}
+
+/// Observed dimensions, not a project registry or a configuration inventory.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Facets {
+    pub directories: Vec<String>,
+    pub has_unassigned: bool,
+    pub models: Vec<String>,
+    pub reasoning_efforts: Vec<String>,
+    pub agents: Vec<String>,
 }

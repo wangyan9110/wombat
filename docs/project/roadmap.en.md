@@ -11,3 +11,7 @@ This page lists future directions without release-date commitments. Independent 
 5. Add another Agent or desktop host when real requirements justify it; reuse the shared adapter protocol and narrow client before extending product entry points.
 
 Chinese and English CLI/TUI are delivered; source text and unknown core diagnostics retain their original language. Former environment management, quota, diagnostics, repair, observation, and reports are outside version one. Historical implementations do not establish current support or a commitment to restore them.
+
+## Current Migration Sequence
+
+Establish CLI+Web on shared Rust contracts first, then develop the shared frontend and selected Tauri 2 host against the revised product specification, and remove the TUI. The basic Web path is implemented. Older terminal work is transitional maintenance, not the default target for new product interfaces.

@@ -44,6 +44,10 @@
     "/wombat-codex-token-usage-tracker/license": {
       "zh": "cde8bbb6126ec7c29da0dba23a26d83f906c3fb7b369eb68598e99d230c55abe",
       "en": "9c5c5200e5acffbfb38188f50b353b65be5224629be421c622dc693ccebc2499"
+    },
+    "/wombat-codex-token-usage-tracker/local-web": {
+      "zh": "30f37b158be02f605ed433bc86248423c81b4aed02c54de1e6d4563d03f32301",
+      "en": "1abbed14b342d7c6a136e6f2cf488a5a9b84a6f189e351c435d8118b7b03a099"
     }
   }
 }

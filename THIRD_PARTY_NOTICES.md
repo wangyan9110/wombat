@@ -6,7 +6,7 @@ Wombat's original code is licensed under [MIT](LICENSE). Third-party components 
 - Rust dependency notices: [license texts](licenses/rust-dependencies.txt).
 - Versions, declared licenses, selected alternatives and notice hashes: [inventory](docs/dependency-licenses.json).
 
-The inventory covers 105 installed Node packages (13 runtime) and 148 locked Rust packages other than Wombat. Enabled normal/build/dev dependencies are identified separately; optional lock entries not activated by current features are not compiled into this build, but their upstream license notices are still preserved. Node optional platform packages not installed here are recorded as unverified; their presence is not a platform support claim. Development dependencies are included conservatively.
+The inventory covers 123 installed Node packages (16 runtime) and 148 locked Rust packages other than Wombat. Enabled normal/build/dev dependencies are identified separately; optional lock entries not activated by current features are not compiled into this build, but their upstream license notices are still preserved. Node optional platform packages not installed here are recorded as unverified; their presence is not a platform support claim. Development dependencies are included conservatively.
 
 For Rust dual-licensed packages, Wombat uses the offered MIT alternative where available, retaining additional required notices, including Unicode-3.0. The alternative LGPL license offered by r-efi is not selected. Its AUTHORS file is preserved. Binary Node packages without their own license text retain the same-version upstream package notice. Crates that omit license texts retain supplemental notices from recorded upstream revisions, with fixed hashes.
 

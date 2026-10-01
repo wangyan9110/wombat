@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "sections": {
+    "/local-web-host": {
+      "zh": "412c205468a655c49c6e9e1b2bb34ec51e5a252bbc97ee9b4255d5d53d4742eb",
+      "en": "5bb3cd3b2f3132cf11ba1c1d32b482e21485236fb5cc824c9847833af1551b0c"
+    },
+    "/local-web-host/access-boundaries": {
+      "zh": "fc3b0cdf784d97e53d0f186d610c68de984edb28046a5a2b6bbdf287f5a7f168",
+      "en": "5bb575725b99554136c1c02d9d3dba50405a7e5664a96c2aea20a7b1b6d139fa"
+    },
+    "/local-web-host/verification": {
+      "zh": "d4db26f5e4bb290edf70ac295bde5ad887da4d610a961fa4dbe7e9f8031b21f2",
+      "en": "5adf694954ab1c073f164d8ae26ed12cc9b62fa26c26daa6dcb7f095722fdfbd"
+    }
+  }
+}

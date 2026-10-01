@@ -169,6 +169,21 @@
       "zh": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.md",
       "en": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.en.md",
       "record": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.i18n.json"
+    },
+    {
+      "zh": "ui/README.md",
+      "en": "ui/README.en.md",
+      "record": "ui/README.i18n.json"
+    },
+    {
+      "zh": "web/README.md",
+      "en": "web/README.en.md",
+      "record": "web/README.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-01-local-web.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-01-local-web.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-01-local-web.i18n.json"
     }
   ],
   "legacyUnpaired": [],

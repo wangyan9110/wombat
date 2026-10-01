@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/web-frontend": {
+      "zh": "85df65b2ab957c61503fb87747898f9a9e03a265b4618122438d21c360e00f30",
+      "en": "2deb0fc337eba409d074238e7ecf28ba93ce35556deae1aee38e13e442b025ad"
+    },
+    "/web-frontend/running": {
+      "zh": "7cd2153e24727744a6686540ad9bc05a559c7a50f82b83f7a71970e2d63747f1",
+      "en": "6c9d331f16add1b95e0bb16ed55516d1dd5842dddd036e48716ab1ba21cbc31b"
+    },
+    "/web-frontend/pages-and-implementation-boundaries": {
+      "zh": "9ecaccbd27ad9a27d59f7742c663c05b106996b810cd78571ff3e051c4d33739",
+      "en": "661bbc38a095be95402a4a3b330b8ba980a273c4f93482b44440cdccb7c0f2f5"
+    },
+    "/web-frontend/state-and-queries": {
+      "zh": "5ea995d30d730f62d77c872df534a116895a363ad21ecdc98318000356b28946",
+      "en": "5e3419203de9dad214d458e3cec86d7c7b25ee29351ec10822ed432f1238227d"
+    },
+    "/web-frontend/development-and-verification": {
+      "zh": "93a73715f9c5189f082e17e72b284c76b75bd24ff305cbfe204ccf1b89a02cd9",
+      "en": "917f113b4336956f62152690f88e2ffccd0bdf66d688173d3b85a932bffff645"
+    }
+  }
+}

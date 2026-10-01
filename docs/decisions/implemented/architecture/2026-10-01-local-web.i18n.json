@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-local-web-and-shared-frontend": {
+      "zh": "d49e0d46d39d80e46cf954c850e2834e265f16764515343315822791436bc58b",
+      "en": "38cdae804da5704d7bdb83c69c42b55bd3ba299fdd0e74403c5d90bd0200f699"
+    },
+    "/decision-note-local-web-and-shared-frontend/problem": {
+      "zh": "079ab42afec24eb50b96db0fc79aa4f428183771d81ee29e6ff76c8e8f1bda8a",
+      "en": "ae7408f4228ea7db2152e902c915a7f44042a82ef3521023a2c1c3fd184c7333"
+    },
+    "/decision-note-local-web-and-shared-frontend/decision": {
+      "zh": "e82b7642b4e54ac6346458fff0cb573462c279adf9ec8184411c1d4fd38d8bb7",
+      "en": "be28646e869be3910a83a1c928f15376ce3ddc9bb2b57e64fcf7ef35e6f7f154"
+    },
+    "/decision-note-local-web-and-shared-frontend/alternatives-considered": {
+      "zh": "4cb467218148757b254c55cd9c822c00916a88da03529bfbf0bac349a113edf4",
+      "en": "6c6a07a95973a0d1d2b31f6e97dbded5ae6a320a7b989207e21a0b1aeb3d0ec3"
+    },
+    "/decision-note-local-web-and-shared-frontend/impact-and-verification": {
+      "zh": "decba53d32ff175b26a3bafb0a498017e689e4e5498ae87a1a1f0554b51e1364",
+      "en": "9a570722ce887a6e5627da05f619e5de3d682ca47032fe38da011affcdea6647"
+    }
+  }
+}

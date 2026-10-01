@@ -15,3 +15,7 @@
 ## Limits and verification
 
 The CLI owns arguments, output, progress, and exit codes, not pricing or snapshot semantics. JSON progress goes to stderr and results to stdout; after a build, verify argument errors, partial results, and complete command paths under the [CLI rules](AGENTS.md).
+
+## Web Assembly
+
+`wombat web` dynamically loads the local host, injects a Node client, and serves packaged `dist/web/` assets. The CLI owns startup links and shutdown without loading OpenTUI; startup arguments fix source scope.

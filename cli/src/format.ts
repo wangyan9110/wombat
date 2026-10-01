@@ -117,6 +117,7 @@ export function itemLines(item: UsageItem, result: UsageResult, width: number): 
   const reference = result.snapshotRef.createdAt;
   const timezone = result.scope.timezone ?? 'UTC';
   if (item.kind === 'usage') {
+    if (!result.distribution && item.date == null && item.isSubtotal) return headline(item.scope.project ?? (item.scope.projectUnknown ? t('webui.unassigned') : item.model ?? t('common.unknown_model')), usageLabel(item.usage, false, true), width);
     const date = item.date ? rangeLabel(item.scope.since, item.scope.until, reference, timezone) : t("common.unknown_date");
     const name = item.isSubtotal ? `${date} ›` : `↳ ${modelLabel(item.model, item.reasoningEffort)}`;
     if (width < 68) return [name, `  ${usageLabel(item.usage, false, true)}`];
@@ -159,7 +160,7 @@ function qualityLine(result: UsageResult): string | undefined { return result.qu
 export function renderUsageResult(result: UsageResult, width = 120): string {
   const title = { refresh: t("cli.format.updated"), usage: t("cli.format.usage"), threads: t("common.threads"), turns: t("cli.format.turns"), steps: t("cli.format.records") }[result.action];
   const lines = [`Wombat · ${title}`, t("common.updated_value", { p0: dateLabel(result.snapshotRef.createdAt, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC', true) }), rangeLabel(result.scope.since, result.scope.until, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC'), usageLabel(result.summary), ''];
-  if (result.action === 'usage' && width >= 110)
+  if (result.action === 'usage' && result.distribution && width >= 110)
     lines.push(usageTableHeader(width));
   for (const item of result.items)
     lines.push(...itemLines(item, result, width));

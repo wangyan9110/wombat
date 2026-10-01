@@ -17,3 +17,7 @@
 ## 限制与验证
 
 客户端只允许生成请求联合类型中的操作，不提供任意 shell、文件写入或通用 dispatch。请求与返回值在跨进程边界校验；修改此包时按[客户端约定](AGENTS.md)构建并运行聚焦测试。
+
+## HTTP 传输
+
+`@wombat/client/http` 导出 `createHttpClient({ origin, token })`，实现同一 `UsageClient`，校验结果并保留进度、取消和错误。浏览器不直接访问内核；仅向本机宿主发送窄操作。
