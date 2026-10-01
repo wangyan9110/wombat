@@ -25,6 +25,8 @@ export interface Request1 {
   offset?: number | null;
   limit?: number | null;
   locateThreadId?: string | null;
+  locateTurnId?: string | null;
+  matchedOnly?: boolean | null;
 }
 export interface Scope {
   timezone?: string | null;

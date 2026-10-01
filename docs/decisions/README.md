@@ -34,3 +34,6 @@
 | implemented | [跨平台 npm 与本地通信](implemented/architecture/2026-09-30-portable-npm.md) |
 | implemented | [本地 Web 与共享前端](implemented/architecture/2026-10-01-local-web.md) |
 | implemented | [移除 TUI 产品与工具](implemented/architecture/2026-10-01-remove-tui.md) |
+| implemented | [Rust 实时查询与故障隔离](implemented/architecture/2026-10-01-rust-live-query.md) |
+| proposed | [四入口 Web 与配置使用分析技术方案](proposed/architecture/2026-10-01-config-analysis-web.md) |
+| implemented | [只读配置与复合读取版本](implemented/architecture/2026-10-01-config-inventory.md) |

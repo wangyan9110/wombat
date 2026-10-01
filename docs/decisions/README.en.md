@@ -34,3 +34,6 @@ Put status after the title and language switcher. A proposal contains Problem, P
 | implemented | [Portable npm and local transport](implemented/architecture/2026-09-30-portable-npm.en.md) |
 | implemented | [Local Web and shared frontend](implemented/architecture/2026-10-01-local-web.en.md) |
 | implemented | [Remove TUI product and tools](implemented/architecture/2026-10-01-remove-tui.en.md) |
+| implemented | [Rust live queries and failure isolation](implemented/architecture/2026-10-01-rust-live-query.en.md) |
+| proposed | [Four-entry Web and configuration usage analysis](proposed/architecture/2026-10-01-config-analysis-web.en.md) |
+| implemented | [Read-only configuration and composite views](implemented/architecture/2026-10-01-config-inventory.en.md) |

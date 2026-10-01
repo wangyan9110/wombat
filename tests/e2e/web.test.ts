@@ -1,11 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
+async function stop(child?: ChildProcess) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return;
+  const closed = once(child, 'close');
+  const timer = setTimeout(() => child.kill('SIGKILL'), 2000);
+  child.kill('SIGTERM');
+  try { await closed; } finally { clearTimeout(timer); }
+}
 const entry = path.resolve(process.env.WOMBAT_WEB_TEST_ENTRY ?? 'dist/wombat.js');
 test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecycle', { timeout: 40_000 }, async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'wombat-web-e2e-'));
@@ -20,17 +28,24 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
   ];
   await writeFile(path.join(root, 'sessions', 'synthetic.jsonl'), events.map(event => JSON.stringify({ timestamp, ...event })).join('\n') + '\n');
   const env = { ...process.env, CODEX_HOME: path.join(dir, 'empty-default'), WOMBAT_DATA_HOME: data, WOMBAT_AUTO_PRICES: '0', WOMBAT_LANG: 'en' };
-  const core = path.join(path.dirname(entry), process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
-  let service = spawn(core, ['--serve-usage'], { env, stdio: 'ignore' });
-  await new Promise(resolve => setTimeout(resolve, 150));
-  const child = spawn(process.execPath, [entry, 'web', '--root', root, '--json'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
-  let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk; });
+  delete (env as NodeJS.ProcessEnv).WOMBAT_CORE_BIN;
+  const binary = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
+  const native = path.join(path.dirname(entry), 'native');
+  const core = existsSync(native) ? path.join(native, process.platform+'-'+process.arch, binary) : path.join(path.dirname(entry), binary);
+  let service: ChildProcess | undefined, child: ChildProcess | undefined;
+  let stderr = '';
   try {
+    assert(existsSync(core), 'Installed core is missing: ' + core);
+    service = spawn(core, ['--serve-usage'], { env, stdio: 'ignore' });
+    await once(service, 'spawn');
+    await new Promise(resolve => setTimeout(resolve, 150));
+    child = spawn(process.execPath, [entry, 'web', '--root', root, '--json'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.stderr!.on('data', chunk => { stderr += chunk; });
     const url = await new Promise<string>((resolve, reject) => {
       let buffer = '';
       const timer = setTimeout(() => reject(new Error('Web startup timed out: ' + stderr)), 10_000);
-      child.stdout.on('data', chunk => { buffer += chunk; if (buffer.includes('\n')) { clearTimeout(timer); resolve(JSON.parse(buffer.split('\n')[0]).url); } });
-      child.once('error', reject); child.once('exit', code => { clearTimeout(timer); reject(new Error(`Early exit ${code}: ${stderr}`)); });
+      child!.stdout!.on('data', chunk => { buffer += chunk; if (buffer.includes('\n')) { clearTimeout(timer); resolve(JSON.parse(buffer.split('\n')[0]).url); } });
+      child!.once('error', error => { clearTimeout(timer); reject(error); }); child!.once('exit', code => { clearTimeout(timer); reject(new Error(`Early exit ${code}: ${stderr}`)); });
     });
     const origin = new URL(url).origin, token = new URLSearchParams(new URL(url).hash.slice(1)).get('token');
     const call = async (method: string, body: unknown) => {
@@ -59,19 +74,19 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
     const steps = await query({ action: 'steps', snapshotId, threadId: threads.items[0].id, turnId: turns.items[0].id });
     assert.equal(steps.summary.tokens.total, 120000);
     // A restarted core must never restore an expired view using the default source.
-    const serviceStopped = once(service, 'close'); service.kill(); await serviceStopped;
+    await stop(service);
     service = spawn(core, ['--serve-usage'], { env, stdio: 'ignore' });
+    await once(service, 'spawn');
     await new Promise(resolve => setTimeout(resolve, 150));
     const expired = await fetch(origin + '/api/live', { method: 'POST', headers: { Origin: origin, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: { action: 'threads', snapshotId }, mode: 'cached' }) });
     assert.match(await expired.text(), /VIEW_EXPIRED/);
     const refreshed = await call('live', { query: { action: 'usage' }, mode: 'fresh' });
     assert.equal(refreshed.result.summary.tokens.total, 120000);
-    const exit = once(child, 'close'); child.kill('SIGTERM'); await exit;
+    await stop(child);
     if (process.platform !== 'win32') assert.equal(child.exitCode, 0, stderr);
     await assert.rejects(fetch(origin));
   } finally {
-    if (child.exitCode === null) child.kill('SIGKILL');
-    if (service.exitCode === null) { const stopped = once(service, 'close'); service.kill(); await stopped; }
+    await Promise.all([stop(child), stop(service)]);
     await rm(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   }
 });

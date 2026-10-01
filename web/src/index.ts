@@ -11,6 +11,7 @@ export interface WebHostOptions {
   client: UsageClient;
   assets: string;
   roots?: string[];
+  projectRoots?: string[];
   port?: number;
   locale?: 'zh' | 'en';
 }
@@ -40,6 +41,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
   const authorization = Buffer.from(`Bearer ${token}`);
   const active = new Set<AbortController>();
   const snapshots = new Set<string>();
+  const configViews = new Set<string>();
   let origin = '', host = '', closing = false;
   const scope = (request: UsageRequest): UsageRequest => {
     // Paths and fixed snapshots can select data outside this host's startup scope.
@@ -53,6 +55,12 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       if (!options.client.live) throw new CoreError('LIVE_UNAVAILABLE', 'Live queries unavailable');
       return options.client.live({ ...r, query: scope(r.query) }, q);
     },
+    (r, q) => {
+      if (!options.client.config) throw new CoreError('CONFIG_UNAVAILABLE', 'Configuration queries unavailable');
+      if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView)) || (r.snapshotId != null && !snapshots.has(r.snapshotId)))
+        throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
+      return options.client.config({ ...r, roots: options.roots, projectRoots: options.projectRoots }, q);
+    },
   );
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -65,7 +73,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       const supplied = Buffer.from(req.headers.authorization ?? '');
       if (supplied.length !== authorization.length || !timingSafeEqual(supplied, authorization) || req.headers.origin !== origin) return reject(403);
       if (req.method !== 'POST') return reject(405);
-      if (!['/api/query', '/api/live', '/api/prices'].includes(req.url)) return reject(404);
+      if (!['/api/query', '/api/live', '/api/prices', '/api/config'].includes(req.url)) return reject(404);
       if (req.headers['content-type'] !== 'application/json') return reject(415);
       if (Number(req.headers['content-length'] ?? 0) > BODY_LIMIT) return reject(413);
       if (active.size >= 8) return reject(429);
@@ -95,12 +103,18 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         // createUsageClient validates each unknown payload before the typed transport runs.
         const value = req.url === '/api/query' ? await client.query(request as Parameters<UsageClient['query']>[0], query)
           : req.url === '/api/prices' ? await client.prices(request as Parameters<UsageClient['prices']>[0], query)
+          : req.url === '/api/config' ? await client.config!(request as Parameters<NonNullable<UsageClient['config']>>[0], query)
           : await client.live!(request as Parameters<NonNullable<UsageClient['live']>>[0], query);
         const result = 'result' in value ? value.result : 'snapshotRef' in value ? value : undefined;
+        if ('readView' in value) {
+          if (value.readView) configViews.add(value.readView);
+          if (configViews.size > 128) configViews.delete(configViews.values().next().value!);
+          if (value.usageRevision) snapshots.add(value.usageRevision);
+        }
         if (result) {
           snapshots.add(result.snapshotRef.snapshotId);
-          if (snapshots.size > 128) snapshots.delete(snapshots.values().next().value!);
         }
+        if (snapshots.size > 128) snapshots.delete(snapshots.values().next().value!);
         send({ type: 'result', value });
       } catch (error) {
         if (!controller.signal.aborted) {

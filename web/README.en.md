@@ -6,7 +6,7 @@
 
 ## Access Boundaries
 
-The listener binds only to `127.0.0.1`, using an automatically assigned port by default. A startup token, exact Host/Origin checks, and JSON POST protect three narrow APIs. Startup arguments determine source scope; only previously returned snapshot identities can be queried subsequently. See [architecture](../docs/development/architecture.en.md) for limits and lifecycle, and the [CLI guide](../docs/guides/cli.en.md) for usage.
+The listener binds only to `127.0.0.1`, using an automatically assigned port by default. A startup token, exact Host/Origin checks, and JSON POST protect four narrow APIs. Startup arguments determine source scope; only previously returned snapshot identities can be queried subsequently. See [architecture](../docs/development/architecture.en.md) for limits and lifecycle, and the [CLI guide](../docs/guides/cli.en.md) for usage.
 
 The static directory must contain trusted build output. The browser cannot access arbitrary local paths; LAN and remote deployment are unsupported. Closing a tab does not end the CLI; service shutdown cancels its own requests without killing the shared core service.
 

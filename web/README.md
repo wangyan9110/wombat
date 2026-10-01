@@ -6,7 +6,7 @@
 
 ## 访问边界
 
-仅监听 `127.0.0.1`；端口默认自动分配。每次启动令牌、精确 Host/Origin 和 JSON POST 保护三个窄 API。来源范围由启动参数确定；只有已返回的快照身份可继续查询。资源限制与生命周期见[架构](../docs/development/architecture.md)，使用方式见[CLI 指南](../docs/guides/cli.md)。
+仅监听 `127.0.0.1`；端口默认自动分配。每次启动令牌、精确 Host/Origin 和 JSON POST 保护四个窄 API。来源范围由启动参数确定；只有已返回的快照身份可继续查询。资源限制与生命周期见[架构](../docs/development/architecture.md)，使用方式见[CLI 指南](../docs/guides/cli.md)。
 
 静态目录必须是可信构建产物。浏览器不能访问任意本地路径，宿主不支持局域网或远程部署。关闭标签不结束 CLI；退出服务取消自身请求，不杀死共享内核服务。
 

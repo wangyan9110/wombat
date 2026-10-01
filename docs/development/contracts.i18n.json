@@ -2,12 +2,16 @@
   "version": 2,
   "sections": {
     "/public-contracts": {
-      "zh": "d51e11bfae78ea88c5377b431e8384f98350818c892e1e4b812fe78d22d207b4",
-      "en": "504e9f09d4ed68f6390e2f2f388a77433ac859cbac06e44f3d2b458b8ef022f5"
+      "zh": "cb48eb18bd2b30ffca61cdb7a4d30281e96097d3f5801fc9881abb92cf92705b",
+      "en": "ef304ad9f48762e8b87bfd39ca836f48a5788e58eb57d64780bbe83d2e3798bb"
     },
     "/public-contracts/client-entries": {
-      "zh": "ceca20cb074e543e657b7a421e32011fd428d3a6e50d86f3183230cfd7ea866c",
-      "en": "0ebd4119d3e50efd82ef3825815c5c59570eab1f2556797e00289a59be9c43b2"
+      "zh": "647477bb9a340cdceb48063501a3c07c49616de29ece8e822138eb4baad16736",
+      "en": "e0fc9d093d7fc0d6f2abecb8e6bdc56c6411133f178f255983fff70b46a583bf"
+    },
+    "/public-contracts/read-only-configuration-contract-v1": {
+      "zh": "e928cca43c3dac86a5b157245249161ae3af19bd09e7e43b63267e24f4919ffb",
+      "en": "34b9f2d7399ad435e66d3f656da235ae40b8d04278efd5ee9f1795bfc90e63aa"
     }
   }
 }

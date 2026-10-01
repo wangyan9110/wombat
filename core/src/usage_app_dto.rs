@@ -71,6 +71,8 @@ pub struct Request {
     pub offset: Option<usize>,
     pub limit: Option<usize>,
     pub locate_thread_id: Option<String>,
+    pub locate_turn_id: Option<String>,
+    pub matched_only: Option<bool>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]

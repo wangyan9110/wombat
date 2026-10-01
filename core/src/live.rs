@@ -212,7 +212,8 @@ fn sync(
             "指定的日志来源不可读取，保留已提交数据",
         ));
     }
-    let tx = db.transaction()?;
+    let mut tx = db.transaction()?;
+    let mut failures = BTreeMap::<String, SourceReport>::new();
     let mut changed = false;
     let mut epochs = BTreeMap::new();
     let mut updated = BTreeMap::new();
@@ -227,8 +228,45 @@ fn sync(
             );
         }
 
-        if let Some(synced) = adapters::codex::incremental::sync_cached(&tx, source, verify, cache)?
-        {
+        let mut source_tx = tx.savepoint()?;
+        let outcome = adapters::codex::incremental::sync_cached(&source_tx, source, verify, cache);
+        let synced = match outcome {
+            Ok(value) => {
+                source_tx.commit()?;
+                value
+            }
+            Err(error) => {
+                source_tx.rollback()?;
+                drop(source_tx);
+                caches.remove(&source.id);
+                let mut report = prior_view
+                    .and_then(|v| v.manifest.sources.iter().find(|s| s.source.id == source.id))
+                    .cloned()
+                    .unwrap_or_else(|| SourceReport {
+                        source: source.clone(),
+                        adapter_version: adapters::codex::CodexAdapter.descriptor().adapter_version,
+                        source_versions: vec![],
+                        capabilities: adapters::codex::CodexAdapter.descriptor().capabilities,
+                        status: String::new(),
+                        files_read: 0,
+                        bytes_read: 0,
+                        issues: vec![],
+                    });
+                report.status = "failed".into();
+                report.files_read = 0;
+                report.bytes_read = 0;
+                report.issues.retain(|i| i.code != "sourceSyncFailed");
+                report.issues.push(Issue {
+                    code: "sourceSyncFailed".into(),
+                    message: format!("来源同步失败，保留上次成功数据：{error}"),
+                    source_instance_id: Some(source.id.clone()),
+                    evidence: None,
+                });
+                failures.insert(source.id.clone(), report);
+                None
+            }
+        };
+        if let Some(synced) = synced {
             let value = synced.collected;
             let scope = format!("projection:{}", source.id);
             crate::live_index::replace_field(
@@ -290,8 +328,15 @@ fn sync(
             crate::live_index::load_map(&tx, &format!("epoch:{}", source.id))?,
         );
     }
+    if !failures.is_empty() && failures.len() == discovered.sources.len() {
+        return Err(operation_error(
+            "SOURCE_UNREADABLE",
+            "没有可读取的来源，保留已提交数据",
+        ));
+    }
     let prices = crate::pricing_sync::current()?;
     let prior = crate::live_index::load_map(&tx, &format!("view:{key}"))?;
+    changed |= prior.get("failures").unwrap_or(&json!({})) != &serde_json::to_value(&failures)?;
     changed |= prior.get("epochs") != Some(&serde_json::to_value(&epochs)?);
     changed |= prior.get("prices").and_then(Value::as_str) != Some(&prices.catalog_hash);
     if !changed {
@@ -303,10 +348,14 @@ fn sync(
         ..Collected::default()
     };
     for source in &discovered.sources {
-        let value = match updated.remove(&source.id) {
+        let mut value = match updated.remove(&source.id) {
             Some(value) => value,
             None => load_collected(&tx, &source.id)?.unwrap_or_default(),
         };
+        if let Some(failure) = failures.get(&source.id) {
+            value.sources = vec![failure.clone()];
+            value.issues = failure.issues.clone();
+        }
         collected.sources.extend(value.sources);
         collected.issues.extend(value.issues);
         collected.threads.extend(value.threads);
@@ -340,7 +389,7 @@ fn sync(
     crate::live_index::save_map(
         &tx,
         &format!("view:{key}"),
-        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"createdAt":snapshot.manifest.snapshot_ref.created_at})
+        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"failures":failures,"createdAt":snapshot.manifest.snapshot_ref.created_at})
             .as_object()
             .unwrap(),
     )?;
@@ -352,6 +401,9 @@ fn restore(
     key: &str,
     roots: &[String],
 ) -> Result<Option<Arc<Snapshot>>> {
+    // Pin all projection/epoch reads to one committed SQLite view.
+    let read_tx = db.unchecked_transaction()?;
+    let db = &read_tx;
     let prior = crate::live_index::load_map(db, &format!("view:{key}"))?;
     let Some(id) = prior.get("id").and_then(Value::as_str) else {
         return Ok(None);
@@ -367,9 +419,20 @@ fn restore(
         if prior.get("epochs").and_then(|v| v.get(&source.id)) != Some(&Value::Object(epoch)) {
             return Ok(None);
         }
-        let Some(v) = load_collected(db, &source.id)? else {
-            return Ok(None);
+        let failure = prior
+            .get("failures")
+            .and_then(|v| v.get(&source.id))
+            .map(|v| serde_json::from_value::<SourceReport>(v.clone()))
+            .transpose()?;
+        let mut v = match load_collected(db, &source.id)? {
+            Some(v) => v,
+            None if failure.is_some() => Collected::default(),
+            None => return Ok(None),
         };
+        if let Some(failure) = failure {
+            v.issues = failure.issues.clone();
+            v.sources = vec![failure];
+        }
         collected.sources.extend(v.sources);
         collected.issues.extend(v.issues);
         collected.threads.extend(v.threads);
@@ -383,7 +446,11 @@ fn restore(
     }
     Ok(Some(Arc::new(snapshot)))
 }
-fn query(request: Request, shared: &Shared, jobs: &mpsc::SyncSender<Job>) -> Result<Response> {
+fn select_view(
+    request: &Request,
+    shared: &Shared,
+    jobs: &mpsc::SyncSender<Job>,
+) -> Result<(Arc<Snapshot>, Freshness)> {
     let mut validation = request.query.clone();
     validation.roots = None;
     crate::usage_app::validate(&validation)?;
@@ -440,9 +507,16 @@ fn query(request: Request, shared: &Shared, jobs: &mpsc::SyncSender<Job>) -> Res
             entries = wake.wait_timeout(entries, wait).unwrap().0;
         }
     } else if selector.is_none() && entry.views.is_empty() {
-        // Cached reads restore the last committed index without scanning source files.
+        // Cached restoration must not block unrelated ready views.
+        let restore_roots = entry.roots.clone();
+        drop(entries);
         let db = crate::live_index::open(&directory()?.join("index.sqlite"))?;
-        if let Some(view) = restore(&db, &key, &entry.roots)? {
+        let restored = restore(&db, &key, &restore_roots)?;
+        entries = lock.lock().unwrap();
+        let entry = entries.get_mut(&key).unwrap();
+        if entry.views.is_empty()
+            && let Some(view) = restored
+        {
             entry.views.push_back((Instant::now(), view));
         }
     }
@@ -513,6 +587,33 @@ fn query(request: Request, shared: &Shared, jobs: &mpsc::SyncSender<Job>) -> Res
         error: entry.error.clone(),
     };
     drop(entries);
+    Ok((snapshot, freshness))
+}
+fn query(
+    request: Request,
+    shared: &Shared,
+    jobs: &mpsc::SyncSender<Job>,
+    configs: &Mutex<crate::config::Store>,
+) -> Result<Response> {
+    let (snapshot, freshness) = select_view(&request, shared, jobs).or_else(|error| {
+        if error
+            .downcast_ref::<crate::dto::OperationError>()
+            .is_some_and(|e| e.code == "VIEW_EXPIRED")
+            && let Some(id) = &request.query.snapshot_id
+            && let Some((snapshot, checked_at)) = configs.lock().unwrap().snapshot(id)
+        {
+            return Ok((
+                snapshot,
+                Freshness {
+                    status: "fixed".into(),
+                    checked_at: Some(checked_at),
+                    revision: id.clone(),
+                    error: None,
+                },
+            ));
+        }
+        Err(error)
+    })?;
     let mut query = request.query;
     query.roots = None;
     query.snapshot_id = None;
@@ -569,6 +670,7 @@ pub fn serve() -> Result<()> {
     #[cfg(unix)]
     fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))?;
     listener.set_nonblocking(true)?;
+    let configs = Arc::new(Mutex::new(crate::config::Store::default()));
     let shared: Shared = Arc::new((Mutex::new(BTreeMap::new()), Condvar::new()));
     let (jobs, receiver) = mpsc::sync_channel::<Job>(32);
     let worker_state = Arc::clone(&shared);
@@ -695,6 +797,7 @@ pub fn serve() -> Result<()> {
                 active.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 let active = Arc::clone(&active);
                 let state = Arc::clone(&shared);
+                let configs = Arc::clone(&configs);
                 let jobs = jobs.clone();
                 std::thread::spawn(move || {
                     let result = (|| -> Result<Value> {
@@ -709,9 +812,28 @@ pub fn serve() -> Result<()> {
                         if input.len() > 1024 * 1024 {
                             return Err(operation_error("RESOURCE_LIMIT", "请求过大"));
                         }
-                        let request: Request = serde_json::from_str(&input)
+                        #[derive(Deserialize)]
+                        #[serde(deny_unknown_fields)]
+                        struct ConfigMessage {
+                            config: crate::config_dto::Request,
+                        }
+                        let value: Value = serde_json::from_str(&input)
+                            .map_err(|_| operation_error("INVALID_ARGUMENT", "查询参数无效"))?;
+                        if value.get("config").is_some() {
+                            let request: ConfigMessage = serde_json::from_value(value)
+                                .map_err(|_| operation_error("INVALID_ARGUMENT", "配置参数无效"))?;
+                            return Ok(serde_json::to_value(config_query(
+                                request.config,
+                                &state,
+                                &jobs,
+                                &configs,
+                            )?)?);
+                        }
+                        let request: Request = serde_json::from_value(value)
                             .map_err(|_| operation_error("INVALID_ARGUMENT", "实时查询参数无效"))?;
-                        Ok(serde_json::to_value(query(request, &state, &jobs)?)?)
+                        Ok(serde_json::to_value(query(
+                            request, &state, &jobs, &configs,
+                        )?)?)
                     })();
                     let response = match result {
                         Ok(value) => json!({"ok":true,"value":value}),
@@ -730,6 +852,7 @@ pub fn serve() -> Result<()> {
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 if last_client.elapsed() > Duration::from_secs(15)
                     && active.load(std::sync::atomic::Ordering::Relaxed) == 0
+                    && !configs.lock().unwrap().has_views()
                     && !shared.0.lock().unwrap().values().any(|e| e.syncing)
                 {
                     break;
@@ -744,4 +867,46 @@ pub fn serve() -> Result<()> {
     #[cfg(unix)]
     let _ = fs::remove_file(socket);
     Ok(())
+}
+
+fn config_query(
+    request: crate::config_dto::Request,
+    shared: &Shared,
+    jobs: &mpsc::SyncSender<Job>,
+    configs: &Mutex<crate::config::Store>,
+) -> Result<crate::config_dto::Response> {
+    crate::config::validate(&request)?;
+    if request.action == crate::config_dto::Action::Capabilities {
+        return Ok(crate::config::capabilities());
+    }
+    let (id, view) = if let Some(id) = &request.read_view {
+        let view = configs.lock().unwrap().get(id)?;
+        if request.roots.as_deref().unwrap_or_default() != view.roots
+            || request.project_roots.as_deref().unwrap_or_default() != view.project_roots
+        {
+            return Err(operation_error("INVALID_ARGUMENT", "来源范围不匹配"));
+        }
+        (id.clone(), view)
+    } else {
+        let query = serde_json::from_value(
+            json!({"action":"usage","roots":request.roots,"snapshotId":request.snapshot_id}),
+        )?;
+        let selected = select_view(
+            &Request {
+                query,
+                mode: Mode::Auto,
+                verify: false,
+            },
+            shared,
+            jobs,
+        );
+        let (snapshot, status) = match selected {
+            Ok((snapshot, freshness)) => (Some(snapshot), freshness.status),
+            Err(error) if request.snapshot_id.is_some() => return Err(error),
+            Err(_) => (None, "unavailable".into()),
+        };
+        let view = crate::config::prepare(&request, snapshot, status)?;
+        configs.lock().unwrap().insert(view)
+    };
+    crate::config::execute(request, id, &view)
 }

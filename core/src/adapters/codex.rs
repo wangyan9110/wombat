@@ -311,12 +311,20 @@ struct Candidate {
 }
 
 impl Facts {
-    fn fork_derived(&self) -> Self {
+    fn fork_derived(&self, include_facts: bool) -> Self {
         Self {
             threads: self.threads.clone(),
             turns: self.turns.clone(),
-            measurements: self.measurements.clone(),
-            operations: self.operations.clone(),
+            measurements: if include_facts {
+                self.measurements.clone()
+            } else {
+                BTreeMap::new()
+            },
+            operations: if include_facts {
+                self.operations.clone()
+            } else {
+                BTreeMap::new()
+            },
             parents: self.parents.clone(),
             migrated: self.migrated.clone(),
             measurement_conflicts: self.measurement_conflicts.clone(),
@@ -630,6 +638,9 @@ impl Facts {
     }
     fn remove_inherited(&mut self) {
         // A fork relationship plus byte-identical source event is concrete replay evidence.
+        if self.parents.is_empty() {
+            return;
+        }
         let identities: BTreeSet<_> = self
             .measurements
             .values()
@@ -665,6 +676,9 @@ impl Facts {
         }
     }
     fn reconcile_direct(&mut self, report: &mut SourceReport) {
+        if self.measurements.values().all(|candidate| candidate.direct) {
+            return;
+        }
         // Build coverage once per owner. Scanning every direct response for every
         // legacy counter is quadratic across unrelated historical conversations.
         let mut direct = BTreeMap::<String, Vec<(u64, u64)>>::new();

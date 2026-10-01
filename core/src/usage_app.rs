@@ -302,6 +302,8 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
             || request.offset.is_some()
             || request.limit.is_some()
             || request.locate_thread_id.is_some()
+            || request.locate_turn_id.is_some()
+            || request.matched_only.is_some()
             || serde_json::to_value(&request.scope)?
                 .as_object()
                 .is_some_and(|o| o.values().any(|v| !v.is_null())))
@@ -316,6 +318,11 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
     }
     if request.locate_thread_id.is_some() && request.action != Action::Threads {
         return Err(invalid("定位仅适用于对话"));
+    }
+    if (request.locate_turn_id.is_some() || request.matched_only.is_some())
+        && request.action != Action::Turns
+    {
+        return Err(invalid("轮次定位和匹配筛选仅适用于轮次"));
     }
     if request.scope.project_unknown == Some(true) && request.scope.project.is_some() {
         return Err(invalid("未知项目与具体项目冲突"));
@@ -418,7 +425,38 @@ pub fn execute(request: Request) -> Result<Response> {
     execute_snapshot(request, &snapshot)
 }
 
-pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Result<Response> {
+pub(crate) fn execute_snapshot(request: Request, snapshot: &Snapshot) -> Result<Response> {
+    let key = if snapshot.is_live() {
+        // Default ranges roll over at midnight in the request timezone.
+        Some(format!(
+            "{}:{}",
+            Utc::now()
+                .with_timezone(&timezone(&request.scope)?)
+                .date_naive(),
+            serde_json::to_string(&request)?
+        ))
+    } else {
+        None
+    };
+    if let Some(key) = &key
+        && let Some(result) = snapshot.query_cache.lock().unwrap().get(key)
+    {
+        return Ok(result);
+    }
+    let result = execute_uncached(request, snapshot)?;
+    if let Some(key) = key
+        && let Some(bytes) = crate::query_cache::QueryCache::entry_size(&key, &result)
+    {
+        snapshot
+            .query_cache
+            .lock()
+            .unwrap()
+            .insert(key, &result, bytes);
+    }
+    Ok(result)
+}
+
+fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Response> {
     validate(&request)?;
     let tz = timezone(&request.scope)?;
     request.scope.timezone = Some(tz.to_string());
@@ -431,6 +469,11 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
     // Detail queries read only the requested thread/turn shard.
     let live_rows = if matches!(request.action, Action::Usage | Action::Threads) {
         snapshot.live_ledger()
+    } else if matches!(request.action, Action::Turns | Action::Steps) {
+        snapshot.live_detail_rows(
+            request.thread_id.as_deref().unwrap(),
+            request.turn_id.as_deref(),
+        )?
     } else {
         None
     };
@@ -539,6 +582,7 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
             &request.scope,
             request.group.as_ref().unwrap_or(&Group::Day),
             tz,
+            request.presentation != Some(Presentation::Distribution),
         )?,
         Action::Threads => thread_items(snapshot, &rows, &selected, &request)?,
         Action::Turns => {
@@ -564,7 +608,12 @@ pub(crate) fn execute_snapshot(mut request: Request, snapshot: &Snapshot) -> Res
         Action::Refresh => unreachable!(),
     };
     let limit = request.limit.unwrap_or(50);
-    let offset = request.locate_thread_id.as_ref().and_then(|id| items.iter().position(|item| matches!(item, Item::Thread { id: current, upstream_id, .. } if current == id || upstream_id.as_ref() == Some(id)))).map(|index| index / limit * limit).unwrap_or(request.offset.unwrap_or(0));
+    let located_turn = request.locate_turn_id.as_ref().and_then(|id| {
+        items
+            .iter()
+            .position(|item| matches!(item, Item::Turn { id: current, .. } if current == id))
+    });
+    let offset = located_turn.or_else(|| request.locate_thread_id.as_ref().and_then(|id| items.iter().position(|item| matches!(item, Item::Thread { id: current, upstream_id, .. } if current == id || upstream_id.as_ref() == Some(id))))).map(|index| index / limit * limit).unwrap_or(request.offset.unwrap_or(0));
     let mut period_count = None;
     let distribution = if request.action == Action::Usage && !dimensional {
         let mut groups: Vec<Vec<Item>> = vec![];
@@ -744,6 +793,7 @@ fn usage_items(
     scope: &Scope,
     group: &Group,
     tz: Tz,
+    details: bool,
 ) -> Result<Vec<Item>> {
     let mut buckets: BTreeMap<Option<(NaiveDate, NaiveDate)>, Vec<&PricedMeasurement>> =
         BTreeMap::new();
@@ -791,6 +841,9 @@ fn usage_items(
             usage: summarize(&rows)?,
             scope: subset.clone(),
         });
+        if !details {
+            continue;
+        }
         let mut groups: BTreeMap<(Option<String>, Option<String>), Vec<&PricedMeasurement>> =
             BTreeMap::new();
         for row in &rows {
@@ -1051,6 +1104,9 @@ fn turn_items(
             .get(turn_id.as_str())
             .map(Vec::as_slice)
             .unwrap_or_default();
+        if request.matched_only == Some(true) && matched.is_empty() {
+            continue;
+        }
         let usage = summarize(current)?;
         let ratio = share(usage.tokens.total, total.tokens.total);
         let (models, reasoning_efforts) = dimensions(current);

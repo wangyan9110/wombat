@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { toolCommand } from './run-tool.ts';
 const { values } = parseArgs({ options: { archive: { type: 'string' }, name: { type: 'string', default: '@wangyan9110/wombat' } } });
@@ -34,5 +35,6 @@ try {
   assert.equal(query(['usage', '--fresh']).summary.tokens.total, 220);
   assert.equal(query(['usage', '--snapshot', snapshot.snapshotRef.snapshotId]).summary.tokens.total, 110);
   assert.equal(query(['threads', '--fresh']).summary.tokens.total, 220);
-  console.log(JSON.stringify({ package: metadata.name, version: metadata.version, target: process.platform+'-'+process.arch, install: true, live: true, append: true, fixedSnapshot: true }));
+  run(process.execPath, ['--test', fileURLToPath(new URL('../tests/e2e/web.test.ts', import.meta.url))], { ...env, WOMBAT_WEB_TEST_ENTRY: cli });
+  console.log(JSON.stringify({ package: metadata.name, version: metadata.version, target: process.platform+'-'+process.arch, install: true, live: true, append: true, fixedSnapshot: true, web: true }));
 } finally { rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }

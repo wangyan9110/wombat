@@ -2,28 +2,28 @@
   "version": 2,
   "sections": {
     "/cli-and-automation": {
-      "zh": "a20081783c6deb94cec6bb5718d49ac88b383c3f7b698fa8957883e3015fa0cf",
-      "en": "05ff89805f400bf51be7d32a6e8970a3ef0613cfc81cf8ea94aed99ac9bdffb7"
+      "zh": "700ff37dea3162bb7d86bdbc756440d013497f7f041e2c56bb198bbca330aafe",
+      "en": "c20af23fb917afe0a3b6e35744136a6073a31d2ed692ddb73772f912ebeb62c1"
     },
     "/cli-and-automation/language": {
       "zh": "cfeb3518580569b9e18e81faff0c4e1c5c22c77d25820978f49c8948d44e0b14",
       "en": "cfcd29aa701e358926ef720610ea8bfd04163393062050e955faa3d7c94f0d81"
     },
     "/cli-and-automation/automatic-synchronization": {
-      "zh": "2b9aa6f004e122946c47809ef8ad0620b5cb9e5711228cb2e6c030bd7d59ab82",
-      "en": "c72ead11f1beca700cf424b689d7fd8a3d46edbd7ed500d6eb847996b24d8f91"
+      "zh": "7675a063a7923b1e10abcc22b8336accab97ac55e2b88cc06af602244ada82c5",
+      "en": "82f7853eba58c1b6bfa2d9ccb7ab6022af19a81652701e2aad3a09ee7440db27"
     },
     "/cli-and-automation/official-price-catalog": {
       "zh": "3e21a5311caf73994096301e2a6cd457372d029b55552c06146778a8db92ed46",
       "en": "637d7ed13d58ea6ca9ae10fdc6121d10eb986d3425b93e1e69db36d84fca9d53"
     },
     "/cli-and-automation/filtering-and-pagination": {
-      "zh": "1b2796c2f272e707fdcfff53f8baa169b22d0883e6a46b37a706b18cc5a275aa",
-      "en": "d1e9fba2c18f9488e72f136b0dff6ae369584dd4bb9f6db8990bee1d36a1c36e"
+      "zh": "67dfae738cc5c56f4ba168c760839b6136c66b52330a1f4278ca48ee50e69d67",
+      "en": "3b11334f9fdaf9061bd2cd909fa47c4c3d33586ba84a5e4987e87b475fc46ca2"
     },
     "/cli-and-automation/json": {
-      "zh": "6e9d4c5e8582add86245ee197b37088508eef68a15b34308a2881378a3dca3c8",
-      "en": "d29e8a39f862a610cd8a3ab2f3f7711168efbf750ded87fdad426199ee5d00a5"
+      "zh": "99972c902bca8520b6d0bf9c9c4496722ad5adfdc6fdfa964e155859e504ae62",
+      "en": "20c48fc44e5d0c20c4ed3e0bde5e11a04af35bf8f6e018770832fb5fb6663e9f"
     },
     "/cli-and-automation/legacy-migration": {
       "zh": "383bff99465e5f7dc7f05854504c4d5c2a7d60e10133fa09b1de10ffd8955eef",
@@ -32,6 +32,10 @@
     "/cli-and-automation/local-web": {
       "zh": "d129bcdc03868039c7dd546e1fb82cdcadfddf197b98851e7cff30b5bf6c5191",
       "en": "148bbd823e1b334624f89320fa700fece868737c58f4d8d9e812cada2926243c"
+    },
+    "/cli-and-automation/read-only-configuration": {
+      "zh": "1d60ffe0c65a21ef1d97e73ddf8d181109b34cd1189abdef519e29724ad9fc99",
+      "en": "f8505b4d5de757ec8bbd9f43bf1a2b507b90475d54f5b71191721795111b86f3"
     }
   }
 }

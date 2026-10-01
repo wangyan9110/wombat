@@ -30,3 +30,7 @@ Future candidates are in the [roadmap](roadmap.en.md). This page does not duplic
 ## First Web Delivery · 2026-10-01
 
 `ui/`, `web/`, and the HTTP client provide revised usage, conversation, turn, source, and price pages, started by the CLI. New grouping and matching-usage sorting use shared Rust contracts. Desktop still uses the selected Tauri 2; project registration, optimization rules, and other-platform browser verification remain pending. See [frontend scope](../../ui/README.en.md) and [verification](progress.en.md).
+
+## Four entries and read-only configuration · 2026-10-01
+
+Configuration inventory, type/evidence filters, pagination and bidirectional configuration/turn links are connected. Web and CLI share the Rust configuration v1 contract. Optimize currently provides read-only configuration review. The full proposal remains incomplete: stable project registration, configuration precedence, content-token estimates, incremental evidence indexes, persistent composite views, cooperative cancellation, automatic recommendations, configuration writes and Tauri remain pending. See the [configuration contract](../development/contracts.en.md) for current boundaries.

@@ -184,6 +184,21 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-01-remove-tui.md",
       "en": "docs/decisions/implemented/architecture/2026-10-01-remove-tui.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-01-remove-tui.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-01-rust-live-query.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-01-rust-live-query.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-01-rust-live-query.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-10-01-config-analysis-web.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-01-config-analysis-web.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-01-config-analysis-web.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.i18n.json"
     }
   ],
   "legacyUnpaired": [],

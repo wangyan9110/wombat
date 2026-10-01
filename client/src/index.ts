@@ -1,4 +1,5 @@
 export { CoreError } from './errors.js';
+export type { ConfigRequest, ConfigResult, ConfigItem, ConfigTransport } from './client.js';
 export { createUsageClient } from './client.js';
 export type { UsageClient, UsageTransport, QueryOptions, UsageRequest, UsageResult, UsageScope, UsageItem, UsageSummary } from './client.js';
 export type { PricingRequest, PricingResult, PricingTransport } from './client.js';

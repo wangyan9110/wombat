@@ -443,9 +443,21 @@ pub(crate) fn sync_cached(
     let metadata = serde_json::json!({"checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     let mut result = Collected::default();
-    let derived = facts.fork_derived();
-    cache.facts = Some(facts);
+    // Direct response records require no cumulative/fork reconciliation. Preserve
+    // the general path for legacy counters and identity migrations.
+    let direct_only = facts.migrated.is_empty() && facts.measurements.values().all(|v| v.direct);
+    let derived = facts.fork_derived(!direct_only);
     finish_facts(derived, root, &mut report, &mut result);
+    if direct_only {
+        result.measurements.extend(
+            facts
+                .measurements
+                .values()
+                .map(|v| Arc::clone(&v.measurement)),
+        );
+        result.operations.extend(facts.operations.values().cloned());
+    }
+    cache.facts = Some(facts);
     if !root.exists() && checkpoints.is_empty() {
         report.status = "notFound".into();
     } else if !report.issues.is_empty() {

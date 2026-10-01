@@ -85,6 +85,7 @@ try {
     if (query(['usage', '--cached'], 1).error?.code !== 'NO_SNAPSHOT') throw new Error('Packaged native core not reached');
     const live = query(['usage', '--fresh']);
     if (live.freshness?.status !== 'current' || live.summary.measurementCount !== 0) throw new Error('Packaged live service failed');
+    run(process.execPath, ['--test', path.join(root, 'tests/e2e/web.test.ts')], { cwd: scratch, env: { ...env, WOMBAT_WEB_TEST_ENTRY: cli } });
     if (!existsSync(path.join(scratch, 'node_modules/.bin', process.platform === 'win32' ? 'wombat.cmd' : 'wombat'))) throw new Error('Missing command link');
   } finally { rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
   rmSync(stage, { recursive: true, force: true }); rmSync(path.join(output, '.npm-cache'), { recursive: true, force: true });

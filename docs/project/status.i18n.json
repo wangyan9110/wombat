@@ -16,6 +16,10 @@
     "/wombat-implementation-status/first-web-delivery-2026-10-01": {
       "zh": "e411d0c80074ddc9f5821fe4e3be786d66009a0f3ec5a9e98414dfc434630c17",
       "en": "4d266d5d84a8a7505115fad1a063e598d72eb61a069cbff4987b2f80944bdbf3"
+    },
+    "/wombat-implementation-status/four-entries-and-read-only-configuration-2026-10-01": {
+      "zh": "88308bf435b3abe8206c895da93cf71ed388044e75b2b23846d6026c44afcfdc",
+      "en": "6363cf295542b9618c0a56742cafb5cb50b1a1c5b80ea524662a56c2bce6af1d"
     }
   }
 }

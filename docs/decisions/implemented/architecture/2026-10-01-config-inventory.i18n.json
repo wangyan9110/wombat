@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-read-only-configuration-and-composite-read-views": {
+      "zh": "8fb9b847b1cd945a6212223295d4a440c5e385c09188937b1aeb6ce8fd745719",
+      "en": "1e9f3e9d2c26e45e81f0e0814f879689c2c92f753fa1969b7a771c1562ba15b0"
+    },
+    "/decision-note-read-only-configuration-and-composite-read-views/problem": {
+      "zh": "45c388bccfc62638e6a77e3a6e86f380ca2c021bb29f3be462aa0673185bdd42",
+      "en": "6ffaaf1b85cae36eb0ba193bce352eba663861209d7ad8b29b6de8a15f9b76da"
+    },
+    "/decision-note-read-only-configuration-and-composite-read-views/decision": {
+      "zh": "652f044756c2a9c5218717da52bbb6d69833a6f8e2a397f5342593b62820092e",
+      "en": "9d9d49da91463b72b17fb99003c117325d09d082d4a066b3adf197848c7ab48c"
+    },
+    "/decision-note-read-only-configuration-and-composite-read-views/alternatives-considered": {
+      "zh": "51119af4aa8fd50b4d1ca5f199c6b562235730b21312ed74b45b51669a3714c5",
+      "en": "8620a9895a5afa6e03c85dde5cb323869d8c30d833ebf8fe16d935061b857bce"
+    },
+    "/decision-note-read-only-configuration-and-composite-read-views/impact-and-verification": {
+      "zh": "8d112208d9fde3ab2e6ffb4ef28ea5128d7dedb0c759cb3266b306694660dcff",
+      "en": "f576a7afb6bbfdefdafb2c9d5bd7df9861a93dbfbd0e9f7ac02b15d27039f2cd"
+    }
+  }
+}

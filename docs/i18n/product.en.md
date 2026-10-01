@@ -15,7 +15,7 @@ WOMBAT_LANG=en wombat --help
 
 Language precedence is `--lang`, `WOMBAT_LANG`, system language, then the Chinese compatibility default. Supported languages are `zh` / `en` and their regional tags. The system language is the first nonempty value of `LC_ALL`, `LC_MESSAGES`, and `LANG`, or the runtime language when none is set; `C` / `POSIX` selects English. An unsupported explicit selection is an argument error; an unmatched system language falls back to Chinese.
 
-Web uses its header language button while retaining query scope and source data; CLI uses arguments and environment variables. Web reads the initial language from the startup link and writes no preference file.
+Web uses its header language button while retaining query scope and source data; CLI uses arguments and environment variables. Web prioritizes an explicit language in the startup link, then the choice saved in the current tab session, then browser languages. Switching stores the choice in sessionStorage so it survives reloads; no local preference file is written.
 
 ## Module boundaries
 

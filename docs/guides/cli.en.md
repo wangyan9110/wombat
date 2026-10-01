@@ -2,7 +2,7 @@
 
 [中文](cli.md) | English
 
-Wombat synchronizes local Codex logs incrementally by default and updates queries incrementally. An explicit refresh also saves a fixed snapshot. Usage and conversations are the two product views. Every subcommand works without a TTY; JSON and Web use the same Rust queries.
+Wombat synchronizes local Codex logs incrementally by default and updates queries incrementally. An explicit refresh also saves a fixed snapshot. Current functionality includes usage, conversations and read-only configuration queries. Every subcommand works without a TTY; JSON and Web use the same Rust queries.
 
 ```sh
 wombat prices --json
@@ -29,7 +29,7 @@ Choose presentation language with `--lang zh` or `--lang en`, or set `WOMBAT_LAN
 - `--snapshot ID` fixes the read and disables automatic synchronization. A `live:…` identifier is a short-lived read revision; the service retains at most 8 revisions for 10 minutes. Expiration or restart can return `VIEW_EXPIRED`. For durable fixed data, run refresh and use its snapshot ID.
 - Live queries accept `--root`. Omitting it always selects the default Codex source; another window's roots do not change this. Fixed snapshots cannot also specify source roots.
 
-One data directory shares an on-demand Rust service. File notifications supplement polling roughly every 2 seconds; CLI watch queries roughly every second. The service exits about 15 seconds after its last call. Live operation has been accepted on macOS; Windows and Linux have not passed local installation acceptance. Accounting uses complete log records and cannot show tokens the model has not yet logged.
+One data directory shares an on-demand Rust service. File notifications supplement polling roughly every 2 seconds; CLI watch queries roughly every second. Without a valid configuration view, the service exits about 15 seconds after its last call; configuration views last at most 10 minutes. Live operation has been accepted on macOS; Windows and Linux have not passed local installation acceptance. Accounting uses complete log records and cannot show tokens the model has not yet logged.
 
 ## Official price catalog
 
@@ -44,7 +44,7 @@ After a successful update, the next live synchronization creates a complete read
 - `usage --group day|week|month`: without dates, day selects the last 30 calendar days, week selects this month and the previous 5 months, and month selects this month and the previous 11. All end today; response until is tomorrow, exclusively. Explicit since/until takes precedence, and changing grouping preserves a manual range. A conversation filter without dates selects its full range. Weeks start on Monday; events are assigned by timestamp and selected timezone.
 - `--since` is inclusive and `--until` exclusive. CLI timezone defaults to UTC; Web uses the system timezone.
 - `--model`, `--effort`, and `--project` match exactly. A project is observed directory evidence, not a path substring. `--model-unknown`, `--effort-unknown`, and `--undated` select missing model, effort, and date respectively, and cannot accompany corresponding explicit values or date ranges.
-- `threads --search TEXT` searches titles or projects; its sorts are `tokens|cost|recent`, using whole-thread consumption. Turns and steps use `tokens|cost|time`.
+- `threads --search TEXT` searches titles or projects; its sorts are `tokens|cost|recent`, using matching usage or latest matching measurement. Turns and steps use `tokens|cost|time`.
 - `--snapshot ID` fixes a snapshot; a legacy v1/v2 file can be supplied explicitly. Continue pagination with the same snapshot instead of resolving latest again. An external legacy file returns its stable locator as snapshotRef.selector, which takes precedence over snapshotId for subsequent queries.
 - `usage --presentation distribution|details`: defaults to details for category breakdowns; distribution returns only period subtotals. Explicitly setting this option pages by period: limit counts periods and details retain every model row in each selected period. Omitting it preserves row pagination. `--sort time|tokens|cost` orders by descending date or consumption. Complete-range distribution scales, peak scopes, unpriced tokens, and cost shares are computed before pagination; unknown costs sort after known costs.
 - `--limit 1..500 --offset N`, default 50. Sorting, amounts, categories, and shares are computed over the full matching range before pagination.
@@ -55,7 +55,7 @@ After a successful update, the next live synchronization creates a complete read
 
 Amounts are decimal strings; tokens are safe integers or null. `price.cost=null` means an incomplete amount; `knownCost` is the known subtotal, with priced, partial, and unknown statuses. Missing is not zero, and reportedCost is not added to the standard equivalent. Never sum amounts already rounded to two display decimals.
 
-Conversations return matchedUsage and threadUsage. Their turns still cover the whole conversation while matchedUsage preserves the incoming filters. Turn shares use the full conversation denominator; step shares use the full turn. Operations without exclusive accounting do not display a cost. `unassigned` holds records without a turn within the conversation.
+Conversations return matchedUsage and threadUsage. Turns cover the whole conversation by default while matchedUsage preserves incoming filters. Add --matched-only to turns to return only turns with matching measurements; --locate-turn ID locates its page, taking precedence over offset when found and otherwise using offset. Filtering turns does not change the full-conversation summary. Turn shares use the full conversation denominator; step shares use the full turn. Operations without exclusive accounting do not display a cost. `unassigned` holds records without a turn within the conversation.
 
 Exit codes: 0 for success or an empty range; 2 for usable but incomplete reads or unconfirmed synchronization; 1 for errors; 130 for cancellation. Errors use `{outputVersion:3,error:{code,message}}`. Common codes include INVALID_ARGUMENT, NO_SNAPSHOT, SOURCE_UNREADABLE, SNAPSHOT_CORRUPT, UNSUPPORTED_VERSION, UPDATE_BUSY, CANCELLED, RESOURCE_LIMIT, and DETAIL_UNAVAILABLE. Partial results can still be queried using the returned fixed snapshot.
 
@@ -70,3 +70,13 @@ Run `wombat web` and open the printed link. `--port 0` selects a port automatica
 Access is local only; restart requires a new link. Pages provide usage, conversations, turns, sources, and prices; date, model, effort, and directory filters are retained in the URL. Reloading reads a local version again; use Refresh data to recover an expired version. Existing business interfaces are connected over HTTP and source logs remain read-only; remote deployment is unsupported. See [architecture](../development/architecture.en.md).
 
 New queries: `usage --presentation projects|models` groups by historical directory or model; `--project-unknown` selects missing directory evidence, `--agent` / `--source` limits sources, and `threads --locate-thread ID` returns the page containing a full ID. Conversation sorting uses matching usage/latest matching measurement; full-conversation usage remains separate.
+
+## Read-only configuration
+
+`wombat web --project-root /path/to/project` authorizes configuration folders and is repeatable; omission authorizes the launch directory. Historical conversation cwd values do not grant read access. `--root` still selects Codex sources separately from project configuration roots.
+
+`wombat optimize inventory --json` provides equivalent non-TTY queries. Filter and sort with `--kind rule|skill|mcp`, `--observation used|loaded_only|unknown`, `--search`, and `--sort tokens|activity|size|name`. `--limit` defaults to50, maximum200; `--offset` starts at0. `--since` / `--until` include the start and exclude the end; `--timezone` defaults to UTC.
+
+Details and evidence use `--action detail|evidence|related_scopes --item ID --read-view VERSION`; a new view can use `--snapshot live:…` to pin usage. Continued queries must keep the same source and project-root arguments; query the list again after expiry. `--thread ID` lists only configuration with evidence linked to that conversation. `--action capabilities` does not scan configuration. See `wombat optimize inventory --help` for all options.
+
+Responses use configuration v1 JSON. Incomplete historical coverage currently returns exit code2 with usable results; argument/service errors return1 and cancellation130. File reads are not Skill calls; associated tokens are not exclusive configuration costs. Content-token estimates, automatic recommendations and configuration changes are not provided. See the [configuration contract](../development/contracts.en.md) for scope and data semantics.

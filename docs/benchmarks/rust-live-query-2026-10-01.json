@@ -1,0 +1,321 @@
+{
+  "date": "2026-10-01",
+  "platform": "macOS arm64",
+  "node": "26.4.0",
+  "live": [
+    {
+      "measurements": 10000,
+      "before": {
+        "platform": "Darwin arm64",
+        "coreSha256": "ba39a5388b756ba123cb6f26c9a1327c68e978884da0494c302f7242749cc71e",
+        "corpusSha256": "296fa0a2635050a75b3c248bc8082763c74edb036be54753a5ec3289ce27a41f",
+        "measurements": 10000,
+        "operations": 10000,
+        "threads": 500,
+        "appends": 12,
+        "coldSyncAndCliMs": 549.51,
+        "warmCliMs": [
+          90.81,
+          116.45,
+          88.25,
+          114.86,
+          111.78
+        ],
+        "threadsCliMs": 122.92,
+        "appendSyncAndCliMs": [
+          125.76,
+          146.55,
+          144.45,
+          132.93,
+          140.54,
+          139.29,
+          142.01,
+          143.71,
+          139.93,
+          142.87,
+          139.78,
+          145.03
+        ],
+        "peakRssBytes": 102039552,
+        "rssKiBAtEnd": 99584,
+        "indexBytes": 95096832,
+        "idleCpuPercentOver5s": 0.799,
+        "idleExitMs": 15032.76,
+        "appendRssKiB": [
+          85264,
+          87216,
+          89216,
+          91248,
+          93328,
+          95296,
+          97680,
+          99520,
+          99584,
+          99584,
+          99584,
+          99584
+        ],
+        "correctness": "Each synthetic measurement contributes exactly 110 tokens and 0.000265 USD; usage and threads agree, and appended amounts remain exact.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      },
+      "after": {
+        "platform": "Darwin arm64",
+        "coreSha256": "68107ffece9321895183287e394de26f903fd30908108c70db5d661caaff9f9f",
+        "corpusSha256": "296fa0a2635050a75b3c248bc8082763c74edb036be54753a5ec3289ce27a41f",
+        "measurements": 10000,
+        "operations": 10000,
+        "threads": 500,
+        "appends": 12,
+        "coldSyncAndCliMs": 584.26,
+        "warmCliMs": [
+          93.76,
+          82.45,
+          89.85,
+          90.98,
+          85.98
+        ],
+        "threadsCliMs": 117.26,
+        "appendSyncAndCliMs": [
+          126.25,
+          137.48,
+          133.36,
+          108.95,
+          109.35,
+          115.31,
+          110.96,
+          108.36,
+          112.77,
+          113.95,
+          142.36,
+          139.44
+        ],
+        "peakRssBytes": 95928320,
+        "rssKiBAtEnd": 93568,
+        "indexBytes": 95129624,
+        "idleCpuPercentOver5s": 0.599,
+        "idleExitMs": 15051.16,
+        "appendRssKiB": [
+          79040,
+          81088,
+          83168,
+          85232,
+          87312,
+          89344,
+          91472,
+          93440,
+          93552,
+          93552,
+          93568,
+          93568
+        ],
+        "correctness": "Each synthetic measurement contributes exactly 110 tokens and 0.000265 USD; usage and threads agree, and appended amounts remain exact.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      },
+      "medians": {
+        "warmBeforeMs": 111.78,
+        "warmAfterMs": 89.85,
+        "appendBeforeMs": 141.27499999999998,
+        "appendAfterMs": 114.63
+      }
+    },
+    {
+      "measurements": 100000,
+      "before": {
+        "platform": "Darwin arm64",
+        "coreSha256": "ba39a5388b756ba123cb6f26c9a1327c68e978884da0494c302f7242749cc71e",
+        "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+        "measurements": 100000,
+        "operations": 100000,
+        "threads": 500,
+        "appends": 12,
+        "coldSyncAndCliMs": 6433.92,
+        "warmCliMs": [
+          522.32,
+          405.58,
+          384.07,
+          386.6,
+          377.21
+        ],
+        "threadsCliMs": 372.46,
+        "appendSyncAndCliMs": [
+          745.72,
+          736.83,
+          722.36,
+          724.73,
+          722.61,
+          724.35,
+          722.07,
+          727.93,
+          729.95,
+          724.51,
+          731.44,
+          713.22
+        ],
+        "peakRssBytes": 625967104,
+        "rssKiBAtEnd": 611280,
+        "indexBytes": 921717424,
+        "idleCpuPercentOver5s": 0.599,
+        "idleExitMs": 14621.95,
+        "appendRssKiB": [
+          571088,
+          575520,
+          579216,
+          583392,
+          587856,
+          594032,
+          597936,
+          602400,
+          604768,
+          605760,
+          610512,
+          611264
+        ],
+        "correctness": "Each synthetic measurement contributes exactly 110 tokens and 0.000265 USD; usage and threads agree, and appended amounts remain exact.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      },
+      "after": {
+        "platform": "Darwin arm64",
+        "coreSha256": "68107ffece9321895183287e394de26f903fd30908108c70db5d661caaff9f9f",
+        "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+        "measurements": 100000,
+        "operations": 100000,
+        "threads": 500,
+        "appends": 12,
+        "coldSyncAndCliMs": 5702.64,
+        "warmCliMs": [
+          107.01,
+          84.78,
+          83.84,
+          89.65,
+          89.85
+        ],
+        "threadsCliMs": 397.12,
+        "appendSyncAndCliMs": [
+          640.11,
+          590.45,
+          606.98,
+          619.41,
+          630.82,
+          613.39,
+          604.4,
+          620.78,
+          603.04,
+          611.91,
+          611.71,
+          615.71
+        ],
+        "peakRssBytes": 546979840,
+        "rssKiBAtEnd": 519728,
+        "indexBytes": 921323920,
+        "idleCpuPercentOver5s": 0.798,
+        "idleExitMs": 14828.12,
+        "appendRssKiB": [
+          525712,
+          529568,
+          528048,
+          502944,
+          506432,
+          510032,
+          513648,
+          518528,
+          518784,
+          518784,
+          518784,
+          519584
+        ],
+        "correctness": "Each synthetic measurement contributes exactly 110 tokens and 0.000265 USD; usage and threads agree, and appended amounts remain exact.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      },
+      "medians": {
+        "warmBeforeMs": 386.6,
+        "warmAfterMs": 89.65,
+        "appendBeforeMs": 724.62,
+        "appendAfterMs": 612.65
+      }
+    }
+  ],
+  "queryAndRestore": {
+    "before": {
+      "coreSha256": "ba39a5388b756ba123cb6f26c9a1327c68e978884da0494c302f7242749cc71e",
+      "corpusSha256": "f62a30bae3032a7089e091331cac52bfe53b34fde8bb928f86d199e87d63d9c1",
+      "measurements": 100000,
+      "operations": 100000,
+      "threads": 100,
+      "samples": {
+        "distributionLimit1": [
+          336.5505409999996,
+          320.5126250000003,
+          317.04399999999987,
+          319.07958299999973,
+          322.06929200000013
+        ],
+        "distributionLimit500": [
+          320.59041700000034,
+          327.6262079999997,
+          314.4585420000003,
+          320.6738329999989,
+          326.7655840000007
+        ]
+      },
+      "smallBaselineMs": 27.876416999999492,
+      "smallDuringOtherRootRestoreMs": 1191.7811669999992,
+      "largeRestoreMs": 1511.7507920000007,
+      "correctness": "Both full totals and cached restored totals equal 11,000,000 tokens; small root is 110 tokens",
+      "conditions": "Release, direct Unix-socket end-to-end timing; no Node CLI startup; five cached query samples; one concurrent restore sample; filesystem cache uncontrolled."
+    },
+    "after": {
+      "coreSha256": "68107ffece9321895183287e394de26f903fd30908108c70db5d661caaff9f9f",
+      "corpusSha256": "f62a30bae3032a7089e091331cac52bfe53b34fde8bb928f86d199e87d63d9c1",
+      "measurements": 100000,
+      "operations": 100000,
+      "threads": 100,
+      "samples": {
+        "distributionLimit1": [
+          19.78650000000016,
+          26.608957999999802,
+          30.03766700000051,
+          30.036082999999962,
+          30.07495899999958
+        ],
+        "distributionLimit500": [
+          303.032792,
+          16.740584000000126,
+          30.09637500000008,
+          26.461166999999477,
+          30.15758300000016
+        ]
+      },
+      "smallBaselineMs": 28.1381250000004,
+      "smallDuringOtherRootRestoreMs": 5.072583000000122,
+      "largeRestoreMs": 816.9673329999996,
+      "correctness": "Both full totals and cached restored totals equal 11,000,000 tokens; small root is 110 tokens",
+      "conditions": "Release, direct Unix-socket end-to-end timing; no Node CLI startup; five cached query samples; one concurrent restore sample; filesystem cache uncontrolled."
+    },
+    "distributionLimit1MedianMs": {
+      "before": 320.5126250000003,
+      "after": 30.036082999999962
+    }
+  },
+  "sourceIsolation": {
+    "test": "tests/e2e/live-usage.test.ts",
+    "assertions": [
+      "Initial two sources = 220 tokens",
+      "Unreadable source retains 110 tokens; healthy append advances total to 330, quality partial",
+      "Repeated failed attempt retains version; original fixed view remains 220",
+      "Restart restores 330 and partial",
+      "All sources unreadable errors; cached view retains 330",
+      "Permissions restored: 440 tokens, quality complete"
+    ]
+  },
+  "limitations": [
+    "Single run per corpus and one concurrent-restore sample; filesystem caches uncontrolled.",
+    "CLI warm medians include process startup, IPC and sync checks; query medians use direct local IPC.",
+    "Each request shape has a cold cache miss; distribution limit500 first miss is included in raw samples.",
+    "Query corpus is one day, so limit1/limit500 are not a paging scalability comparison.",
+    "Index bytes include WAL before service exit, not steady-state compacted database size.",
+    "First threads query (100k) 372.46 to 397.12 ms and 10k cold sync 549.51 to 584.26 ms did not improve; do not claim all paths accelerated.",
+    "Full safe-fact traversal and index rebuilding remain; no million-record or 24-hour acceptance.",
+    "No new real-source, Windows/Linux or browser-interaction acceptance."
+  ],
+  "reproduce": "corepack pnpm build; WOMBAT_AUTO_PRICES=0 corepack pnpm benchmark:live --measurements 100000 --threads 500 --appends 12 --output <outside-repository.json> (repeat with 10000). Direct query/restore probe used 100 threads x 1000 response measurements and read_file calls, plus a one-record root; restart service, restore small root, begin large-root restore, query fixed small root after 50 ms."
+}

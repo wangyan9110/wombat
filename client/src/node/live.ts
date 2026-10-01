@@ -2,10 +2,10 @@ import { spawn } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { CoreError } from '../errors.js';
-import type { LiveRequest, QueryOptions } from '../client.js';
+import type { ConfigRequest, LiveRequest, QueryOptions } from '../client.js';
 import { binaryPath, decode, invokeOperation, type CoreProcessOptions } from './core.js';
 
-function exchange(socket: string, request: LiveRequest, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
+function exchange(socket: string, request: LiveRequest | { config: ConfigRequest }, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const client = createConnection(socket);
     const chunks: Buffer[] = []; let bytes = 0, done = false;
@@ -33,9 +33,9 @@ function exchange(socket: string, request: LiveRequest, options: QueryOptions, c
     client.on('end', () => { try { finish(undefined, decode(Buffer.concat(chunks).toString('utf8'))); } catch (e) { finish(e as Error); } });
   });
 }
-export async function queryLive(request: LiveRequest, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
+export async function queryLive(request: LiveRequest | { config: ConfigRequest }, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
   if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
-  if (request.query.action === 'refresh') options.onProgress?.('同步本机日志并保存用量');
+  if ('query' in request && request.query.action === 'refresh') options.onProgress?.('同步本机日志并保存用量');
   const endpoint = await invokeOperation('live_endpoint', {}, options, config) as { protocolVersion?: number; socket?: string };
   if (endpoint.protocolVersion !== 1 || typeof endpoint.socket !== 'string') throw new CoreError('PROTOCOL_ERROR', '实时用量接口版本不兼容');
   let started = false;

@@ -469,3 +469,33 @@ test('Web dimensions conserve totals, all-input includes cache, IDs locate pages
     assert.equal(f.raw({action:'usage',snapshotId,scope:{project:f.workspace,projectUnknown:true}}).ok,false);
   } finally { await rm(f.root,{recursive:true,force:true,maxRetries:20,retryDelay:100}); }
 });
+
+test('matching-turn pagination finds late matches and context location preserves whole-thread totals',async()=>{
+ const f=await fixture();
+ try {
+  const rows:unknown[]=[envelope('2026-09-29T03:00:00Z','session_meta',{id:'long-thread',cwd:f.workspace})];
+  for(let i=0;i<50;i++){
+   const time=new Date(Date.parse('2026-09-29T03:00:00Z')+i*60000).toISOString(),turn='long-'+i;
+   rows.push(envelope(time,'turn_context',{turn_id:turn,model:i===49?'gpt-5.4':'gpt-5.3-codex',effort:'high',cwd:f.workspace}),measurement(time,'long-thread',turn,'response-'+i,usage(100,0,10)));
+  }
+  await writeFile(path.join(f.source,'sessions','long.jsonl'),jsonl(rows));
+  const snapshotId=f.refresh().snapshotRef.snapshotId;
+  const threads=f.query({action:'threads',snapshotId,scope:allDates});
+  const thread=threads.items.find((i:any)=>i.upstreamId==='long-thread');
+  assert(thread);
+  const request={action:'turns',snapshotId,threadId:thread.id,scope:{...allDates,model:'gpt-5.4'},sort:'time',limit:20};
+  const matching=f.query({...request,matchedOnly:true});
+  assert.equal(matching.page.total,1);assert.equal(matching.items[0].ordinal,50);
+  assert.equal(matching.items[0].matchedUsage.tokens.total,110);
+  assert.equal(matching.summary.tokens.total,5500);
+  const context=f.query({...request,locateTurnId:matching.items[0].id});
+  assert.equal(context.page.total,50);assert.equal(context.page.offset,40);
+  assert(context.items.some((i:any)=>i.id===matching.items[0].id));
+  assert.equal(context.summary.tokens.total,5500);
+  const cli=f.invokeCli(['turns','--thread',thread.id,'--snapshot',snapshotId,'--model','gpt-5.4','--matched-only','--locate-turn',matching.items[0].id,'--limit','20','--json']);
+  assert.equal(cli.status,0);assert.equal(cli.value.page.total,1);assert.equal(cli.value.items[0].id,matching.items[0].id);
+  const none=f.query({...request,scope:{model:'does-not-exist'},matchedOnly:true});
+  assert.equal(none.page.total,0);assert.equal(none.summary.tokens.total,5500);
+  for(const option of [{matchedOnly:true},{locateTurnId:'x'}])assert.equal(f.raw({action:'usage',snapshotId,...option}).ok,false);
+ }finally{await rm(f.root,{recursive:true,force:true});}
+});

@@ -7,7 +7,7 @@
   "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.",
   "lockfiles": {
     "pnpm-lock.yaml": "2337b27cf1f9dc030e89d5084d5055ca554865da1e57be29ebb6df85f10bcb0b",
-    "core/Cargo.lock": "206f8b56c6f3f3b5ea777417c019c7e54ecb7aa794d2038b1c4bd86c6583f2e4"
+    "core/Cargo.lock": "cac7164b3c2cba9a8aff061bb2a3be639a6b5967a95580e96aae9a41e2f83ac1"
   },
   "node": [
     {
@@ -3083,7 +3083,7 @@
       "license": "MIT OR Apache-2.0",
       "selectedLicense": "MIT",
       "licenseSource": "locked crate package",
-      "enabledInBuild": false,
+      "enabledInBuild": true,
       "files": [
         {
           "name": "LICENSE-MIT",
@@ -3097,7 +3097,7 @@
       "license": "MIT OR Apache-2.0",
       "selectedLicense": "MIT",
       "licenseSource": "locked crate package",
-      "enabledInBuild": false,
+      "enabledInBuild": true,
       "files": [
         {
           "name": "LICENSE-MIT",
@@ -3111,7 +3111,7 @@
       "license": "MIT OR Apache-2.0",
       "selectedLicense": "MIT",
       "licenseSource": "locked crate package",
-      "enabledInBuild": false,
+      "enabledInBuild": true,
       "files": [
         {
           "name": "LICENSE-MIT",
@@ -3633,7 +3633,7 @@
       "license": "MIT",
       "selectedLicense": "MIT",
       "licenseSource": "locked crate package",
-      "enabledInBuild": false,
+      "enabledInBuild": true,
       "files": [
         {
           "name": "LICENSE-MIT",
@@ -3920,38 +3920,6 @@
       "version": "1.13.3",
       "declaredLicense": "Zlib OR Apache-2.0 OR MIT",
       "repository": "https://github.com/Lokathor/tinyvec",
-      "status": "locked_optional_not_enabled",
-      "noticeVerified": true
-    },
-    {
-      "name": "toml_datetime",
-      "version": "1.1.1+spec-1.1.0",
-      "declaredLicense": "MIT OR Apache-2.0",
-      "repository": "https://github.com/toml-rs/toml",
-      "status": "locked_optional_not_enabled",
-      "noticeVerified": true
-    },
-    {
-      "name": "toml_edit",
-      "version": "0.25.15+spec-1.1.0",
-      "declaredLicense": "MIT OR Apache-2.0",
-      "repository": "https://github.com/toml-rs/toml",
-      "status": "locked_optional_not_enabled",
-      "noticeVerified": true
-    },
-    {
-      "name": "toml_parser",
-      "version": "1.1.3+spec-1.1.0",
-      "declaredLicense": "MIT OR Apache-2.0",
-      "repository": "https://github.com/toml-rs/toml",
-      "status": "locked_optional_not_enabled",
-      "noticeVerified": true
-    },
-    {
-      "name": "winnow",
-      "version": "1.0.4",
-      "declaredLicense": "MIT",
-      "repository": "https://github.com/winnow-rs/winnow",
       "status": "locked_optional_not_enabled",
       "noticeVerified": true
     },

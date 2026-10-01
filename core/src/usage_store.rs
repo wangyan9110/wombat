@@ -10,7 +10,7 @@ use std::{
     fs,
     io::{Read, Seek, SeekFrom},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 const MAX_FILE_BYTES: u64 = 512 * 1024 * 1024;
@@ -70,6 +70,7 @@ struct MemoryTurn {
     operations: Vec<Arc<Operation>>,
 }
 pub struct Snapshot {
+    pub(crate) query_cache: Mutex<crate::query_cache::QueryCache>,
     live_rows: Option<Vec<Arc<PricedMeasurement>>>,
     memory_turns: Option<BTreeMap<(String, String), MemoryTurn>>,
     pub manifest: Manifest,
@@ -271,6 +272,7 @@ fn save_with_prices(
         &serde_json::to_vec(&manifest.snapshot_ref)?,
     )?;
     Ok(Snapshot {
+        query_cache: Mutex::default(),
         manifest,
         directory: final_dir,
         legacy_ledger: None,
@@ -355,6 +357,7 @@ fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
         return Err(corrupt("快照身份不匹配"));
     }
     Ok(Snapshot {
+        query_cache: Mutex::default(),
         manifest,
         directory,
         legacy_ledger: None,
@@ -363,6 +366,9 @@ fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     })
 }
 impl Snapshot {
+    pub(crate) fn is_live(&self) -> bool {
+        self.live_rows.is_some()
+    }
     pub(crate) fn export_live(&self) -> Result<Snapshot> {
         let prices = crate::pricing_sync::current()?;
         if prices.catalog_hash != self.manifest.price_catalog_hash {
@@ -413,6 +419,35 @@ impl Snapshot {
         self.live_rows
             .as_ref()
             .map(|rows| rows.iter().map(Arc::as_ref).collect())
+    }
+    pub(crate) fn live_detail_rows(
+        &self,
+        thread_id: &str,
+        turn_id: Option<&str>,
+    ) -> Result<Option<Vec<&PricedMeasurement>>> {
+        let (Some(turns), Some(rows)) = (&self.memory_turns, &self.live_rows) else {
+            return Ok(None);
+        };
+        let thread = self
+            .manifest
+            .threads
+            .iter()
+            .find(|t| t.thread.id == thread_id)
+            .ok_or_else(|| operation_error("NOT_FOUND", "未找到对话"))?;
+        let ids = if let Some(turn_id) = turn_id {
+            if !thread.turns.contains_key(turn_id) {
+                return Err(operation_error("NOT_FOUND", "未找到轮次"));
+            }
+            vec![turn_id]
+        } else {
+            thread.turns.keys().map(String::as_str).collect()
+        };
+        Ok(Some(
+            ids.into_iter()
+                .filter_map(|id| turns.get(&(thread_id.into(), id.into())))
+                .flat_map(|turn| turn.measurements.iter().map(|index| rows[*index].as_ref()))
+                .collect(),
+        ))
     }
     pub fn ledger(&self) -> Result<Vec<PricedMeasurement>> {
         if let Some(rows) = &self.live_rows {
@@ -868,6 +903,7 @@ fn load_legacy(path: &Path) -> Result<Snapshot> {
         threads,
     };
     Ok(Snapshot {
+        query_cache: Mutex::default(),
         manifest,
         directory: path.parent().unwrap_or(Path::new(".")).to_owned(),
         legacy_ledger: Some(records),
@@ -887,15 +923,19 @@ pub(crate) fn memory(
     let reusable = prior
         .filter(|s| s.manifest.price_catalog_hash == prices.catalog_hash)
         .and_then(|s| s.live_rows.as_ref());
-    let mut rows = Vec::with_capacity(collected.measurements.len());
+    let mut facts = collected.measurements;
+    facts.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+    let mut previous = reusable.into_iter().flatten().peekable();
+    let mut rows = Vec::with_capacity(facts.len());
     let mut memory_turns: BTreeMap<(String, String), MemoryTurn> = BTreeMap::new();
-    for fact in collected.measurements {
-        let prior = reusable
-            .and_then(|rows| {
-                rows.binary_search_by(|r| r.fact.id.cmp(&fact.id))
-                    .ok()
-                    .map(|i| &rows[i])
-            })
+    for fact in facts {
+        while previous.peek().is_some_and(|r| r.fact.id < fact.id) {
+            previous.next();
+        }
+        let prior = previous
+            .peek()
+            .copied()
+            .filter(|r| r.fact.id == fact.id)
             .filter(|r| Arc::ptr_eq(&r.fact, &fact) || r.fact == fact);
         let row = match prior {
             Some(row) => Arc::clone(row),
@@ -915,7 +955,7 @@ pub(crate) fn memory(
         };
         rows.push(row);
     }
-    rows.sort_unstable_by(|a, b| a.fact.id.cmp(&b.fact.id));
+
     if rows
         .windows(2)
         .any(|pair| pair[0].fact.id == pair[1].fact.id)
@@ -1000,6 +1040,7 @@ pub(crate) fn memory(
         threads,
     };
     Ok(Snapshot {
+        query_cache: Mutex::default(),
         manifest,
         directory: PathBuf::new(),
         legacy_ledger: None,
@@ -1070,6 +1111,52 @@ mod tests {
             measurements: vec![record.into()],
             ..Default::default()
         }
+    }
+    #[test]
+    fn query_cache_is_revision_scoped_and_details_borrow_the_same_facts() {
+        let root = tempfile::tempdir().unwrap();
+        let prices = crate::pricing_sync::current_at(root.path()).unwrap();
+        let mut facts = fixture();
+        let first = memory(facts.clone(), "live:test:one".into(), prices.clone(), None).unwrap();
+        let request = || {
+            serde_json::from_value(serde_json::json!({"action":"usage","scope":{"since":"2026-09-29","until":"2026-09-30","timezone":"UTC"}})).unwrap()
+        };
+        let before = crate::usage_app::execute_snapshot(request(), &first).unwrap();
+        let again = crate::usage_app::execute_snapshot(request(), &first).unwrap();
+        assert_eq!(
+            serde_json::to_value(&before).unwrap(),
+            serde_json::to_value(&again).unwrap()
+        );
+        let fact = Arc::make_mut(&mut facts.measurements[0]);
+        fact.tokens.total = Some(210);
+        fact.tokens.input = Some(200);
+        fact.tokens.raw_input = Some(200);
+        let second = memory(facts, "live:test:two".into(), prices, Some(&first)).unwrap();
+        let after = crate::usage_app::execute_snapshot(request(), &second).unwrap();
+        assert_ne!(
+            serde_json::to_value(&before.summary).unwrap(),
+            serde_json::to_value(&after.summary).unwrap()
+        );
+        assert_eq!(
+            serde_json::to_value(&before).unwrap(),
+            serde_json::to_value(crate::usage_app::execute_snapshot(request(), &first).unwrap())
+                .unwrap()
+        );
+        let rows = second
+            .live_detail_rows("thread-a", Some("turn-a"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(rows[0].fact.tokens.total, Some(210));
+        assert!(std::ptr::eq(
+            rows[0],
+            second.live_rows.as_ref().unwrap()[0].as_ref()
+        ));
+        assert!(second.live_detail_rows("missing", None).is_err());
+        assert!(
+            second
+                .live_detail_rows("thread-a", Some("missing"))
+                .is_err()
+        );
     }
     #[test]
     fn compact_live_indices_preserve_order_and_old_revision() {

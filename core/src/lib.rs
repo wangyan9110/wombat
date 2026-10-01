@@ -1,4 +1,6 @@
 pub mod adapters;
+mod config;
+pub mod config_dto;
 pub mod dto;
 pub mod live;
 mod live_index;
@@ -7,6 +9,7 @@ mod live_windows;
 mod log_io;
 pub mod pricing;
 pub mod pricing_sync;
+mod query_cache;
 pub mod storage;
 pub mod usage_app;
 pub mod usage_app_dto;
@@ -47,6 +50,16 @@ pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
 
 pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
     match op {
+        "schema_config_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<config_dto::Request>(),
+        )?),
+        "schema_config_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<config_dto::Response>(),
+        )?),
         "live_endpoint" => live::endpoint(),
         "schema_live_request" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()

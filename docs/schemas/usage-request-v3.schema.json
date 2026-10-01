@@ -112,6 +112,18 @@
         "string",
         "null"
       ]
+    },
+    "locateTurnId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "matchedOnly": {
+      "type": [
+        "boolean",
+        "null"
+      ]
     }
   },
   "additionalProperties": false,

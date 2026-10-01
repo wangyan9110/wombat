@@ -2,7 +2,7 @@
 
 中文 | [English](cli.en.md)
 
-Wombat 默认增量同步本机 Codex 日志，查询增量更新；显式 refresh 另外保存固定快照。首版只有用量与对话两个产品入口；所有子命令无需 TTY，JSON 与 Web使用同一 Rust 查询。
+Wombat 默认增量同步本机 Codex 日志，查询增量更新；显式 refresh 另外保存固定快照。当前提供用量、对话与只读配置查询；所有子命令无需 TTY，JSON 与 Web使用同一 Rust 查询。
 
 ```sh
 wombat prices --json
@@ -29,7 +29,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 - `--snapshot ID` 保持固定读取，不自动同步。实时结果的 `live:…` 标识是短期读取版本，服务内最多保留8版、最长10分钟；过期或服务重启后旧版可能返回 `VIEW_EXPIRED`。需要长期固定数据时执行 refresh 并使用其快照ID。
 - `--root` 可用于实时查询；每次省略时仍使用默认 Codex 来源，不会因为另一窗口指定根而改变。固定快照不能同时指定来源根。
 
-同一数据目录共用按需 Rust 服务；文件通知加约2秒巡检，CLI watch约每秒查询。最后一个调用结束约15秒后退出。实时接口当前在macOS验收；Windows/Linux 未作本机安装验收。计量以完整日志记录为准，模型还未写入的Token无法即时显示。
+同一数据目录共用按需 Rust 服务；文件通知加约2秒巡检，CLI watch约每秒查询。没有有效配置读取版本时，最后一个调用结束约15秒后退出；配置读取版本最长保留10分钟。实时接口当前在macOS验收；Windows/Linux 未作本机安装验收。计量以完整日志记录为准，模型还未写入的Token无法即时显示。
 
 ## 官方价表
 
@@ -44,7 +44,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 - `usage --group day|week|month`：省略日期时，day 默认近30个自然日，week 默认本月及之前5个月，month 默认本月及之前11个月，均截止今天（响应 until 为明天，不包含）。显式 since/until 优先，切换分组不改变手动范围；限定对话且省略日期时展示该对话全部范围。周一起始；按事件时间及所选时区归日。
 - `--since` 包含起日，`--until` 不包含截止日。缺省时区 UTC；Web 使用系统时区。
 - `--model`、`--effort`、`--project` 精确匹配；项目是已观察到的目录证据，不是路径子串。`--model-unknown`、`--effort-unknown`、`--undated` 分别筛选缺失模型、强度和日期，不能与对应具体值或日期范围同时指定。
-- `threads --search TEXT` 搜索标题或项目，`--sort tokens|cost|recent`，按完整对话消耗排序；轮次与步骤使用 `tokens|cost|time`。
+- `threads --search TEXT` 搜索标题或项目，`--sort tokens|cost|recent`，按匹配用量或最近匹配计量排序；轮次与步骤使用 `tokens|cost|time`。
 - `--snapshot ID` 固定快照；旧 v1/v2 可显式传文件。后续分页应继续传同一快照，不能重新查询 latest。外部旧文件的固定定位符返回在 snapshotRef.selector，优先于 snapshotId 用于续查。
 - `usage --presentation distribution|details`：默认 details 保持分类明细；distribution 只返回时段小计。显式指定此参数时按日期组分页，limit 是时段数，明细保留该时段的全部模型行；省略时维持逐行分页。`--sort time|tokens|cost` 按日期倒序或消耗倒序；完整范围的 distribution 刻度、峰值筛选、未计价 Token 与金额占比在分页前计算，未知金额排在已知金额之后。
 - `--limit 1..500 --offset N`，默认50。完整范围排序、金额、分类、占比均在分页前计算。
@@ -55,7 +55,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 金额为十进制字符串；Token 为安全整数或 null。`price.cost=null` 表示金额不完整，`knownCost` 为已知小计，status 区分 priced、partial、unknown。缺失不是零，reportedCost 不与标准折算相加。不能从已显示的两位金额重新求和。
 
-对话返回 matchedUsage 与 threadUsage。进入对话后轮次仍是完整对话，matchedUsage 保留来处条件。轮次份额分母为完整对话，步骤份额分母为完整轮次。操作没有独占计量，不显示费用。`unassigned` 承载对话内未归轮记录。
+对话返回 matchedUsage 与 threadUsage。轮次默认覆盖完整对话，matchedUsage 保留来处条件；turns 可加 --matched-only 仅返回有匹配计量的轮次，--locate-turn ID 定位其所在页（定位成功优先于 offset，否则使用 offset）。筛选轮次不改变完整对话汇总。轮次份额分母为完整对话，步骤份额分母为完整轮次。操作没有独占计量，不显示费用。`unassigned` 承载对话内未归轮记录。
 
 退出码：0 成功或空范围；2 有结果但读取不完整或未确认同步完成；1 错误；130 取消。错误结构为 `{outputVersion:3,error:{code,message}}`，常见 code 包括 INVALID_ARGUMENT、NO_SNAPSHOT、SOURCE_UNREADABLE、SNAPSHOT_CORRUPT、UNSUPPORTED_VERSION、UPDATE_BUSY、CANCELLED、RESOURCE_LIMIT、DETAIL_UNAVAILABLE。部分结果仍可用返回的固定快照继续查询。
 
@@ -70,3 +70,13 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 仅本机可访问，重启后须打开新链接。页面提供用量、对话、轮次、来源与价表；日期、模型、强度、目录筛选同步写入地址。浏览器刷新会重新读取本机版本，过期版本可点更新数据恢复。既有业务接口已通过 HTTP 打通，原始日志仍只读；不支持远程部署。详情见[架构](../development/architecture.md)。
 
 新增查询：`usage --presentation projects|models` 按历史目录或模型归组；`--project-unknown` 筛选无目录证据记录，`--agent` / `--source` 限定来源，`threads --locate-thread ID` 返回完整 ID 所在页。对话排序按当前筛选匹配量/最近匹配计量；完整对话量仍独立返回。
+
+## 只读配置
+
+`wombat web --project-root /path/to/project` 指定配置授权目录，可重复；省略时授权当前启动目录。历史对话里的cwd不会自动获得读取权限。`--root` 仍指定Codex来源，与项目配置根分开。
+
+`wombat optimize inventory --json` 提供同口径无TTY查询。使用 `--kind rule|skill|mcp`、`--observation used|loaded_only|unknown`、`--search`、`--sort tokens|activity|size|name` 筛选排序；`--limit` 默认50、最多200，`--offset` 从0开始。`--since` / `--until` 为包含起日、不含止日，`--timezone` 默认UTC。
+
+详情和证据使用 `--action detail|evidence|related_scopes --item ID --read-view VERSION`；创建版本时可传 `--snapshot live:…` 固定用量。继续查询须保留相同来源根和项目根参数；版本过期时重新查询清单。`--thread ID` 只列出该对话有证据关联的配置。`--action capabilities` 不扫描配置。完整参数见 `wombat optimize inventory --help`。
+
+返回配置v1 JSON；当前历史覆盖不完整时退出码2仍包含可用结果，参数/服务错误为1，取消为130。文件读取不算Skill调用，关联Token不是配置独占费用，内容Token估算、自动建议及配置修改尚未提供。范围和数据含义见[配置契约](../development/contracts.md)。

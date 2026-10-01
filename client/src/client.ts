@@ -5,6 +5,13 @@ import { validate as validateLiveResult } from './generated/validate-live-respon
 export type { Request as LiveRequest } from './generated/live-request.js';
 export type { Response as LiveResult } from './generated/live-response.js';
 import { CoreError } from './errors.js';
+import type { Request as ConfigRequest } from './generated/config-request.js';
+import type { Response as ConfigResult } from './generated/config-response.js';
+import { validate as validateConfigRequest } from './generated/validate-config-request.js';
+import { validate as validateConfigResult } from './generated/validate-config-response.js';
+export type { Request as ConfigRequest } from './generated/config-request.js';
+export type { Response as ConfigResult, Item as ConfigItem } from './generated/config-response.js';
+export type ConfigTransport = (request: ConfigRequest, options: QueryOptions) => Promise<unknown>;
 import type { Request } from './generated/usage-request.js';
 import type { Response } from './generated/usage-app.js';
 import { validate as validateRequest } from './generated/validate-usage-request.js';
@@ -31,13 +38,22 @@ export type PricingTransport = (request: PricingRequest, options: QueryOptions) 
 export type LiveTransport = (request: LiveRequest, options: QueryOptions) => Promise<unknown>;
 
 export interface UsageClient {
+  config?(request: ConfigRequest, options?: QueryOptions): Promise<ConfigResult>;
   live?(request: LiveRequest, options?: QueryOptions): Promise<LiveResult>;
   query(request: Request, options?: QueryOptions): Promise<Response>;
   prices(request: PricingRequest, options?: QueryOptions): Promise<PricingResult>;
 }
 
-export function createUsageClient(transport: UsageTransport, pricingTransport?: PricingTransport, liveTransport?: LiveTransport): UsageClient {
+export function createUsageClient(transport: UsageTransport, pricingTransport?: PricingTransport, liveTransport?: LiveTransport, configTransport?: ConfigTransport): UsageClient {
   return {
+    ...(configTransport ? { async config(request: ConfigRequest, options: QueryOptions = {}): Promise<ConfigResult> {
+      if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
+      if (!validateConfigRequest(request)) throw new CoreError('INVALID_ARGUMENT', '配置查询参数不符合数据协议');
+      const result = await configTransport(request, options);
+      if (!validateConfigResult(result) || result.outputVersion !== 1 || result.action !== (request.action ?? 'list'))
+        throw new CoreError('PROTOCOL_ERROR', '配置数据格式不正确');
+      return result;
+    } } : {}),
     ...(liveTransport ? { async live(request: LiveRequest, options: QueryOptions = {}): Promise<LiveResult> {
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateLiveRequest(request)) throw new CoreError('INVALID_ARGUMENT', '实时查询参数不符合数据协议');

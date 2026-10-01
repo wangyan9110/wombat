@@ -5,6 +5,22 @@
       "zh": "1f98a88c05b81b506c2bb4d3d0f5b7a83c8d4795f240ab58490d083988b38ad5",
       "en": "edd89bcf7286878fa899e4b308692bc8ed3e35051b49c65a089209281885902f"
     },
+    "/wombat-progress-and-verification-records/four-entries-and-read-only-configuration-upgrade-2026-10-01": {
+      "zh": "ae69a62b00575879a077927688921876668a14123662524469ab78cd20e6c54b",
+      "en": "2afe5f5d64908128fa95842c67a530d8cfaf86aa8a6ca30c45919372fe7fb784"
+    },
+    "/wombat-progress-and-verification-records/rust-live-query-and-failure-isolation-optimization-2026-10-01": {
+      "zh": "ef9e6ad61b3928ac29cc298d78862a55eea8e7472cbfa85f55a02cd1b475b977",
+      "en": "68210044ef8dfc5b4df3495619a46ce89815d0cc4e6b3f18cfac599f95d41e43"
+    },
+    "/wombat-progress-and-verification-records/reading-and-recovery-improvements-after-ux-review-2026-10-01": {
+      "zh": "a5a422a4e8353c3ce61abc7f53027d87d68faec1e4ef003e0956f52cef717612",
+      "en": "9dbc5b9dcb3c535cc38d00615e8a1a081d5a6a34728065df1ef6595380343f81"
+    },
+    "/wombat-progress-and-verification-records/query-and-installation-fixes-after-architecture-review-2026-10-01": {
+      "zh": "a9d2fe4622d430cdb1a4a840d938c88edbc0d98cbff75934ee1ad5cac6f7fcf9",
+      "en": "cf0f3a90be82c43773579df9b2cfe5df03a7986b415ef8a94e0b5ea1b0aaaec0"
+    },
     "/wombat-progress-and-verification-records/tui-product-and-skill-removal-2026-10-01": {
       "zh": "445f88bc9931f6024a21fcd457d6cbbfcf4e3832734aa0488c28e6d6921d0b50",
       "en": "eee08b5b083d89c33e77c6618fd50d230ad1e04da8452b2cda1aa1e9f3f149d6"

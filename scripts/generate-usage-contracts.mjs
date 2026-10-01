@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { compile } from "json-schema-to-typescript";
 import Ajv from "ajv";
 import standalone from "ajv/dist/standalone/index.js";
-for (const [op, name] of [["schema_live_request", "live-request"], ["schema_live_response", "live-response"], ["schema_usage_app", "usage-app"], ["schema_usage_request", "usage-request"], ["schema_pricing_request", "pricing-request"], ["schema_pricing_response", "pricing-response"]]) {
+for (const [op, name] of [["schema_config_request", "config-request"], ["schema_config_response", "config-response"], ["schema_live_request", "live-request"], ["schema_live_response", "live-response"], ["schema_usage_app", "usage-app"], ["schema_usage_request", "usage-request"], ["schema_pricing_request", "pricing-request"], ["schema_pricing_response", "pricing-response"]]) {
   const result = spawnSync(process.platform === 'win32' ? "core/target/debug/wombat-core.exe" : "core/target/debug/wombat-core", [], {
     input: JSON.stringify({ op, args: {} }),
     encoding: "utf8",
@@ -26,7 +26,7 @@ for (const [op, name] of [["schema_live_request", "live-request"], ["schema_live
   const ajv = new Ajv({ code: { source: true, esm: true }, strict: true });
   const validate = ajv.compile(schema);
   const outputs = {
-    [`docs/schemas/${name}-${(name.startsWith("pricing-") || name.startsWith("live-")) ? "v1" : "v3"}.schema.json`]:
+    [`docs/schemas/${name}-${(name.startsWith("pricing-") || name.startsWith("live-") || name.startsWith("config-")) ? "v1" : "v3"}.schema.json`]:
       JSON.stringify(schema, null, 2) + "\n",
     [`client/src/generated/${name}.ts`]: await compile(schema, "Response", {
       bannerComment: "/* Generated from Rust. Run pnpm contracts:generate. */",

@@ -163,4 +163,4 @@ node dist/wombat.js web
 
 ## 本机 Web
 
-完成构建后执行 `node dist/wombat.js web`，打开输出链接。也可在已安装的新构建中运行 `wombat web`。新版 Web 已接入用量、对话、轮次、筛选与价表，布局按新版页面实现。项目暂按历史目录归组，优化能力尚未接入。Ctrl+C 停止服务。仅本机访问，更多参数见 [CLI 指南](docs/guides/cli.md)。桌面框架已选 Tauri 2，桌面实现仍待后续，旧 TUI 已移除。
+完成构建后执行 `node dist/wombat.js web`，打开输出链接。也可在已安装的新构建中运行 `wombat web`。新版 Web 提供用量、对话、配置、优化四入口，已接入规则/Skill/MCP只读清单、证据及关联回合。项目暂按历史目录归组，优化入口仅提供配置核查，自动建议和配置写入尚未接入。Ctrl+C 停止服务。仅本机访问，更多参数见 [CLI 指南](docs/guides/cli.md)。桌面框架已选 Tauri 2，桌面实现仍待后续，旧 TUI 已移除。

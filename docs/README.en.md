@@ -23,6 +23,7 @@ Choose documentation by task. Source code, technical references, and implementat
 - [Multi-entry development workflow](development/workflow.en.md): delivering and verifying the same business capability.
 - [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and compatibility.
 - [Source adapter acceptance](development/adapters.en.md): independent truth, attribution, and failure cases.
+- [Four-entry Web and configuration analysis proposal](decisions/proposed/architecture/2026-10-01-config-analysis-web.en.md): shared Rust contracts, configuration evidence, versions and phased acceptance; not implemented.
 - [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
 
 ## Project status · project

@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-rust-live-queries-and-failure-isolation": {
+      "zh": "5dba129667612059643408da86619382d02735ef0ec970b558d1607474e05706",
+      "en": "671eb1777e06a2c72d56de14e770aaaad2c24a2fd25414d1e2ca8c7cc96ebc6c"
+    },
+    "/decision-note-rust-live-queries-and-failure-isolation/problem": {
+      "zh": "f2c6a53a2fb645d800f9660f447fdbbe3eea9ccb7b2800694212bc47a7b2f737",
+      "en": "879d08919147c129924d27c4be5181316e3c3a4bf3d5ce22ec9a30d5baabc0e8"
+    },
+    "/decision-note-rust-live-queries-and-failure-isolation/decision": {
+      "zh": "74e6b264802f3093488ea4cb788dc13c6f9f48907df268923640291d423ac08f",
+      "en": "5ff33a6f47896d800ec644ae8070a502e0c28e8e2f72521a98e98e690002e44c"
+    },
+    "/decision-note-rust-live-queries-and-failure-isolation/alternatives-considered": {
+      "zh": "67c267e3f5ebedbe9ef7397f208bc172f05d27f762d0039bb691f5662929c8fd",
+      "en": "e3dbacf535a906b0be724629d5b264c2914858ca8de0fc8734df5f226ebc737a"
+    },
+    "/decision-note-rust-live-queries-and-failure-isolation/impact-and-verification": {
+      "zh": "f1dd95316a450e2031fc7744e15a8ca1f775348610d24860c523c55fe8eb4d12",
+      "en": "aa9353843bdf56611b06e3e9040f510e9d3e5c1e45b2f8171f9ea6532cfb347e"
+    }
+  }
+}

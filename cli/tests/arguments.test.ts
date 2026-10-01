@@ -33,3 +33,11 @@ test('live flags keep cached, fixed and watched queries distinct', () => {
   assert.deepEqual(parseUsageArgs(['usage','--root','/tmp/a']).request.roots,['/tmp/a']);
   for (const args of [['usage','--watch','--cached'],['usage','--snapshot','x','--fresh'],['threads','--watch'],['usage','--verify'],['refresh','--cached']]) assert.throws(()=>parseUsageArgs(args));
 });
+
+test('matching turns and turn location are only accepted by turns',()=>{
+ assert.deepEqual(parseUsageArgs(['turns','--thread','id','--matched-only','--locate-turn','t']).request,{action:'turns',threadId:'id',matchedOnly:true,locateTurnId:'t'});
+ for(const action of ['usage','threads','steps','refresh']) {
+  assert.throws(()=>parseUsageArgs([action,'--matched-only']));
+  assert.throws(()=>parseUsageArgs([action,'--locate-turn','t']));
+ }
+});

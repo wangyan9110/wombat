@@ -10,5 +10,6 @@ export type { CoreProcessOptions as NodeClientOptions } from './core.js';
 export function createNodeClient(options: CoreProcessOptions = {}): UsageClient {
   return withAutomaticPrices(createUsageClient((request, queryOptions) => invokeCore(request, queryOptions, options),
     (request, queryOptions) => queryPrices(request, queryOptions, options),
-    (request, queryOptions) => queryLive(request, queryOptions, options)));
+    (request, queryOptions) => queryLive(request, queryOptions, options),
+    (request, queryOptions) => queryLive({ config: request }, queryOptions, options)));
 }

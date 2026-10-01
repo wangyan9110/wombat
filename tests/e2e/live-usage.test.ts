@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, appendFile, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, appendFile, rm, readdir, chmod } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -71,4 +71,57 @@ test('live CLI resumes, keeps fixed views, exports only explicitly and streams a
       if (process.platform !== 'win32') assert.equal(code,130); // Windows kill does not deliver a console Ctrl-C event.
     } finally { if(watch.exitCode===null)watch.kill('SIGKILL'); }
   } finally { await stop(); await rm(dir,{recursive:true,force:true}); }
+});
+
+
+test('failed source retains facts while healthy source advances, survives restart and recovers', {
+  timeout: 40_000, skip: process.platform === 'win32' || process.getuid?.() === 0,
+}, async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-isolation-'));
+  const roots = [path.join(dir, 'good'), path.join(dir, 'bad')];
+  const logs = roots.map(root => path.join(root, 'sessions', 'one.jsonl'));
+  for (const [i, log] of logs.entries()) {
+    await mkdir(path.dirname(log), { recursive: true });
+    await writeFile(log, JSON.stringify({ type: 'session_meta', payload: { id: 't' } }) + '\n' + row('first-' + i) + '\n');
+  }
+  const env = { ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_DATA_HOME: path.join(dir, 'data') };
+  let service: ReturnType<typeof spawn>;
+  const start = async () => { service = spawn(binary, ['--serve-usage'], { env, stdio: 'ignore' }); await delay(100); };
+  const stop = async () => { if (service && service.exitCode === null) { const closed = new Promise(resolve => service.once('close', resolve)); service.kill(); await closed; } };
+  const run = (mode: string, snapshot?: string) => {
+    const args = snapshot ? ['--snapshot', snapshot] : [mode, ...roots.flatMap(root => ['--root', root])];
+    const result = spawnSync(process.execPath, [cli, 'usage', ...args, '--since', '2026-09-29', '--until', '2026-09-30', '--timezone', 'UTC', '--json'], { env, encoding: 'utf8', timeout: 15000 });
+    assert.ifError(result.error);
+    return { status: result.status, value: JSON.parse(result.stdout) };
+  };
+  try {
+    await start();
+    const first = run('--fresh').value;
+    assert.equal(first.summary.tokens.total, 220);
+    for (const [i, log] of logs.entries()) await appendFile(log, row('second-' + i) + '\n');
+    await chmod(logs[1]!, 0);
+    const partial = run('--fresh');
+    assert.equal(partial.status, 2);
+    assert.equal(partial.value.summary.tokens.total, 330);
+    assert.equal(partial.value.quality.status, 'partial');
+    assert.ok(JSON.stringify(partial.value.quality).includes('sourceSyncFailed'));
+    assert.equal(run('--fresh').value.snapshotRef.snapshotId, partial.value.snapshotRef.snapshotId);
+    assert.equal(run('', first.snapshotRef.snapshotId).value.summary.tokens.total, 220);
+    await stop(); await start();
+    const restored = run('--cached').value;
+    assert.equal(restored.summary.tokens.total, 330);
+    assert.equal(restored.quality.status, 'partial');
+    await chmod(logs[0]!, 0);
+    const failed = run('--fresh');
+    assert.ok(failed.status !== 0);
+    assert.equal(run('--cached').value.summary.tokens.total, 330);
+    await chmod(logs[0]!, 0o600); await chmod(logs[1]!, 0o600);
+    const recovered = run('--fresh').value;
+    assert.equal(recovered.summary.tokens.total, 440);
+    assert.equal(recovered.quality.status, 'complete');
+    assert.notEqual(recovered.snapshotRef.snapshotId, partial.value.snapshotRef.snapshotId);
+  } finally {
+    for (const log of logs) await chmod(log, 0o600);
+    await stop(); await rm(dir, { recursive: true, force: true });
+  }
 });
