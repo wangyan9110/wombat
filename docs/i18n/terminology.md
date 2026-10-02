@@ -5,7 +5,8 @@
 | 中文 | English | 说明 / Note |
 |---|---|---|
 | 用量 | usage | Token 与费用查询入口 / Token and cost view |
-| 对话 | conversation | 产品入口；CLI 命令仍为 `threads` / Product view; CLI command remains `threads` |
+| 任务 | task | 产品入口；CLI 命令仍为 `threads` / Product view; CLI command remains `threads` |
+| 对话 | conversation | 来源对话正文或历史技术事实，不作为当前入口名称 / Source conversation bodies or historical technical facts, not the current view name |
 | 轮次 | turn | CLI 命令为 `turns` |
 | 操作记录 | step | CLI 命令为 `steps`；不暗示独立分摊费用 / No independently allocated cost implied |
 | 快照 | snapshot | 已保存的查询数据 / Persisted query data |

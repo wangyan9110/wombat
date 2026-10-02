@@ -1,3 +1,5 @@
 @import './reference.css';
 /* Runtime adaptations only. The reviewed reference cascade remains unchanged. */
 #projects{overflow:auto;min-height:0}.project-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.scope-heading>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}.search-form{display:flex;gap:6px}.search-form input{width:100%}.search-form button{padding:7px 10px}.source-card{overflow-wrap:anywhere}.ranking-name{overflow-wrap:anywhere}.statusbar span{overflow-wrap:anywhere}.price-table{min-width:620px}.price-table th,.price-table td{white-space:nowrap}.detail{min-width:0}.thread-row .row-meta{overflow-wrap:anywhere}.version{overflow-wrap:anywhere}.compact-note{overflow-wrap:anywhere}.turn-body .token-composition{margin:16px 0}.read-notice{margin-bottom:16px}.source-dot{background:var(--muted)}[inert]{opacity:.65}dialog{max-height:90vh;overflow:auto}dialog input{max-width:100%}.chart-ceiling{font-variant-numeric:tabular-nums}
+
+.task-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 12px 0; }

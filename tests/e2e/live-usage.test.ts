@@ -5,6 +5,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { DatabaseSync } from 'node:sqlite';
 
 const binary = path.resolve('dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
 const cli = path.resolve('dist/wombat.js');
@@ -46,6 +47,16 @@ test('live CLI resumes, keeps fixed views, exports only explicitly and streams a
     assert.equal(first.summary.tokens.total,110); assert.equal(first.freshness.status,'current');
     assert.ok(!(await readdir(data)).includes('usage-v3'), 'automatic sync must not export snapshots');
     await stop();
+    // Recreate the old on-disk format from the same safe facts. Reopening must
+    // migrate it while retaining the cached revision and resumable cursor.
+    const legacyDb = new DatabaseSync(path.join(data, 'live-v1', 'index.sqlite'));
+    try {
+      const records = legacyDb.prepare('SELECT b.scope,b.field,e.id,json(e.payload) AS payload FROM buckets b JOIN entries e ON e.bucket=b.id').all() as {scope:string;field:string;id:string;payload:string}[];
+      legacyDb.exec('BEGIN; DROP TABLE entries; DROP TABLE buckets; CREATE TABLE kv(scope TEXT NOT NULL,key TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(scope,key)) WITHOUT ROWID; PRAGMA user_version=0;');
+      const insert = legacyDb.prepare('INSERT INTO kv VALUES(?,?,?)');
+      for (const record of records) insert.run(record.scope, JSON.stringify([record.field, record.id]), record.payload);
+      legacyDb.exec('COMMIT;');
+    } finally { legacyDb.close(); }
     await appendFile(log,row('two'));
     await start();
     const cached=run(['usage','--cached']);
@@ -124,4 +135,19 @@ test('failed source retains facts while healthy source advances, survives restar
     for (const log of logs) await chmod(log, 0o600);
     await stop(); await rm(dir, { recursive: true, force: true });
   }
+});
+
+
+test('active and archived task metadata is discoverable without inventing measurements', {timeout:20_000}, async()=>{
+ const dir=await mkdtemp(path.join(tmpdir(),'wombat-unmetered-')),root=path.join(dir,'source'),data=path.join(dir,'data');
+ for(const bucket of ['sessions','archived_sessions']){await mkdir(path.join(root,bucket),{recursive:true});await writeFile(path.join(root,bucket,'one.jsonl'),JSON.stringify({type:'session_meta',timestamp:'2020-01-01T00:00:00Z',payload:{id:bucket,cwd:'/synthetic/project'}})+'\n');}
+ const env={...process.env,WOMBAT_AUTO_PRICES:'0',WOMBAT_DATA_HOME:data,CODEX_HOME:root};
+ const service=spawn(binary,['--serve-usage'],{env,stdio:'ignore'});
+ try {
+  const run=(args:string[])=>{const p=spawnSync(process.execPath,[cli,...args,'--json'],{env,encoding:'utf8',timeout:10000});assert.ifError(p.error);assert.ok([0,2].includes(p.status!),p.stdout+p.stderr);return JSON.parse(p.stdout);};
+  const empty=run(['usage','--fresh','--since','2026-09-01','--until','2026-10-01']);
+  assert.equal(empty.summary.measurementCount,0);assert.equal(empty.facets.discoveredThreadCount,2);
+  const tasks=run(['threads','--snapshot',empty.snapshotRef.snapshotId]);
+  assert.equal(tasks.items.length,2);assert.equal(tasks.summary.measurementCount,0);assert.equal(tasks.items.every((t:any)=>t.matchedUsage.measurementCount===0),true);
+ }finally{const exit=new Promise(resolve=>service.once('close',resolve));service.kill('SIGTERM');await exit;await rm(dir,{recursive:true,force:true});}
 });

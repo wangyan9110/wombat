@@ -5,49 +5,49 @@
       "zh": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562",
       "en": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562"
     },
-    "/wombat-codex-token-usage-tracker": {
-      "zh": "3be0087d8efa7febadc771291b994ca38de80b831905a75048ba3859a4ada70e",
-      "en": "63aa85c1a1cdad6779a0780a5b9217135f4bf453d17b14d200943bf05c2898d6"
+    "/wombat-codex-usage-configuration": {
+      "zh": "9e46991b324a2417ac4233066941b0abad5c4dda7424894f1f8d8e7288286a8d",
+      "en": "be29a51f7c7dae37ef816929efbbc3d39eafa117d042650f14493980e9a3f4d3"
     },
-    "/wombat-codex-token-usage-tracker/get-started": {
-      "zh": "c49a6aeab5de54148d5cb20cd7751a44116437124b3fa49105c7cf9981831a37",
-      "en": "7016a9a0abce1f35774c0e2ac7a6494499a88a66ccfc276d7fe7087edb5a36d1"
+    "/wombat-codex-usage-configuration/what-you-can-do": {
+      "zh": "740b1578a4ab25224308f7e9fe52a33035a6102210ef56379fcc40e858601049",
+      "en": "41c4efd5bbd17384a41b8483e2722f29733ab4477c14b70d74dc3e1576b9aaf5"
     },
-    "/wombat-codex-token-usage-tracker/find-a-high-usage-turn": {
-      "zh": "03082bcb44775d238399916664e9129f02140995476b91820abfc03d102e9e62",
-      "en": "49c25ddfe2ea7b2542c974819eb0e2294fe10b7f24b45aee9b9113ab7eed2325"
+    "/wombat-codex-usage-configuration/what-you-can-do/find-past-work": {
+      "zh": "66f61f14cbec9adc5bf3db635449d0cf67fe70a535a74d4c1d95bd860ca3e42b",
+      "en": "c98f0bedfa7b1d178520a25bbea94b45c61a88568b5195297201a322e1bb8496"
     },
-    "/wombat-codex-token-usage-tracker/explore-your-usage": {
-      "zh": "c81abaa0ed2fbaabb2703bc62a5a5a079100070d0898ea172219f6691512a56c",
-      "en": "8910b414a5247386fe6f0b470620d42044b22e80605835219e5e4d7ee9c2d9ae"
+    "/wombat-codex-usage-configuration/what-you-can-do/find-high-usage-tasks": {
+      "zh": "94d72893eb788449b3629c280734a390e1f2f6a7e19099dbbc223ec6f0b74316",
+      "en": "d2d52fe4cf01694b3f9b0843037592700caa160f179e93d7466b790df695ce5a"
     },
-    "/wombat-codex-token-usage-tracker/common-questions": {
-      "zh": "bc275b13ba5bc0f38555d82dc31768d810cbe1c021904d8e20b7430ed9f82e43",
-      "en": "1cd34632e06d6894ffa00d0ba8d14f8dbe94a6cdee43df3339b0352f96889cfe"
+    "/wombat-codex-usage-configuration/what-you-can-do/check-your-setup": {
+      "zh": "e9c9d6bc4aad5b8740069be67c16de7bcd935f79f28101a8db57a878996f24ad",
+      "en": "4514a7792cfd226043968b2e92444520116912b488697a162956f635887de046"
     },
-    "/wombat-codex-token-usage-tracker/how-costs-work": {
-      "zh": "05b2a40a5b6b8d3d3a7f45ae60f3225369b079ed80116757af3999b5353482a1",
-      "en": "67d4316150591af5dd6126dbc096ff6146c3f0ed4d7ded1654af3583f69fcb17"
+    "/wombat-codex-usage-configuration/installation": {
+      "zh": "02d5819edb4301573efbb695eaef2620e1569e31cce5a67a788c86a1f5de2a1b",
+      "en": "446987783866018dab153c530d96bcf759b923cc5c33d3f1f8fa69062555acf3"
     },
-    "/wombat-codex-token-usage-tracker/privacy": {
-      "zh": "5a953a94cc81f585714847fc79a5b87d5e1abdca895fb8789284de1c0bbf462f",
-      "en": "9e7efdfeaf9edd8cdd1a68969c8e58d73b96d0b51b7cbbc6a2f66c61221e0f4a"
+    "/wombat-codex-usage-configuration/cli-and-json": {
+      "zh": "409a3ed01fe0434bc7ef63a7a29344ee31b0a7a2c215f61eda93f39888cbc700",
+      "en": "5fc6d42a0967c8063977ffc2b30b2aba98d0c58718bc78aede3825fd54dbb73d"
     },
-    "/wombat-codex-token-usage-tracker/feedback-and-contributions": {
-      "zh": "2c91c230e8067b77cb4f267cf7977608c278287cfc4504ba42eb3d4b8431a588",
-      "en": "3fb78e43ef87f945700a16e4cdeff65c8cd666ddfa1dd945df3de994f9db2371"
+    "/wombat-codex-usage-configuration/privacy-and-costs": {
+      "zh": "4add538e5383b439bcc0be6b8ddd9080d2d695284d36e99a41b76a4a8b81ebcd",
+      "en": "1ab8a91f69825e588bb45bc11505a27a2e8ad18706d2e5e2038d49752c0a0350"
     },
-    "/wombat-codex-token-usage-tracker/development-and-releases": {
-      "zh": "a3e4dcb2b2dfce8c5af9b2e9c04003c041c982ce01a72e81e9d80a23f6940ddf",
-      "en": "799149481c48c67a6851b30477c43a39a100fe29a383c0d55ba236a5cb36459b"
+    "/wombat-codex-usage-configuration/common-questions": {
+      "zh": "0860052049454f576626ad3818738488e7dcb7e2e514b2b14728f6b9729dd66e",
+      "en": "268e82d5ad0bca6b56c699b8750a209829442dc8f8179e44c310ac17d17bd556"
     },
-    "/wombat-codex-token-usage-tracker/license": {
+    "/wombat-codex-usage-configuration/help-shape-wombat": {
+      "zh": "321492afa26dd545041be211cf7f77a034a7f509cdb6e7dbd5d7afbcd5cf9b7b",
+      "en": "86f720016b7b310a8f32769f1a92bb6c151e05f19b497a342e7bad269c520aa8"
+    },
+    "/wombat-codex-usage-configuration/license": {
       "zh": "cde8bbb6126ec7c29da0dba23a26d83f906c3fb7b369eb68598e99d230c55abe",
-      "en": "9c5c5200e5acffbfb38188f50b353b65be5224629be421c622dc693ccebc2499"
-    },
-    "/wombat-codex-token-usage-tracker/local-web": {
-      "zh": "85b567b1aa0d5ee147a1375a3f620251d0a868695efeb6f883253b2bb4b65780",
-      "en": "c01d582821089b10e192df9ae6c628b0d42ff2cd1c49f357a31a391b404f9486"
+      "en": "064b88a73ed7e3f451dc7dd5c94cfe8470755c734f4b4f8c0aaff576535d1cae"
     }
   }
 }

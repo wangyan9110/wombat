@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-configuration-measurement-and-manual-review-records": {
+      "zh": "0fa4aae7d73243dd29797d3d896e602bf2aa842722a0264efc3a43ede79fb08e",
+      "en": "e0b9958ef17d630fcf944625dc787258a099ec6dcea3dccaddfe884191b52e81"
+    },
+    "/decision-note-configuration-measurement-and-manual-review-records/problem": {
+      "zh": "f73823b42f8bf649f5c48f032a41d0f1abaefb2a8856ef9814aef7cfb30456ab",
+      "en": "e73e86dca43d87c86b778104b7326aba1ceec8b2eae3186f69bd20a85baef943"
+    },
+    "/decision-note-configuration-measurement-and-manual-review-records/decision": {
+      "zh": "b20f7a6f6e109e8b135fbc0128649ee707f0ac1ee451559f4ed5ee1a0b48650c",
+      "en": "f3334eba877286ffb4d69f55f72e7afa7ad469515deb82ffef2db5593cb6e47a"
+    },
+    "/decision-note-configuration-measurement-and-manual-review-records/alternatives-considered": {
+      "zh": "3bf008a63a58b2c994f43fbb6ff298e358d1b8d989d8bb0886bbf23dfd3963bf",
+      "en": "35692c5893917bb19e2cc0c2daf08b64d6280420abf77b5d0fe0f9feef4d2067"
+    },
+    "/decision-note-configuration-measurement-and-manual-review-records/impact-and-verification": {
+      "zh": "a5e6689bb8f31c6034a47bd3ea23b9ca931a4543c36db71b865251687b28bdf3",
+      "en": "2faf172d7a44e3da42853fac8f974929755907964578c68e8160f5f8af327893"
+    }
+  }
+}

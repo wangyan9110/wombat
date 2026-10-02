@@ -4,7 +4,7 @@
 
 This page lists future directions without release-date commitments. Independent Codex accounting, official pricing, both views, and read-only old snapshots form the baseline. See the [version-one specification](specification.en.md) for requirements, [implementation status](status.en.md) for delivery and gaps, and [progress](progress.en.md) for evidence.
 
-1. Extend Web acceptance of startup, synchronization, failure, cancellation, and narrow layouts.
+1. Complete A5 scale/platform acceptance, B3 effective Hook registry adaptation, and incremental block caching under the [startup and rule upgrade specification](startup-rules.en.md), retaining evidence gates for actual injection and execution.
 2. Deliver the remaining [automatic-update proposal](../decisions/proposed/architecture/2026-09-30-live-usage.en.md): persistent MVCC, dependency-local reconciliation, database aggregation, million-record performance, and 24-hour acceptance. Append cursors, SQLite transactions, the on-demand service, and automatic queries are already connected; the whole proposal cannot be marked complete.
 3. Continue checking source versions, correctness, and end-to-end resource use with fixed fixtures. Record real user tasks separately and confirm performance targets through measurement.
 4. Resolve the npm name, permissions, and target platforms for public release, then verify clean installation, licenses, and public materials per platform.

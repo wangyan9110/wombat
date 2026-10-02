@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-02",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v26.4.0",
+  "build": "release",
+  "coreSha256": "351033dce563eebdb8620425302a5b8ee3bb066b5765df04e7fbf19ecb136db2",
+  "sourceSha256": "68ec195165bada85a097003ac73054f428f700afb1122846daab0d4ccd5ad59a",
+  "startup": {
+    "scope": "Actual built Node CLI process launch, loopback URL, authenticated HTTP first ledger, then static rules; no prior core; new product directory. One observation, auto-prices disabled; OS cache uncontrolled.",
+    "corpus": {
+      "bytes": 1789759,
+      "sha256": "45993cbf292ee70ba7068adc05628230836ab0ecfb5f0a207a99e1aaf2f0a61e",
+      "measurements": 3000,
+      "tokens": 330000,
+      "threads": 1
+    },
+    "urlReadyMs": 77.291166,
+    "firstUsageMs": 357.74475,
+    "rulesReadyMs": 444.858708,
+    "actualTokens": 330000,
+    "onlineProductDisk": {
+      "bytes": 17201614,
+      "allocatedBytes": 17207296
+    },
+    "exitProductDisk": {
+      "bytes": 17201614,
+      "allocatedBytes": 17207296
+    },
+    "nodeCliPeakRssBytes": 80396288
+  },
+  "nativeResource": {
+    "scope": "Separate direct core+Web harness run on the same corpus shape with new product data; excludes Node/browser. Includes core initialization, ledger collection/query, configuration collection and static rules.",
+    "peakRssBytes": 88719360,
+    "firstUsageMs": 176.747416,
+    "rulesReadyMs": 261.650875,
+    "cachedHttpMs": 19.873792000000037,
+    "nodeHarnessPeakRssBytes": 145604608,
+    "note": "Harness Node peak includes fixture construction and measurement orchestration; not a product-only Node result. Peaks are separate runs, not summed concurrent memory."
+  },
+  "exactBlocks": {
+    "corpusBytes": 195600,
+    "blocks": 4000,
+    "groups": 100,
+    "inventoryMs": 102.499041,
+    "analysisMs": 4.4441250000000005,
+    "metadataBytes": 956713,
+    "sourceWrites": 0,
+    "peakRssBytes": 64978944,
+    "wholeProcessWallSeconds": 0.84,
+    "scope": "Release library test including fixture creation, inventory/token estimate and exact analysis; parsing time alone is not full startup."
+  },
+  "longHeadingBoundary": {
+    "corpusBytes": 385004,
+    "paragraphs": 5000,
+    "retainedPositionLimit": 4096,
+    "headingCharacters": 100000,
+    "sharedHeadingIdentityAsserted": true,
+    "resourceGapAsserted": true,
+    "recheckIncompleteAsserted": true,
+    "peakRssBytes": 75169792,
+    "wholeProcessWallSeconds": 0.09
+  },
+  "browser": {
+    "scope": "Prestarted loopback host, synthetic 23-turn fixture + archived task metadata, prior index empty, browser/OS cache not controlled; page navigation only, excludes CLI startup and browser RAM. Four-second preference delay is controlled.",
+    "shellMs": 41.9,
+    "firstUsageMs": 183.5,
+    "tokens": 2640,
+    "repeatCount": 1
+  },
+  "limitations": [
+    "No universal ETA or speedup claim",
+    "No browser peak-memory measurement",
+    "Not million-record or 24-hour acceptance",
+    "No real disk exhaustion; SQLite quota test only",
+    "Other platforms and Hook/injection/execution adapters unverified",
+    "Static analysis reparses each collection; no persistent body/block cache"
+  ]
+}

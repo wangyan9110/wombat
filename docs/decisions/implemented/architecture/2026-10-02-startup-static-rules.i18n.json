@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-startup-and-bounded-static-rules": {
+      "zh": "51487334254562ce8bbe52d4eb236dbfe2afb40db6a22f3c014fe9a5c026bf30",
+      "en": "e456c47712b5fda8f70577dc48e6b482e62392f8da2cbd3075241b8c840eb285"
+    },
+    "/decision-startup-and-bounded-static-rules/problem": {
+      "zh": "870f246bee3ca3e55881772a37f39952c7576062dedcb850b04ca3e9cd7b8982",
+      "en": "57f7ec202d3b9d8787a61934b7eb8197ec7826d9d2820c249add0a76101a651e"
+    },
+    "/decision-startup-and-bounded-static-rules/decision": {
+      "zh": "92e8c68bef094a513b506fb45c4af168dd3f151f9644899f80b8e6c174868055",
+      "en": "f57933182efa33e9181ed9709e90dfe4d3e8f82b9b56114b2b5f92b33ea9ea4e"
+    },
+    "/decision-startup-and-bounded-static-rules/alternatives-considered": {
+      "zh": "decd572bc573e17f1565591019cee591b6cfa6222dd2b81f1a7f1a025a434b99",
+      "en": "90723576c72ebf46818810e62428116486a490632125d09f57fcd1deb546a0f4"
+    },
+    "/decision-startup-and-bounded-static-rules/impact-and-verification": {
+      "zh": "afb4709c34c13492b3c60f2213fc81f6458d5e9ea188549c4f02a6b6e2af46b9",
+      "en": "154d37cc3287cb4d83807b7e2a1d587d0ff6fcd72c3841d5c10c326b8d837371"
+    }
+  }
+}

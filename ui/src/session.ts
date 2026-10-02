@@ -1,4 +1,18 @@
 import { resolveLocale, type Locale } from '@wombat/client/locale';
+import type { UsageClient } from '@wombat/client';
+import type { LocaleRuntime } from '@wombat/client/locale';
+
+/** A late preference cannot undo a language choice made while the shell loads. */
+export async function restoreLanguage(client:UsageClient,runtime:LocaleRuntime){
+  if(!client.preferences)return;
+  let changed=false;
+  const unsubscribe=runtime.subscribe(()=>{changed=true;});
+  try{
+    const saved=await client.preferences({action:'get'},{signal:AbortSignal.timeout(5000)});
+    if(!changed&&saved.language)runtime.setLocale(saved.language);
+  }catch{/* Keep the already visible fallback language. */}
+  finally{unsubscribe();}
+}
 
 export function connectionExpired(code?: string) { return code === 'HTTP_401' || code === 'HTTP_403'; }
 type LanguageStorage = Pick<Storage, 'getItem' | 'setItem'>;

@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-compact-live-index-and-replacement-algorithm": {
+      "zh": "eab070c2f1232a020e8b8017b19edcd0ed8a861de447b6dc753a357061cdc0eb",
+      "en": "00a207f3c07441d0af3fc140036f13655f810e87c856ed6fac7d841b57572705"
+    },
+    "/decision-note-compact-live-index-and-replacement-algorithm/problem": {
+      "zh": "c5352223f2d16b9af7bcae55176e0c59f9916713480c4a155b1b232b5edcd5db",
+      "en": "7e3df0d7c9ae6afccdc29903f42687e08c222345a5f0681b0fa07c15fc88d05f"
+    },
+    "/decision-note-compact-live-index-and-replacement-algorithm/decision": {
+      "zh": "d77edb9341d8f3c39aba5f7d0385f50d6114f055294bea462d2990bcdaf60320",
+      "en": "5784f48eb889022a77c9f1c34fc029361bbbae2572ad84dc46f5c27cfef23444"
+    },
+    "/decision-note-compact-live-index-and-replacement-algorithm/alternatives-considered": {
+      "zh": "1b1df1d21b0e2fa10e42faf8e61a3b37b667902a97d8ea7284a809083b2f52f8",
+      "en": "cb28128f4cdca343eea1e02de683f92a841c3919a7df63d5f8707064641c9c04"
+    },
+    "/decision-note-compact-live-index-and-replacement-algorithm/impact-and-verification": {
+      "zh": "a46c0f06007eade33ef83be49909256e071a70bb46f72cba46457a3fb09109ed",
+      "en": "42a79c39eb5a3b61b785e7ecf62d31aa784429c96e33fe9cc7ef930632428a58"
+    }
+  }
+}

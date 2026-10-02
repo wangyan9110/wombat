@@ -6,12 +6,16 @@
       "en": "ef304ad9f48762e8b87bfd39ca836f48a5788e58eb57d64780bbe83d2e3798bb"
     },
     "/public-contracts/client-entries": {
-      "zh": "647477bb9a340cdceb48063501a3c07c49616de29ece8e822138eb4baad16736",
-      "en": "e0fc9d093d7fc0d6f2abecb8e6bdc56c6411133f178f255983fff70b46a583bf"
+      "zh": "105a060dd1397a3b764ed50ee17d7c0cbb5097ff4c32d37bebbd2c471fd5cced",
+      "en": "53a24ad28332fe77b0e401e082f26685de2bdc305da990f401ab8c1a814e967f"
     },
     "/public-contracts/read-only-configuration-contract-v1": {
-      "zh": "e928cca43c3dac86a5b157245249161ae3af19bd09e7e43b63267e24f4919ffb",
-      "en": "34b9f2d7399ad435e66d3f656da235ae40b8d04278efd5ee9f1795bfc90e63aa"
+      "zh": "8437fd1984da209582ef8c4e8f7b22c62e7307a02096c4098364a151f1f166e7",
+      "en": "035dd90e10529284f3b47d1ac02dc67903f25aeecba8389a818a2ec3b9e1f340"
+    },
+    "/public-contracts/optimize-and-preference-contracts-v1": {
+      "zh": "3061ce90f044886694188e697bba0795f4b57b5378a20ed9a6689b25302c3300",
+      "en": "bc8bf8d59aa872fcde8efcf26daf8ce1b1593a24c9aa4b87123f8c386b137d30"
     }
   }
 }

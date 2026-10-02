@@ -17,7 +17,7 @@ async function stop(child?: ChildProcess) {
 const entry = path.resolve(process.env.WOMBAT_WEB_TEST_ENTRY ?? 'dist/wombat.js');
 test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecycle', { timeout: 40_000 }, async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'wombat-web-e2e-'));
-  const root = path.join(dir, 'source'), data = path.join(dir, 'data');
+  const root = path.join(dir, "source with ' quote"), data = path.join(dir, 'data');
   await mkdir(path.join(root, 'sessions'), { recursive: true });
   const timestamp = new Date(Date.now() - 86_400_000).toISOString();
   const events = [
@@ -39,7 +39,7 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
     service = spawn(core, ['--serve-usage'], { env, stdio: 'ignore' });
     await once(service, 'spawn');
     await new Promise(resolve => setTimeout(resolve, 150));
-    child = spawn(process.execPath, [entry, 'web', '--root', root, '--json'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child = spawn(process.execPath, [entry, 'web', '--root', root, '--project-root', root, '--json'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stderr!.on('data', chunk => { stderr += chunk; });
     const url = await new Promise<string>((resolve, reject) => {
       let buffer = '';
@@ -54,6 +54,21 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
       const frames = (await response.text()).trim().split('\n').map(line => JSON.parse(line));
       const last = frames.at(-1); assert.equal(last.type, 'result', JSON.stringify(last)); return last.value;
     };
+    const authorization = await call('config', {action:'capabilities'});
+    assert.deepEqual(authorization.authorizedSourceRoots,[root]);
+    assert.deepEqual(authorization.authorizedProjects,[root]);
+    if(process.platform !== 'win32') {
+      assert.ok(authorization.hostRestartCommand);
+      // Execute only the host-generated command for this synthetic fixture.
+      const recovered=spawn('/bin/sh',['-c','exec '+authorization.hostRestartCommand+' --json'],{env,stdio:['ignore','pipe','pipe']});
+      try {
+        const line=await new Promise<string>((resolve,reject)=>{let buf='';const timer=setTimeout(()=>reject(new Error('Restart command timed out')),10000);recovered.stdout!.on('data',c=>{buf+=c;if(buf.includes('\n')){clearTimeout(timer);resolve(buf.split('\n')[0]);}});recovered.once('error',e=>{clearTimeout(timer);reject(e);});});
+        const recoveryUrl=new URL(JSON.parse(line).url),recoveryToken=new URLSearchParams(recoveryUrl.hash.slice(1)).get('token');
+        const recovery=await fetch(recoveryUrl.origin+'/api/config',{method:'POST',headers:{Origin:recoveryUrl.origin,Authorization:`Bearer ${recoveryToken}`,'Content-Type':'application/json'},body:JSON.stringify({action:'capabilities'})});
+        const receipt=(await recovery.text()).trim().split('\n').map(l=>JSON.parse(l)).at(-1).value;
+        assert.deepEqual(receipt.authorizedSourceRoots,[root]);assert.deepEqual(receipt.authorizedProjects,[root]);
+      } finally {await stop(recovered);}
+    }
     const html = await (await fetch(origin)).text();
     assert.match(html, /<title>Wombat/);
     assert.equal((await fetch(origin+'/?page=threads&search=synthetic')).status,200);

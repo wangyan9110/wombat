@@ -266,6 +266,16 @@ fn quality(snapshot: &Snapshot, count: usize) -> Quality {
 }
 pub(crate) fn validate(request: &Request) -> Result<()> {
     timezone(&request.scope)?;
+    if request.scope.all_time == Some(true)
+        && (request.scope.since.is_some()
+            || request.scope.until.is_some()
+            || request.scope.undated == Some(true))
+    {
+        return Err(operation_error(
+            "INVALID_ARGUMENT",
+            "全部日期不能与日期范围混用",
+        ));
+    }
     if let Some(d) = &request.scope.since {
         date(d)?;
     }
@@ -525,6 +535,7 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         && request.scope.until.is_none()
         && request.scope.undated != Some(true)
         && request.scope.thread_id.is_none()
+        && request.scope.all_time != Some(true)
     {
         let today = Utc::now().with_timezone(&tz).date_naive();
         request.scope.since = Some(
@@ -710,6 +721,7 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         facets: (request.action == Action::Usage).then(|| {
             let (models, reasoning_efforts) = dimensions(&rows);
             Facets {
+                discovered_thread_count: Some(snapshot.manifest.threads.len()),
                 directories: projects
                     .values()
                     .filter_map(|p| p.map(str::to_owned))

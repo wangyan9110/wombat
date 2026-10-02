@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "sections": {
+    "/distribution-status-and-public-descriptions": {
+      "zh": "acc519efdeeb92f1e0cdd90a50a5bb602d858a0f9ca3309ffa29301dc6d8c749",
+      "en": "d99ba0b07e0d43125d5ec35537687379a4abe305afaca4a1f1df49a7cf699b14"
+    },
+    "/distribution-status-and-public-descriptions/current-status": {
+      "zh": "a65a21092de577bf2f9a9be71c80106666a4696e29545a82a3834f6d73a31e88",
+      "en": "23986d22962bfadfda2eceef91f5734f32c79a378834b9b412fe7e8ebf5f82e4"
+    },
+    "/distribution-status-and-public-descriptions/github-description-candidates": {
+      "zh": "f172b73b5bb4d1605bf1931c93665d9b77b05f6e44fcd2c2e0b9166c46ed7402",
+      "en": "8d555671a1c5439de1697095487db46c2fbaf60fa514d9dd80e2c9cd35f42ca2"
+    },
+    "/distribution-status-and-public-descriptions/readme-and-packaged-materials": {
+      "zh": "06030d12aa4c513d69177d99d1a57eab2dcf4bfabc2eb115518dbc9fb2df8de8",
+      "en": "bded3e5cb4c4042a922294d49ed710bffcb37f78c55fb6be9ed69a2423dca7de"
+    }
+  }
+}

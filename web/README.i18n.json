@@ -2,16 +2,16 @@
   "version": 2,
   "sections": {
     "/local-web-host": {
-      "zh": "412c205468a655c49c6e9e1b2bb34ec51e5a252bbc97ee9b4255d5d53d4742eb",
-      "en": "5bb3cd3b2f3132cf11ba1c1d32b482e21485236fb5cc824c9847833af1551b0c"
+      "zh": "a4a7c6ba3f7f74a0f2cd93bdd4fc1dd6815ab370d8ff4f77552b87d02209efd8",
+      "en": "025c67b693e95adaaa3030dc6b432ab2c5b945fbb72acb27937ba73b6561853f"
     },
     "/local-web-host/access-boundaries": {
-      "zh": "b5b523944a40c488268f4fc029ee373ec29f0bbfc102b30056cf52b2e3c52139",
-      "en": "d82a31051f95cf5090a52724a59a56ab0adc05bd6b60c1e4308329327d86d5cb"
+      "zh": "267eb9bc6d9a7a7e22793803419150d1713fd50b3cb61da233ea8eaeed66c2b5",
+      "en": "40465889e6241457f1480b2358a465cdf8da0623349fa86788bed339b7bf33e0"
     },
     "/local-web-host/verification": {
-      "zh": "d4db26f5e4bb290edf70ac295bde5ad887da4d610a961fa4dbe7e9f8031b21f2",
-      "en": "5adf694954ab1c073f164d8ae26ed12cc9b62fa26c26daa6dcb7f095722fdfbd"
+      "zh": "5c3a9e7ad544c59623430c5a6f35bef82c197bb999b60d4847ae64791467a076",
+      "en": "559baa558d9270828988eacb21eb8fe525acb1283462894a7ae2de2f64ef98d7"
     }
   }
 }

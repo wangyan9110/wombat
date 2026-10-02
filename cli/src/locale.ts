@@ -1,5 +1,7 @@
 import { CoreError } from '@wombat/client';
 import { locale, resolveLocale, type Locale } from '@wombat/client/locale';
+let launchLanguage: Locale | undefined;
+export const explicitLaunchLanguage = () => launchLanguage;
 
 /** Consume presentation options before either usage or pricing argument parsing. */
 export function parseLanguageArgs(argv: readonly string[], environment: NodeJS.ProcessEnv = process.env): { argv: string[]; locale: Locale } {
@@ -21,6 +23,7 @@ export function parseLanguageArgs(argv: readonly string[], environment: NodeJS.P
 }
 export function configureLanguage(argv: string[]): string[] {
   const parsed = parseLanguageArgs(argv);
+  launchLanguage = argv.some(arg => arg === '--lang' || arg.startsWith('--lang=')) || process.env.WOMBAT_LANG !== undefined ? parsed.locale : undefined;
   locale.setLocale(parsed.locale);
   return parsed.argv;
 }

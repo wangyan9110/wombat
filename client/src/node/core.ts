@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { CoreError } from '../errors.js';
 import type { QueryOptions } from '../client.js';
 import type { Request } from '../generated/usage-request.js';
-import type { PricingRequest } from '../client.js';
+import type { PricingRequest,PreferencesRequest } from '../client.js';
 
 const MAX_RESPONSE = 256_000_000;
 export interface CoreProcessOptions {
@@ -40,7 +40,7 @@ export function invokeCore(request: Request, options: QueryOptions, processOptio
 export function invokePricesCore(request: PricingRequest & { document?: string; attempt_id?: string; error_code?: string }, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
   return invokeOperation('prices', request, options, processOptions);
 }
-export function invokeOperation(op: 'usage_app' | 'prices' | 'live_endpoint', request: Request | PricingRequest | Record<string, never>, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
+export function invokeOperation(op: 'usage_app' | 'prices' | 'live_endpoint' | 'preferences', request: Request | PricingRequest | PreferencesRequest | Record<string, never>, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
   if (options.signal?.aborted) return Promise.reject(new CoreError('CANCELLED', '已取消'));
   const binary = binaryPath(processOptions.binaryPath);
   const maxResponseBytes = processOptions.maxResponseBytes ?? MAX_RESPONSE;

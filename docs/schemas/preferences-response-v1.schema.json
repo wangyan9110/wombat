@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "action": {
+      "$ref": "#/definitions/Action"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Language"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "outputVersion",
+    "action"
+  ],
+  "definitions": {
+    "Action": {
+      "type": "string",
+      "enum": [
+        "get",
+        "set"
+      ]
+    },
+    "Language": {
+      "type": "string",
+      "enum": [
+        "zh",
+        "en"
+      ]
+    }
+  }
+}

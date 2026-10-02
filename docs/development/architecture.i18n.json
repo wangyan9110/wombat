@@ -2,7 +2,7 @@
   "version": 2,
   "sections": {
     "/wombat-architecture": {
-      "zh": "aae27a46915d4cb6105f57114e1bb22a1c6ce9934d54c797066364559de7fe53",
+      "zh": "17277a42a26ec5fe23d00893d2c4bf3739f4bbeda4eaa51c4695ba04d9d8f24b",
       "en": "f8b8e243bd1e88795dc69b451b4dfc8cdb60e574b978a711c72e8b99c6fdee1d"
     },
     "/wombat-architecture/data-flow": {
@@ -14,20 +14,20 @@
       "en": "6c1036aa5f6d87fccaa0fec1937215908df9a6440622024dfc38b8d8757c542d"
     },
     "/wombat-architecture/web-host-and-lifecycle": {
-      "zh": "ff33fab997ce9bfd6ecf41419b7e254ee1f8fc4c8732f5e8518090151ecc9c4c",
-      "en": "8d08f4f57969912370a3d2bc66ba5f84770aa6e8daa09e7d856a6cc5b7d075da"
+      "zh": "8b22b7c8bbc033066d62fb393432c1f978cd701099eda57d814a82c1f43f7c8e",
+      "en": "1113bfceb3ba761bb0cf99c5760d38c5b2bbb32e927dfbe322165b2357da6bd3"
     },
     "/wombat-architecture/identity-and-accounting": {
       "zh": "71a9b862fd1de889f01a1f64e94e3cee976457c1eba133f36d1235045e648919",
       "en": "6b699ea16cbb27828792b4c99a32598910d3f9b430c3063f1ed919c3efe01ae5"
     },
     "/wombat-architecture/storage-and-failures": {
-      "zh": "2508d5dbdf99509488372067719ba0372d23d48dab1640432cf1255e43289057",
-      "en": "1477a94449fd427ac690cb8fe061975a7da19bc34b1c977d02a89d8e95d96bce"
+      "zh": "d2d2516dbd6f283cdc22f9e87cf0d5630c19d658f009f038565fa3dbac33aa42",
+      "en": "f03393fed0a609fad93e5ca7999f73509affc2d1b3d00e0477e5a1e34331eb43"
     },
     "/wombat-architecture/build-and-verification": {
-      "zh": "b4fda7a83ab59f3703156c015f941b6627331edbaffd7f3ade82d8b3d00b6f36",
-      "en": "5e18d4babe0c4ae306a49f7cbca95c7cac00d107bdbad2e5ffd9b022a3f573f0"
+      "zh": "e3f313cbce625fc9617db50ee161a90a872d747530f1c7e3a58c0a54bbf01a4e",
+      "en": "fa0ad97bcd51343e31e3421abc0c5a371b080191278f6bf5a8f24c5931d82c1f"
     }
   }
 }

@@ -204,7 +204,7 @@ test('language changes presentation while real core data and source titles stay 
     assert.equal(en.value.items[0].title, zh.value.items[0].title);
     const plain = f.run(['usage', ...dates, '--lang=en'], false);
     assert.match(plain.stdout, /Wombat · Usage/);
-    assert.match(plain.stdout, /Cost unknown/);
+    assert.match(plain.stdout, /API cost unknown/);
     const help = f.run(['--help', '--lang=en'], false);
     assert.match(help.stdout, /Usage/); assert.match(help.stdout, /wombat threads/);
     const invalid = f.run(['usage', '--lang=en', '--unknown']);

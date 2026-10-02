@@ -4,13 +4,13 @@
 
 This page maintains requirements and acceptance criteria, baselined on 2026-09-30. It does not establish acceptance of every target. See [implementation status](status.en.md) for delivery and gaps and [progress](progress.en.md) for results. The pre-migration code inventory is retired from the current specification; lasting tradeoffs are in the [independent-accounting decision](../decisions/implemented/architecture/2026-09-30-independent-accounting.en.md) and [snapshot decision](../decisions/implemented/architecture/2026-09-30-snapshot-storage.en.md).
 
-Usage defaults to distribution and switches to details or token/estimated-cost views. Scales, peaks, and shares come from the complete query before pagination. Priced subtotals remain distinct from unknown amounts. Threads sort by whole-thread consumption, retaining selected-range context. Opening a section reads again; cancellation or failure opens recovery.
+Shared Rust queries present usage and tasks, aggregating complete ranges before pagination and separating matching from full-task usage. Additional page, configuration measurement and manual-review requirements are in the [upgrade specification](config-upgrade.en.md).
 
 ## Scope
 
 | Item | Requirement |
 |---|---|
-| Product entry | `wombat` opens Usage/Conversations in a TTY and queries usage otherwise; explicit commands need no simulated keystrokes |
+| Product entry | `wombat` defaults to usage text; `web` opens the local interactive page; explicit commands require no TTY |
 | Sources | Register only Codex in version one, reading active/archive/multiple-root logs; the protocol permits future agents with different capabilities |
 | Usage | Daily/weekly/monthly, date/timezone, model, effort, project, and conversation scopes; date subtotals, model components, complete totals |
 | Conversations | Cross-day/model lists, native titles, title/project search, consumption or recent-activity sorting |
@@ -18,7 +18,7 @@ Usage defaults to distribution and switches to details or token/estimated-cost v
 | Multiple entries | Rust operations reach Node CLI, JSON, and local Web through generated contracts; future hosts reuse the same narrow interface |
 | Platform and language | Node.js ≥26.4.0, first accepted on macOS arm64; Chinese/English follow the [language contract](../i18n/product.en.md); other platforms need separate installation acceptance |
 
-No quota, checkup, configuration management, rule diagnostics, automatic repair, recommendations, evidence-package export, threshold notifications, comparison, parent/child task analysis, HTML reports, or GUI. Inheritance/fork facts serve only necessary attribution and deduplication. See the [support matrix](../reference/support-matrix.en.md) for complete current boundaries.
+No quota, checkup, automatic configuration writes/repair, evidence-package export, threshold notifications, comparison, parent/child task analysis or HTML reports. Read-only configuration, static reminders and manual reviews follow the upgrade specification; desktop hosting remains future work. Inheritance/fork facts serve only necessary attribution and deduplication. See the [support matrix](../reference/support-matrix.en.md) for complete current boundaries.
 
 ## User journeys
 
@@ -40,7 +40,7 @@ The [frontend guide](../../ui/README.en.md) owns pages, prices, themes, and widt
 - Standard API equivalents remain separate from source reportedCost, old policies, and subscription spending. Price per-request conditions, aggregate unrounded measurements in Rust, and format only in Node. The [pricing reference](../reference/pricing.en.md) owns details.
 - Lists normally show two decimals and details four. Use thresholds for nonzero amounts below display precision, never zero. Label unknown/partial amounts; never sum rounded display values.
 - Missing native titles do not become generated question summaries; missing turn numbers do not become claimed native numbers. Dates follow actual timezone/language and source precision without invented seconds.
-- Use readable 40/80/120-column layouts and retain full costs on narrow screens. Avoid repeated branding; explanations expand in the footer. Source text is sanitized for control characters and remains data.
+- Use readable desktop and390px layouts and retain full costs on narrow screens. Avoid repeated branding; explanations expand in the footer. Source text is sanitized for control characters and remains data.
 
 ## Storage, resources, and extension
 

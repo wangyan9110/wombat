@@ -199,6 +199,41 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.md",
       "en": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.i18n.json"
+    },
+    {
+      "zh": "docs/project/config-upgrade.md",
+      "en": "docs/project/config-upgrade.en.md",
+      "record": "docs/project/config-upgrade.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-02-config-reviews.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-02-config-reviews.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-02-config-reviews.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-02-compact-live-index.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-02-compact-live-index.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-02-compact-live-index.i18n.json"
+    },
+    {
+      "zh": "docs/project/startup-rules.md",
+      "en": "docs/project/startup-rules.en.md",
+      "record": "docs/project/startup-rules.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-02-startup-static-rules.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-02-startup-static-rules.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-02-startup-static-rules.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-02-rule-review-integrity.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-02-rule-review-integrity.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-02-rule-review-integrity.i18n.json"
+    },
+    {
+      "zh": "docs/reference/distribution.md",
+      "en": "docs/reference/distribution.en.md",
+      "record": "docs/reference/distribution.i18n.json"
     }
   ],
   "legacyUnpaired": [],
@@ -224,6 +259,14 @@
     {
       "zh": "assets/prototype-conversations-zh.png",
       "en": "assets/prototype-conversations-en.png"
+    },
+    {
+      "zh": "assets/prototype-overview-zh.jpg",
+      "en": "assets/prototype-overview-en.jpg"
+    },
+    {
+      "zh": "assets/prototype-review-zh.jpg",
+      "en": "assets/prototype-review-en.jpg"
     }
   ]
 }

@@ -41,6 +41,8 @@ pub struct Freshness {
     pub checked_at: Option<String>,
     pub revision: String,
     pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -55,6 +57,7 @@ struct Entry {
     attempt: u64,
     checked: Option<String>,
     error: Option<String>,
+    error_code: Option<&'static str>,
     touched: Instant,
     syncing: bool,
     last_sync: Instant,
@@ -70,6 +73,7 @@ impl Entry {
             attempt: 0,
             checked: None,
             error: None,
+            error_code: None,
             touched: Instant::now(),
             syncing: false,
             last_sync: Instant::now(),
@@ -528,7 +532,7 @@ fn select_view(
     {
         return Err(operation_error(
             if entry.error.is_some() {
-                "SOURCE_UNREADABLE"
+                entry.error_code.unwrap_or("SOURCE_UNREADABLE")
             } else {
                 "SYNC_TIMEOUT"
             },
@@ -554,7 +558,7 @@ fn select_view(
                     if request.mode == Mode::Cached {
                         "NO_SNAPSHOT"
                     } else if entry.error.is_some() {
-                        "SOURCE_UNREADABLE"
+                        entry.error_code.unwrap_or("SOURCE_UNREADABLE")
                     } else {
                         "SYNC_PENDING"
                     },
@@ -585,6 +589,7 @@ fn select_view(
         checked_at: entry.checked.clone(),
         revision: snapshot.manifest.snapshot_ref.snapshot_id.clone(),
         error: entry.error.clone(),
+        error_code: entry.error_code.map(String::from),
     };
     drop(entries);
     Ok((snapshot, freshness))
@@ -609,6 +614,7 @@ fn query(
                     checked_at: Some(checked_at),
                     revision: id.clone(),
                     error: None,
+                    error_code: None,
                 },
             ));
         }
@@ -679,7 +685,7 @@ pub fn serve() -> Result<()> {
         let _ = dirty_tx.try_send(());
     })?;
     let worker = std::thread::spawn(move || -> Result<()> {
-        let mut db = crate::live_index::open(&root.join("index.sqlite"))?;
+        let mut db = crate::live_index::open(&root.join("index.sqlite")).ok();
         let mut watched = std::collections::BTreeSet::new();
         let mut caches = BTreeMap::new();
         loop {
@@ -714,6 +720,28 @@ pub fn serve() -> Result<()> {
                     .collect()
             };
             for (key, roots, verify) in work {
+                if db.is_none() {
+                    match crate::live_index::open(&root.join("index.sqlite")) {
+                        Ok(opened) => db = Some(opened),
+                        Err(error) => {
+                            let mut entries = worker_state.0.lock().unwrap();
+                            let entry = entries.get_mut(&key).unwrap();
+                            entry.error_code = Some(crate::live_index::failure_code(&error));
+                            entry.error = Some(error.to_string());
+                            entry.last_sync = Instant::now();
+                            entry.syncing = false;
+                            entry.checked = Some(chrono::Utc::now().to_rfc3339());
+                            if let Some(job) = &job
+                                && job.key == key
+                            {
+                                entry.completed = job.ticket;
+                            }
+                            worker_state.1.notify_all();
+                            continue;
+                        }
+                    }
+                }
+                let db = db.as_mut().unwrap();
                 for source in sources(&roots).sources {
                     if watched.insert(source.root.clone()) {
                         let _ = watcher.watch(
@@ -729,7 +757,7 @@ pub fn serve() -> Result<()> {
                     entry.views.is_empty()
                 };
                 // Source restoration can be large; never hold the query-state lock across I/O.
-                if needs_restore && let Ok(Some(view)) = restore(&db, &key, &roots) {
+                if needs_restore && let Ok(Some(view)) = restore(db, &key, &roots) {
                     let mut entries = worker_state.0.lock().unwrap();
                     let entry = entries.get_mut(&key).unwrap();
                     if entry.views.is_empty() {
@@ -741,14 +769,7 @@ pub fn serve() -> Result<()> {
                     .views
                     .back()
                     .map(|(_, v)| Arc::clone(v));
-                let outcome = sync(
-                    &mut db,
-                    &key,
-                    &roots,
-                    verify,
-                    prior_view.as_deref(),
-                    &mut caches,
-                );
+                let outcome = sync(db, &key, &roots, verify, prior_view.as_deref(), &mut caches);
                 if outcome.is_err() {
                     caches.clear();
                 }
@@ -769,8 +790,12 @@ pub fn serve() -> Result<()> {
                         }
                         entry.checked = Some(chrono::Utc::now().to_rfc3339());
                         entry.error = None;
+                        entry.error_code = None;
                     }
-                    Err(e) => entry.error = Some(format!("{e:#}")),
+                    Err(e) => {
+                        entry.error_code = Some(crate::live_index::failure_code(&e));
+                        entry.error = Some(format!("{e:#}"));
+                    }
                 }
                 while entry.views.len() > 1
                     && entry.views.front().is_some_and(|(t, _)| {
@@ -782,7 +807,9 @@ pub fn serve() -> Result<()> {
                 worker_state.1.notify_all();
             }
         }
-        db.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
+        if let Some(db) = db {
+            db.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
+        }
         Ok(())
     });
     let mut last_client = Instant::now();
@@ -819,6 +846,39 @@ pub fn serve() -> Result<()> {
                         }
                         let value: Value = serde_json::from_str(&input)
                             .map_err(|_| operation_error("INVALID_ARGUMENT", "查询参数无效"))?;
+                        if value.get("optimize").is_some() {
+                            #[derive(Deserialize)]
+                            #[serde(deny_unknown_fields)]
+                            struct OptimizeMessage {
+                                optimize: crate::optimize_dto::Request,
+                            }
+                            let r: OptimizeMessage = serde_json::from_value(value)
+                                .map_err(|_| operation_error("INVALID_ARGUMENT", "优化参数无效"))?;
+                            if r.optimize.action == crate::optimize_dto::Action::Capabilities {
+                                let mut response = crate::optimize::capabilities();
+                                response.rule_parameters =
+                                    crate::optimize::parameters(r.optimize.rule_overrides)?;
+                                return Ok(serde_json::to_value(response)?);
+                            }
+                            let mut cfg = crate::config_dto::Request {
+                                roots: r.optimize.roots.clone(),
+                                project_roots: r.optimize.project_roots.clone(),
+                                read_view: r.optimize.read_view.clone(),
+                                ..Default::default()
+                            };
+                            if r.optimize.action == crate::optimize_dto::Action::Recheck {
+                                if cfg.read_view.is_some() {
+                                    config_query(cfg.clone(), &state, &jobs, &configs)?;
+                                }
+                                cfg.read_view = None;
+                            }
+                            let response = config_query(cfg, &state, &jobs, &configs)?;
+                            let id = response.read_view.unwrap();
+                            let view = configs.lock().unwrap().get(&id)?;
+                            return Ok(serde_json::to_value(crate::optimize::execute(
+                                r.optimize, id, &view,
+                            )?)?);
+                        }
                         if value.get("config").is_some() {
                             let request: ConfigMessage = serde_json::from_value(value)
                                 .map_err(|_| operation_error("INVALID_ARGUMENT", "配置参数无效"))?;

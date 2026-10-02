@@ -94,3 +94,45 @@ test('host bounds concurrency and shutdown closes all active requests', async ()
     await f.host.close(); await Promise.all(requests); assert.equal(cancelled, 8);
   } finally { await f.close(); }
 });
+
+test('automatic prices return the first ledger promptly, share one flight and retain fixed revisions', async () => {
+  let calls=0,finish!:(value:import('@wombat/client').PricingResult)=>void;
+  const delayed=new Promise<import('@wombat/client').PricingResult>(resolve=>{finish=resolve;});
+  const ledger={...response,snapshotRef:{...response.snapshotRef,snapshotId:'live:one'},summary:{...response.summary,price:{...response.summary.price,issues:['catalogPriceMissing']}}};
+  const f=await fixture({...normal,live:async()=>({outputVersion:1,result:ledger,freshness:{status:'current',revision:'live:one'}}),prices:async()=>{calls++;return delayed;}});
+  try{
+    const deadline=new Promise<never>((_,reject)=>{const timer=setTimeout(()=>reject(new Error('Initial usage waited for prices')),1000);timer.unref();});
+    const values=await Promise.race([Promise.all([f.browser.live!({query:{action:'usage'}}),f.browser.live!({query:{action:'usage'}})]),deadline]);
+    assert.equal(calls,1);assert.equal(values[0].result.summary.tokens.total,12);
+    assert.equal(values[0].result.priceUpdate,undefined);
+    finish({outputVersion:1,action:'auto_update',origin:'bundled',updated:true,source:'synthetic',catalogHash:'new',catalog:{revision:'new',verifiedAt:'synthetic',policy:'synthetic',currency:'USD',models:[]},automatic:{status:'updated',attemptId:'synthetic',attemptedAt:new Date().toISOString(),retryAt:new Date(Date.now()+86400_000).toISOString()}});
+    await new Promise(resolve=>setImmediate(resolve));
+    const fixed=await f.browser.live!({query:{action:'usage',snapshotId:'live:one'},mode:'cached'});
+    assert.equal(fixed.result.priceUpdate,undefined);
+    const live=await f.browser.live!({query:{action:'usage'}});
+    assert.equal(live.result.priceUpdate?.status,'updated');assert.equal(calls,1);
+    assert.equal(live.result.snapshotRef.snapshotId,'live:one');assert.equal(ledger.priceUpdate,undefined);
+  }finally{await f.close();}
+});
+
+test('closing the host cancels shared automatic prices; cancelling a page wait does not',async()=>{
+ let priceSignal:AbortSignal|undefined,started!:()=>void;const ready=new Promise<void>(resolve=>{started=resolve;});
+ const ledger={...response,snapshotRef:{...response.snapshotRef,snapshotId:'live:one'},summary:{...response.summary,price:{...response.summary.price,issues:['catalogPriceMissing']}}};
+ const f=await fixture({...normal,live:async()=>({outputVersion:1,result:ledger,freshness:{status:'current',revision:'live:one'}}),prices:async(_,options)=>{
+  priceSignal=options?.signal;started();await new Promise<void>(resolve=>priceSignal!.addEventListener('abort',()=>resolve(),{once:true}));throw new CoreError('CANCELLED','Cancelled');
+ }});
+ try{
+  const page=new AbortController();await f.browser.live!({query:{action:'usage'}},{signal:page.signal});await ready;
+  page.abort();assert.equal(priceSignal?.aborted,false);await f.host.close();assert.equal(priceSignal?.aborted,true);
+ }finally{await f.close();}
+});
+
+test('price failures are exposed on subsequent live queries without an immediate retry storm',async()=>{
+ let calls=0;const ledger={...response,summary:{...response.summary,price:{...response.summary.price,issues:['catalogPriceMissing']}}};
+ const f=await fixture({...normal,live:async()=>({outputVersion:1,result:ledger,freshness:{status:'current',revision:'synthetic'}}),prices:async()=>{calls++;throw new CoreError('PRICE_NETWORK','Synthetic unavailable');}});
+ try{
+  await f.browser.live!({query:{action:'usage'}});await new Promise(resolve=>setImmediate(resolve));
+  const next=await f.browser.live!({query:{action:'usage'}});
+  assert.equal(next.result.priceUpdate?.status,'failed');assert.equal(next.result.priceUpdate?.errorCode,'PRICE_NETWORK');assert.equal(calls,1);
+ }finally{await f.close();}
+});

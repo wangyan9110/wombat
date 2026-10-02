@@ -13,6 +13,7 @@ Choose documentation by task. Source code, technical references, and implementat
 ## Technical references · reference
 
 - [Support matrix](reference/support-matrix.en.md): current sources, platforms, capabilities, and limits.
+- [Distribution and public descriptions](reference/distribution.en.md): unreleased status, GitHub description candidates and README asset boundaries.
 - [Pricing rules](reference/pricing.en.md): official evidence, cost policies, unknown values, and explicit updates.
 - [Privacy and data boundaries](reference/privacy.en.md): local reads/writes, body allowlists, and public materials.
 - [Generated schemas](schemas/) and the [dependency license inventory](dependency-licenses.json) are machine-maintained references.
@@ -23,12 +24,14 @@ Choose documentation by task. Source code, technical references, and implementat
 - [Multi-entry development workflow](development/workflow.en.md): delivering and verifying the same business capability.
 - [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and compatibility.
 - [Source adapter acceptance](development/adapters.en.md): independent truth, attribution, and failure cases.
-- [Four-entry Web and configuration analysis proposal](decisions/proposed/architecture/2026-10-01-config-analysis-web.en.md): shared Rust contracts, configuration evidence, versions and phased acceptance; not implemented.
+- [Four-entry Web and configuration analysis proposal](decisions/proposed/architecture/2026-10-01-config-analysis-web.en.md): shared Rust contracts, configuration evidence, versions and phased acceptance; partly delivered with remaining stages pending acceptance.
 - [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
 
 ## Project status · project
 
 - [Version-one specification](project/specification.en.md) maintains requirements and acceptance criteria.
+- [Configuration measurement/manual review upgrade](project/config-upgrade.en.md) maintains additional requirements and boundaries.
+- [Startup and deterministic rule upgrade](project/startup-rules.en.md) maintains unimplemented startup states, phase A/B work, and evidence gates for new rules.
 - [Implementation status](project/status.en.md) tracks current delivery and remaining acceptance.
 - [Roadmap](project/roadmap.en.md) maintains future candidates.
 - [Progress and verification](project/progress.en.md) indexes dated results; raw synthetic evidence lives in [benchmarks](benchmarks/). Old commands and screenshots do not represent the current product.

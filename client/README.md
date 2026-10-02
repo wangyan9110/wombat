@@ -21,3 +21,7 @@
 ## HTTP 传输
 
 `@wombat/client/http` 导出 `createHttpClient({ origin, token })`，实现同一 `UsageClient`，校验结果并保留进度、取消和错误。浏览器不直接访问内核；仅向本机宿主发送窄操作。
+
+`UsageClient.config` 提供配置测量和证据，`optimize` 提供静态建议、用户记录和人工复查，`preferences` 只读取/保存 zh/en。三者由 Rust 生成 v1 契约，Node/HTTP 并列实现；详见[公共契约](../docs/development/contracts.md)。
+
+`createNodeClient({automaticPrices:false})`只关闭客户端的自动补价装饰，显式prices操作仍可用。CLI实时查询默认保留原行为；Web使用此原始客户端并由宿主持有后台补价生命周期。

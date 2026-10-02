@@ -14,6 +14,11 @@ export interface Response {
   checkedAt: string;
   scope: Scope;
   authorizedProjects: string[];
+  /**
+   * Startup read authorization, not proof that logs exist or are readable.
+   */
+  authorizedSourceRoots?: string[];
+  hostRestartCommand?: string | null;
   summary: Summary;
   items: Item[];
   evidence: Evidence[];
@@ -30,6 +35,7 @@ export interface Capabilities {
   projectRegistry: boolean;
 }
 export interface Scope {
+  allTime?: boolean | null;
   since?: string | null;
   until?: string | null;
   timezone?: string | null;
@@ -120,6 +126,14 @@ export interface Item {
   path: string;
   project?: string | null;
   nativeKey?: string | null;
+  /**
+   * Authorized inventory memberships, not proof of joint host loading.
+   */
+  authorizedProjects?: string[];
+  /**
+   * Current physical object keeps each source inventory identity and observation.
+   */
+  sourceContexts?: SourceContext[];
   configuredState: string;
   contentHash: string;
   observedAt: string;
@@ -128,10 +142,29 @@ export interface Item {
   bytes?: number | null;
   contentTokens?: number | null;
   estimateStatus: string;
+  characters?: number | null;
+  measurementStatus?: string;
+  bytesSource?: string | null;
+  estimate?: ContentEstimate | null;
+  skillMetadata?: SkillMetadata | null;
+  bodyTokenEstimate?: ContentEstimate | null;
+  bodyEstimateStatus?: string;
+  usageCount?: number | null;
+  lastRecordAt?: string | null;
   observation: Observation;
   counts: Counts;
   relatedTurns: number;
   usage?: UsageSummary | null;
+}
+export interface SourceContext {
+  inventoryId: string;
+  global?: boolean;
+  sourceInstanceId: string;
+  contentHash: string;
+  configuredState: string;
+  counts: Counts;
+  observation: Observation;
+  lastRecordAt?: string | null;
 }
 export interface Counts {
   fileReads: number;
@@ -140,8 +173,23 @@ export interface Counts {
   failed: number;
   outcomeUnknown: number;
 }
+export interface ContentEstimate {
+  tokens: number;
+  encoding: string;
+  method: string;
+  payload: string;
+  contentHash: string;
+  applicability: string;
+  tokenizerVersion?: string | null;
+}
+export interface SkillMetadata {
+  status: string;
+  descriptionCharacters?: number | null;
+  issues: string[];
+}
 export interface Evidence {
   id: string;
+  sourceInstanceId?: string | null;
   itemId: string;
   threadId: string;
   turnId?: string | null;

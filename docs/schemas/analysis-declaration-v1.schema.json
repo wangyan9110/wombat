@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AnalysisDeclaration",
+  "description": "Existing, user-maintained .wombat/analysis.json; it declares intent, never host loading.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "chains": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DeclaredChain"
+      },
+      "default": []
+    },
+    "copies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DeclaredCopy"
+      },
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version"
+  ],
+  "definitions": {
+    "DeclaredChain": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "files": {
+          "description": "Project-relative paths that the user explicitly declares jointly applicable.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "files"
+      ]
+    },
+    "DeclaredCopy": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "copy": {
+          "type": "string"
+        },
+        "transform": {
+          "description": "First supported version: identity-v1. Other transforms stay unknown.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "copy",
+        "transform"
+      ]
+    }
+  }
+}

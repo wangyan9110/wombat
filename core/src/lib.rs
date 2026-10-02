@@ -7,6 +7,9 @@ mod live_index;
 #[cfg(windows)]
 mod live_windows;
 mod log_io;
+mod optimize;
+pub mod optimize_dto;
+pub mod preferences;
 pub mod pricing;
 pub mod pricing_sync;
 mod query_cache;
@@ -50,6 +53,34 @@ pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
 
 pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
     match op {
+        "schema_analysis_declaration" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<optimize_dto::AnalysisDeclaration>(),
+        )?),
+        "preferences" => Ok(serde_json::to_value(preferences::dispatch(
+            serde_json::from_value(args.clone())?,
+        )?)?),
+        "schema_preferences_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<preferences::Request>(),
+        )?),
+        "schema_preferences_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<preferences::Response>(),
+        )?),
+        "schema_optimize_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<optimize_dto::Request>(),
+        )?),
+        "schema_optimize_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<optimize_dto::Response>(),
+        )?),
         "schema_config_request" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()
                 .into_generator()

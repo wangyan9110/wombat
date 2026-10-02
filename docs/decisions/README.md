@@ -37,3 +37,7 @@
 | implemented | [Rust 实时查询与故障隔离](implemented/architecture/2026-10-01-rust-live-query.md) |
 | proposed | [四入口 Web 与配置使用分析技术方案](proposed/architecture/2026-10-01-config-analysis-web.md) |
 | implemented | [只读配置与复合读取版本](implemented/architecture/2026-10-01-config-inventory.md) |
+| implemented | [配置测量与人工处理记录](implemented/architecture/2026-10-02-config-reviews.md) |
+| implemented | [紧凑实时索引与替换算法](implemented/architecture/2026-10-02-compact-live-index.md) |
+| implemented | [首次运行与有界静态规则](implemented/architecture/2026-10-02-startup-static-rules.md) |
+| implemented | [物理配置身份与完整复查](implemented/architecture/2026-10-02-rule-review-integrity.md) |

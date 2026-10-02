@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/cli-and-automation": {
-      "zh": "700ff37dea3162bb7d86bdbc756440d013497f7f041e2c56bb198bbca330aafe",
-      "en": "c20af23fb917afe0a3b6e35744136a6073a31d2ed692ddb73772f912ebeb62c1"
+      "zh": "a9a73eb94abed254fd64f35b5c1c92efc664a2c974270f198893ab1b216c5949",
+      "en": "99b07bc8c6206f3d0c34bc177ae7b81781a69f1935b303313349674517aad964"
     },
     "/cli-and-automation/language": {
       "zh": "cfeb3518580569b9e18e81faff0c4e1c5c22c77d25820978f49c8948d44e0b14",
@@ -18,24 +18,28 @@
       "en": "637d7ed13d58ea6ca9ae10fdc6121d10eb986d3425b93e1e69db36d84fca9d53"
     },
     "/cli-and-automation/filtering-and-pagination": {
-      "zh": "67dfae738cc5c56f4ba168c760839b6136c66b52330a1f4278ca48ee50e69d67",
-      "en": "3b11334f9fdaf9061bd2cd909fa47c4c3d33586ba84a5e4987e87b475fc46ca2"
+      "zh": "6cb2d7ea081d645ed063845b9f234d6271e90e2bb339e49a73f75524dca449b6",
+      "en": "0474a4be922866a0419871a2665089f1324b9a1a85a2374bb41af6e1a94e5ff9"
     },
     "/cli-and-automation/json": {
-      "zh": "99972c902bca8520b6d0bf9c9c4496722ad5adfdc6fdfa964e155859e504ae62",
-      "en": "20c48fc44e5d0c20c4ed3e0bde5e11a04af35bf8f6e018770832fb5fb6663e9f"
+      "zh": "31e897a6761cbe04ec1101f754f6d5c3123688785f70dbc10bed2cfd7864e178",
+      "en": "642d1f21b19a1c38e49f9f437fdfb90a15fe99cc919577bc7e6c4252242779e7"
     },
     "/cli-and-automation/legacy-migration": {
-      "zh": "383bff99465e5f7dc7f05854504c4d5c2a7d60e10133fa09b1de10ffd8955eef",
-      "en": "23d63bd1a8fdb7fda73662d8ad00b27374af900449809f8f0314a8d984ede9a0"
+      "zh": "069ba413db3d049fca1d437591d9658ce511c0859fff31aa2b5569f9b060b21a",
+      "en": "9c52f2d8be52973bd8bd47f7cdac74b840250364a78fc3e8f225601c85f26115"
     },
     "/cli-and-automation/local-web": {
-      "zh": "d129bcdc03868039c7dd546e1fb82cdcadfddf197b98851e7cff30b5bf6c5191",
-      "en": "148bbd823e1b334624f89320fa700fece868737c58f4d8d9e812cada2926243c"
+      "zh": "7b43eb1463913ef50fcb482891bbc8ce440575efa7f127890b078327bd321ffa",
+      "en": "0a3f3bd2e782c0e43db54b86abacccf4bbf5d2f027b0618cb2d4951436556f4b"
     },
     "/cli-and-automation/read-only-configuration": {
-      "zh": "1d60ffe0c65a21ef1d97e73ddf8d181109b34cd1189abdef519e29724ad9fc99",
-      "en": "f8505b4d5de757ec8bbd9f43bf1a2b507b90475d54f5b71191721795111b86f3"
+      "zh": "05cbfdee332046e3d597d5f2033675b78dc1cc45ec2896f3f1365fe20e22265b",
+      "en": "a19c45f2e0af9589a4a336e72bcafb7dfefca19f3476abe5a524f16f88d6c72d"
+    },
+    "/cli-and-automation/static-suggestions-and-manual-rechecks": {
+      "zh": "20b48c7010ededfff2604b799cef8dca02c997333622806ffdc66a690c9343ee",
+      "en": "ffbc07c5288d4f8d4d1beadd1837765917602b064d23582b32f0dec4360bbf86"
     }
   }
 }

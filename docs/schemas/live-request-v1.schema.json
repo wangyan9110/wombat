@@ -47,6 +47,7 @@
         },
         "scope": {
           "default": {
+            "allTime": null,
             "timezone": null,
             "since": null,
             "until": null,
@@ -168,6 +169,12 @@
     "Scope": {
       "type": "object",
       "properties": {
+        "allTime": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "timezone": {
           "type": [
             "string",

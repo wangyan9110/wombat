@@ -7,7 +7,7 @@
 ## Public entries
 
 - The package root exports argument parsing and `runUsageCli`; `./format` exports result text formatting.
-- `refresh`, `usage`, `threads`, `turns`, `steps`, and `prices` call the shared core through `@wombat/client/node`.
+- `refresh`, `usage`, `threads`, `turns`, `steps`, `prices`, and `optimize` call the shared core through `@wombat/client/node`.
 - With no subcommand, the CLI prints usage text, just like `usage`; `web` explicitly starts interactive pages.
 
 - Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).

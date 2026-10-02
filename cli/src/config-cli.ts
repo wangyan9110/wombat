@@ -12,6 +12,7 @@ export function parseConfigArgs(argv: string[]): { request: ConfigRequest; json:
   for (let i = 0; i < argv.length; i++) {
     const [name, inline] = argv[i].split(/=(.*)/s);
     if (name === '--help' || name === '-h') { help = true; continue; }
+    if (name === '--all-time') { if(inline!==undefined || request.scope!.allTime) fail(argv[i]); request.scope!.allTime=true; continue; }
     if (name === '--json') { if (inline !== undefined || json) fail(argv[i]); json = true; continue; }
     if (!['--root','--project-root','--project','--since','--until','--timezone','--agent','--source','--thread','--kind','--observation','--search','--sort','--item','--action','--offset','--limit','--read-view','--snapshot'].includes(name)) fail(argv[i]);
     if (seen.has(name) && !['--root','--project-root'].includes(name)) fail(name);
@@ -31,7 +32,7 @@ export function parseConfigArgs(argv: string[]): { request: ConfigRequest; json:
       case '--thread': scope.threadId = value; break;
       case '--kind': if (!['rule','skill','mcp'].includes(value)) fail(value); request.kind = value as ConfigRequest['kind']; break;
       case '--observation': if (!['used','loaded_only','unknown'].includes(value)) fail(value); request.observation = value as ConfigRequest['observation']; break;
-      case '--sort': if (!['tokens','activity','size','name'].includes(value)) fail(value); request.sort = value as ConfigRequest['sort']; break;
+      case '--sort': if (!['tokens','activity','size','name','content_tokens','characters','recent'].includes(value)) fail(value); request.sort = value as ConfigRequest['sort']; break;
       case '--action': if (!['list','detail','evidence','related_scopes','capabilities'].includes(value)) fail(value); request.action = value as ConfigRequest['action']; break;
       case '--item': request.itemId = value; break;
       case '--search': request.search = value; break;
@@ -44,16 +45,14 @@ export function parseConfigArgs(argv: string[]): { request: ConfigRequest; json:
       }
     }
   }
+  if(request.scope!.allTime && (request.scope!.since || request.scope!.until)) fail('--all-time');
   if (roots.length) request.roots = roots;
   request.projectRoots = projects.length ? projects : [process.cwd()];
   return { request, json, help };
 }
 
 export async function runConfigCli(argv: string[]): Promise<number> {
-  if (argv[0] !== 'inventory') {
-    if (!argv.length || ['--help','-h'].includes(argv[0])) { process.stdout.write(t('cli.config.help')); return 0; }
-    throw new CoreError('INVALID_ARGUMENT', t('cli.config.invalid', { value: argv[0] }));
-  }
+  if (argv[0] !== 'inventory') return (await import('./optimize-cli.js')).runOptimizeCli(argv);
   const { request, json, help } = parseConfigArgs(argv.slice(1));
   if (help) { process.stdout.write(t('cli.config.help')); return 0; }
   const controller = new AbortController(), stop = () => controller.abort();

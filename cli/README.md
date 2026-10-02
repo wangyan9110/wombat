@@ -7,7 +7,7 @@
 ## 公开入口
 
 - 包根入口提供参数解析与 `runUsageCli`；`./format` 提供结果文本格式化。
-- `refresh`、`usage`、`threads`、`turns`、`steps`、`prices` 经 `@wombat/client/node` 调用共享内核。
+- `refresh`、`usage`、`threads`、`turns`、`steps`、`prices`、`optimize` 经 `@wombat/client/node` 调用共享内核。
 - 无子命令时输出用量文本，与 `usage` 一致；`web` 显式启动交互页面。
 
 - 展示语言使用 `@wombat/client/locale`，详见[产品语言与文案](../docs/i18n/product.md)。

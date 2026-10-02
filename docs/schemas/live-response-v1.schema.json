@@ -113,6 +113,15 @@
       "description": "Observed dimensions, not a project registry or a configuration inventory.",
       "type": "object",
       "properties": {
+        "discoveredThreadCount": {
+          "description": "Metadata across this snapshot's authorized sources, independent of measurement/date filters.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
         "directories": {
           "type": "array",
           "items": {
@@ -215,6 +224,12 @@
     "Scope": {
       "type": "object",
       "properties": {
+        "allTime": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "timezone": {
           "type": [
             "string",
@@ -351,6 +366,12 @@
           "type": "string"
         },
         "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "errorCode": {
           "type": [
             "string",
             "null"

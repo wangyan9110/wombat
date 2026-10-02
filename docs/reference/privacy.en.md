@@ -15,3 +15,5 @@ Product data uses the system application data directory, overridable with WOMBAT
 Source directories change continuously. Each refresh fixes the observed boundary of each file; partial failures, incomplete tails, and uncertain associations retain explicit status. Tool calls without exclusive token accounting do not receive invented costs. Official-standard API-equivalent cost is not a subscription invoice.
 
 Tests and public source use synthetic fixtures only. Real-source smoke outputs must stay outside the repository. Unreviewed raw data, real conversations, and secrets must not enter tests or public material. Removing retired features does not remove historical user decisions, identity registrations, or recovery material.
+
+Complete configuration under authorized roots is read, hashed and measured in memory only; derived caches contain safe metadata. Ignore/manual review records and language preferences live independently in user-v1 and survive index rebuilds. Records still contain object names/paths; users choose any external sharing.

@@ -40,7 +40,7 @@ export function parseUsageArgs(argv: string[]): Invocation {
       help = true;
       continue;
     }
-    if (['--model-unknown', '--effort-unknown', '--undated', '--project-unknown', '--matched-only'].includes(arg)) { if (unknownFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", { p0: arg })); unknownFlags.add(arg); continue; }
+    if (['--all-time', '--model-unknown', '--effort-unknown', '--undated', '--project-unknown', '--matched-only'].includes(arg)) { if (unknownFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", { p0: arg })); unknownFlags.add(arg); continue; }
     if (arg === '--json') {
       if (json)
         invalid(t("cli.usage-app-cli.json_cannot_be_repeated"));
@@ -87,6 +87,7 @@ export function parseUsageArgs(argv: string[]): Invocation {
     }
   }
   if (unknownFlags.has('--undated')) { if (scope.since || scope.until) invalid(t("cli.usage-app-cli.undated_cannot_be_combined_with_a")); scope.undated = true; }
+  if(unknownFlags.has('--all-time')) { if(scope.since || scope.until || scope.undated) invalid(t('cli.config.invalid',{value:'--all-time'})); scope.allTime=true; }
   if (scope.since && scope.until && scope.since >= scope.until)
     invalid(t("cli.usage-app-cli.until_must_be_later_than_since"));
   const timezone = values.get('timezone');
@@ -199,7 +200,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
         const revision = JSON.stringify([result.snapshotRef.snapshotId, result.scope, result.freshness?.status, result.quality]);
         if (!invocation.watch || revision !== lastRevision) {
           if (!invocation.json && result.freshness && !['current', 'fixed'].includes(result.freshness.status)) process.stderr.write(`Wombat · ${result.freshness.status === 'syncing' ? t("cli.usage-app-cli.syncing_showing_committed_data") : result.freshness.error ?? t("cli.usage-app-cli.showing_cached_data")}\n`);
-          process.stdout.write(invocation.json ? JSON.stringify(result) + '\n' : renderUsageResult(result, process.stdout.columns ?? 120) + '\n');
+          process.stdout.write(invocation.json ? JSON.stringify(result) + '\n' : renderUsageResult(result, process.stdout.columns ?? 120, invocation.request.group ?? undefined) + '\n');
           lastRevision = revision;
         }
         if (!invocation.watch) return resultExitCode(result);

@@ -1006,7 +1006,7 @@ fn live_transaction_rollback_truncate_missing_and_body_privacy() {
         1
     );
     let text: String = db
-        .prepare("SELECT group_concat(payload) FROM kv")
+        .prepare("SELECT group_concat(json(payload)) FROM entries")
         .unwrap()
         .query_row([], |r| r.get(0))
         .unwrap();

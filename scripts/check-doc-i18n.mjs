@@ -31,7 +31,7 @@ for (const pair of pairs) {
 for (const pair of manifest.assetPairs ?? []) {
   for (const language of ['zh', 'en']) {
     const file = pair[language];
-    if (typeof file !== 'string' || !/^assets\/[a-z0-9-]+\.(?:png|svg)$/.test(file)
+    if (typeof file !== 'string' || !/^assets\/[a-z0-9-]+\.(?:png|svg|jpe?g)$/.test(file)
       || !existsSync(path.join(root, file)) || pairByPath.has(file)) {
       errors.push(`Invalid or duplicate ${language} asset pair: ${file}`);
     } else pairByPath.set(file, pair);

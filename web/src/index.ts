@@ -3,6 +3,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { CoreError, createUsageClient, type UsageClient, type UsageRequest } from '@wombat/client';
+import { backgroundPrices } from './automatic-prices.js';
 
 const BODY_LIMIT = 64 * 1024;
 const OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -14,6 +15,8 @@ export interface WebHostOptions {
   projectRoots?: string[];
   port?: number;
   locale?: 'zh' | 'en';
+  automaticPrices?: boolean;
+  restartCommand?: string;
 }
 export interface WebHost { url: string; origin: string; close(): Promise<void> }
 
@@ -42,6 +45,8 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
   const active = new Set<AbortController>();
   const snapshots = new Set<string>();
   const configViews = new Set<string>();
+  const lifetime = new AbortController();
+  const prices = backgroundPrices(options.client, options.automaticPrices !== false, lifetime.signal);
   let origin = '', host = '', closing = false;
   const scope = (request: UsageRequest): UsageRequest => {
     // Paths and fixed snapshots can select data outside this host's startup scope.
@@ -50,16 +55,26 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
   };
   const client = createUsageClient(
     (r, q) => options.client.query(scope(r), q),
-    (r, q) => options.client.prices(r, q),
-    (r, q) => {
+    (r, q) => r.action==='auto_update' ? prices.update() : options.client.prices(r, q),
+    async (r, q) => {
       if (!options.client.live) throw new CoreError('LIVE_UNAVAILABLE', 'Live queries unavailable');
-      return options.client.live({ ...r, query: scope(r.query) }, q);
+      return prices.observe(r, await options.client.live({ ...r, query: scope(r.query) }, q));
     },
-    (r, q) => {
+    async (r, q) => {
       if (!options.client.config) throw new CoreError('CONFIG_UNAVAILABLE', 'Configuration queries unavailable');
       if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView)) || (r.snapshotId != null && !snapshots.has(r.snapshotId)))
         throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
-      return options.client.config({ ...r, roots: options.roots, projectRoots: options.projectRoots }, q);
+      const result=await options.client.config({ ...r, roots: options.roots, projectRoots: options.projectRoots }, q);
+      return {...result,authorizedSourceRoots:options.roots??result.authorizedSourceRoots,authorizedProjects:options.projectRoots??result.authorizedProjects,hostRestartCommand:options.restartCommand??null};
+    },
+    (r, q) => {
+      if (!options.client.optimize) throw new CoreError('OPTIMIZE_UNAVAILABLE', 'Optimization queries unavailable');
+      if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView))) throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
+      return options.client.optimize({ ...r, roots: options.roots, projectRoots: options.projectRoots }, q);
+    },
+    (r,q)=> {
+      if (!options.client.preferences) throw new CoreError('PREFERENCES_UNAVAILABLE','Preferences unavailable');
+      return options.client.preferences(r,q);
     },
   );
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -73,7 +88,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       const supplied = Buffer.from(req.headers.authorization ?? '');
       if (supplied.length !== authorization.length || !timingSafeEqual(supplied, authorization) || req.headers.origin !== origin) return reject(403);
       if (req.method !== 'POST') return reject(405);
-      if (!['/api/query', '/api/live', '/api/prices', '/api/config'].includes(req.url)) return reject(404);
+      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences'].includes(req.url)) return reject(404);
       if (req.headers['content-type'] !== 'application/json') return reject(415);
       if (Number(req.headers['content-length'] ?? 0) > BODY_LIMIT) return reject(413);
       if (active.size >= 8) return reject(429);
@@ -104,6 +119,8 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         const value = req.url === '/api/query' ? await client.query(request as Parameters<UsageClient['query']>[0], query)
           : req.url === '/api/prices' ? await client.prices(request as Parameters<UsageClient['prices']>[0], query)
           : req.url === '/api/config' ? await client.config!(request as Parameters<NonNullable<UsageClient['config']>>[0], query)
+          : req.url === '/api/optimize' ? await client.optimize!(request as Parameters<NonNullable<UsageClient['optimize']>>[0], query)
+          : req.url === '/api/preferences' ? await client.preferences!(request as Parameters<NonNullable<UsageClient['preferences']>>[0], query)
           : await client.live!(request as Parameters<NonNullable<UsageClient['live']>>[0], query);
         const result = 'result' in value ? value.result : 'snapshotRef' in value ? value : undefined;
         if ('readView' in value) {
@@ -145,10 +162,12 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       host = `127.0.0.1:${address.port}`; origin = `http://${host}`; resolve();
     });
   });
-  return { origin, url: `${origin}/#token=${token}&lang=${options.locale ?? 'zh'}`, close: async () => {
+  return { origin, url: `${origin}/#token=${token}${options.locale ? `&lang=${options.locale}` : ''}`, close: async () => {
     if (closing) return;
     closing = true;
+    lifetime.abort();
     for (const controller of active) controller.abort();
     await new Promise<void>((resolve, reject) => { server.close(error => error ? reject(error) : resolve()); server.closeAllConnections(); });
+    await prices.close();
   } };
 }

@@ -43,6 +43,7 @@
     },
     "scope": {
       "default": {
+        "allTime": null,
         "since": null,
         "until": null,
         "timezone": null,
@@ -129,6 +130,12 @@
     "Scope": {
       "type": "object",
       "properties": {
+        "allTime": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "since": {
           "type": [
             "string",
@@ -196,7 +203,10 @@
         "tokens",
         "activity",
         "size",
-        "name"
+        "name",
+        "content_tokens",
+        "characters",
+        "recent"
       ]
     }
   }

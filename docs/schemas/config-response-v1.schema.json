@@ -41,6 +41,20 @@
         "type": "string"
       }
     },
+    "authorizedSourceRoots": {
+      "description": "Startup read authorization, not proof that logs exist or are readable.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "hostRestartCommand": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "summary": {
       "$ref": "#/definitions/Summary"
     },
@@ -143,6 +157,12 @@
     "Scope": {
       "type": "object",
       "properties": {
+        "allTime": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "since": {
           "type": [
             "string",
@@ -520,6 +540,20 @@
             "null"
           ]
         },
+        "authorizedProjects": {
+          "description": "Authorized inventory memberships, not proof of joint host loading.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceContexts": {
+          "description": "Current physical object keeps each source inventory identity and observation.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SourceContext"
+          }
+        },
         "configuredState": {
           "type": "string"
         },
@@ -553,6 +587,79 @@
         },
         "estimateStatus": {
           "type": "string"
+        },
+        "characters": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null,
+          "maximum": 9007199254740991
+        },
+        "measurementStatus": {
+          "type": "string",
+          "default": ""
+        },
+        "bytesSource": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "estimate": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContentEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "skillMetadata": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SkillMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bodyTokenEstimate": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContentEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bodyEstimateStatus": {
+          "type": "string",
+          "default": "unknown"
+        },
+        "usageCount": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null,
+          "maximum": 9007199254740991
+        },
+        "lastRecordAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
         },
         "observation": {
           "$ref": "#/definitions/Observation"
@@ -593,12 +700,45 @@
         "relatedTurns"
       ]
     },
-    "Observation": {
-      "type": "string",
-      "enum": [
-        "used",
-        "loaded_only",
-        "unknown"
+    "SourceContext": {
+      "type": "object",
+      "properties": {
+        "inventoryId": {
+          "type": "string"
+        },
+        "global": {
+          "type": "boolean",
+          "default": false
+        },
+        "sourceInstanceId": {
+          "type": "string"
+        },
+        "contentHash": {
+          "type": "string"
+        },
+        "configuredState": {
+          "type": "string"
+        },
+        "counts": {
+          "$ref": "#/definitions/Counts"
+        },
+        "observation": {
+          "$ref": "#/definitions/Observation"
+        },
+        "lastRecordAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "inventoryId",
+        "sourceInstanceId",
+        "contentHash",
+        "configuredState",
+        "counts",
+        "observation"
       ]
     },
     "Counts": {
@@ -638,11 +778,92 @@
         "outcomeUnknown"
       ]
     },
+    "Observation": {
+      "type": "string",
+      "enum": [
+        "used",
+        "loaded_only",
+        "unknown"
+      ]
+    },
+    "ContentEstimate": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "string"
+        },
+        "contentHash": {
+          "type": "string"
+        },
+        "applicability": {
+          "type": "string"
+        },
+        "tokenizerVersion": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "tokens",
+        "encoding",
+        "method",
+        "payload",
+        "contentHash",
+        "applicability"
+      ]
+    },
+    "SkillMetadata": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "descriptionCharacters": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "issues"
+      ]
+    },
     "Evidence": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
+        },
+        "sourceInstanceId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
         },
         "itemId": {
           "type": "string"

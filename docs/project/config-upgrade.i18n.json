@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/overview-tasks-and-configuration-optimization-specification": {
+      "zh": "67bce41ab5f676319cf7f8c94a9c14b1888b49ba793f68271d51fcbd5e0e2228",
+      "en": "4f4a7503f3aa1102d57f3aa05337acb8e7829d20c86db5c0891dc8bd6091428b"
+    },
+    "/overview-tasks-and-configuration-optimization-specification/entry-points-and-scope": {
+      "zh": "a35fb6284563b863d584e9e6b1f71b4e518cfe8929aaea6cdc519657bbb03dbb",
+      "en": "bc74f603f7a9a9a93a27b83efbb4b29c698bdae3e0ce3781eff50bd4f97a4666"
+    },
+    "/overview-tasks-and-configuration-optimization-specification/configuration-facts": {
+      "zh": "f0c33088631775ea5e78107296a1a1599b7adc34bd018aa54f93e1a506c5d04d",
+      "en": "46c7c4ba20c1c986f59c77e2b6ce6468c609886e6bf72bad5bef04b719e23cd6"
+    },
+    "/overview-tasks-and-configuration-optimization-specification/suggestions-and-handling": {
+      "zh": "89cf9377553837d6964fa172566fa61318165c0fe81f4487f789d53eb5f42146",
+      "en": "d8b5ebce2831a16fb489263507512c67f9b40f99e5d637ed37a01f2f01b5cba0"
+    },
+    "/overview-tasks-and-configuration-optimization-specification/acceptance": {
+      "zh": "f611f0e7fddb01f5d6dcff661243a1d9ea2a600c431def565da511f9e17ef674",
+      "en": "c9257fd192e4a22d09f25ac76405ec6bd0a4167c26561ad002f01d77f31d1b7e"
+    }
+  }
+}

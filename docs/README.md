@@ -13,6 +13,7 @@
 ## 技术参考 · reference
 
 - [支持矩阵](reference/support-matrix.md)：当前来源、平台、能力与限制。
+- [分发与公开简介](reference/distribution.md)：未发行状态、GitHub简介候选和README资产边界。
 - [价格口径](reference/pricing.md)：官方依据、金额政策、未知值与显式更新。
 - [隐私与数据边界](reference/privacy.md)：本地读写、正文白名单与公开材料。
 - [生成 Schema](schemas/)与[依赖许可清单](dependency-licenses.json)是机器维护的参考材料。
@@ -23,12 +24,14 @@
 - [多入口开发流程](development/workflow.md)：同一业务能力的交付与验证。
 - [契约](development/contracts.md)：Rust 源头、生成类型、版本与兼容。
 - [来源适配验收](development/adapters.md)：独立真值、归属及故障用例。
-- [四入口 Web 与配置分析提案](decisions/proposed/architecture/2026-10-01-config-analysis-web.md)：共享 Rust 契约、配置证据、版本与分期验收；尚未实施。
+- [四入口 Web 与配置分析提案](decisions/proposed/architecture/2026-10-01-config-analysis-web.md)：共享 Rust 契约、配置证据、版本与分期验收；部分交付，剩余阶段仍待验收。
 - [贡献说明](../CONTRIBUTING.zh-CN.md)提供仓库操作入口。
 
 ## 项目状态 · project
 
 - [首版规格](project/specification.md)维护需求与验收条件。
+- [配置测量与人工处理升级](project/config-upgrade.md)维护追加规格与边界。
+- [首次运行与确定性规则升级](project/startup-rules.md)维护尚未实施的启动状态、A/B开发拆分及新规则证据门槛。
 - [实施状态](project/status.md)维护当前交付和剩余验收。
 - [路线图](project/roadmap.md)维护后续候选方向。
 - [进度与验证](project/progress.md)索引带日期的结果；原始合成证据在 [benchmarks](benchmarks/)。旧命令和旧截图不代表当前产品。

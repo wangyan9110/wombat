@@ -2,10 +2,12 @@ import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { homedir } from 'node:os';
 import { CoreError } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { locale, t } from '@wombat/client/locale';
+import { t } from '@wombat/client/locale';
 import { startWebHost } from '@wombat/web';
+import { explicitLaunchLanguage } from './locale.js';
 
 export async function runWebCli(argv: string[]): Promise<number> {
   let port = 0, json = false;
@@ -32,7 +34,14 @@ export async function runWebCli(argv: string[]): Promise<number> {
   }
   const bundled = new URL('./web/', import.meta.url);
   const assets = existsSync(new URL('index.html', bundled)) ? bundled : new URL('../../dist/web/', import.meta.url);
-  const host = await startWebHost({ client: createNodeClient(), assets: fileURLToPath(assets), port, roots: roots.length ? roots : undefined, projectRoots: projectRoots.length ? projectRoots : [process.cwd()], locale: locale.getSnapshot().locale });
+  const sourceRoots=roots.length?roots:[path.resolve(process.env.CODEX_HOME??path.join(homedir(),'.codex'))];
+  const projects=projectRoots.length?projectRoots:[process.cwd()];
+  const language=explicitLaunchLanguage();
+  // Copyable recovery material only. Source data never invokes this command.
+  const launch=[process.execPath,...process.execArgv,path.resolve(process.argv[1]),...(language?['--lang',language]:[]),'web',...sourceRoots.flatMap(r=>['--root',r]),...projects.flatMap(r=>['--project-root',r])];
+  const quote=(s:string)=>process.platform==='win32'?JSON.stringify(s):"'"+s.replaceAll("'","'\"'\"'")+"'";
+  const restartCommand=process.platform==='win32'?undefined:launch.map(quote).join(' ');
+  const host = await startWebHost({ client: createNodeClient({automaticPrices:false}), automaticPrices:process.env.WOMBAT_AUTO_PRICES!=='0', assets: fileURLToPath(assets), port, roots:sourceRoots, projectRoots:projects, locale:language,restartCommand });
   const stopped = new AbortController();
   const stop = () => stopped.abort();
   process.once('SIGINT', stop); process.once('SIGTERM', stop);

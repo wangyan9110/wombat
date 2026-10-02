@@ -1,4 +1,7 @@
 //! Version-pinned configuration inventory and evidence queries, sharing the usage ledger.
+mod analysis;
+mod identity;
+mod measure;
 mod scan;
 use crate::{
     adapters::contract::{AgentAdapter, DiscoveryRequest, MAX_SAFE_INTEGER},
@@ -26,6 +29,7 @@ pub(crate) struct View {
     pub revision: String,
     pub checked: String,
     pub history_status: String,
+    pub analysis: analysis::Analysis,
 }
 #[derive(Default)]
 pub(crate) struct Store {
@@ -94,6 +98,17 @@ fn normalize(scope: &Scope) -> Result<(Scope, Tz)> {
         .parse()
         .map_err(|_| operation_error("INVALID_ARGUMENT", "时区无效"))?;
     let today = Utc::now().with_timezone(&tz).date_naive();
+    if scope.all_time == Some(true) {
+        if scope.since.is_some() || scope.until.is_some() {
+            return Err(operation_error(
+                "INVALID_ARGUMENT",
+                "全部日期不能与日期范围混用",
+            ));
+        }
+        let mut out = scope.clone();
+        out.timezone = Some(tz.to_string());
+        return Ok((out, tz));
+    }
     let parse = |s: &Option<String>, fallback: NaiveDate| -> Result<NaiveDate> {
         match s {
             Some(s) => NaiveDate::parse_from_str(s, "%Y-%m-%d")
@@ -113,6 +128,9 @@ fn normalize(scope: &Scope) -> Result<(Scope, Tz)> {
     Ok((out, tz))
 }
 fn in_time(at: Option<&str>, scope: &Scope, tz: Tz) -> bool {
+    if scope.all_time == Some(true) {
+        return true;
+    }
     at.and_then(|s| DateTime::parse_from_rfc3339(s).ok())
         .is_some_and(|at| {
             let date = at.with_timezone(&tz).date_naive().to_string();
@@ -146,6 +164,8 @@ pub(crate) fn prepare(
     projects.dedup();
     let checked = Utc::now().to_rfc3339();
     let mut inventory = scan::scan(&sources, &projects, &checked);
+    let analysis = analysis::analyze(&inventory.items, &projects);
+    inventory.issues.extend(analysis.issues.clone());
     let cache_key = crate::hash(serde_json::to_vec(&(
         sources.iter().map(|s| &s.id).collect::<Vec<_>>(),
         &projects,
@@ -163,7 +183,7 @@ pub(crate) fn prepare(
         let ids = inventory
             .items
             .iter()
-            .map(|i| i.id.clone())
+            .flat_map(|i| i.inventory_ids().map(str::to_owned))
             .collect::<BTreeSet<_>>();
         for mut item in prior {
             if ids.contains(&item.id) {
@@ -203,9 +223,27 @@ pub(crate) fn prepare(
         &inventory
             .items
             .iter()
-            .map(|i| (&i.id, &i.content_hash, i.current, i.stale))
+            .map(|i| {
+                (
+                    &i.id,
+                    &i.content_hash,
+                    &i.project,
+                    &i.authorized_projects,
+                    &i.source_contexts,
+                    i.current,
+                    i.stale,
+                    &i.measurement_status,
+                    &i.estimate,
+                    i.bytes,
+                )
+            })
             .collect::<Vec<_>>(),
     )?);
+    let revision = crate::hash(serde_json::to_vec(&(
+        &revision,
+        &analysis.findings,
+        &analysis.issues,
+    ))?);
     Ok(View {
         snapshot,
         items: inventory.items,
@@ -216,19 +254,17 @@ pub(crate) fn prepare(
         revision,
         checked,
         history_status,
+        analysis,
     })
 }
 fn applicable(item: &Item, scope: &Scope) -> bool {
     scope.agent_kind.as_deref().is_none_or(|a| a == "codex")
-        && scope
-            .source_instance_id
-            .as_ref()
-            .is_none_or(|s| s == &item.source_instance_id)
-        && scope
-            .project
-            .as_ref()
-            .is_none_or(|p| item.project.as_ref().is_none_or(|v| v == p))
+        && item.applies(
+            scope.source_instance_id.as_deref(),
+            scope.project.as_deref(),
+        )
 }
+
 fn matches_row(
     row: &PricedMeasurement,
     scope: &Scope,
@@ -271,6 +307,8 @@ pub(crate) fn capabilities() -> Response {
         checked_at: Utc::now().to_rfc3339(),
         scope: Scope::default(),
         authorized_projects: vec![],
+        authorized_source_roots: vec![],
+        host_restart_command: None,
         summary: Summary {
             current_items: 0,
             historical_items: 0,
@@ -305,6 +343,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
     result.read_view = Some(id);
     result.config_revision = view.revision.clone();
     result.authorized_projects = view.projects.clone();
+    result.authorized_source_roots = view.roots.clone();
     result.usage_revision = view
         .snapshot
         .as_ref()
@@ -367,19 +406,21 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
         let mut paths = BTreeMap::<(String, String), Vec<usize>>::new();
         let mut servers = BTreeMap::<(String, String), Vec<usize>>::new();
         for (n, item) in items.iter().enumerate() {
-            if item.kind == Kind::Mcp {
-                servers
-                    .entry((
-                        item.source_instance_id.clone(),
-                        item.native_key.clone().unwrap_or_default(),
-                    ))
-                    .or_default()
-                    .push(n);
-            } else {
-                paths
-                    .entry((item.source_instance_id.clone(), item.path.clone()))
-                    .or_default()
-                    .push(n);
+            for source in item.source_ids() {
+                if item.kind == Kind::Mcp {
+                    servers
+                        .entry((
+                            source.to_owned(),
+                            item.native_key.clone().unwrap_or_default(),
+                        ))
+                        .or_default()
+                        .push(n);
+                } else {
+                    paths
+                        .entry((source.to_owned(), item.path.clone()))
+                        .or_default()
+                        .push(n);
+                }
             }
         }
         let mut item_rows = vec![BTreeSet::<usize>::new(); items.len()];
@@ -392,7 +433,11 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             let Some(thread) = threads.get(op.thread_id.as_str()) else {
                 continue;
             };
-            if !in_time(op.timestamp.as_deref(), &scope, tz)
+            if scope
+                .source_instance_id
+                .as_ref()
+                .is_some_and(|id| id != &thread.source_instance_id)
+                || !in_time(op.timestamp.as_deref(), &scope, tz)
                 || scope.thread_id.as_ref().is_some_and(|t| t != &thread.id)
             {
                 continue;
@@ -429,10 +474,11 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 .iter()
                 .copied()
                 .filter(|n| {
-                    items[*n]
-                        .project
-                        .as_ref()
-                        .is_none_or(|p| thread.project.as_ref() == Some(p))
+                    op.name == "read_file"
+                        || items[*n]
+                            .project
+                            .as_ref()
+                            .is_none_or(|p| thread.project.as_ref() == Some(p))
                 })
                 .collect::<Vec<_>>();
             if candidates.len() != 1 {
@@ -465,8 +511,12 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             {
                 continue;
             }
+            if op.timestamp > item.last_record_at {
+                item.last_record_at = op.timestamp.clone();
+            }
             let typ = if item.kind == Kind::Mcp {
                 item.counts.tool_calls += 1;
+                item.usage_count = Some(item.counts.tool_calls);
                 item.observation = Observation::Used;
                 "tool_call"
             } else {
@@ -481,6 +531,29 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 "failed" => item.counts.failed += 1,
                 _ => item.counts.outcome_unknown += 1,
             };
+            if let Some(context) = item
+                .source_contexts
+                .iter_mut()
+                .find(|c| c.source_instance_id == thread.source_instance_id)
+            {
+                if op.timestamp > context.last_record_at {
+                    context.last_record_at = op.timestamp.clone();
+                }
+                if item.kind == Kind::Mcp {
+                    context.counts.tool_calls += 1;
+                    context.observation = Observation::Used;
+                } else {
+                    context.counts.file_reads += 1;
+                    if op.status == "completed" {
+                        context.observation = Observation::LoadedOnly;
+                    }
+                }
+                match op.status.as_str() {
+                    "completed" => context.counts.succeeded += 1,
+                    "failed" => context.counts.failed += 1,
+                    _ => context.counts.outcome_unknown += 1,
+                }
+            }
             item_rows[n].extend(&indices);
             if let Some(u) = &op.turn_id {
                 item_turns[n].insert(format!("{}:{u}", thread.id));
@@ -488,6 +561,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             if r.item_id.as_ref() == Some(&item.id) {
                 evidence.push(Evidence {
                     id: op.id.clone(),
+                    source_instance_id: Some(thread.source_instance_id.clone()),
                     item_id: item.id.clone(),
                     thread_id: thread.id.clone(),
                     turn_id: op.turn_id.clone(),
@@ -522,7 +596,10 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
     if scope.thread_id.is_some() {
         items.retain(|i| i.counts.file_reads + i.counts.tool_calls > 0);
     }
-    result.summary.current_items = items.iter().filter(|i| i.current).count();
+    result.summary.current_items = items
+        .iter()
+        .filter(|i| i.current && i.configured_state != "missing")
+        .count();
     result.summary.historical_items = items.iter().filter(|i| !i.current).count();
     result.summary.observed_items = items
         .iter()
@@ -544,10 +621,12 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 .as_ref()
                 .and_then(|v| v.tokens.total)
                 .cmp(&a.usage.as_ref().and_then(|v| v.tokens.total)),
-            Sort::Activity => (b.counts.tool_calls + b.counts.file_reads)
-                .cmp(&(a.counts.tool_calls + a.counts.file_reads)),
+            Sort::Activity => b.usage_count.cmp(&a.usage_count),
             Sort::Size => b.bytes.cmp(&a.bytes),
             Sort::Name => a.name.cmp(&b.name),
+            Sort::ContentTokens => b.content_tokens.cmp(&a.content_tokens),
+            Sort::Characters => b.characters.cmp(&a.characters),
+            Sort::Recent => b.last_record_at.cmp(&a.last_record_at),
         };
         order.then(a.id.cmp(&b.id))
     });
@@ -610,6 +689,7 @@ mod tests {
             revision: "one".into(),
             checked: "now".into(),
             history_status: "unavailable".into(),
+            analysis: Default::default(),
         }
     }
     #[test]

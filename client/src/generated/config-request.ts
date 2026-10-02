@@ -3,7 +3,7 @@
 export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
 export type Kind = "rule" | "skill" | "mcp";
 export type Observation = "used" | "loaded_only" | "unknown";
-export type Sort = "tokens" | "activity" | "size" | "name";
+export type Sort = "tokens" | "activity" | "size" | "name" | "content_tokens" | "characters" | "recent";
 
 export interface Request {
   action?: Action & string;
@@ -21,6 +21,7 @@ export interface Request {
   limit?: number | null;
 }
 export interface Scope {
+  allTime?: boolean | null;
   since?: string | null;
   until?: string | null;
   timezone?: string | null;

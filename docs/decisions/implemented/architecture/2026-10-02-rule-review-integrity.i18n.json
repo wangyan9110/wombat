@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-physical-configuration-identity-complete-rechecks-and-shared-review-records": {
+      "zh": "79a9041f6044401bc83eaa0026709d9ab2f824b331fefc90b90e6c19c6ef3ac7",
+      "en": "05fffceab802083158100986404368937ab81b946e8a5c1bf0d453d82194b4fd"
+    },
+    "/decision-physical-configuration-identity-complete-rechecks-and-shared-review-records/problem": {
+      "zh": "1d93b796857d4f8f8f2baf5fe5cefdf60f709ff9099b83dd2fd4bec29c3a4cfd",
+      "en": "2b3ae26cac2d8d7201e560eb2e47a0b0c80f925c9aa7b1965b48c031c8371a19"
+    },
+    "/decision-physical-configuration-identity-complete-rechecks-and-shared-review-records/decision": {
+      "zh": "47d7a9621d582bf97f26e043f6168f54b27b06aafaa4941e625e18d44420b831",
+      "en": "c1f21d33ccee79b229384fc364052af932048701fa09fe67edf0aee6a9b89692"
+    },
+    "/decision-physical-configuration-identity-complete-rechecks-and-shared-review-records/alternatives-considered": {
+      "zh": "dd75ecbb9510a8681964c117bdbaee67855f2643787f9999d7d7b22c91a8c8e6",
+      "en": "82501ab04eda2263c99701ffd87ccdbbc3eed9e7e2b31b4ed4386f763df727c8"
+    },
+    "/decision-physical-configuration-identity-complete-rechecks-and-shared-review-records/impact-and-validation": {
+      "zh": "393384f7e7fc25d6391116bd7fa5077985ec2ae49b2641fcd0c1e77763bc2da5",
+      "en": "b762b83d3ffc2f18607f32479d67e796eee7e635636286b580e465e0f19e1019"
+    }
+  }
+}

@@ -2,15 +2,15 @@ import type { UsageClient, UsageRequest, UsageResult, QueryOptions } from '@womb
 import { connectionExpired } from './session.js';
 import { readUsage, readUsagePage, scopeOf, type Route } from './state.js';
 
-export interface WorkspaceData { overview: UsageResult; list: UsageResult; peak?: UsageResult; route: Route }
-interface State { data?: WorkspaceData; loading: boolean; progress: string; error: string; renewed: boolean; updatesAvailable: boolean; errorCode?: string }
+export interface WorkspaceData { readAt?:string; overview: UsageResult; list: UsageResult; peak?: UsageResult; route: Route; freshness?:UsageResult['freshness']; priceUpdate?:UsageResult['priceUpdate'] }
+interface State { data?: WorkspaceData; loading: boolean; pending:boolean; waitingSince?:number; freshness?:UsageResult['freshness']; progress: string; error: string; renewed: boolean; updatesAvailable: boolean; errorCode?: string }
 export function workspaceKey(route: Route) {
   return JSON.stringify({ ...route, turnView: undefined, turn: undefined, turnSort: undefined, turnOffset: undefined, periodSort: undefined });
 }
 
 /** Coordinates one visible workspace. Completed results are bounded and scoped to one version. */
 export class Workspace {
-  private state: State = { loading: false, progress: '', error: '', errorCode: undefined, renewed: false, updatesAvailable: false };
+  private state: State = { loading: false, pending:false,progress: '', error: '', errorCode: undefined, renewed: false, updatesAvailable: false };
   private listeners = new Set<() => void>();
   private route?: Route;
   private controller?: AbortController;
@@ -42,13 +42,14 @@ export class Workspace {
     else if (resumed && !this.paused && !this.controller) void this.check();
   }
   navigate(route: Route) {
+    if(this.route&&workspaceKey(this.route)!==workspaceKey(route)) this.publish({pending:false,waitingSince:undefined});
     this.route = route;
     if (connectionExpired(this.state.errorCode)) return Promise.resolve();
     this.paused = false;
     return this.load(false, false);
   }
   refresh = () => { if (connectionExpired(this.state.errorCode)) return; this.paused = false; void this.load(true, true); };
-  cancel = () => { this.stop(); this.publish({ loading: false, progress: '', error: 'CANCELLED' }); };
+  cancel = () => { this.stop(); this.publish({ loading: false,pending:false,waitingSince:undefined, progress: '', error: 'CANCELLED',errorCode:'CANCELLED' }); };
   check = async () => { if (!this.paused && !this.controller && this.visible) await this.load(true, false); };
 
   private async load(probe: boolean, fresh: boolean) {
@@ -57,7 +58,7 @@ export class Workspace {
     const route = this.route;
     if (!route || ['prices', 'optimize', 'config'].includes(route.page)) {
       this.controller = undefined;
-      this.publish({ loading: false, error: '', progress: '' });
+      this.publish({ loading: false,pending:false,waitingSince:undefined, error: '',errorCode:undefined, progress: '' });
       return;
     }
     const controller = new AbortController();
@@ -67,8 +68,9 @@ export class Workspace {
     } };
     const scope = scopeOf(route);
     const sameScope = this.state.data && this.state.data.route.snapshot === route.snapshot && JSON.stringify(scopeOf(this.state.data.route)) === JSON.stringify(scope);
-    const background = probe && !fresh && !!this.state.data;
-    if (!background) this.publish({ loading: true, progress: '', error: '', renewed: false });
+    const background = probe && !fresh && !!sameScope;
+    if (!background) this.publish({ loading: true, progress: '', error: '',errorCode:undefined, renewed: false,
+      waitingSince:this.state.pending?this.state.waitingSince:Date.now() });
     const read = async (request: UsageRequest) => {
       const key = JSON.stringify(request);
       const cached = this.cache.get(key);
@@ -85,12 +87,17 @@ export class Workspace {
         action: 'usage', scope, presentation: 'distribution', limit: 1, snapshotId: route.snapshot,
       }, options, fresh ? 'fresh' : 'auto');
       if (controller.signal.aborted) return;
+      const freshness=!observe&&sameScope?this.state.data!.freshness:metadata.freshness;
+      const priceUpdate=!observe&&sameScope?this.state.data!.priceUpdate:metadata.priceUpdate;
+      this.publish({pending:false});
       const snapshotId = metadata.snapshotRef.snapshotId;
       if (background && !this.state.error && snapshotId !== this.state.data?.overview.snapshotRef.snapshotId && (this.reading || route.page === 'threads')) {
         this.publish({ updatesAvailable: true }); return;
       }
       if (snapshotId !== this.version) { this.cache.clear(); this.version = snapshotId; }
-      if (background && snapshotId === this.state.data?.overview.snapshotRef.snapshotId && !this.state.error) return;
+      if (background && snapshotId === this.state.data?.overview.snapshotRef.snapshotId && !this.state.error) {
+        this.publish({data:{...this.state.data!,freshness,priceUpdate},freshness,waitingSince:undefined});return;
+      }
       this.publish({ loading: true, error: '' });
       const overviewRequest: UsageRequest = { action: 'usage', scope, group: route.group, presentation: 'distribution',
         sort: 'time', limit: 120, offset: route.periodOffset, snapshotId };
@@ -104,7 +111,7 @@ export class Workspace {
       const max = overview.distribution?.maxTokens;
       const peak = route.page === 'usage' && max != null && !overview.items.some(item => item.kind === 'usage' && item.usage.tokens.total === max)
         ? await read({ ...overviewRequest, offset: 0, limit: 1, sort: 'tokens' }) : undefined;
-      if (!controller.signal.aborted) this.publish({ data: { overview, list, peak, route }, error: '', errorCode: undefined, updatesAvailable: false });
+      if (!controller.signal.aborted) this.publish({ data: { overview, list, peak, route,freshness,priceUpdate,readAt:new Date().toISOString() },freshness, error: '', errorCode: undefined, updatesAvailable: false,pending:false,waitingSince:undefined });
     };
     try {
       try { await run(probe || !sameScope); }
@@ -115,8 +122,12 @@ export class Workspace {
     } catch (error) {
       if (!controller.signal.aborted) {
         const errorCode = (error as { code?: string }).code;
+        if(errorCode==='SYNC_PENDING'){
+          this.publish({pending:true,error:'',errorCode:undefined,waitingSince:this.state.waitingSince??Date.now()});
+          return;
+        }
         if (connectionExpired(errorCode)) this.paused = true;
-        this.publish({ error: error instanceof Error ? error.message : String(error), errorCode });
+        this.publish({ error: error instanceof Error ? error.message : String(error), errorCode,pending:false,waitingSince:undefined });
       }
     } finally {
       if (this.controller === controller) {

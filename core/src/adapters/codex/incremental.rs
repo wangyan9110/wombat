@@ -78,19 +78,33 @@ impl Cache {
         &mut self,
         rows: impl Iterator<Item = &'a Arc<Measurement>>,
     ) {
-        if let Some(facts) = &mut self.facts {
-            for row in rows {
-                if let Some(candidate) = facts.measurements.get_mut(&row.id)
-                    && candidate.measurement == *row
-                {
-                    candidate.measurement = Arc::clone(row);
-                    if let Some(projected) = &mut self.projected
-                        && let Ok(index) = projected.binary_search_by(|m| m.id.cmp(&row.id))
-                        && projected[index] == *row
-                    {
-                        projected[index] = Arc::clone(row);
-                    }
-                }
+        // Candidates, projected facts and caller rows are ID-sorted. Merge
+        // them without a tree lookup and binary search for every ledger row.
+        let Some(facts) = &mut self.facts else {
+            return;
+        };
+        let mut rows = rows.peekable();
+        let projected = self.projected.as_deref_mut().unwrap_or_default();
+        let mut index = 0;
+        for (id, candidate) in &mut facts.measurements {
+            while rows.peek().is_some_and(|row| row.id < *id) {
+                rows.next();
+            }
+            let Some(row) = rows.peek().copied().filter(|row| row.id == *id) else {
+                continue;
+            };
+            if !Arc::ptr_eq(&candidate.measurement, row) && candidate.measurement == *row {
+                candidate.measurement = Arc::clone(row);
+            }
+            while projected.get(index).is_some_and(|value| value.id < *id) {
+                index += 1;
+            }
+            if let Some(value) = projected.get_mut(index)
+                && value.id == *id
+                && !Arc::ptr_eq(value, row)
+                && *value == *row
+            {
+                *value = Arc::clone(row);
             }
         }
     }
@@ -491,4 +505,73 @@ pub(crate) fn sync_cached(
 
 fn facts_empty_marker(result: &Collected) -> bool {
     result.measurements.is_empty() && result.threads.is_empty()
+}
+
+#[cfg(test)]
+mod sharing_tests {
+    use super::*;
+    fn row(id: &str, total: u64) -> Arc<Measurement> {
+        Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
+    }
+    #[test]
+    fn ordered_sharing_preserves_corrections_missing_and_foreign_facts() {
+        let b = row("b", 1);
+        let d = row("d", 2);
+        let f = row("f", 1);
+        let z = row("z", 1);
+        let facts = Facts {
+            measurements: [b.clone(), d.clone(), f.clone(), z.clone()]
+                .into_iter()
+                .map(|measurement| {
+                    (
+                        measurement.id.clone(),
+                        Candidate {
+                            measurement,
+                            direct: true,
+                            cumulative: None,
+                            interval_start: None,
+                            fingerprint: String::new(),
+                        },
+                    )
+                })
+                .collect(),
+            ..Facts::default()
+        };
+        let orphan = row("c", 1);
+        let mut cache = Cache {
+            facts: Some(facts),
+            projected: Some(vec![
+                b.clone(),
+                orphan.clone(),
+                d.clone(),
+                f.clone(),
+                z.clone(),
+            ]),
+            seed: None,
+        };
+        let rows = [
+            row("a", 1),
+            row("b", 1),
+            row("d", 3),
+            row("e", 1),
+            row("f", 1),
+            row("g", 1),
+        ];
+        cache.share_measurements(rows.iter());
+        let facts = &cache.facts.as_ref().unwrap().measurements;
+        let projected = cache.projected.as_ref().unwrap();
+        assert!(Arc::ptr_eq(&facts["b"].measurement, &rows[1]));
+        assert!(Arc::ptr_eq(&projected[0], &rows[1]));
+        assert!(Arc::ptr_eq(&facts["d"].measurement, &d));
+        assert!(Arc::ptr_eq(&projected[2], &d));
+        assert!(Arc::ptr_eq(&facts["f"].measurement, &rows[4]));
+        assert!(Arc::ptr_eq(&projected[3], &rows[4]));
+        assert!(Arc::ptr_eq(&facts["z"].measurement, &z));
+        assert!(Arc::ptr_eq(&projected[4], &z));
+        assert!(Arc::ptr_eq(&projected[1], &orphan));
+        cache.share_measurements(rows.iter());
+        assert_eq!(cache.facts.as_ref().unwrap().measurements.len(), 4);
+        let mut empty = Cache::default();
+        empty.share_measurements(rows.iter());
+    }
 }

@@ -4,13 +4,13 @@
 
 Status: proposed
 
-Technical review draft dated 2026-10-01; the complete proposal remains proposed. A four-entry and read-only configuration subset is implemented. Stable projects, estimates, incremental indexes, persistent composite views and configuration writes remain pending; phases A–C are not complete as a whole. See the [architecture](../../../development/architecture.en.md) and [support matrix](../../../reference/support-matrix.en.md) for current behavior. This document independently describes public development requirements without depending on private prototypes, real configurations or historical conversations.
+Technical review draft dated 2026-10-01; the complete proposal remains proposed. Four entries, read-only configuration, fixed-reference estimates, static suggestions and manual reviews are implemented. Stable projects, incremental indexes, persistent composite views and source writes remain pending; phases A–C are not complete as a whole. See the [architecture](../../../development/architecture.en.md) and [support matrix](../../../reference/support-matrix.en.md) for current behavior. This document independently describes public development requirements without depending on private prototypes, real configurations or historical conversations.
 
 ## Problem
 
 The revised interface needs usage, conversations, configuration and optimization within one work scope. Configuration is more than a file listing: it must distinguish current configuration, historical usage evidence, associated turn usage and content size, and let users open the exact turn, inspect use in other projects and return to their original filters.
 
-Rust already owns source parsing, accounting, pricing, versioned queries and some safe operation extraction; Node Web provides local transport and React presents results. The main gaps follow.
+Rust already owns source parsing, accounting, pricing, versioned queries and some safe operation extraction; Node Web provides local transport and React presents results. The following table records the proposal baseline; consult the support matrix for current status.
 
 | Capability | Existing foundation | Required additions |
 |---|---|---|

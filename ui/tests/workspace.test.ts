@@ -84,9 +84,9 @@ test('expired versions are reobserved once and all replacement pages share the n
 test('pending synchronization is visible and automatically retried without losing previous data', async t => {
   const f = fixture(), w = new Workspace(f.client); t.after(() => w.stop());
   await w.navigate(route());
-  f.intercept(async q => { if (!q.snapshotId) throw new CoreError('STALE_RESULT', 'syncing'); });
+  f.intercept(async q => { if (!q.snapshotId) throw new CoreError('SYNC_PENDING', 'syncing'); });
   await w.check();
-  assert.equal(w.getSnapshot().error, 'syncing');
+  assert.equal(w.getSnapshot().error, '');assert.equal(w.getSnapshot().pending,true);
   assert.equal(w.getSnapshot().data?.overview.summary.tokens.total, 330);
   f.intercept(async () => {}); f.revise(); await w.check();
   assert.equal(w.getSnapshot().error, '');
@@ -166,4 +166,38 @@ test('configuration pages do not issue usage polls and evidence links retain the
   f.calls.length = 0; f.revise();
   await w.navigate({ ...route(), page: 'threads', snapshot: 'live:one', thread: 't' });
   assert(f.calls.every(q => q.snapshotId === 'live:one'));
+});
+
+test('first synchronization stays pending, keeps its elapsed origin and cancel cannot invent results',async t=>{
+ const f=fixture(),w=new Workspace(f.client);t.after(()=>w.stop());
+ f.intercept(async()=>{throw new CoreError('SYNC_PENDING','pending');});
+ await w.navigate(route());const started=w.getSnapshot().waitingSince;
+ assert.equal(w.getSnapshot().pending,true);assert.equal(w.getSnapshot().error,'');assert.equal(w.getSnapshot().data,undefined);
+ await w.check();assert.equal(w.getSnapshot().waitingSince,started);
+ w.cancel();assert.equal(w.getSnapshot().data,undefined);assert.equal(w.getSnapshot().pending,false);
+ f.intercept(async()=>{});await w.check();assert.equal(w.getSnapshot().data,undefined);
+ await w.navigate(route());assert.equal(w.getSnapshot().data?.overview.snapshotRef.snapshotId,'live:one');
+});
+test('source freshness remains separate from fixed subpage results and failures preserve usable ledger',async t=>{
+ const f=fixture();let status='syncing';
+ const client={...f.client,live:async(r:Parameters<NonNullable<UsageClient['live']>>[0],options:QueryOptions)=>{
+  const response=await f.client.live!(r,options);
+  response.freshness={status:r.query.snapshotId?'fixed':status,revision:'live:one',checkedAt:'2026-10-01T00:00:00Z'};
+  return response;
+ }} as UsageClient;
+ const w=new Workspace(client);t.after(()=>w.stop());await w.navigate(route());
+ assert.equal(w.getSnapshot().data?.overview.freshness?.status,'fixed');assert.equal(w.getSnapshot().data?.freshness?.status,'syncing');
+ status='failed';await w.check();assert.equal(w.getSnapshot().data?.freshness?.status,'failed');assert.equal(w.getSnapshot().error,'');
+ assert.equal(w.getSnapshot().data?.overview.summary.tokens.total,330);
+});
+
+test('a pending new scope is retried even when the committed global revision is unchanged',async t=>{
+ const f=fixture(),w=new Workspace(f.client);t.after(()=>w.stop());await w.navigate(route());
+ let pending=true;f.intercept(async q=>{if(pending&&q.scope?.model==='new')throw new CoreError('SYNC_PENDING','pending');});
+ await w.navigate({...route(),model:'new'});assert.equal(w.getSnapshot().pending,true);assert.equal(w.getSnapshot().data?.route.model,undefined);
+ pending=false;await w.check();assert.equal(w.getSnapshot().data?.route.model,'new');assert.equal(w.getSnapshot().pending,false);
+});
+test('successful-read time stays attached to retained data through failed updates',async()=>{
+ const f=fixture(),workspace=new Workspace(f.client,60_000);
+ try{await workspace.navigate(route());const first=workspace.getSnapshot().data!;assert.ok(first.readAt);f.intercept(async()=>{throw new CoreError('NETWORK','failed');});await workspace.check();assert.equal(workspace.getSnapshot().data,first);assert.equal(workspace.getSnapshot().data!.readAt,first.readAt);}finally{workspace.stop();}
 });

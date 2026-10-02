@@ -1,0 +1,160 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Request",
+  "type": "object",
+  "properties": {
+    "action": {
+      "default": "list",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Action"
+        }
+      ]
+    },
+    "roots": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "projectRoots": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "readView": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decisionRevision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "project": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sourceInstanceId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "suggestionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "group": {
+      "default": "pending",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Group"
+        }
+      ]
+    },
+    "category": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Category"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "limit": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "ruleOverrides": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RuleOverrides"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Action": {
+      "type": "string",
+      "enum": [
+        "list",
+        "detail",
+        "ignore",
+        "mark_edited",
+        "restore",
+        "recheck",
+        "capabilities"
+      ]
+    },
+    "Group": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "history"
+      ]
+    },
+    "Category": {
+      "type": "string",
+      "enum": [
+        "repair",
+        "trim",
+        "organize",
+        "space"
+      ]
+    },
+    "RuleOverrides": {
+      "type": "object",
+      "properties": {
+        "agentsBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "descriptionCharacters": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

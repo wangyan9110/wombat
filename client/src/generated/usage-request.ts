@@ -23,6 +23,7 @@ export interface Request {
   matchedOnly?: boolean | null;
 }
 export interface Scope {
+  allTime?: boolean | null;
   timezone?: string | null;
   since?: string | null;
   until?: string | null;

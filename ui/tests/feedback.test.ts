@@ -25,3 +25,7 @@ test('expired credentials explain recovery without offering an ineffective retry
  const ordinary=renderToStaticMarkup(createElement(QueryError,{error:'temporary failure',code:'NETWORK',retry:noop}));
  assert.match(ordinary,/Retry/);
 });
+test('failed refresh identifies the retained successful read beside the error in both languages',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);const html=renderToStaticMarkup(createElement(QueryError,{error:'failed',retry:noop,previousResultAt:'2026-10-02 10:00:00'}));assert.match(html,/2026-10-02 10:00:00/);assert.match(html,language==='en'?/Showing the last successful result/:/显示上次读取结果/);const fresh=renderToStaticMarkup(createElement(QueryError,{error:'failed',retry:noop,hasResult:false}));assert.doesNotMatch(fresh,/last successful result|上次读取结果/);}}finally{locale.setLocale(saved);}
+});

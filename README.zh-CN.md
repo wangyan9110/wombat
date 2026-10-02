@@ -5,149 +5,70 @@
   </picture>
 </p>
 
-# Wombat — Codex Token 用量追踪工具
+# Wombat — Codex 用量与配置工具
 
 中文 | [English](README.md)
 
-**找到你的 Codex Token 花在了哪里。**
+**让 AI 工作更高效。**
 
-Wombat 是 Codex Token 用量追踪工具。从用量高峰找到相关对话，再深入到消耗最高的轮次，通过 CLI 与本机 Web 看清是哪段工作用了最多 Token。
+Wombat 在本机帮助你回看 Codex 任务、追踪 Token 用量与 API 估算金额，检查 AGENTS.md 和 Skill 文件，并查看 MCP 配置及调用记录。日常查看用 Web，需要查询和脚本时用 CLI。
 
-用量分析在本机完成，无需 API Key，也无需调用模型。
+- **找到需要的工作：**搜索历史任务，查看其中的轮次和已记录的操作。
+- **看清用量集中在哪里：**按项目、模型和时间比较，再进入相关工作。
+- **有依据地整理配置：**核对文件体量、格式和相同指令块，查看关联记录，人工修改后复查。
 
-## 开始使用
+**产品尚未发布，计划通过 npm 安装。** 欢迎[告诉我们你想查找或检查什么](https://github.com/wangyan9110/wombat/issues)。
 
-需要 Node.js **26.4.0+** 和本机已有的 Codex 日志。npm 候选覆盖目标为 macOS（Apple Silicon / Intel）、Linux（x64 / ARM64，glibc）和 Windows x64。各平台验收见[支持矩阵](docs/reference/support-matrix.md)；配置了 CI 目标不代表已经通过发行验收。
+![Wombat Codex 概览：Token 用量、API 估算金额、项目分布、配置建议和最近的工作](assets/prototype-overview-zh.jpg)
 
-以下为 npm 发布后的安装方式；当前尚未公开发布，可先按下方开发说明从源码运行。
+界面预览，截取自设计原型。金额为 API 等价估算，不是订阅账单或剩余额度。
+
+## 从一个具体问题开始
+
+### 找一项做过的工作
+
+打开**任务**，按标题、工作目录或任务 ID 搜索，再查看轮次与已记录的操作。你可以定位工作、比较其中的用量；这里不提供完整对话正文回放。
+
+### 找到用量特别高的工作
+
+打开**概览**，选择时间或项目，从高消耗时段进入相关任务和轮次，核对当时记录了什么。用量会随 Codex 向本地日志写入完整记录而更新。
+
+### 检查一项配置提醒
+
+在**配置**中查看已授权目录中的 AGENTS.md、Skills 和 MCP 条目，以及日志中可识别的活动记录。
+
+在**优化**中核对文件体量、格式、AGENTS.md 和 SKILL.md 中相同的完整指令块，以及已声明为副本的文件差异，再决定人工修改还是忽略。修改后可以复查。MCP 当前以盘点和调用尝试记录为主，不提供完整健康诊断。
+
+<details>
+<summary>查看示例：从配置提醒找到相关工作</summary>
+
+原型中，一份较大的 AGENTS.md 旁边展示了两条读取记录，并提供相关任务轮次的入口。你可以核对提醒、查看工作，再决定如何处理。
+
+![Wombat AGENTS.md 建议详情：读取记录、相关轮次 Token、API 估算金额和关联任务入口](assets/prototype-review-zh.jpg)
+
+图中的 576K Token 是关联轮次的总用量，包含其他操作；不是这份文件的独占消耗，也不是精简后预计节省的用量。Wombat 不知道这份文件当时的内容。
+
+</details>
+
+## 安装
+
+Wombat 尚未发布到 npm。发布后的计划安装方式为：
 
 ```sh
 npm install -g @wangyan9110/wombat
 wombat web
 ```
 
-在浏览器打开输出链接。首次查询会为本机 Codex 记录建立索引，包含已归档的对话。后续更新会复用索引。
+需要 Node.js **26.4.0+**。查看历史任务与用量需要本机 Codex 记录；配置静态检查不要求先有用量历史。
 
-![Wombat Codex Token 用量总览：每日总量与分布显示 9 月 29 日的消耗高峰](assets/prototype-usage-overview-zh.png)
+打开终端输出的完整链接。检查指定项目的配置时，可使用 `wombat web --project-root /path/to/project` 启动。
 
-界面预览（设计原型）：先找到用量高峰，再查看相关工作。
-
-[找到高消耗轮次](#find-a-high-usage-turn) · [常见问题](#common-questions) · [费用如何计算](#how-costs-work) · [隐私](#privacy)
-
-<a id="find-a-high-usage-turn"></a>
-
-## 找到高消耗轮次
-
-第一次使用，可以先找一段高消耗对话，看看其中哪一轮占用了最多 Token。
-
-1. 在**用量**中点击消耗较高的一天，查看相关对话。
-2. 在**对话**中按 Token 消耗排序，打开一个对话。
-3. 展开消耗最高的轮次，查看它占对话用量的比例、用量记录和实际记录到的操作。
+平台支持与验收状态见[支持矩阵](docs/reference/support-matrix.md)。
 
 <details>
-<summary>查看示例：从单日高峰定位到具体轮次</summary>
+<summary>npm 发布前，从源码运行</summary>
 
-示例中，9 月 29 日用量最高。“登录页改版”跨两天共用了 62 万 Token，**第 2 轮占该对话用量的 76.5%**。
-
-![Wombat Codex Token 轮次用量：展开最高消耗轮次，查看用量记录与操作](assets/prototype-high-usage-turn-zh.png)
-
-[查看相关对话列表](assets/prototype-conversations-zh.png)。金额为 API 等价估算。
-
-</details>
-
-使用 Web 导航和语言按钮；在启动终端按 Ctrl+C 停止服务。直接运行 `wombat` 输出用量文本。命令见[CLI 指南](docs/guides/cli.md)。
-
-## 还能查看什么？
-
-- **按时间看用量：**日报、周报、月报，以及模型、推理强度和项目筛选。
-- **按工作看消耗：**比较对话与轮次的 Token 用量，展开查看高消耗任务中的记录。
-- **在脚本中使用：**通过 JSON 查询同一份数据，或持续接收用量更新。
-
-<details>
-<summary>CLI 与 JSON 示例</summary>
-
-```sh
-wombat usage --json
-
-wombat threads --sort tokens --json
-
-wombat turns --thread THREAD_ID --sort tokens --json
-
-wombat usage --watch --json
-```
-
-筛选、日期范围和返回字段见 [CLI 指南](docs/guides/cli.md)。
-
-</details>
-
-<a id="common-questions"></a>
-
-## 常见问题
-
-**为什么没有数据显示？**
-
-请检查这台机器是否已有包含用量信息的 Codex 日志，以及日期、项目筛选是否包含这些记录。Wombat 默认读取 `CODEX_HOME` 或 `~/.codex`。如果日志放在其他目录：
-
-```sh
-wombat web --root /path/to/codex-home
-```
-
-Wombat 只能显示所读取的本地日志中已经记录的用量。
-
-**会实时更新吗？**
-
-会随 Codex 向本地日志写入完整用量记录而更新；尚未写入的记录无法显示。
-
-**支持 Claude Code、pi 或其他 Agent 吗？**
-
-目前支持 Codex。Claude Code、pi 等 Agent 的支持已在计划中，欢迎[反馈你使用的 Agent 和希望查看的用量信息](https://github.com/wangyan9110/wombat/issues)。
-
-**能解释为什么 Codex 额度突然下降吗？**
-
-Wombat 可以帮你找到日志中高消耗的对话和轮次，但无法确定 OpenAI 的订阅额度计算方式，也无法据此证明额度变化的原因。
-
-**能精确算出某个 Skill 或 MCP 工具花了多少 Token 吗？**
-
-可以查看轮次中记录到的操作。工具操作没有独立计量的 Token 成本，因此 Wombat 不给它们分摊整轮费用，也不根据操作出现过就判断它导致了高消耗。
-
-<a id="how-costs-work"></a>
-
-## 费用如何计算
-
-Wombat 使用官方模型单价，估算已记录 Token 对应的标准 API 等价费用。**这不是你的订阅账单，也不是 Codex 剩余额度。**
-
-未知单价保持未知；只能计算部分费用时，展示已知小计。可在 Web 查看计价依据，或阅读[价格说明](docs/reference/pricing.md)。
-
-<a id="privacy"></a>
-
-## 隐私
-
-Wombat 只读 Codex 日志，用量处理和存储都在本机完成，不上传你的对话。
-
-<details>
-<summary>保存哪些信息，以及价表下载如何关闭</summary>
-
-派生索引和快照不保存用户消息、模型回复正文、完整命令参数或工具输出，但可能保留对话标题、项目路径和工具名称。分享截图或 JSON 前，请先检查这些内容。
-
-实时查询遇到可补齐的模型单价时，可能下载官方价格文档；这类请求不发送本机日志。可以关闭自动下载：
-
-```sh
-WOMBAT_AUTO_PRICES=0 wombat
-```
-
-更多信息见[隐私说明](docs/reference/privacy.md)和[价表更新规则](docs/reference/pricing.md)。
-
-</details>
-
-## 反馈与贡献
-
-**你找到消耗最高的轮次了吗？** 如果没找到，欢迎在 [Issues](https://github.com/wangyan9110/wombat/issues) 中告诉我们卡在哪一步，并附上平台、Wombat 版本和复现步骤。描述问题即可，无需分享私人日志。
-
-开发环境与检查方式见[贡献指南](CONTRIBUTING.zh-CN.md)。疑似漏洞按[安全说明](SECURITY.zh-CN.md)报告，不要公开私人证据。
-
-## 开发与发布
-
-从源码运行需要 Corepack/pnpm 和 Rust（版本见 `rust-toolchain.toml`）：
+在本仓库的源码目录中，安装 Corepack/pnpm 和 Rust 后执行：
 
 ```sh
 corepack pnpm install --frozen-lockfile
@@ -155,12 +76,78 @@ corepack pnpm build
 node dist/wombat.js web
 ```
 
-构建、可转移安装包、npm 候选和发布后核验使用 [wombat-release Skill](.agents/skills/wombat-release/SKILL.md)；具体步骤见[开发流程](docs/development/workflow.md)，平台范围见[支持矩阵](docs/reference/support-matrix.md)。
+Rust 版本以 `rust-toolchain.toml` 为准。环境准备与检查方式见[开发流程](docs/development/workflow.md)。
+
+</details>
+
+## CLI 与 JSON
+
+在终端或脚本中查询同一份本机数据。
+
+<details>
+<summary>用量、任务与配置查询示例</summary>
+
+```sh
+wombat usage --json
+wombat threads --sort tokens --json
+wombat turns --thread THREAD_ID --sort tokens --json
+wombat optimize inventory --project-root /path/to/project --json
+wombat optimize list --project-root /path/to/project --json
+```
+
+筛选、更新与复查命令见 [CLI 指南](docs/guides/cli.md)。
+
+</details>
+
+## 隐私与费用
+
+分析和存储都在本机完成。Wombat 只读本地 Codex 日志与授权配置，不上传对话，也不修改这些来源文件。当前分析无需 API Key 或模型调用。
+
+费用按官方标准 API 单价估算已记录 Token 的等价金额。**这不是你的订阅账单，也不是 Codex 剩余额度。** 缺少单价或依据时，明确显示未知或部分结果。
+
+<details>
+<summary>本机保存的信息与价表下载</summary>
+
+本机用量索引不保存用户消息、模型回复正文、完整命令参数或工具输出，但可能保留任务标题、项目路径和工具名称。分享截图或 JSON 前，请先检查这些内容。
+
+缺少模型单价时，可能自动下载官方价格文档；请求不发送本机日志。关闭自动价表下载：
+
+```sh
+WOMBAT_AUTO_PRICES=0 wombat web
+```
+
+更多信息见[隐私说明](docs/reference/privacy.md)与[价格说明](docs/reference/pricing.md)。
+
+</details>
+
+## 常见问题
+
+**支持 Claude Code、pi 吗？**
+
+目前支持 Codex。Claude Code、pi 等 Agent 在计划中，欢迎[反馈你使用的工具和需求](https://github.com/wangyan9110/wombat/issues)。
+
+**能解释 Codex 额度为什么突然下降吗？**
+
+可以帮你找到本机记录中的高消耗工作，但不能确定 OpenAI 的订阅额度算法，也不能据此证明额度变化的原因。
+
+**配置里出现了某个条目，就代表它被加载或使用了吗？**
+
+条目出现在配置清单中，不证明它在运行时被加载或使用。读过 Skill 文件不代表调用过 Skill；缺少明确记录时，使用情况保持未知。MCP 次数仅包含可识别的调用尝试，不代表调用成功。
+
+**能自动修复配置，或预测能省多少吗？**
+
+当前支持查看提醒、人工修改、复查与处理记录，尚不提供自动修改或经验证的节省结果。静态检查通过，也不代表配置运行时一定有效。
+
+**为什么没有用量数据？**
+
+检查本机是否已有包含用量的 Codex 日志，以及当前筛选是否包含这些记录。默认读取 `CODEX_HOME` 或 `~/.codex`；其他来源目录可使用 `wombat web --root /path/to/codex-home`。
+
+## 一起完善 Wombat
+
+你想找回什么工作，或检查什么配置？现在是怎么处理的？欢迎在 [Issues](https://github.com/wangyan9110/wombat/issues) 描述使用场景，必要时附上 Agent 和平台。描述问题即可，无需提供私人日志。
+
+贡献方式见[贡献指南](CONTRIBUTING.zh-CN.md)。安全问题按[安全说明](SECURITY.zh-CN.md)反馈。
 
 ## 许可证
 
 [MIT](LICENSE)。依赖许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
-
-## 本机 Web
-
-完成构建后执行 `node dist/wombat.js web`，打开输出链接。也可在已安装的新构建中运行 `wombat web`。新版 Web 提供用量、对话、配置、优化四入口，已接入规则/Skill/MCP只读清单、证据及关联回合。项目暂按历史目录归组，优化入口仅提供配置核查，自动建议和配置写入尚未接入。Ctrl+C 停止服务。仅本机访问，更多参数见 [CLI 指南](docs/guides/cli.md)。桌面框架已选 Tauri 2，桌面实现仍待后续，旧 TUI 已移除。

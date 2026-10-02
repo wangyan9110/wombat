@@ -1,0 +1,18 @@
+{
+  "package": "tiktoken-rs",
+  "version": "0.12.0",
+  "sourceRevision": "32de8dc0526d67f2c266c4e5e7c6a8ec5a0ce3d7",
+  "reason": "The locked crate omits license texts. Preserve upstream and the embedded OpenAI tiktoken attribution.",
+  "files": [
+    {
+      "file": "LICENSE",
+      "url": "https://raw.githubusercontent.com/zurawiki/tiktoken-rs/32de8dc0526d67f2c266c4e5e7c6a8ec5a0ce3d7/LICENSE",
+      "sha256": "f7c6ddf9d84fd7b8ad5917e4074d4c05e4c1dfb752a28a0058f06bd0f5e2edcc"
+    },
+    {
+      "file": "LICENSE-tiktoken",
+      "url": "https://raw.githubusercontent.com/openai/tiktoken/0.13.0/LICENSE",
+      "sha256": "418cb499b436128d653d79941333a5437b7be2ea9213dcc2f04d15d5d2c51d86"
+    }
+  ]
+}

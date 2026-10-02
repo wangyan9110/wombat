@@ -2,20 +2,20 @@
   "version": 2,
   "sections": {
     "/wombat-usage-and-conversations-version-one-specification": {
-      "zh": "4b94f98d8b66d2fc857277327535b3e300f0847f6cb2615e3bb14180e94e0436",
-      "en": "9549c650ca42bd9480ee21748fd9e4a307004e0512834d20307f98657b790ee5"
+      "zh": "00d5766138af93ffdeb88bfa1b3fc0319e23aa0153588303544f7aea7b47269d",
+      "en": "bb82ae935a31781fd0b07f7e2b311c25e9146ee0055fe1770732332e61c6a063"
     },
     "/wombat-usage-and-conversations-version-one-specification/scope": {
-      "zh": "2b2f1446297faf8d7ba1bc5b1e6b995a55f82c5b61432779309f7b8ce9086c50",
-      "en": "c2131a015da3f305e0528a055c595f93e7675febc05435b89c96b3896b6a56b1"
+      "zh": "53698993fe5106bca0b7850bad062a3f1645372788ec5e15231649d83a1167b7",
+      "en": "8be09c321b9f2b91f7ac85863e3dfbf8d076c6ca5576573e41f083df3feb7c66"
     },
     "/wombat-usage-and-conversations-version-one-specification/user-journeys": {
       "zh": "d705e66fe22607b9b5b205b8b3d28db9a7b3d692b88fb5cee444940f63fa770f",
       "en": "7d9e2f52b140e21ac181fd5f6ade13cb55407e5d258c6032305a6b6ec901061f"
     },
     "/wombat-usage-and-conversations-version-one-specification/data-and-presentation-constraints": {
-      "zh": "f3d03f4baac8841a0d92b1b3bfadc7153dfe0e8f59d0786696171b4db2f4cd6f",
-      "en": "7ed4e095078a3f23fae3e96ccc7cf38ff520a3f3143a0b8875f14664f0c04bf8"
+      "zh": "e5a5060408bbe09814e4ba2b8271d27359d31638aa7a737ddd20f3d363df2ca8",
+      "en": "884af42176ae6d91fd056849534bea1065d5dda6a9cd7520eeb554d5fa8a96bd"
     },
     "/wombat-usage-and-conversations-version-one-specification/storage-resources-and-extension": {
       "zh": "c8488225363b96e1396ac07d74e3b4315a6706813e01f4e467e037c18bf8cb6e",

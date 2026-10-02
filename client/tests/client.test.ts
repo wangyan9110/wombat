@@ -41,3 +41,14 @@ test('portable client rejects wrong version, malformed result and mismatched ope
     await assert.rejects(createUsageClient(async () => invalid).query({ action: 'usage' }), (error: unknown) => error instanceof CoreError && error.code === 'PROTOCOL_ERROR');
   }
 });
+
+test('configuration review and preference transports reject broad commands, bad languages and aborted operations',async()=>{
+ let calls=0;const transport=async()=>{calls++;return {outputVersion:1,action:'get',language:'en'};};
+ const client=createUsageClient(async()=>response,undefined,undefined,undefined,transport,transport);
+ await assert.rejects(client.optimize!({action:'execute'} as never),{code:'INVALID_ARGUMENT'});
+ await assert.rejects(client.preferences!({action:'set',language:'fr'} as never),{code:'INVALID_ARGUMENT'});
+ assert.equal(calls,0);
+ const c=new AbortController();c.abort();await assert.rejects(client.preferences!({action:'get'},{signal:c.signal}),{code:'CANCELLED'});
+ assert.equal(calls,0);assert.equal((await client.preferences!({action:'get'})).language,'en');
+ await assert.rejects(client.preferences!({action:'set',language:'zh'}),{code:'PROTOCOL_ERROR'});
+});

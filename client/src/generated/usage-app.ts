@@ -101,6 +101,10 @@ export interface Response {
  * Observed dimensions, not a project registry or a configuration inventory.
  */
 export interface Facets {
+  /**
+   * Metadata across this snapshot's authorized sources, independent of measurement/date filters.
+   */
+  discoveredThreadCount?: number | null;
   directories: string[];
   hasUnassigned: boolean;
   models: string[];
@@ -117,6 +121,7 @@ export interface Distribution {
   peakCostScopes: Scope[];
 }
 export interface Scope {
+  allTime?: boolean | null;
   timezone?: string | null;
   since?: string | null;
   until?: string | null;
@@ -143,6 +148,7 @@ export interface Freshness {
   checkedAt?: string | null;
   revision: string;
   error?: string | null;
+  errorCode?: string | null;
 }
 export interface SnapshotRef {
   snapshotId: string;

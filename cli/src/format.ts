@@ -1,5 +1,5 @@
 import { automaticPriceText } from '@wombat/client/locale';
-import { t, locale, labels } from '@wombat/client/locale';
+import { t, locale, labels, monthLabel } from '@wombat/client/locale';
 import stringWidth from 'string-width';
 import { terminalText } from './display-text.js';
 import type { UsageItem, UsageResult, UsageSummary } from '@wombat/client';
@@ -97,7 +97,8 @@ function pad(value: string, width: number, right = false): string {
 }
 function usageColumns(width: number): number[] {
   // Preserve the model and amount at every width; detailed counters need a wide terminal.
-  return width >= 110 ? [12, Math.max(18, width - 94), 8, 11, 10, 10, 11, 12, 12] : [12, Math.max(17, width - 50), 8, 13, 13];
+  const costWidth = Math.max(width >= 110 ? 12 : 13, stringWidth(t('common.cost_unknown')));
+  return width >= 110 ? [12, Math.max(18, width - 82 - costWidth), 8, 11, 10, 10, 11, 12, costWidth] : [12, Math.max(17, width - 37 - costWidth), 8, 13, costWidth];
 }
 function usageCells(values: string[], width: number): string {
   return values.map((value, i) => pad(value, usageColumns(width)[i], i >= 3)).join(' ');
@@ -113,12 +114,12 @@ function headline(left: string, right: string, width: number, preserveLeft = fal
   const available = width - stringWidth(right) - 2;
   return available >= 12 && (!preserveLeft || stringWidth(left) <= available) ? [pad(left, available) + '  ' + right] : [left, '  ' + right];
 }
-export function itemLines(item: UsageItem, result: UsageResult, width: number): string[] {
+export function itemLines(item: UsageItem, result: UsageResult, width: number, group?: 'day' | 'week' | 'month'): string[] {
   const reference = result.snapshotRef.createdAt;
   const timezone = result.scope.timezone ?? 'UTC';
   if (item.kind === 'usage') {
     if (!result.distribution && item.date == null && item.isSubtotal) return headline(item.scope.project ?? (item.scope.projectUnknown ? t('webui.unassigned') : item.model ?? t('common.unknown_model')), usageLabel(item.usage, false, true), width);
-    const date = item.date ? rangeLabel(item.scope.since, item.scope.until, reference, timezone) : t("common.unknown_date");
+    const date = item.date ? group==='month'?monthLabel(item.date):rangeLabel(item.scope.since, item.scope.until, reference, timezone) : t("common.unknown_date");
     const name = item.isSubtotal ? `${date} ›` : `↳ ${modelLabel(item.model, item.reasoningEffort)}`;
     if (width < 68) return [name, `  ${usageLabel(item.usage, false, true)}`];
     const cells = [item.isSubtotal ? date + ' ›' : '  ↳', item.isSubtotal ? '' : item.model ?? t("common.unknown_model"), item.isSubtotal ? '' : effort(item.reasoningEffort)];
@@ -157,13 +158,13 @@ export function summaryDetails(summary: UsageSummary): string[] {
   return [...categories.map(category => { const component = summary.price.components.find(part => part.category === category || part.category === ({ cacheRead: 'cache_read', cacheCreate: 'cache_create' } as Record<string, string>)[category]); return `${categoryLabels[category]}  ${tokens(summary.tokens[category])} Token · ${component?.status === 'partial' ? money(component.knownCost, 4) + '*' : component?.cost == null ? t("common.cost_unknown") : money(component.cost, 4)}`; }), t("cli.format.reasoning_portion_value_tokens", { p0: tokens(summary.tokens.reasoning) })];
 }
 function qualityLine(result: UsageResult): string | undefined { return result.quality.status === 'partial' ? t("cli.format.data_status_value", { p0: result.quality.issues[0]?.message ?? t("cli.format.see_data_notes") }) : undefined; }
-export function renderUsageResult(result: UsageResult, width = 120): string {
+export function renderUsageResult(result: UsageResult, width = 120, group?: 'day' | 'week' | 'month'): string {
   const title = { refresh: t("cli.format.updated"), usage: t("cli.format.usage"), threads: t("common.threads"), turns: t("cli.format.turns"), steps: t("cli.format.records") }[result.action];
   const lines = [`Wombat · ${title}`, t("common.updated_value", { p0: dateLabel(result.snapshotRef.createdAt, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC', true) }), rangeLabel(result.scope.since, result.scope.until, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC'), usageLabel(result.summary), ''];
   if (result.action === 'usage' && result.distribution && width >= 110)
     lines.push(usageTableHeader(width));
   for (const item of result.items)
-    lines.push(...itemLines(item, result, width));
+    lines.push(...itemLines(item, result, width, group));
   if (!result.items.length)
     lines.push(result.action === 'refresh' ? t("cli.format.records_saved") : result.page.total > 0 ? t("cli.format.no_records_on_this_page_value", { p0: result.page.total }) : t("common.no_records"));
   if (result.items.length > 0 && result.page.total > result.items.length)

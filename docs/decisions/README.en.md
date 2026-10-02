@@ -37,3 +37,7 @@ Put status after the title and language switcher. A proposal contains Problem, P
 | implemented | [Rust live queries and failure isolation](implemented/architecture/2026-10-01-rust-live-query.en.md) |
 | proposed | [Four-entry Web and configuration usage analysis](proposed/architecture/2026-10-01-config-analysis-web.en.md) |
 | implemented | [Read-only configuration and composite views](implemented/architecture/2026-10-01-config-inventory.en.md) |
+| implemented | [Configuration measurement and manual review records](implemented/architecture/2026-10-02-config-reviews.en.md) |
+| implemented | [Compact live index and replacement algorithm](implemented/architecture/2026-10-02-compact-live-index.en.md) |
+| implemented | [Startup and bounded static rules](implemented/architecture/2026-10-02-startup-static-rules.en.md) |
+| implemented | [Physical configuration identity and complete rechecks](implemented/architecture/2026-10-02-rule-review-integrity.en.md) |

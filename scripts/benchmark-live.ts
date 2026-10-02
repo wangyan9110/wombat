@@ -96,10 +96,14 @@ try {
   const cpuStart = cpuSeconds(); const idleStart = performance.now(); await delay(5000);
   const idleCpuPercent = 100 * (cpuSeconds() - cpuStart) / ((performance.now() - idleStart) / 1000);
   const finalRss = rss(); const size = bytesUnder(path.join(temporary, 'data'));
+  const indexFile = path.join(temporary, 'data', 'live-v1', 'index.sqlite');
+  const diskBytes = (file: string) => existsSync(file) ? statSync(file).size : 0;
+  const liveIndexDbBytes = diskBytes(indexFile), liveIndexWalBytes = diskBytes(indexFile + '-wal');
   const deadline = idleStart + 25_000;
   while (service.exitCode === null && performance.now() < deadline) await delay(100);
   assert.equal(service.exitCode, 0, serviceError || 'Service did not exit after idle timeout');
   await serviceClosed;
+  const dataBytesAfterIdleExit = bytesUnder(path.join(temporary, 'data'));
   const peakMatch = process.platform === 'darwin' ? /(?:^|\n)\s*(\d+)\s+maximum resident set size/.exec(serviceError) : /WB_MAX_RSS_KIB=(\d+)/.exec(serviceError);
   assert(peakMatch, 'time did not report peak RSS');
   const peakRssBytes = Number(peakMatch[1]) * (process.platform === 'linux' ? 1024 : 1);
@@ -107,10 +111,10 @@ try {
     platform: `${os.type()} ${os.arch()}`, coreSha256: fileSha256(core), corpusSha256: raw.digest('hex'), measurements, operations: measurements, threads, appends,
     coldSyncAndCliMs: Math.round(cold * 100) / 100, warmCliMs: warm.map(value => Math.round(value * 100) / 100), threadsCliMs: Math.round(threadMs * 100) / 100,
     appendSyncAndCliMs: appended.map(value => Math.round(value * 100) / 100), peakRssBytes,
-    rssKiBAtEnd: finalRss, indexBytes: size, idleCpuPercentOver5s: Math.round(idleCpuPercent * 1000) / 1000,
+    rssKiBAtEnd: finalRss, indexBytes: size, liveIndexDbBytes, liveIndexWalBytes, dataBytesAfterIdleExit, idleCpuPercentOver5s: Math.round(idleCpuPercent * 1000) / 1000,
     idleExitMs: Math.round((performance.now() - idleStart) * 100) / 100, appendRssKiB: rssSamples,
     correctness: `Each synthetic measurement contributes exactly 110 tokens and ${formatMicros(265n)} USD; usage and threads agree, and appended amounts remain exact.`,
-    conditions: 'Release core; new SQLite index; filesystem caches uncontrolled; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance.',
+    conditions: 'Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance.',
   };
   mkdirSync(path.dirname(output), { recursive: true }); writeFileSync(output, JSON.stringify(result, null, 2) + '\n'); console.log(JSON.stringify(result));
 } finally {

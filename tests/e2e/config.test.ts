@@ -33,6 +33,7 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
       event('response_item', { type: 'function_call_output', call_id, output: 'Synthetic content' }),
     ]),
     event('event_msg', { type: 'item_completed', thread_id: 't', turn_id: 'u', item: { type: 'mcpToolCall', id: 'm1', server: 'docs', tool: 'search', status: 'completed' } }),
+    ...['m1','failed','retry'].map(id => event('event_msg', { type: 'item_completed', thread_id: 't', turn_id: 'u', item: { type: 'mcpToolCall', id, server: 'docs', tool: 'search', status: id==='failed'?'failed':'completed' } })),
     event('response_item', { type: 'function_call', call_id: 'ambiguous', name: 'mcp__docs__search', arguments: '{}' }),
     event('response_item', { type: 'function_call', call_id: 'failed-read', name: 'read_file', status: 'failed', arguments: JSON.stringify({ path: failedSkill }) }),
     event('event_msg', { type: 'task_complete', turn_id: 'u' }),
@@ -51,7 +52,9 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
   try {
     const usage = await browser.live!({ query: { action: 'usage', scope }, mode: 'fresh' });
     const result = await browser.config!({ action: 'list', snapshotId: usage.result.snapshotRef.snapshotId, scope });
-    assert.equal(result.items.length, 4);
+    assert.equal(result.items.length, 5);
+    assert.equal(result.summary.currentItems,4,'missing paths are disclosed without being counted as present configuration');
+    assert.equal(result.items.find(i=>i.path===path.join(root,'AGENTS.md'))!.measurementStatus,'missing');
     const item = result.items.find(i => i.name === 'review')!;
     const failedItem = result.items.find(i => i.name === 'failed')!;
     assert.equal(failedItem.counts.failed, 1);
@@ -59,7 +62,9 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
     assert.equal(item.counts.fileReads, 2); assert.equal(item.counts.toolCalls, 0);
     assert.equal(item.observation, 'loaded_only'); assert.equal(item.relatedTurns, 1);
     assert.equal(item.usage?.tokens.total, 110);
-    assert.equal(result.items.find(i => i.kind === 'mcp')!.counts.toolCalls, 1, 'ambiguous name prefix must not claim configuration identity');
+    assert.equal(result.items.find(i => i.kind === 'mcp')!.counts.toolCalls, 3, 'duplicate evidence counts once; failed attempts and distinct retries each count');
+    assert.equal(result.items.find(i => i.kind === 'mcp')!.usageCount,3);
+    assert.equal(result.items.find(i => i.kind === 'mcp')!.counts.failed,1);
     assert.equal(result.summary.usage?.tokens.total, 110, 'shared turns must be counted once');
     assert.equal(result.items.find(i => i.kind === 'rule')!.usage, null);
     assert.equal(result.coverage.absenceObservable, false);

@@ -1,0 +1,20 @@
+{
+  "platform": "Darwin arm64",
+  "node": "v26.4.0",
+  "coreSha256": "6d84756194607a1030b314192eeed3f59fecaadcbeccdca962c74a6af0e5b6c3",
+  "corpusSha256": "a9a6105bdcc4ec7104c22647fea5f943d4eca7b9d88abd3605658b6e8de0c498",
+  "files": 34,
+  "method": "tiktoken-rs-0.12.0/o200k_base/ordinary-v1",
+  "coldCollectionAndCliMs": 376.92,
+  "warmCollectionAndCliMs": [
+    105.07,
+    86.63,
+    106.68,
+    99.6,
+    103.92
+  ],
+  "changedCollectionAndCliMs": 106.61,
+  "peakCoreRssBytes": 118177792,
+  "correctness": "1 MiB ASCII run matches independent official 131072-token truth; hello world=2; all warmed item measurements identical; one-byte limit crossing invalidates the estimate and updates hash/metadata.",
+  "conditions": "Release core, empty usage source, new derived inventory; warm calls recollect files and reuse token counts keyed by content/method. Filesystem cache uncontrolled. Peak RSS covers the Rust service including embedded encoding, not browser/Node or large usage ledgers; no claim of scan speedup or production scale."
+}

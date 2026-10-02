@@ -2,7 +2,7 @@
 
 [中文](status.md) | English
 
-Updated 2026-10-01. This page tracks current delivery and unfinished boundaries. Requirements are in the [version-one specification](specification.en.md), dated verification is in [progress](progress.en.md), and feature semantics are in the [support matrix](../reference/support-matrix.en.md). Historical test passes do not establish full acceptance of the current working tree. The project has not been publicly released.
+Updated 2026-10-02. This page tracks current delivery and unfinished boundaries. Requirements are in the [version-one specification](specification.en.md), dated verification is in [progress](progress.en.md), and feature semantics are in the [support matrix](../reference/support-matrix.en.md). Historical test passes do not establish full acceptance of the current working tree. The project has not been publicly released.
 
 ## Delivered baseline
 
@@ -14,12 +14,13 @@ Updated 2026-10-01. This page tracks current delivery and unfinished boundaries.
 | Modules and contracts | core/client/ui/web/cli, generated types and validation, public package boundaries, injected client | Historical build and cross-module evidence exists; future GUI is not delivered |
 | CLI / Web | Usage and conversations, drill-down, filters, themes, catalog, JSON queries | macOS arm64 / Node ≥26.4.0; browser and component coverage do not establish acceptance on other platforms |
 | Automatic synchronization | Append cursors, SQLite transactions, on-demand service, fresh/cached/watch, fixed versions, automatic updates | Basic flow and memory optimization verified; the full [live proposal](../decisions/proposed/architecture/2026-09-30-live-usage.en.md) remains proposed |
-| Bilingual support | Shared Chinese/English catalogs, CLI locale resolution, Web language button, paired docs and static checks | Source text and protocol values stay unchanged; no persisted language preference; [language contract](../i18n/product.en.md) |
+| Bilingual support | Shared Chinese/English catalogs, CLI locale resolution, Web language button, paired docs and static checks | Source text and protocol values stay unchanged; Web preferences persist locally; [language contract](../i18n/product.en.md) |
 
 ## Remaining work and acceptance responsibility
 
 | Item | Next acceptance requirement |
 |---|---|
+| Startup and deterministic rules | A1–A4 and deterministic B0/B1/B2/B4 branches in the [specification](startup-rules.en.md) are implemented; A5 retains scale/platform and real-failure acceptance, B3 lacks an effective Hook registry adapter, and C/D execution/observation/desktop remain unavailable |
 | Live scale and resources | Persistent MVCC, dependency-closure merging, database aggregation, million-measurement and 24-hour acceptance; the 500-file sample still exceeds the 256 MiB peak target |
 | Platforms and sources | Windows/Linux, other architectures, and other production Agent adapters each need installation and factual truth verification; compilation alone does not establish support |
 | Public release | Resolve the npm package name and publishing permissions; verify platform binaries, clean installation, licenses, and public materials; the package is still private |
@@ -29,8 +30,10 @@ Future candidates are in the [roadmap](roadmap.en.md). This page does not duplic
 
 ## First Web Delivery · 2026-10-01
 
-`ui/`, `web/`, and the HTTP client provide revised usage, conversation, turn, source, and price pages, started by the CLI. New grouping and matching-usage sorting use shared Rust contracts. Desktop still uses the selected Tauri 2; project registration, optimization rules, and other-platform browser verification remain pending. See [frontend scope](../../ui/README.en.md) and [verification](progress.en.md).
+`ui/`, `web/`, and the HTTP client provide revised usage, conversation, turn, source, and price pages, started by the CLI. New grouping and matching-usage sorting use shared Rust contracts. Desktop still uses the selected Tauri 2; project registration, actual execution, and other-platform browser verification remain pending. See [frontend scope](../../ui/README.en.md) and [verification](progress.en.md).
 
-## Four entries and read-only configuration · 2026-10-01
+## Configuration measurement and manual reviews · 2026-10-02
 
-Configuration inventory, type/evidence filters, pagination and bidirectional configuration/turn links are connected. Web and CLI share the Rust configuration v1 contract. Optimize currently provides read-only configuration review. The full proposal remains incomplete: stable project registration, configuration precedence, content-token estimates, incremental evidence indexes, persistent composite views, cooperative cancellation, automatic recommendations, configuration writes and Tauri remain pending. See the [configuration contract](../development/contracts.en.md) for current boundaries.
+Overview, Tasks, Configuration and Optimize now connect shared usage details, all dates, full-content token/code-point/byte measurements, static Skill checks, object suggestions and the complete manual-review flow. Decisions persist independently, and language preferences survive service restarts. Web/CLI use the same generated contracts. See the [upgrade specification](config-upgrade.en.md) and [configuration contract](../development/contracts.en.md).
+
+First delivery does not complete conditional later capabilities: continuous-coverage inactivity, MCP faults, storage adapters, source execution and recovery remain closed. Project registration, loading precedence, explicit Skill invocation/MCP resource adapters, historical content, persistent composite views, incremental evidence indexes, cooperative cancellation and Tauri remain pending. Browser and performance evidence is in [progress](progress.en.md).

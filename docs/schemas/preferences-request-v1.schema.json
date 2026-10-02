@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Request",
+  "type": "object",
+  "properties": {
+    "action": {
+      "$ref": "#/definitions/Action"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Language"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "action"
+  ],
+  "definitions": {
+    "Action": {
+      "type": "string",
+      "enum": [
+        "get",
+        "set"
+      ]
+    },
+    "Language": {
+      "type": "string",
+      "enum": [
+        "zh",
+        "en"
+      ]
+    }
+  }
+}

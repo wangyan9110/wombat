@@ -2,24 +2,24 @@
   "version": 2,
   "sections": {
     "/wombat-implementation-status": {
-      "zh": "c8fdc4c09f3b1773122236c6288ca98018e4df89bcf99be9f0e33fc0c42e3241",
-      "en": "aa179c4d77d68b118d1fb760eeeffaf840962274a875e8298f02ffec74827a5b"
+      "zh": "60d44968b47839a53e818d691484f7c2c456c0985236bd7112db0809f3cac7f7",
+      "en": "db263c5a58639164e470db10a8ff7fe9cb32811aa36cbe5ebe5fa2688698d2f8"
     },
     "/wombat-implementation-status/delivered-baseline": {
-      "zh": "b05bb0a58c91dc6fe6830bc6d7b0d7e5bbb654e5d6bee8451067a774c86cd74e",
-      "en": "44ea0dc24fa17f6d435f33d6ca09521523f2f1cf755453f4cdbfa63927770352"
+      "zh": "bdabec3f8a140d1bef7dc3bd9f9bde29fb0f82873f8be53b808ebc84050286eb",
+      "en": "9bc8a6c3a3a9aa0d3e71ba7a10d0258afd8356d5d9951e2807d591d4c76a2f8a"
     },
     "/wombat-implementation-status/remaining-work-and-acceptance-responsibility": {
-      "zh": "d88ba098ad6aa5761fdad33805cbcf81175d0a995cff1b673742011b52126034",
-      "en": "049297ceeb3fad46db9d95bc5238252a589f11462d2ed69bb939227fef88a441"
+      "zh": "88602d925b89787e89c59a641cf057cc62f4316bf01db95d200f60ad90115aee",
+      "en": "6b9e68da70a283d432275c5bf2959a957e883529c34d44fadddfbd4c8c8143f5"
     },
     "/wombat-implementation-status/first-web-delivery-2026-10-01": {
-      "zh": "e411d0c80074ddc9f5821fe4e3be786d66009a0f3ec5a9e98414dfc434630c17",
-      "en": "4d266d5d84a8a7505115fad1a063e598d72eb61a069cbff4987b2f80944bdbf3"
+      "zh": "66e04aecf1e044ecb7c7340faa96b563a2c713e6d363fc7dd8231041a7727902",
+      "en": "9471248fa9694c2c2dbd6b8b2dbfea22ba99408894ee1d685e8a03835acd45d3"
     },
-    "/wombat-implementation-status/four-entries-and-read-only-configuration-2026-10-01": {
-      "zh": "88308bf435b3abe8206c895da93cf71ed388044e75b2b23846d6026c44afcfdc",
-      "en": "6363cf295542b9618c0a56742cafb5cb50b1a1c5b80ea524662a56c2bce6af1d"
+    "/wombat-implementation-status/configuration-measurement-and-manual-reviews-2026-10-02": {
+      "zh": "294d0c87dea0bae8ac793c66e8016c0d9327a86b89eee5bc307e575bd8caec3d",
+      "en": "6619122204488a5205f194be40d81e56a6ef4c606a0097e0a4ec9b1482b475a8"
     }
   }
 }

@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-02",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v26.4.0",
+  "coreSha256": "4b4737f74ece1829e4096e8995ac31a85ccad21491f565322038425bfefa8836",
+  "corpus": {
+    "rows": 1002,
+    "largeRecords": 1000,
+    "positionsPerLargeRecord": 1000,
+    "payloadPerLargeRecord": 235667,
+    "legacyPayloadBytes": 235679884
+  },
+  "legacy": {
+    "databaseBytes": 237604864,
+    "walBytes": 0,
+    "shmBytes": 0
+  },
+  "migration": {
+    "elapsedMs": 2032.7427500000001,
+    "rssBeforeKiB": 9296,
+    "rssAfterKiB": 75056,
+    "processPeakBytes": 76939264,
+    "whileRunning": {
+      "databaseBytes": 1028096,
+      "walBytes": 0,
+      "shmBytes": 0
+    },
+    "afterExit": {
+      "databaseBytes": 1028096,
+      "walBytes": 0,
+      "shmBytes": 0
+    }
+  },
+  "paged": {
+    "requestedLimit": 1,
+    "warmQueryMs": [
+      60.01966699999957,
+      47.945832999999766,
+      29.03854199999978,
+      29.780166999999892,
+      28.50708300000042
+    ],
+    "rssBeforeKiB": 68720,
+    "rssAfterKiB": 68992,
+    "processPeakBytes": 70746112,
+    "afterExit": {
+      "databaseBytes": 1028096,
+      "walBytes": 0,
+      "shmBytes": 0
+    }
+  },
+  "facts": {
+    "events": 1002,
+    "bases": 2,
+    "items": 2,
+    "baselines": 1
+  },
+  "consistency": {
+    "rows": 1002,
+    "returned": 1,
+    "latestExact": true,
+    "oldestRecordPreserved": true
+  },
+  "conditions": "macOS arm64 release core; synthetic safe metadata; filesystem cache not cleared; migration includes connection, scan, transaction, VACUUM and response; paged lifetime peak includes warmup and oldest-page query; /usr/bin/time -l measures actual Rust child lifetime peak",
+  "scope": "Durable rule-review history only; release service with synthetic safe metadata, two declared instruction files, 1002 legacy events, 1000 repeated large records. Automatic prices off. No concurrent Wombat build, test or browser host during measurement.",
+  "runnerSha256": "94cc5bd978d7bcbedda9b9661e1deaccc350953d0a408c81611e083924650bfd",
+  "limits": "Single macOS arm64 observation; repeated immutable evidence intentionally models repeated handling. Sharing depends on workload. Warm page requests include full service scope/scan/response, not SQL alone. Peaks measure the Rust child only; Node/browser memory is excluded. This is not million-record, cross-platform or real-disk-exhaustion validation."
+}
