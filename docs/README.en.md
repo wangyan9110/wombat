@@ -31,7 +31,7 @@ Choose documentation by task. Source code, technical references, and implementat
 
 - [Version-one specification](project/specification.en.md) maintains requirements and acceptance criteria.
 - [Configuration measurement/manual review upgrade](project/config-upgrade.en.md) maintains additional requirements and boundaries.
-- [Startup and deterministic rule upgrade](project/startup-rules.en.md) maintains unimplemented startup states, phase A/B work, and evidence gates for new rules.
+- [Startup and deterministic rule upgrade](project/startup-rules.en.md) maintains startup-state and static-rule specifications, phase A/B work, and conditional capabilities still awaiting implementation.
 - [Implementation status](project/status.en.md) tracks current delivery and remaining acceptance.
 - [Roadmap](project/roadmap.en.md) maintains future candidates.
 - [Progress and verification](project/progress.en.md) indexes dated results; raw synthetic evidence lives in [benchmarks](benchmarks/). Old commands and screenshots do not represent the current product.

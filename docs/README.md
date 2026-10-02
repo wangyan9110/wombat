@@ -31,7 +31,7 @@
 
 - [首版规格](project/specification.md)维护需求与验收条件。
 - [配置测量与人工处理升级](project/config-upgrade.md)维护追加规格与边界。
-- [首次运行与确定性规则升级](project/startup-rules.md)维护尚未实施的启动状态、A/B开发拆分及新规则证据门槛。
+- [首次运行与确定性规则升级](project/startup-rules.md)维护启动状态与静态规则规格、A/B开发拆分及仍待实施的条件性能力。
 - [实施状态](project/status.md)维护当前交付和剩余验收。
 - [路线图](project/roadmap.md)维护后续候选方向。
 - [进度与验证](project/progress.md)索引带日期的结果；原始合成证据在 [benchmarks](benchmarks/)。旧命令和旧截图不代表当前产品。
