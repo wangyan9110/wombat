@@ -11,64 +11,64 @@
 
 **让 AI 工作更高效。**
 
-Wombat 在本机帮助你回看 Codex 任务、追踪 Token 用量与 API 估算金额，检查 AGENTS.md 和 Skill 文件，并查看 MCP 配置及调用记录。日常查看用 Web，需要查询和脚本时用 CLI。
+Wombat 帮你发现 Codex 配置里值得改进的地方，让优化有据可查：哪些文件值得精简，哪里有格式问题或重复内容，修改后问题是否解决。
 
-- **找到需要的工作：**搜索历史任务，查看其中的轮次和已记录的操作。
-- **看清用量集中在哪里：**按项目、模型和时间比较，再进入相关工作。
-- **有依据地整理配置：**核对文件体量、格式和相同指令块，查看关联记录，人工修改后复查。
+用量与配置建议默认展示，打开概览就能看到需要关注的地方。日志与配置都留在本机。
 
-**产品尚未发布，计划通过 npm 安装。** 欢迎[告诉我们你想查找或检查什么](https://github.com/wangyan9110/wombat/issues)。
-
-![Wombat Codex 概览：Token 用量、API 估算金额、项目分布、配置建议和最近的工作](assets/prototype-overview-zh.jpg)
+![Wombat 展示 Codex Token 用量、API 估算金额、相关任务和配置建议](assets/prototype-overview-zh.jpg)
 
 界面预览，截取自设计原型。金额为 API 等价估算，不是订阅账单或剩余额度。
 
-## 从一个具体问题开始
+## Wombat 能帮你做什么
 
-### 找一项做过的工作
+### 找出配置里值得改进的地方
 
-打开**任务**，按标题、工作目录或任务 ID 搜索，再查看轮次与已记录的操作。你可以定位工作、比较其中的用量；这里不提供完整对话正文回放。
+配置建议会提示值得关注的问题，例如较大的 AGENTS.md、Skill 格式问题、相同的完整指令块，以及已声明副本之间的差异。查看依据后，你可以判断文件是否需要修改。
 
-### 找到用量特别高的工作
+Skills 和 MCP 也可以统一盘点；文件读取记录与 MCP 调用尝试分别展示。
 
-打开**概览**，选择时间或项目，从高消耗时段进入相关任务和轮次，核对当时记录了什么。用量会随 Codex 向本地日志写入完整记录而更新。
+### 看清用量，知道该关注哪里
 
-### 检查一项配置提醒
+近期 Token 用量、API 估算金额和项目分布默认展示，无需先做筛选，就能看清消耗主要集中在哪里。
 
-在**配置**中查看已授权目录中的 AGENTS.md、Skills 和 MCP 条目，以及日志中可识别的活动记录。
+需要进一步核对用量变化时，再查看相关任务和轮次的记录。
 
-在**优化**中核对文件体量、格式、AGENTS.md 和 SKILL.md 中相同的完整指令块，以及已声明为副本的文件差异，再决定人工修改还是忽略。修改后可以复查。MCP 当前以盘点和调用尝试记录为主，不提供完整健康诊断。
+### 改完以后，再确认一次
+
+人工修改文件后，重新检查相关提醒是否解决。处理记录会保留，之后可以回看当时的决定。
 
 <details>
-<summary>查看示例：从配置提醒找到相关工作</summary>
+<summary>查看示例：一份项目说明文件值得精简吗？</summary>
 
-原型中，一份较大的 AGENTS.md 旁边展示了两条读取记录，并提供相关任务轮次的入口。你可以核对提醒、查看工作，再决定如何处理。
+原型中，一份较大的 AGENTS.md 关联了两条读取记录，并提供相关任务轮次的入口。你可以先看当时做了什么，再判断是否要精简文件。
 
-![Wombat AGENTS.md 建议详情：读取记录、相关轮次 Token、API 估算金额和关联任务入口](assets/prototype-review-zh.jpg)
+![Wombat AGENTS.md 建议详情：读取记录、相关轮次、Token 用量和 API 估算金额](assets/prototype-review-zh.jpg)
 
-图中的 576K Token 是关联轮次的总用量，包含其他操作；不是这份文件的独占消耗，也不是精简后预计节省的用量。Wombat 不知道这份文件当时的内容。
+图中的 576K Token 是关联轮次的总用量，其中也包含其他操作。这项总量不能用来确定文件本身消耗了多少 Token，也不能预测精简后的节省。Wombat 不知道这份文件当时的内容。
 
 </details>
 
-## 安装
+## 开始使用
 
-Wombat 尚未发布到 npm。发布后的计划安装方式为：
+**产品尚未发布，计划通过 npm 安装。** 发布后，安装并启动：
 
 ```sh
 npm install -g @wangyan9110/wombat
 wombat web
 ```
 
-需要 Node.js **26.4.0+**。查看历史任务与用量需要本机 Codex 记录；配置静态检查不要求先有用量历史。
+然后打开终端输出的完整链接。
 
-打开终端输出的完整链接。检查指定项目的配置时，可使用 `wombat web --project-root /path/to/project` 启动。
+需要 Node.js **26.4.0+**。历史任务与用量依赖本机 Codex 记录；配置静态检查无需用量历史。
 
-平台支持与验收状态见[支持矩阵](docs/reference/support-matrix.md)。
+指定项目和自定义日志目录的方法见 [CLI 指南](docs/guides/cli.md)，平台支持情况见[支持矩阵](docs/reference/support-matrix.md)。
 
 <details>
-<summary>npm 发布前，从源码运行</summary>
+<summary>从源码运行，或使用 CLI</summary>
 
-在本仓库的源码目录中，安装 Corepack/pnpm 和 Rust 后执行：
+npm 发布前，可以克隆本仓库，准备 Corepack、pnpm，以及 `rust-toolchain.toml` 指定的 Rust 版本。
+
+在仓库目录中执行：
 
 ```sh
 corepack pnpm install --frozen-lockfile
@@ -76,16 +76,9 @@ corepack pnpm build
 node dist/wombat.js web
 ```
 
-Rust 版本以 `rust-toolchain.toml` 为准。环境准备与检查方式见[开发流程](docs/development/workflow.md)。
+环境准备见[开发流程](docs/development/workflow.md)。
 
-</details>
-
-## CLI 与 JSON
-
-在终端或脚本中查询同一份本机数据。
-
-<details>
-<summary>用量、任务与配置查询示例</summary>
+CLI 支持 JSON 输出，方便接入脚本：
 
 ```sh
 wombat usage --json
@@ -95,22 +88,20 @@ wombat optimize inventory --project-root /path/to/project --json
 wombat optimize list --project-root /path/to/project --json
 ```
 
-筛选、更新与复查命令见 [CLI 指南](docs/guides/cli.md)。
-
 </details>
 
 ## 隐私与费用
 
-分析和存储都在本机完成。Wombat 只读本地 Codex 日志与授权配置，不上传对话，也不修改这些来源文件。当前分析无需 API Key 或模型调用。
+Wombat 读取本地 Codex 日志与已授权的配置，分析和存储都在本机完成。不上传对话，不修改来源日志或配置。当前分析无需 API Key 或模型调用。
 
-费用按官方标准 API 单价估算已记录 Token 的等价金额。**这不是你的订阅账单，也不是 Codex 剩余额度。** 缺少单价或依据时，明确显示未知或部分结果。
+金额根据已记录的 Token 用量和官方标准 API 单价估算，不代表订阅账单或 Codex 剩余额度。缺少单价时显示未知；数据不完整时，结果标为部分结果。
 
 <details>
 <summary>本机保存的信息与价表下载</summary>
 
 本机用量索引不保存用户消息、模型回复正文、完整命令参数或工具输出，但可能保留任务标题、项目路径和工具名称。分享截图或 JSON 前，请先检查这些内容。
 
-缺少模型单价时，可能自动下载官方价格文档；请求不发送本机日志。关闭自动价表下载：
+缺少模型单价时，Wombat 可能下载官方价格文档，请求不发送本机日志。如需关闭自动价表下载，使用：
 
 ```sh
 WOMBAT_AUTO_PRICES=0 wombat web
@@ -120,31 +111,36 @@ WOMBAT_AUTO_PRICES=0 wombat web
 
 </details>
 
-## 常见问题
+<details>
+<summary>常见问题</summary>
 
-**支持 Claude Code、pi 吗？**
+**配置清单里出现了，就代表使用过吗？**
 
-目前支持 Codex。Claude Code、pi 等 Agent 在计划中，欢迎[反馈你使用的工具和需求](https://github.com/wangyan9110/wombat/issues)。
+清单只说明 Wombat 找到了这个条目，不证明运行时加载或使用过。读过 Skill 文件不代表调用过 Skill；MCP 次数统计的是可识别的调用尝试，不代表调用成功。缺少使用依据时，保持未知。
+
+**用量可以查看哪些明细？**
+
+可以查看相关任务、已记录的轮次、操作和用量，不提供完整对话正文回放。
+
+**会自动修复配置吗？**
+
+是否修改由你决定，文件也由你手动编辑。Wombat 提供提醒依据、处理记录和修改后复查，不自动修改配置，也不预测节省。静态检查通过不保证运行时有效。MCP 当前支持盘点和调用尝试记录，不提供完整健康诊断。
 
 **能解释 Codex 额度为什么突然下降吗？**
 
-可以帮你找到本机记录中的高消耗工作，但不能确定 OpenAI 的订阅额度算法，也不能据此证明额度变化的原因。
-
-**配置里出现了某个条目，就代表它被加载或使用了吗？**
-
-条目出现在配置清单中，不证明它在运行时被加载或使用。读过 Skill 文件不代表调用过 Skill；缺少明确记录时，使用情况保持未知。MCP 次数仅包含可识别的调用尝试，不代表调用成功。
-
-**能自动修复配置，或预测能省多少吗？**
-
-当前支持查看提醒、人工修改、复查与处理记录，尚不提供自动修改或经验证的节省结果。静态检查通过，也不代表配置运行时一定有效。
+可以帮你找到本机记录中的高消耗任务，但不能确定 OpenAI 的订阅额度算法，也不能证明剩余额度变化的原因。
 
 **为什么没有用量数据？**
 
-检查本机是否已有包含用量的 Codex 日志，以及当前筛选是否包含这些记录。默认读取 `CODEX_HOME` 或 `~/.codex`；其他来源目录可使用 `wombat web --root /path/to/codex-home`。
+先确认本机已有包含用量的 Codex 日志，再检查时间和项目筛选是否包含这些记录。默认读取 `CODEX_HOME` 或 `~/.codex`。自定义日志目录和项目范围的方法见 [CLI 指南](docs/guides/cli.md)。
+
+</details>
 
 ## 一起完善 Wombat
 
-你想找回什么工作，或检查什么配置？现在是怎么处理的？欢迎在 [Issues](https://github.com/wangyan9110/wombat/issues) 描述使用场景，必要时附上 Agent 和平台。描述问题即可，无需提供私人日志。
+目前支持 Codex，Claude Code、pi 等 Agent 在计划中。
+
+你希望看清 AI 工作中的什么问题，或改善哪部分体验？欢迎在 [Issues](https://github.com/wangyan9110/wombat/issues) 分享具体场景、使用的工具和目前的处理办法，无需提供私人日志。
 
 贡献方式见[贡献指南](CONTRIBUTING.zh-CN.md)。安全问题按[安全说明](SECURITY.zh-CN.md)反馈。
 

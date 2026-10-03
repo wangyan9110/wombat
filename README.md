@@ -11,64 +11,64 @@ English | [中文](README.zh-CN.md)
 
 **Make AI work better.**
 
-Wombat brings your Codex task history, token usage, and configuration into one local tool. Find past work, see estimated API costs, check AGENTS.md and Skill files, and browse MCP entries and logged call attempts. Use the web app to explore your data or the CLI to query it from scripts.
+Wombat helps you improve your Codex setup with clear findings and evidence. It flags configuration issues, shows token usage, and lets you recheck files after manual edits.
 
-- **Find past work:** search tasks and review their turns and recorded actions.
-- **See where tokens go:** compare projects, models, and time periods, then open the relevant tasks.
-- **Check your setup:** review file size, format, and exact duplicate instruction blocks. Open related records and rerun checks after editing.
+Token usage, estimated API costs, and configuration findings appear on the overview by default. Your logs and configuration stay on your machine.
 
-**Not yet released.** An npm release is planned. [Tell us what you'd like to find or check](https://github.com/wangyan9110/wombat/issues).
+![Wombat showing Codex token usage, estimated API costs, related tasks, and configuration recommendations](assets/prototype-overview-en.jpg)
 
-![Wombat Codex overview showing token usage, estimated API costs, project distribution, configuration recommendations, and recent tasks](assets/prototype-overview-en.jpg)
+Design prototype preview. Amounts are estimated API costs, not subscription charges or remaining quota.
 
-Design prototype preview. Costs are API estimates, not subscription charges or remaining quota.
+## What Wombat helps you do
 
-## What you can do
+### Know what needs attention in your setup
 
-### Find past work
+Configuration findings surface issues worth reviewing, such as large AGENTS.md files, Skill format issues, exact duplicate instruction blocks, and differences between declared copies. The evidence helps you decide whether a file needs a change.
 
-Open **Tasks** and search by title, working directory, or task ID. Review the turns and recorded actions to find the work you're looking for and compare usage within it. Full conversation transcripts aren't available.
+You can also browse Skills and MCP entries, with identifiable file reads and MCP call attempts shown separately.
 
-### Find high-usage tasks
+### See your usage in context
 
-Open **Overview**, choose a date range or project, and select a usage peak to see the related tasks and turns. Usage updates as Codex writes complete records to its local logs.
+Recent token usage, API cost estimates, and project breakdowns are ready on the overview. You can see where usage is concentrated without setting up filters first.
 
-### Check your setup
+Related task and turn records provide more detail when you need to examine a usage spike.
 
-Open **Configuration** to browse AGENTS.md, Skills, and MCP entries in the folders you've allowed Wombat to read, along with any activity it can identify in the logs.
+### Check whether your edits resolved an issue
 
-In **Optimize**, review file size and format issues, exact duplicate instruction blocks in AGENTS.md and SKILL.md, and differences between files you've declared as copies. Check the evidence, decide whether to edit or ignore a finding, and rerun the checks after a manual edit. MCP support covers inventory and logged call attempts; full MCP health checks aren't available.
+After you edit a file, rerun the checks to see whether the finding is resolved. Wombat keeps a review history so you can return to previous decisions.
 
 <details>
-<summary>Example: follow a recommendation to the related work</summary>
+<summary>Example: review a project instruction file</summary>
 
-In this prototype, Wombat flags a large AGENTS.md file, shows two recorded reads, and links to the relevant task turns. Open those records to help decide whether the file needs attention.
+In this prototype, a large AGENTS.md file has two recorded reads linked to specific task turns. You can review that work before deciding whether to shorten the file.
 
-![Wombat AGENTS.md recommendation with recorded reads, linked turn tokens, estimated API costs, and links to related tasks](assets/prototype-review-en.jpg)
+![Wombat AGENTS.md recommendation with recorded reads, related turns, token usage, and estimated API costs](assets/prototype-review-en.jpg)
 
-The 576K tokens cover everything in the linked turns, including other actions. They aren't a measure of this file's token cost or how much you could save by shortening it. Wombat doesn't know what the file contained at the time.
+The 576K tokens are the total usage of the linked turns, including other actions. They do not measure this file's token cost or predict savings from shortening it. Wombat does not know what the file contained at the time.
 
 </details>
 
-## Installation
+## Get started
 
-Wombat isn't on npm yet. Once it's released, the planned installation is:
+**Not yet released.** An npm release is planned. After release:
 
 ```sh
 npm install -g @wangyan9110/wombat
 wombat web
 ```
 
-You'll need Node.js **26.4.0+**. Local Codex records are needed to view past tasks and usage; you can run static configuration checks without usage history.
+Open the full URL printed in your terminal.
 
-Open the full URL printed in your terminal. To inspect a specific project's configuration, run `wombat web --project-root /path/to/project`.
+Requires Node.js **26.4.0+**. Past tasks and usage require local Codex records; static configuration checks work without usage history.
 
-See the [support matrix](docs/reference/support-matrix.en.md) for platform support and verification status.
+See the [CLI guide](docs/guides/cli.en.md) for project selection and custom log directories, and the [support matrix](docs/reference/support-matrix.en.md) for platform support.
 
 <details>
-<summary>Run from source before the npm release</summary>
+<summary>Run from source or use the CLI</summary>
 
-Clone this repository, install Corepack/pnpm and Rust, then run these commands from the repository directory:
+Before the npm release, clone this repository and prepare Corepack, pnpm, and the Rust version specified in `rust-toolchain.toml`.
+
+Run from the repository directory:
 
 ```sh
 corepack pnpm install --frozen-lockfile
@@ -76,16 +76,9 @@ corepack pnpm build
 node dist/wombat.js web
 ```
 
-Use the Rust version in `rust-toolchain.toml`. See the [development workflow](docs/development/workflow.en.md) for setup and checks.
+See the [development workflow](docs/development/workflow.en.md) for environment setup.
 
-</details>
-
-## CLI and JSON
-
-Query your local data from the terminal or use JSON output in scripts.
-
-<details>
-<summary>Usage, task, and configuration examples</summary>
+The CLI provides JSON output for scripts:
 
 ```sh
 wombat usage --json
@@ -95,22 +88,20 @@ wombat optimize inventory --project-root /path/to/project --json
 wombat optimize list --project-root /path/to/project --json
 ```
 
-See the [CLI guide](docs/guides/cli.en.md) for filters, updates, and review commands.
-
 </details>
 
 ## Privacy and costs
 
-Wombat processes and stores data on your machine. It reads local Codex logs and the configuration you've allowed it to inspect, without uploading conversations or modifying those source files. The current analysis requires no API key or model calls.
+Wombat reads local Codex logs and the configuration you allow it to inspect. Analysis and storage happen on your machine. It does not upload conversations or modify source logs and configuration. No API key or model calls are needed for the current analysis.
 
-Cost estimates use recorded token usage and official standard API rates. **They aren't your subscription bill or remaining Codex quota.** Unknown prices stay unknown; incomplete data is marked as partial.
+Cost estimates use recorded token usage and official standard API rates. They do not show your subscription bill or remaining Codex quota. Missing prices stay unknown; incomplete results are marked as partial.
 
 <details>
 <summary>Local storage and pricing downloads</summary>
 
-The local usage index doesn't store user messages, model replies, full command arguments, or tool output. It can contain task titles, project paths, and tool names, so check these before sharing screenshots or JSON.
+The local usage index does not store user messages, model replies, full command arguments, or tool output. It can contain task titles, project paths, and tool names. Review these before sharing screenshots or JSON.
 
-If a model's price is missing, Wombat may download official pricing documents. These requests don't include your logs. To turn off automatic pricing downloads:
+If a model's price is missing, Wombat may download official pricing documents. These requests do not include your logs. To disable automatic pricing downloads:
 
 ```sh
 WOMBAT_AUTO_PRICES=0 wombat web
@@ -120,33 +111,38 @@ Read the [privacy policy](docs/reference/privacy.en.md) and [pricing details](do
 
 </details>
 
-## Common questions
+<details>
+<summary>Common questions</summary>
 
-**Does it support Claude Code or pi?**
+**Does a configuration entry mean it was used?**
 
-Wombat currently supports Codex. Support for Claude Code, pi, and other agents is planned. [Tell us what you use and what you'd like to see](https://github.com/wangyan9110/wombat/issues).
+An entry shows what Wombat found, not proof of runtime loading or use. Reading a Skill file does not prove the Skill was invoked. MCP counts include identifiable call attempts, not confirmed successes. Missing usage evidence stays unknown.
 
-**Can it tell me why my Codex allowance dropped?**
+**How detailed are the usage records?**
 
-It can help you find high-usage tasks in your local records. It can't determine how OpenAI calculates subscription allowances or explain a change in your remaining allowance.
+You can review related tasks, recorded turns, actions, and usage. Wombat does not replay full conversation transcripts.
 
-**Does an entry in Configuration mean it was used?**
+**Does Wombat automatically fix configuration?**
 
-No. An entry shows what was found in your configuration; it doesn't confirm that Codex loaded or used it. Reading a Skill file doesn't prove the Skill was invoked. Without explicit records, usage stays unknown. MCP counts include identifiable call attempts, not confirmed successes.
+You decide what to change and edit the files yourself. Wombat supports findings, review history, and checks after edits. It does not automatically change configuration or predict savings. A passing static check does not guarantee runtime behavior. MCP support covers inventory and call attempts, not full health checks.
 
-**Can it fix my setup or tell me how much I'll save?**
+**Can Wombat explain a drop in my Codex allowance?**
 
-You can review findings, keep a review history, and rerun checks after manual edits. Wombat doesn't change configuration automatically or predict savings. Passing a static check doesn't guarantee that the configuration will work when the agent runs.
+It can help you find high-usage tasks in local records. It cannot determine OpenAI's subscription allowance calculations or prove why your remaining allowance changed.
 
-**Why isn't any usage showing up?**
+**Why is the usage view empty?**
 
-Check that you have local Codex logs with usage records and that your date and project filters include them. By default, Wombat reads `CODEX_HOME` or `~/.codex`. If your logs are elsewhere, use `wombat web --root /path/to/codex-home`.
+Make sure your local Codex logs contain usage records and your date and project filters include them. Wombat reads `CODEX_HOME` or `~/.codex` by default. Custom log directories and project roots are covered in the [CLI guide](docs/guides/cli.en.md).
+
+</details>
 
 ## Help shape Wombat
 
-What would you like to find or check, and how do you do it today? [Tell us about your workflow](https://github.com/wangyan9110/wombat/issues). Mention your agent and platform if they're relevant. You don't need to share private logs.
+Wombat currently supports Codex. Claude Code, pi, and other agents are planned.
 
-For contributions, see [CONTRIBUTING](CONTRIBUTING.md). Report security issues using the [security policy](SECURITY.md).
+What would you like to understand or improve in your AI workflow? [Share your use case](https://github.com/wangyan9110/wombat/issues). Tell us what you use and how you handle it today. No private logs are needed.
+
+See [CONTRIBUTING](CONTRIBUTING.md) to contribute, or the [security policy](SECURITY.md) to report security issues.
 
 ## License
 

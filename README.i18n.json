@@ -6,44 +6,36 @@
       "en": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562"
     },
     "/wombat-codex-usage-configuration": {
-      "zh": "9e46991b324a2417ac4233066941b0abad5c4dda7424894f1f8d8e7288286a8d",
-      "en": "be29a51f7c7dae37ef816929efbbc3d39eafa117d042650f14493980e9a3f4d3"
+      "zh": "365189cd9d06ab9c0c515e04bbbb97b28cbc3fc62e4a5f19bc7bc2eccc39c237",
+      "en": "acca23b73ceeaae7dbd885c8a7b86e76c40b26e4e3ff47bb39c071bdf7d45854"
     },
-    "/wombat-codex-usage-configuration/what-you-can-do": {
-      "zh": "740b1578a4ab25224308f7e9fe52a33035a6102210ef56379fcc40e858601049",
-      "en": "41c4efd5bbd17384a41b8483e2722f29733ab4477c14b70d74dc3e1576b9aaf5"
+    "/wombat-codex-usage-configuration/what-wombat-helps-you-do": {
+      "zh": "9a012024959f78ad55ee6df082462a101ca69bdbcef212ba998e48a6d936a829",
+      "en": "20565dd1d2d43b2a63eaa36305bea81635b08b221d248b46791667cf095585fa"
     },
-    "/wombat-codex-usage-configuration/what-you-can-do/find-past-work": {
-      "zh": "66f61f14cbec9adc5bf3db635449d0cf67fe70a535a74d4c1d95bd860ca3e42b",
-      "en": "c98f0bedfa7b1d178520a25bbea94b45c61a88568b5195297201a322e1bb8496"
+    "/wombat-codex-usage-configuration/what-wombat-helps-you-do/know-what-needs-attention-in-your-setup": {
+      "zh": "11d6f27bb4debed07a94a940db03ec17c7c45e2f5b6724b6d7b744a9937d7ce9",
+      "en": "67894a4f036483dc73211748c4dc0857fc2beb60a8623c1f480bc7bcdcd569f9"
     },
-    "/wombat-codex-usage-configuration/what-you-can-do/find-high-usage-tasks": {
-      "zh": "94d72893eb788449b3629c280734a390e1f2f6a7e19099dbbc223ec6f0b74316",
-      "en": "d2d52fe4cf01694b3f9b0843037592700caa160f179e93d7466b790df695ce5a"
+    "/wombat-codex-usage-configuration/what-wombat-helps-you-do/see-your-usage-in-context": {
+      "zh": "575f0782f0e962b46007715ecc94030a729844a2270369be7e6f949ca50493ba",
+      "en": "eaddfd55ec5c36888084ef8d722e4b5c215441a2d02480eca2d1f5e457a9e956"
     },
-    "/wombat-codex-usage-configuration/what-you-can-do/check-your-setup": {
-      "zh": "e9c9d6bc4aad5b8740069be67c16de7bcd935f79f28101a8db57a878996f24ad",
-      "en": "4514a7792cfd226043968b2e92444520116912b488697a162956f635887de046"
+    "/wombat-codex-usage-configuration/what-wombat-helps-you-do/check-whether-your-edits-resolved-an-issue": {
+      "zh": "22ae0ed8a19a2d023260b188c79e515ee04d950a5214abd94177705e91c2279b",
+      "en": "8e7ad3ad23ef460ad64b688f3a4e426f4eed70ae5558edfaf484ac6bae0c9ae6"
     },
-    "/wombat-codex-usage-configuration/installation": {
-      "zh": "02d5819edb4301573efbb695eaef2620e1569e31cce5a67a788c86a1f5de2a1b",
-      "en": "446987783866018dab153c530d96bcf759b923cc5c33d3f1f8fa69062555acf3"
-    },
-    "/wombat-codex-usage-configuration/cli-and-json": {
-      "zh": "409a3ed01fe0434bc7ef63a7a29344ee31b0a7a2c215f61eda93f39888cbc700",
-      "en": "5fc6d42a0967c8063977ffc2b30b2aba98d0c58718bc78aede3825fd54dbb73d"
+    "/wombat-codex-usage-configuration/get-started": {
+      "zh": "cac46e0e81a80dffb1982a6b9cc8d3f4eb762edb3e6519b13e994fb36452aa75",
+      "en": "75a93408147d363b25e406d283d0e2587022b7301b964fdee9507794081f90ef"
     },
     "/wombat-codex-usage-configuration/privacy-and-costs": {
-      "zh": "4add538e5383b439bcc0be6b8ddd9080d2d695284d36e99a41b76a4a8b81ebcd",
-      "en": "1ab8a91f69825e588bb45bc11505a27a2e8ad18706d2e5e2038d49752c0a0350"
-    },
-    "/wombat-codex-usage-configuration/common-questions": {
-      "zh": "0860052049454f576626ad3818738488e7dcb7e2e514b2b14728f6b9729dd66e",
-      "en": "268e82d5ad0bca6b56c699b8750a209829442dc8f8179e44c310ac17d17bd556"
+      "zh": "e05474a4b203d111e023b75ef9d0e905a3e91270913d786e8221cd7448cc64ab",
+      "en": "7a22a58ce1a9e00bcc3da6ae5e99aedc97ef1d65f8d58781d279590fa4eb3988"
     },
     "/wombat-codex-usage-configuration/help-shape-wombat": {
-      "zh": "321492afa26dd545041be211cf7f77a034a7f509cdb6e7dbd5d7afbcd5cf9b7b",
-      "en": "86f720016b7b310a8f32769f1a92bb6c151e05f19b497a342e7bad269c520aa8"
+      "zh": "16b0502d7d59a3c2ac9bba2f06885b00c39a887d0b4b5b3caea04d6ecfa05e14",
+      "en": "90cf0d90afbfe0da6f9baa3dd26f2e22559e39710920a0c817372bd8586fa17b"
     },
     "/wombat-codex-usage-configuration/license": {
       "zh": "cde8bbb6126ec7c29da0dba23a26d83f906c3fb7b369eb68598e99d230c55abe",
