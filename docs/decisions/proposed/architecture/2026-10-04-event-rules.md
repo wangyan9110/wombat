@@ -12,7 +12,7 @@ Status: proposed
 
 ### 20. 基于统一证据的规则架构
 
-本节为目标设计。当前 core/config 负责授权配置采集、测量与静态分析，core/optimize 的 detection 生成建议，registry 结合建议和证据能力生成检查状态，service/reviews/store 管理处理与复查；部分关联观察遍历快照操作。调整为「固定证据与共享分析 → 独立规则评估 → 检查结果 → 具体问题 → 建议与处理视图」，不再从有没有建议反推检查结果。
+本节继续描述完整目标。当前 core/config 负责授权配置采集、测量与静态分析；core/optimize/evaluation.rs 按类型化输入独立评估规则，registry 提供规则目录，detection 根据命中评估生成建议，service 的 Checks 直接执行评估，reviews 复用基线评估逻辑；部分关联观察仍遍历快照操作。完整目标是「固定证据与共享分析 → 独立规则评估 → 检查结果 → 具体问题 → 建议与处理视图」。U12 的固定 EvidenceView 与缓存、U13 的独立方法版本和问题身份 schema 尚未完成；建议是否存在不决定检查结果。
 
 #### 20.1 设计依据与技术选择
 

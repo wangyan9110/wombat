@@ -15,20 +15,6 @@ pub(crate) fn parameters(overrides: Option<RuleOverrides>) -> Result<RuleParamet
         ..Default::default()
     })
 }
-pub(super) fn known_body(item: &crate::config_dto::Item) -> Option<u64> {
-    item.body_token_estimate
-        .as_ref()
-        .filter(|e| {
-            item.body_estimate_status == "estimated"
-                && e.payload == "skillBody"
-                && e.method == "tiktoken-rs-0.12.0/o200k_base/ordinary-v1"
-                && e.encoding == "o200k_base"
-                && e.tokenizer_version.as_deref() == Some("tiktoken-rs-0.12.0")
-                && e.applicability == "referenceEncodingOnly"
-                && !e.content_hash.is_empty()
-        })
-        .map(|e| e.tokens)
-}
 #[cfg(test)]
 pub(crate) fn detect(view: &View, rules: &RuleParameters) -> Vec<Suggestion> {
     detect_for(view, rules, None)
@@ -41,136 +27,46 @@ pub(crate) fn detect_for(
     let mut suggestions: Vec<_> = view
         .items
         .iter()
-        .filter(|i| {
-            i.current
-                && !i.stale
-                && (i.kind == Kind::Hook
-                    || matches!(i.measurement_status.as_str(), "complete" | "missing"))
-        })
         .filter_map(|item| {
-            let mut findings = vec![];
-            let finding = |rule: &str, basis: &str, observed, threshold, evidence_codes| Finding {
-                rule: rule.into(),
-                status: "failed".into(),
-                observed,
-                threshold,
-                evidence_codes,
-                basis: Some(basis.into()),
-                evidence: None,
-            };
-            if item.kind == Kind::Rule
-                && item.configured_state == "missing"
-                && item.measurement_status == "missing"
-            {
-                let mut absent = finding(
-                    "missingInstruction",
-                    "authorizedExistenceCheck",
-                    None,
-                    None,
-                    vec![],
-                );
-                absent.status = "informational".into();
-                findings.push(absent);
-            }
-            if let Some(m) = &item.skill_metadata {
-                if m.status == "invalid" {
-                    findings.push(finding(
-                        "skillFormat",
-                        "fieldFormat",
-                        None,
-                        None,
-                        m.issues.clone(),
-                    ));
-                }
-                if let Some(n) = m.description_characters {
-                    if n > rules.description_standard_max {
-                        findings.push(finding(
-                            "descriptionStandard",
-                            "agentSkillsSpecification",
-                            Some(n),
-                            Some(rules.description_standard_max),
-                            vec![],
-                        ));
-                    } else if n > rules
-                        .overrides
-                        .description_characters
-                        .unwrap_or(rules.description_characters_default)
-                    {
-                        findings.push(finding(
-                            "descriptionSize",
-                            "productReminder",
-                            Some(n),
-                            Some(
-                                rules
-                                    .overrides
-                                    .description_characters
-                                    .unwrap_or(rules.description_characters_default),
-                            ),
-                            vec![],
-                        ));
-                    }
-                }
-                if m.status == "parsed"
-                    && let Some(n) = known_body(item).filter(|n| *n >= rules.body_tokens)
-                {
-                    findings.push(finding(
-                        "bodyTokens",
-                        "agentSkillsRecommendation",
-                        Some(n),
-                        Some(rules.body_tokens),
-                        vec![],
-                    ));
-                }
-            }
-            if item.kind == Kind::Rule
-                && let Some(n) = item.bytes.filter(|n| {
-                    *n > rules
-                        .overrides
-                        .agents_bytes
-                        .unwrap_or(rules.agents_bytes_default)
+            let checks = super::evaluation::evaluate(&super::evaluation::Input::initial(
+                view, item, rules, project,
+            ));
+            let mut findings: Vec<_> = checks
+                .iter()
+                .filter(|c| c.outcome == RuleOutcome::Hit)
+                .filter(|c| {
+                    !matches!(
+                        c.rule.as_str(),
+                        "localReference"
+                            | "exactInstructionBlocks"
+                            | "declaredCopyDrift"
+                            | "hookTarget"
+                    )
                 })
-            {
-                findings.push(finding(
-                    "fileSize",
-                    "productReminder",
-                    Some(n),
-                    Some(
-                        rules
-                            .overrides
-                            .agents_bytes
-                            .unwrap_or(rules.agents_bytes_default),
-                    ),
-                    vec![],
-                ));
-            }
-            if findings.is_empty() {
-                findings.extend(
-                    view.analysis
-                        .findings
-                        .get(&item.id)
-                        .cloned()
-                        .unwrap_or_default(),
-                );
-                if findings.is_empty() {
-                    return None;
+                .flat_map(|c| c.findings.clone())
+                .collect();
+            // Preserve the static analyzer's evidence ordering and existing suggestion keys.
+            for finding in view.analysis.findings.get(&item.id).into_iter().flatten() {
+                if matches!(
+                    finding.rule.as_str(),
+                    "localReference"
+                        | "exactInstructionBlocks"
+                        | "declaredCopyDrift"
+                        | "hookTarget"
+                ) && checks.iter().any(|c| {
+                    c.outcome == RuleOutcome::Hit
+                        && c.rule == finding.rule
+                        && project.is_none_or(|p| {
+                            finding
+                                .evidence
+                                .as_ref()
+                                .and_then(|e| e.hook.as_ref())
+                                .is_none_or(|h| h.project == p)
+                        })
+                }) {
+                    findings.push(finding.clone());
                 }
-            } else {
-                findings.extend(
-                    view.analysis
-                        .findings
-                        .get(&item.id)
-                        .cloned()
-                        .unwrap_or_default(),
-                );
             }
-            findings.retain(|f| {
-                project.is_none_or(|p| {
-                    f.evidence
-                        .as_ref()
-                        .and_then(|e| e.hook.as_ref())
-                        .is_none_or(|h| h.project == p)
-                })
-            });
             if findings.is_empty() {
                 return None;
             }
@@ -214,7 +110,7 @@ pub(crate) fn detect_for(
                 category,
                 status: "pending".into(),
                 decision: None,
-                checks: super::registry::checks_for(view, rules, item, &findings, project),
+                checks,
                 findings,
                 checked_at: view.checked.clone(),
                 rule_version: rules.version.clone(),

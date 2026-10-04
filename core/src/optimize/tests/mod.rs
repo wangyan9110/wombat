@@ -7,6 +7,7 @@ use crate::{
 };
 use std::path::Path;
 mod decisions;
+mod evaluation;
 mod follow_up;
 mod history;
 mod rules;

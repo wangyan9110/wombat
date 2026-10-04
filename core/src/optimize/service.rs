@@ -2,13 +2,13 @@
 use super::{
     capabilities,
     detection::{detect_for, parameters},
-    registry,
+    evaluation, registry,
     repository::connect,
     reviews, store,
 };
 use crate::{config::View, dto::operation_error, optimize_dto::*};
 use anyhow::Result;
-use std::{collections::BTreeMap, path::Path};
+use std::path::Path;
 pub(crate) fn execute(request: Request, id: String, view: &View) -> Result<Response> {
     let path = crate::storage::data_home()?.join("user-v1/reviews.sqlite3");
     execute_at(request, id, view, &path)
@@ -127,22 +127,17 @@ fn execute_at_inner(
         if r.item_id.is_some() && items.is_empty() {
             return Err(operation_error("NOT_FOUND", "未找到检查对象"));
         }
-        let raw = detect_for(view, &rules, r.project.as_deref())
-            .into_iter()
-            .map(|s| (s.item.id, s.findings))
-            .collect::<BTreeMap<_, _>>();
         let checks = items
             .iter()
             .skip(offset)
             .take(limit)
             .flat_map(|i| {
-                registry::checks_for(
+                evaluation::evaluate(&evaluation::Input::initial(
                     view,
-                    &rules,
                     i,
-                    raw.get(&i.id).map(Vec::as_slice).unwrap_or_default(),
+                    &rules,
                     r.project.as_deref(),
-                )
+                ))
             })
             .collect();
         let total = items.len();

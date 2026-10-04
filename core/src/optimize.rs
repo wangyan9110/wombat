@@ -1,5 +1,6 @@
 //! Static optimization rules and durable review decisions share one inventory basis.
 mod detection;
+mod evaluation;
 mod follow_up;
 mod registry;
 mod repository;

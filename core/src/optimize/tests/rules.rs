@@ -1,14 +1,14 @@
 use super::*;
 use crate::optimize::{
     detection::{detect, parameters},
+    evaluation::{self, Input},
     registry,
 };
 #[test]
 fn rule_outcomes_do_not_turn_absent_findings_into_global_success() {
     let mut v = view();
     let rules = RuleParameters::default();
-    let findings = detect(&v, &rules).remove(0).findings;
-    let checks = registry::checks(&v, &rules, &v.items[0], &findings);
+    let checks = evaluation::evaluate(&Input::initial(&v, &v.items[0], &rules, None));
     let outcome = |rule: &str| {
         checks
             .iter()
@@ -33,7 +33,7 @@ fn rule_outcomes_do_not_turn_absent_findings_into_global_success() {
     );
     v.items[0].stale = true;
     assert!(
-        registry::checks(&v, &rules, &v.items[0], &findings)
+        evaluation::evaluate(&Input::initial(&v, &v.items[0], &rules, None))
             .iter()
             .all(|c| c.outcome == RuleOutcome::Insufficient)
     );

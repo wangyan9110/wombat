@@ -12,7 +12,7 @@ This record owns all design responsibilities from section 20 of the [upgrade ove
 
 ### 20. Rule architecture based on unified evidence
 
-This section describes the target. Currently core/config owns authorized configuration collection, measurement, and static analysis; core/optimize detection generates suggestions, registry combines findings and evidence capabilities into assessments, and service/reviews/store manage decisions and rechecks. Some associated observations traverse snapshot operations. Change the flow to “fixed evidence and shared analysis → independent rule evaluation → assessments → findings → suggestions and handling views,” rather than inferring assessment outcomes from the presence of suggestions.
+This section continues to describe the complete target. Currently core/config owns authorized configuration collection, measurement, and static analysis; core/optimize/evaluation.rs independently evaluates typed rule inputs, registry supplies the rule catalog, detection generates suggestions from hit assessments, service Checks runs assessments directly, and reviews reuses baseline evaluation. Some associated observations still traverse snapshot operations. The complete target is “fixed evidence and shared analysis → independent rule evaluation → assessments → findings → suggestions and handling views.” U12’s fixed EvidenceView and cache, and U13’s independent method versions and finding-identity schema, remain incomplete; whether a suggestion exists does not determine an assessment outcome.
 
 #### 20.1 Design references and technology choice
 
