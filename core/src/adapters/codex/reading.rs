@@ -2,6 +2,7 @@
 use super::*;
 #[derive(Default, Serialize, Deserialize)]
 pub(super) struct State {
+    pub(super) event_generation: Option<String>,
     pub(super) thread: Option<String>,
     pub(super) turn: Option<String>,
     pub(super) model: ModelRef,
@@ -193,7 +194,24 @@ pub(super) fn read_file_from(
             "{:x}",
             Sha256::digest(row.bytes().strip_suffix(b"\n").unwrap_or(row.bytes()))
         );
+        let generation = state
+            .event_generation
+            .get_or_insert_with(|| {
+                let physical = before.as_ref().map(incremental::physical_identity);
+                crate::hash(
+                    serde_json::to_vec(&(physical, &fingerprint)).expect("serializable identity"),
+                )
+            })
+            .clone();
+        let position = crate::session_events::Position {
+            source_instance_id: source.id.clone(),
+            file_id: crate::hash(evidence_path.as_bytes()),
+            generation,
+            byte_offset: consumed - row.bytes().len() as u64,
+            ordinal: 0,
+        };
         process(
+            position,
             record.kind,
             payload,
             time,

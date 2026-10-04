@@ -4,7 +4,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value};
 use std::{collections::HashSet, path::Path};
 
-const VERSION: i64 = 3;
+const VERSION: i64 = 4;
 const UPSERT: &str = "INSERT INTO entries(bucket,id,payload) VALUES(?1,?2,jsonb(?3)) ON CONFLICT(bucket,id) DO UPDATE SET payload=excluded.payload,source_bucket=NULL,member=NULL WHERE payload IS NOT excluded.payload OR source_bucket IS NOT NULL";
 
 pub(crate) fn failure_code(error: &anyhow::Error) -> &'static str {
@@ -448,7 +448,7 @@ mod tests {
     }
     #[test]
     fn unsupported_schema_is_rejected_without_mutating_records() {
-        for version in [0, 1, 2, 99] {
+        for version in [0, 1, 2, 3, 99] {
             let root = tempfile::tempdir().unwrap();
             let path = root.path().join("index.sqlite");
             let db = Connection::open(&path).unwrap();

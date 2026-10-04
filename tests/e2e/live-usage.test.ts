@@ -45,12 +45,12 @@ test('live CLI resumes, keeps fixed views, exports only explicitly and streams a
     await start();
     const first=run(['usage','--fresh']);
     assert.equal(first.summary.tokens.total,110); assert.equal(first.freshness.status,'current');
-    const index = new DatabaseSync(path.join(data,'live-v1','index.sqlite'),{readOnly:true});
+    const index = new DatabaseSync(path.join(data,'live-v2','index.sqlite'),{readOnly:true});
     try {
       assert.equal(index.prepare("SELECT count(*) AS n FROM entries e JOIN buckets b ON b.id=e.bucket WHERE b.scope LIKE 'projection:%' AND b.field='measurements' AND e.payload IS NULL AND e.source_bucket IS NOT NULL").get()!.n,1);
       assert.equal(index.prepare("SELECT count(*) AS n FROM entries e LEFT JOIN entries origin ON origin.bucket=e.source_bucket AND origin.id=e.id WHERE e.source_bucket IS NOT NULL AND origin.payload IS NULL").get()!.n,0);
     } finally { index.close(); }
-    assert.ok(!(await readdir(data)).includes('usage-v3'), 'automatic sync must not export snapshots');
+    assert.ok(!(await readdir(data)).includes('usage-v4'), 'automatic sync must not export snapshots');
     await stop();
     await appendFile(log,row('two'));
     await start();

@@ -184,7 +184,7 @@ test('real CLI partial sources, failed refresh and corrupted snapshot have expli
     const retained = f.run(['threads', '--snapshot', partial.value.snapshotRef.snapshotId]);
     assert.equal(retained.code, 2);
     assert.equal(retained.value.snapshotRef.snapshotId, partial.value.snapshotRef.snapshotId);
-    const ledger = path.join(f.data, 'usage-v3', 'generations', retained.value.snapshotRef.snapshotId, 'committed', 'ledger.json');
+    const ledger = path.join(f.data, 'usage-v4', 'generations', retained.value.snapshotRef.snapshotId, 'committed', 'ledger.json');
     await writeFile(ledger, '[]');
     const corrupt = f.run(['usage', ...dates, '--snapshot', retained.value.snapshotRef.snapshotId]);
     assert.equal(corrupt.code, 1);

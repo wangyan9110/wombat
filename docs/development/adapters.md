@@ -2,7 +2,7 @@
 
 中文 | [English](adapters.en.md)
 
-Wombat 的独立合成样本使用协议字段与手算期望，不安装或运行 ccusage，不包含真实对话和工具输出。来源实现版本为 `codex-rollout-5`。测试代码见 [Codex 样本](../../core/src/adapters/codex/tests.rs)、[异构协议样本](../../core/src/adapters/mod.rs)、[计价样本](../../core/src/pricing/tests.rs)和[完整查询链路](../../tests/integration/usage-v1.test.ts)。
+Wombat 的独立合成样本使用协议字段与手算期望，不安装或运行 ccusage，不包含真实对话和工具输出。来源实现版本为 `codex-rollout-6`。测试代码见 [Codex 样本](../../core/src/adapters/codex/tests.rs)、[异构协议样本](../../core/src/adapters/mod.rs)、[计价样本](../../core/src/pricing/tests.rs)和[完整查询链路](../../tests/integration/usage-v1.test.ts)。
 
 | 案例 | 已覆盖行为与测试定位 |
 |---|---|

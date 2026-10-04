@@ -167,7 +167,8 @@ pub struct Operation {
     pub evidence: Vec<EvidenceRef>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+// Internal collection, not a public query DTO or generated transport schema.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Collected {
     pub sources: Vec<SourceReport>,
@@ -175,6 +176,7 @@ pub struct Collected {
     pub turns: Vec<Turn>,
     pub measurements: Vec<Arc<Measurement>>,
     pub operations: Vec<Arc<Operation>>,
+    pub events: Vec<Arc<crate::session_events::Event>>,
     pub issues: Vec<Issue>,
 }
 
@@ -217,6 +219,7 @@ pub enum Fact {
     Turn(Turn),
     Measurement(Arc<Measurement>),
     Operation(Arc<Operation>),
+    Event(Arc<crate::session_events::Event>),
 }
 pub trait FactSink {
     fn push(&mut self, fact: Fact);
@@ -228,6 +231,7 @@ impl FactSink for Collected {
             Fact::Turn(value) => self.turns.push(value),
             Fact::Measurement(value) => self.measurements.push(value),
             Fact::Operation(value) => self.operations.push(value),
+            Fact::Event(value) => self.events.push(value),
         }
     }
 }

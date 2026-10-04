@@ -101,7 +101,7 @@ try {
   const cpuStart = cpuSeconds(); const idleStart = performance.now(); await delay(5000);
   const idleCpuPercent = 100 * (cpuSeconds() - cpuStart) / ((performance.now() - idleStart) / 1000);
   const finalRss = rss(); const size = bytesUnder(path.join(temporary, 'data'));
-  const indexFile = path.join(temporary, 'data', 'live-v1', 'index.sqlite');
+  const indexFile = path.join(temporary, 'data', 'live-v2', 'index.sqlite');
   const diskBytes = (file: string) => existsSync(file) ? statSync(file).size : 0;
   const liveIndexDbBytes = diskBytes(indexFile), liveIndexWalBytes = diskBytes(indexFile + '-wal');
   const deadline = idleStart + 25_000;

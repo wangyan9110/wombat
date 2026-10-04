@@ -94,7 +94,7 @@ try {
   verify(refreshed.summary, totalTokens, totalCost);
   const snapshot = refreshed.snapshotRef.snapshotId;
   const common = ['--snapshot', snapshot, '--timezone', 'UTC'];
-  const generation = path.join(temporary, 'data/usage-v3/generations', snapshot, 'committed');
+  const generation = path.join(temporary, 'data/usage-v4/generations', snapshot, 'committed');
   const selected = json(readFileSync(path.join(generation, 'manifest.json'), 'utf8')).threads[0];
   const thread = selected.thread.id;
   const turn = Object.keys(selected.turns)[0];

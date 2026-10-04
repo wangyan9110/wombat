@@ -7,6 +7,7 @@ pub(crate) mod preview;
 mod skills;
 #[cfg(test)]
 mod tests;
+mod timing;
 mod wire;
 use operations::{empty_operation, operation};
 
@@ -23,7 +24,7 @@ use std::{
 };
 use wire::*;
 
-pub const VERSION: &str = "codex-rollout-5";
+pub const VERSION: &str = "codex-rollout-6";
 pub struct CodexAdapter;
 
 impl AgentAdapter for CodexAdapter {
@@ -217,6 +218,9 @@ fn finish_facts(mut facts: Facts, root: &Path, report: &mut SourceReport, sink: 
     }
     for (_, candidate) in facts.measurements {
         sink.push(Fact::Measurement(candidate.measurement));
+    }
+    for event in facts.events.into_values() {
+        sink.push(Fact::Event(event));
     }
     for operation in facts.operations.into_values() {
         sink.push(Fact::Operation(operation));

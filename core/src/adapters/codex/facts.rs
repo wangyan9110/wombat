@@ -9,6 +9,9 @@ pub(super) struct Facts {
     pub(super) turns: BTreeMap<String, Turn>,
     pub(super) measurements: BTreeMap<String, Candidate>,
     pub(super) operations: BTreeMap<String, Arc<Operation>>,
+    pub(super) events: BTreeMap<String, Arc<crate::session_events::Event>>,
+    #[serde(skip)]
+    pub(super) dirty_events: BTreeSet<String>,
     #[serde(skip)]
     pub(super) dirty_operations: BTreeSet<String>,
     #[serde(skip)]
@@ -32,6 +35,7 @@ pub(super) struct Candidate {
 impl Facts {
     pub(super) fn fork_derived(&self, include_facts: bool) -> Self {
         Self {
+            events: self.events.clone(),
             threads: self.threads.clone(),
             turns: self.turns.clone(),
             measurements: if include_facts {

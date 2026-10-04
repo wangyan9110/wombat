@@ -1,0 +1,117 @@
+//! Allowlisted timing observations from the already-decoded rollout row.
+use super::*;
+use serde_json::value::RawValue;
+
+use crate::session_events::{
+    Event, Gap, LifecycleKind, Payload as SafePayload, Phase, Position, Time,
+};
+
+pub(super) fn safe_integer(raw: &RawValue) -> Option<u64> {
+    serde_json::from_str::<u64>(raw.get())
+        .ok()
+        .filter(|v| *v <= MAX_SAFE_INTEGER)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn observe(
+    payload: &Payload<'_>,
+    kind: &str,
+    thread: Option<&str>,
+    turn: Option<&str>,
+    raw_time: Option<&str>,
+    position: Position,
+    facts: &mut Facts,
+    report: &mut SourceReport,
+    evidence: &EvidenceRef,
+) {
+    let (time, gap) = Time::from_source(raw_time);
+    let mut observations = Vec::new();
+    let mut gaps: Vec<_> = gap.into_iter().collect();
+    let phase = match kind {
+        "task_started" => Some(Phase::Started),
+        "task_complete" => Some(Phase::Completed),
+        "turn_aborted" => Some(Phase::Cancelled),
+        "turn_failed" => Some(Phase::Failed),
+        _ => None,
+    };
+    if let Some(phase) = phase {
+        if thread.is_none() || turn.is_none() {
+            gaps.push(Gap::MissingIdentity);
+        }
+        let first_token_ms = payload.time_to_first_token_ms.and_then(safe_integer);
+        let duration_ms = payload.duration_ms.and_then(safe_integer);
+        if (payload.time_to_first_token_ms.is_some() && first_token_ms.is_none())
+            || (payload.duration_ms.is_some() && duration_ms.is_none())
+        {
+            gaps.push(Gap::InvalidNativeField);
+            issue(
+                report,
+                "invalidTimingField",
+                "原生耗时字段无效，保留未知值",
+                Some(evidence.clone()),
+            );
+        }
+        observations.push(SafePayload::Lifecycle {
+            lifecycle: LifecycleKind::Turn,
+            phase,
+            native_id: payload.turn_id.clone().filter(|id| !id.is_empty()),
+            duration_ms,
+            first_token_ms,
+        });
+    }
+    #[derive(Deserialize)]
+    struct Info<'a> {
+        #[serde(borrow)]
+        model_context_window: Option<&'a RawValue>,
+    }
+    let window_raw = payload.model_context_window.or_else(|| {
+        payload
+            .info
+            .and_then(|raw| serde_json::from_str::<Info>(raw.get()).ok())
+            .and_then(|info| info.model_context_window)
+    });
+    let window = window_raw.and_then(safe_integer).filter(|v| *v > 0);
+    if matches!(kind, "task_started" | "token_count") && window_raw.is_some() && window.is_none() {
+        gaps.push(Gap::InvalidNativeField);
+        issue(
+            report,
+            "invalidContextWindow",
+            "上下文窗口字段无效，保留未知值",
+            Some(evidence.clone()),
+        );
+    }
+    if matches!(kind, "task_started" | "token_count")
+        && let Some(tokens) = window
+    {
+        observations.push(SafePayload::ContextWindow {
+            model: payload.model.clone(),
+            tokens,
+        });
+    }
+    for (ordinal, payload) in observations.into_iter().enumerate() {
+        let position = Position {
+            ordinal: ordinal as u32,
+            ..position.clone()
+        };
+        match Event::new(
+            position,
+            thread.map(str::to_owned),
+            turn.map(str::to_owned),
+            time.clone(),
+            gaps.clone(),
+            payload,
+        ) {
+            Ok(event) => {
+                let id = event.id().to_owned();
+                facts.dirty_events.insert(id.clone());
+                facts.events.insert(id, Arc::new(event));
+            }
+            Err(_) => issue(
+                report,
+                "invalidEventIdentity",
+                "事件关联身份不完整",
+                Some(evidence.clone()),
+            ),
+        }
+    }
+}

@@ -47,6 +47,9 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
                         strings.operation(row);
                     }
                 }
+                "events" => {
+                    rows!(events);
+                }
                 "issues" => {
                     value.issues = serde_json::from_str(payload)?;
                 }
@@ -190,6 +193,15 @@ pub(super) fn sync(
                     value.operations.iter().map(|r| r.id.as_str()),
                 )?;
             }
+            for event in &value.events {
+                projection.event(event)?;
+            }
+            crate::live_index::retain_field(
+                &tx,
+                &scope,
+                "events",
+                value.events.iter().map(|e| e.id()),
+            )?;
             updated.insert(source.id.clone(), value);
             crate::live_index::save_map(
                 &tx,
@@ -239,6 +251,7 @@ pub(super) fn sync(
         collected.turns.extend(value.turns);
         collected.measurements.extend(value.measurements);
         collected.operations.extend(value.operations);
+        collected.events.extend(value.events);
     }
     if collected.sources.iter().any(|s| s.status == "failed")
         && !collected
@@ -316,6 +329,7 @@ pub(super) fn restore(
         collected.turns.extend(v.turns);
         collected.measurements.extend(v.measurements);
         collected.operations.extend(v.operations);
+        collected.events.extend(v.events);
     }
     let mut snapshot = crate::usage_store::memory(collected, id.into(), prices, None)?;
     if let Some(at) = prior.get("createdAt").and_then(Value::as_str) {

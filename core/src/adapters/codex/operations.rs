@@ -145,7 +145,7 @@ pub(super) fn operation(
     }
     .into();
     op.exit_code = item.exit_code;
-    op.duration_ms = item.duration_ms.filter(|n| *n <= MAX_SAFE_INTEGER);
+    op.duration_ms = item.duration_ms.and_then(timing::safe_integer);
     if op.exit_code.is_some_and(|code| code != 0) {
         op.status = "failed".into();
     }

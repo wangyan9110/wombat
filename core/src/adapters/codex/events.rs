@@ -2,6 +2,7 @@
 use super::*;
 #[allow(clippy::too_many_arguments)]
 pub(super) fn process(
+    position: crate::session_events::Position,
     kind: &str,
     p: Payload<'_>,
     time: Option<String>,
@@ -54,6 +55,21 @@ pub(super) fn process(
         .as_ref()
         .zip(p.turn_id.as_deref().filter(|id| !id.is_empty()))
         .map(|(thread, turn)| facts.turn(thread, turn, time.as_deref(), None));
+    timing::observe(
+        &p,
+        event,
+        owner.as_deref(),
+        explicit_turn.as_deref().or_else(|| {
+            (event != "task_started" && owner == state.thread)
+                .then_some(state.turn.as_deref())
+                .flatten()
+        }),
+        raw_time,
+        position,
+        facts,
+        report,
+        &evidence,
+    );
     if kind == "response_item"
         && let Some(loads) = instructions::loads(&p)
         && let Some(thread) = &owner

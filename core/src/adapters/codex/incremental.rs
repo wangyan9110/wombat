@@ -12,11 +12,12 @@ pub(super) struct Checkpoint {
     pub line: u64,
     pub state: State,
     stamp: String,
+    physical: String,
     boundary: String,
     issues: Vec<Issue>,
 }
 
-fn stamp(meta: &fs::Metadata) -> String {
+pub(super) fn physical_identity(meta: &fs::Metadata) -> String {
     #[cfg(unix)]
     let physical = {
         use std::os::unix::fs::MetadataExt;
@@ -24,6 +25,10 @@ fn stamp(meta: &fs::Metadata) -> String {
     };
     #[cfg(not(unix))]
     let physical = format!("{:?}", meta.created().ok());
+    physical
+}
+fn stamp(meta: &fs::Metadata) -> String {
+    let physical = physical_identity(meta);
     format!(
         "{physical}:{}:{}",
         meta.len(),
@@ -137,6 +142,11 @@ fn load_facts(db: &Connection, scope: &str, reuse: Option<&ReusableFacts>) -> Re
     let mut paths = EvidencePaths::default();
     crate::live_index::each(db, scope, |field, id, payload| {
         match field {
+            "events" => {
+                facts
+                    .events
+                    .insert(id.into(), serde_json::from_str(payload)?);
+            }
             "threads" => {
                 facts
                     .threads
@@ -294,6 +304,7 @@ pub(crate) fn sync_cached(
         previous.is_empty() || previous.get("titleStamp") != Some(&serde_json::json!(title_stamp));
     let mut rebuild = verify;
     let mut dirty = BTreeSet::new();
+    let mut replaced = BTreeSet::new();
     for file in &files {
         let key = file.to_string_lossy().into_owned();
         let meta = fs::metadata(file)?;
@@ -301,11 +312,13 @@ pub(crate) fn sync_cached(
             if cp.stamp == stamp(&meta) && !verify {
                 continue;
             }
-            if meta.len() < cp.offset
+            if physical_identity(&meta) != cp.physical
+                || meta.len() < cp.offset
                 || boundary(file, cp.offset).ok().as_ref() != Some(&cp.boundary)
                 || (meta.len() == cp.offset && cp.stamp != stamp(&meta))
             {
                 rebuild = true;
+                replaced.insert(key.clone());
             }
         }
         dirty.insert(key);
@@ -339,12 +352,27 @@ pub(crate) fn sync_cached(
         None => load_facts(db, &fact_scope, cache.seed.as_ref())?,
     };
     cache.seed = None;
+    facts.dirty_events.clear();
     facts.dirty_operations.clear();
     facts.dirty_measurements.clear();
     facts.dirty_aliases.clear();
+    let generations: BTreeMap<_, _> = checkpoints
+        .iter()
+        .filter_map(|(path, cp)| {
+            cp.state
+                .event_generation
+                .clone()
+                .map(|generation| (path.clone(), generation))
+        })
+        .collect();
     if rebuild {
         // Cross-file ownership and late direct measurements require source-wide
         // reconciliation. Retain facts evidenced solely by now-missing files.
+        let missing_files: BTreeSet<_> =
+            missing.iter().map(|p| crate::hash(p.as_bytes())).collect();
+        facts
+            .events
+            .retain(|_, event| missing_files.contains(&event.position().file_id));
         facts.measurements.retain(|_, c| {
             !c.measurement.evidence.is_empty()
                 && c.measurement
@@ -360,6 +388,12 @@ pub(crate) fn sync_cached(
             .values()
             .filter_map(|c| c.measurement.thread_id.clone())
             .chain(facts.operations.values().map(|o| o.thread_id.clone()))
+            .chain(
+                facts
+                    .events
+                    .values()
+                    .filter_map(|e| e.thread_id().map(Arc::from)),
+            )
             .collect();
         facts
             .threads
@@ -383,6 +417,13 @@ pub(crate) fn sync_cached(
     }
     for path in dirty {
         let checkpoint = checkpoints.entry(path.clone()).or_default();
+        if checkpoint.state.event_generation.is_none() {
+            checkpoint.state.event_generation = if replaced.contains(&path) {
+                Some(uuid::Uuid::new_v4().to_string())
+            } else {
+                generations.get(&path).cloned()
+            };
+        }
         let before = fs::metadata(&path)?;
         checkpoint.issues.clear();
         let first = report.issues.len();
@@ -410,6 +451,7 @@ pub(crate) fn sync_cached(
             ));
         }
         checkpoint.stamp = stamp(&before);
+        checkpoint.physical = physical_identity(&before);
         checkpoint.boundary = boundary(Path::new(&path), checkpoint.offset)?;
         checkpoint.issues = report.issues.split_off(first);
     }
@@ -440,6 +482,14 @@ pub(crate) fn sync_cached(
             )?;
         };
     }
+    if full {
+        save!(events);
+    } else {
+        for id in &facts.dirty_events {
+            crate::live_index::put(db, &fact_scope, "events", id, &facts.events[id])?;
+        }
+    }
+    facts.dirty_events.clear();
     save!(threads);
     save!(turns);
     if full {

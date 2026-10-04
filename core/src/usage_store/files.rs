@@ -4,7 +4,7 @@ pub(super) fn corrupt(message: impl Into<String>) -> anyhow::Error {
     operation_error("SNAPSHOT_CORRUPT", message)
 }
 pub(super) fn product_home() -> Result<PathBuf> {
-    Ok(crate::storage::data_home()?.join("usage-v3"))
+    Ok(crate::storage::data_home()?.join("usage-v4"))
 }
 pub(super) fn private_dir(path: &Path) -> Result<()> {
     let mut builder = fs::DirBuilder::new();
@@ -90,6 +90,8 @@ pub(super) fn save_with_prices(
     // Reject unusable totals before publishing any new latest pointer.
     crate::usage_app::summarize(&records.iter().collect::<Vec<_>>())?;
     let ledger = save_json(directory, "ledger.json", &records)?;
+    super::events::validate(&collected.events)?;
+    let events = save_json(directory, "events.json", &collected.events)?;
     let mut by_thread: BTreeMap<String, BTreeMap<String, TurnData>> = BTreeMap::new();
     for row in &records {
         if let Some(thread) = &row.fact.thread_id {
@@ -165,7 +167,7 @@ pub(super) fn save_with_prices(
         return Err(operation_error("INVALID_FACTS", "存在没有对话元数据的记录"));
     }
     let manifest = Manifest {
-        schema_version: 3,
+        schema_version: 4,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -175,10 +177,11 @@ pub(super) fn save_with_prices(
         sources: collected.sources,
         issues: collected.issues,
         ledger,
+        events,
         threads,
     };
     save_json(directory, "manifest.json", &manifest)?;
-    // Moving one completed directory publishes all files together. latest is independent of v1/v2.
+    // Moving one completed directory publishes all files together. latest is independent of previous formats.
     let final_dir = generation.join("committed");
     fs::rename(directory, &final_dir)?;
     #[cfg(unix)]
@@ -193,6 +196,7 @@ pub(super) fn save_with_prices(
         directory: final_dir,
         memory_turns: None,
         live_rows: None,
+        live_events: None,
     })
 }
 pub(super) fn bounded_read(path: &Path) -> Result<Vec<u8>> {
@@ -239,12 +243,24 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     }
     let directory = root.join("generations").join(&id).join("committed");
     if !directory.join("manifest.json").is_file() {
+        if root.file_name().is_some_and(|name| name == "usage-v4")
+            && let Some(home) = root.parent()
+            && ["usage-v1", "usage-v2", "usage-v3"].iter().any(|version| {
+                home.join(version)
+                    .join("generations")
+                    .join(&id)
+                    .join("committed/manifest.json")
+                    .is_file()
+            })
+        {
+            return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
+        }
         return Err(operation_error("NO_SNAPSHOT", "未找到已提交快照"));
     }
     let raw: serde_json::Value =
         serde_json::from_slice(&bounded_read(&directory.join("manifest.json"))?)
             .map_err(|_| corrupt("快照索引损坏"))?;
-    if raw["schemaVersion"] != 3 {
+    if raw["schemaVersion"] != 4 {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
     }
     let manifest: Manifest =
@@ -258,5 +274,6 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
         directory,
         memory_turns: None,
         live_rows: None,
+        live_events: None,
     })
 }

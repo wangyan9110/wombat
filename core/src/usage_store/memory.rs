@@ -108,8 +108,9 @@ pub(crate) fn memory(
     if !by_thread.is_empty() {
         return Err(operation_error("INVALID_FACTS", "存在没有对话元数据的记录"));
     }
+    super::events::validate(&collected.events)?;
     let manifest = Manifest {
-        schema_version: 3,
+        schema_version: 4,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -119,6 +120,7 @@ pub(crate) fn memory(
         sources: collected.sources,
         issues: collected.issues,
         ledger: file_ref("live", &[]),
+        events: file_ref("live", &[]),
         threads,
     };
     Ok(Snapshot {
@@ -126,6 +128,7 @@ pub(crate) fn memory(
         manifest,
         directory: PathBuf::new(),
         live_rows: Some(rows),
+        live_events: Some(collected.events),
         memory_turns: Some(memory_turns),
     })
 }

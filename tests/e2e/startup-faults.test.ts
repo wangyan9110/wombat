@@ -11,7 +11,7 @@ import {createHttpClient} from '@wombat/client/http';
 import {startWebHost} from '@wombat/web';
 
 test('index initialization faults return actual errors, retain unsupported records and recover in the same service',{timeout:20_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-startup-fault-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data'),database=path.join(data,'live-v1/index.sqlite');
+ const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-startup-fault-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data'),database=path.join(data,'live-v2/index.sqlite');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.dirname(database),{recursive:true});
  await mkdir(project);const instructions=path.join(project,'AGENTS.md');await writeFile(instructions,'Synthetic local instructions. '.repeat(1000));await writeFile(path.join(root,'AGENTS.md'),'Synthetic global instructions.');
  const unsupported=new DatabaseSync(database);unsupported.exec("CREATE TABLE sample(value TEXT); INSERT INTO sample VALUES('retained'); PRAGMA user_version=99;");unsupported.close();
@@ -34,6 +34,6 @@ test('index initialization faults return actual errors, retain unsupported recor
   // Explicit test fixture reset, never performed by the product.
   await rm(database);await rm(database+'-wal',{force:true});await rm(database+'-shm',{force:true});
   const restored=await client.live!({query:{action:'usage',roots:[root]},mode:'fresh'});assert.equal(restored.freshness.status,'current');assert.equal(restored.result.summary.measurementCount,0);
-  const current=new DatabaseSync(database);assert.equal(current.prepare('PRAGMA user_version').get()!.user_version,3);current.close();
+  const current=new DatabaseSync(database);assert.equal(current.prepare('PRAGMA user_version').get()!.user_version,4);current.close();
  }finally{await host.close();service.kill('SIGTERM');await once(service,'exit').catch(()=>{});for(const[k,v]of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
 });

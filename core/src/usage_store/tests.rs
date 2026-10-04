@@ -286,3 +286,115 @@ fn corruption_uncommitted_and_refresh_busy_are_detected() {
     fs::write(path, b"{}").unwrap();
     assert!(snapshot.turn("thread-a", "turn-a").is_err());
 }
+
+fn safe_event() -> Arc<crate::session_events::Event> {
+    use crate::session_events::*;
+    Arc::new(
+        Event::new(
+            Position {
+                source_instance_id: "source-a".into(),
+                file_id: "file-a".into(),
+                generation: "generation-a".into(),
+                byte_offset: 123,
+                ordinal: 0,
+            },
+            Some("thread-a".into()),
+            Some("turn-a".into()),
+            Time::from_source(None).0,
+            vec![],
+            Payload::Lifecycle {
+                lifecycle: LifecycleKind::Turn,
+                phase: Phase::Completed,
+                native_id: Some("a".into()),
+                duration_ms: Some(0),
+                first_token_ms: None,
+            },
+        )
+        .unwrap(),
+    )
+}
+
+#[test]
+fn safe_events_survive_memory_and_fixed_snapshot_without_turn_duplication() {
+    let root = tempfile::tempdir().unwrap();
+    let mut facts = fixture();
+    let event = safe_event();
+    facts.events.push(event.clone());
+    let prices = crate::pricing_sync::current_at(root.path()).unwrap();
+    let live = memory(facts.clone(), "live:events".into(), prices, None).unwrap();
+    assert!(Arc::ptr_eq(&live.events().unwrap()[0], &event));
+    let saved = save_at(root.path(), facts).unwrap();
+    let restored = load_at(root.path(), Some(&saved.manifest.snapshot_ref.snapshot_id)).unwrap();
+    assert_eq!(
+        serde_json::to_value(restored.events().unwrap()).unwrap(),
+        serde_json::to_value(live.events().unwrap()).unwrap()
+    );
+    assert!(
+        !serde_json::to_string(&restored.turn("thread-a", "turn-a").unwrap())
+            .unwrap()
+            .contains(event.id())
+    );
+    fs::write(
+        restored.directory.join(&restored.manifest.events.file),
+        "[]",
+    )
+    .unwrap();
+    assert!(
+        restored
+            .events()
+            .unwrap_err()
+            .to_string()
+            .contains("事件分片校验失败")
+    );
+}
+
+#[test]
+fn duplicate_events_and_previous_snapshot_format_are_rejected() {
+    let root = tempfile::tempdir().unwrap();
+    let mut facts = fixture();
+    facts.events = vec![safe_event(), safe_event()];
+    assert!(save_at(root.path(), facts.clone()).is_err());
+    let prices = crate::pricing_sync::current_at(root.path()).unwrap();
+    assert!(memory(facts, "live:duplicate".into(), prices, None).is_err());
+    assert!(!root.path().join("latest.json").exists());
+    let saved = save_at(root.path(), fixture()).unwrap();
+    let path = saved.directory.join("manifest.json");
+    let mut old = serde_json::to_value(&saved.manifest).unwrap();
+    old["schemaVersion"] = serde_json::json!(3);
+    fs::write(&path, serde_json::to_vec(&old).unwrap()).unwrap();
+    assert!(
+        load_at(root.path(), None)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("不支持此快照版本")
+    );
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&fs::read(path).unwrap()).unwrap(),
+        old
+    );
+}
+
+#[test]
+fn explicit_previous_directory_snapshot_is_rejected_without_touching_it() {
+    let home = tempfile::tempdir().unwrap();
+    let old = home.path().join("usage-v3/generations/old-id/committed");
+    fs::create_dir_all(&old).unwrap();
+    let path = old.join("manifest.json");
+    fs::write(&path, "retained old data").unwrap();
+    assert!(
+        load_at(&home.path().join("usage-v4"), Some("old-id"))
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("不支持此快照版本")
+    );
+    assert_eq!(fs::read_to_string(path).unwrap(), "retained old data");
+    assert!(
+        load_at(&home.path().join("usage-v4"), None)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("尚无用量数据")
+    );
+}

@@ -56,6 +56,7 @@ pub struct Manifest {
     pub sources: Vec<SourceReport>,
     pub issues: Vec<Issue>,
     pub ledger: FileRef,
+    pub events: FileRef,
     pub threads: Vec<ThreadEntry>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -72,11 +73,13 @@ struct MemoryTurn {
 pub struct Snapshot {
     pub(crate) query_cache: Mutex<crate::query_cache::QueryCache>,
     live_rows: Option<Vec<Arc<PricedMeasurement>>>,
+    live_events: Option<Vec<Arc<crate::session_events::Event>>>,
     memory_turns: Option<BTreeMap<(String, String), MemoryTurn>>,
     pub manifest: Manifest,
     directory: PathBuf,
 }
 
+mod events;
 mod files;
 mod memory;
 mod price_pool;

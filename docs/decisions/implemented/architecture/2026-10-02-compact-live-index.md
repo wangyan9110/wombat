@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决定
 
-live-v1目录内的SQLite独立使用user_version=3。buckets字典按(scope,field)唯一分配整数；entries使用(bucket,id)复合主键和WITHOUT ROWID，每条事实不再重复范围/字段文本或JSON键。载荷通过SQLite自身jsonb编码、json解码，作为数据库内部不透明BLOB；公共DTO、当前快照和来源适配分别管理版本。JSONB是体积优化，不声称字段访问为常量时间，见[SQLite官方说明](https://www.sqlite.org/json1.html#jsonb)。
+当前 live-v2 目录内的 SQLite 独立使用 user_version=4；事件升级前的 live-v1/版本3保留但不混读。buckets字典按(scope,field)唯一分配整数；entries使用(bucket,id)复合主键和WITHOUT ROWID，每条事实不再重复范围/字段文本或JSON键。载荷通过SQLite自身jsonb编码、json解码，作为数据库内部不透明BLOB；公共DTO、当前快照和来源适配分别管理版本。JSONB是体积优化，不声称字段访问为常量时间，见[SQLite官方说明](https://www.sqlite.org/json1.html#jsonb)。
 
 相同计量/操作的查询投影通过source_bucket与固定成员路径引用解析事实，只保留一份JSONB载荷；存在差异的累计归并结果仍单独保存。适配器在写入前逐值核对，按字段准备一次目标位置，单条插入同时确认来源载荷，更新、删除与游标处于同一事务。读取在同一SQLite视图中解析一层引用，缺失目标报错；已发布内存版本保持不可变。仅维护当前布局，不迁移旧索引。
 

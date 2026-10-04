@@ -71,8 +71,12 @@ pub(super) struct Payload<'a> {
     pub status: Option<String>,
     #[serde(alias = "exitCode")]
     pub exit_code: Option<i64>,
-    #[serde(alias = "durationMs")]
-    pub duration_ms: Option<u64>,
+    #[serde(borrow, alias = "durationMs")]
+    pub duration_ms: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub time_to_first_token_ms: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub model_context_window: Option<&'a RawValue>,
     pub server: Option<String>,
     pub tool: Option<String>,
     pub path: Option<String>,

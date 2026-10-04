@@ -64,7 +64,7 @@ Amounts are standard official API equivalents, separate from subscription paymen
 
 ## Storage and Failures
 
-Default data directories are `~/Library/Application Support/Wombat` on macOS, `%LOCALAPPDATA%/Wombat` on Windows, and `XDG_DATA_HOME/wombat` or `~/.local/share/wombat` on Linux; `WOMBAT_DATA_HOME` overrides them. Snapshots live in `usage-v3/`, indexes in `live-v1/`; the old `latest.json` is not replaced.
+Default data directories are `~/Library/Application Support/Wombat` on macOS, `%LOCALAPPDATA%/Wombat` on Windows, and `XDG_DATA_HOME/wombat` or `~/.local/share/wombat` on Linux; `WOMBAT_DATA_HOME` overrides them. Snapshots live in `usage-v4/`, indexes in `live-v2/`; the old `latest.json` is not replaced.
 
 Refresh holds a process file lock, writes a private generation, shards, and hashes, then commits the manifest and atomically updates latest. Cancellation never publishes a partial snapshot. Source failures retain separate receipts; total failure preserves the previous latest. Source reads use the captured length and make no cross-file atomicity claim. Only current formats are supported; unknown versions are rejected without automatic migration or deletion.
 

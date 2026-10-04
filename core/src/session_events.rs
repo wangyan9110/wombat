@@ -105,6 +105,7 @@ impl Time {
 #[serde(rename_all = "snake_case")]
 pub enum Gap {
     InvalidTimestamp,
+    InvalidNativeField,
     MissingIdentity,
     ConflictingIdentity,
     UnmatchedBoundary,

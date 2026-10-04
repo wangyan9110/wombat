@@ -58,7 +58,7 @@ async function run(binary: string, label: string, iteration: number) {
   assert.equal(result.status, 0, result.error?.message ?? result.stderr);
   const response = JSON.parse(result.stdout); assert.equal(response.ok, true, result.stdout);
   assert.equal(response.value.summary.tokens.total, 110, 'Inherited native counters must not multiply usage');
-  const generation = path.join(data, 'usage-v3/generations', response.value.snapshotRef.snapshotId, 'committed');
+  const generation = path.join(data, 'usage-v4/generations', response.value.snapshotRef.snapshotId, 'committed');
   const manifest = JSON.parse(await readFile(path.join(generation, 'manifest.json'), 'utf8'));
   assert.equal(manifest.threads.length, threads);
   assert.equal(manifest.issues.length, 0); assert.ok(manifest.sources.every((s: { status: string }) => s.status === 'complete'));

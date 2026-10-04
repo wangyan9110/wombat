@@ -32,6 +32,7 @@ impl Snapshot {
                 .iter()
                 .flat_map(|e| e.turns.values().filter_map(|t| t.turn.clone()))
                 .collect(),
+            events: self.events()?,
             measurements: rows.iter().map(|r| r.fact.clone()).collect(),
             operations: turns
                 .values()

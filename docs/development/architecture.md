@@ -64,7 +64,7 @@ HTTP只开放生成的查询、同步、价表、配置、优化、授权、偏�
 
 ## 存储与故障
 
-默认数据目录为 macOS `~/Library/Application Support/Wombat`、Windows `%LOCALAPPDATA%/Wombat`、Linux `XDG_DATA_HOME/wombat` 或 `~/.local/share/wombat`；`WOMBAT_DATA_HOME` 可覆盖。快照位于 `usage-v3/`，索引位于 `live-v1/`；不替换旧 `latest.json`。
+默认数据目录为 macOS `~/Library/Application Support/Wombat`、Windows `%LOCALAPPDATA%/Wombat`、Linux `XDG_DATA_HOME/wombat` 或 `~/.local/share/wombat`；`WOMBAT_DATA_HOME` 可覆盖。快照位于 `usage-v4/`，索引位于 `live-v2/`；不替换旧 `latest.json`。
 
 刷新持有进程文件锁，先写私有 generation、分片与哈希，再提交 manifest 并原子更新 latest；取消不发布半份快照。单源失败保留独立回执，全部失败保留旧 latest。源日志按本次长度读取，多文件不声称原子一致。只支持当前格式，未知版本拒绝，不自动迁移或清空。
 

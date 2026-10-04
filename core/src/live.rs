@@ -94,7 +94,7 @@ struct Job {
 }
 
 fn directory() -> Result<PathBuf> {
-    let path = crate::storage::data_home()?.join("live-v1");
+    let path = crate::storage::data_home()?.join("live-v2");
     let mut builder = fs::DirBuilder::new();
     builder.recursive(true);
     #[cfg(unix)]

@@ -267,10 +267,10 @@ test('部分来源失败保留成功账本，全部失败保留旧快照', async
     assert.equal(partial.summary.price.knownCost, '0.0151225');
     const cliResult = f.invokeCli(['usage', '--since', '2026-09-28', '--until', '2026-09-30', '--json']);
     assert.equal(cliResult.status, 2); assert.equal(cliResult.value.quality.status, 'partial');
-    const latest = await readFile(path.join(f.data, 'usage-v3', 'latest.json'), 'utf8');
+    const latest = await readFile(path.join(f.data, 'usage-v4', 'latest.json'), 'utf8');
     const failed = f.raw({ action: 'refresh', roots: [path.join(f.root, 'nonexistent-source')] });
     assert.equal(failed.ok, false);
-    assert.equal(await readFile(path.join(f.data, 'usage-v3', 'latest.json'), 'utf8'), latest);
+    assert.equal(await readFile(path.join(f.data, 'usage-v4', 'latest.json'), 'utf8'), latest);
   } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
@@ -320,7 +320,7 @@ test('聚合超出安全整数范围时拒绝发布，保留上次可查询快�
   const f = await fixture();
   try {
     const prior = f.refresh();
-    const pointer = path.join(f.data, 'usage-v3', 'latest.json');
+    const pointer = path.join(f.data, 'usage-v4', 'latest.json');
     const before = await readFile(pointer, 'utf8');
     await appendFile(f.activeFile, jsonl([
       measurement('2026-09-29T04:00:00Z', 'thread-a', 'turn-a2', 'huge-a', usage(6_000_000_000_000_000, 0, 0)),
@@ -340,7 +340,7 @@ test('快照不持久化正文，分片损坏和路径穿越被拒绝', async ()
   const f = await fixture();
   try {
     const refreshed = f.refresh(); const snapshotId = refreshed.snapshotRef.snapshotId;
-    const dir = path.join(f.data, 'usage-v3', 'generations', snapshotId, 'committed');
+    const dir = path.join(f.data, 'usage-v4', 'generations', snapshotId, 'committed');
     for (const name of await readdir(dir)) {
       assert.ok(!(await readFile(path.join(dir, name), 'utf8')).includes(sentinel), `${name} stored private content`);
     }
