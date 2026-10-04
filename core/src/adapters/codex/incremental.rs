@@ -137,79 +137,87 @@ pub(crate) fn sync(
     Ok(sync_cached(db, source, verify, &mut Cache::default())?.map(|value| value.collected))
 }
 
-fn load_facts(db: &Connection, scope: &str, reuse: Option<&ReusableFacts>) -> Result<Facts> {
-    let mut facts = Facts::default();
-    let mut paths = EvidencePaths::default();
+fn load_facts(
+    db: &Connection,
+    scope: &str,
+    reuse: Option<&ReusableFacts>,
+    report: &SourceReport,
+) -> Result<Facts> {
+    let mut events = BTreeMap::new();
     crate::live_index::each(db, scope, |field, id, payload| {
-        match field {
-            "events" => {
-                facts
-                    .events
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "threads" => {
-                facts
-                    .threads
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "turns" => {
-                facts
-                    .turns
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "measurements" => {
-                let mut candidate: Candidate = serde_json::from_str(payload)?;
-                if let Some(rows) = reuse.map(|r| &r.measurements)
-                    && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
-                    && rows[index] == candidate.measurement
-                {
-                    candidate.measurement = Arc::clone(&rows[index]);
-                }
-                if Arc::strong_count(&candidate.measurement) == 1 {
-                    let row = Arc::make_mut(&mut candidate.measurement);
-                    paths.compact(&mut row.evidence);
-                    facts.strings.measurement(row);
-                }
-                facts.measurements.insert(id.into(), candidate);
-            }
-            "operations" => {
-                let mut operation: Arc<Operation> = serde_json::from_str(payload)?;
-                if let Some(rows) = reuse.map(|r| &r.operations)
-                    && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
-                    && rows[index] == operation
-                {
-                    operation = Arc::clone(&rows[index]);
-                }
-                if Arc::strong_count(&operation) == 1 {
-                    let row = Arc::make_mut(&mut operation);
-                    paths.compact(&mut row.evidence);
-                    facts.strings.operation(row);
-                }
-                facts.operations.insert(id.into(), operation);
-            }
-            "aliases" => {
-                facts
-                    .aliases
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "parents" => {
-                facts
-                    .parents
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "projects" => {
-                facts
-                    .projects
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "measurement_conflicts" => {
-                facts.measurement_conflicts = serde_json::from_str(payload)?;
-            }
-            _ => anyhow::bail!("unsupported fact field: {field}"),
+        if field == "events" {
+            let event: Arc<crate::session_events::Event> = serde_json::from_str(payload)?;
+            anyhow::ensure!(event.id() == id, "stored event identity mismatch");
+            anyhow::ensure!(
+                event.position().source_instance_id == report.source.id,
+                "stored event source identity mismatch"
+            );
+            events.insert(id.into(), event);
+        } else {
+            anyhow::ensure!(
+                matches!(
+                    field,
+                    "threads"
+                        | "turns"
+                        | "measurements"
+                        | "operations"
+                        | "aliases"
+                        | "parents"
+                        | "projects"
+                        | "measurement_conflicts"
+                ),
+                "unsupported fact field: {field}"
+            );
         }
         Ok(())
     })?;
+    let mut facts = replay_events(events, report);
+    // Read projections may share allocations, but never establish parser facts.
+    let mut paths = EvidencePaths::default();
+    for (id, candidate) in &mut facts.measurements {
+        if let Some(rows) = reuse.map(|r| &r.measurements)
+            && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
+            && rows[index] == candidate.measurement
+        {
+            candidate.measurement = Arc::clone(&rows[index]);
+        }
+        if Arc::strong_count(&candidate.measurement) == 1 {
+            let row = Arc::make_mut(&mut candidate.measurement);
+            paths.compact(&mut row.evidence);
+            facts.strings.measurement(row);
+        }
+    }
+    for (id, operation) in &mut facts.operations {
+        if let Some(rows) = reuse.map(|r| &r.operations)
+            && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
+            && rows[index] == *operation
+        {
+            *operation = Arc::clone(&rows[index]);
+        }
+        if Arc::strong_count(operation) == 1 {
+            let row = Arc::make_mut(operation);
+            paths.compact(&mut row.evidence);
+            facts.strings.operation(row);
+        }
+    }
     Ok(facts)
+}
+
+fn replay_events(
+    events: BTreeMap<String, Arc<crate::session_events::Event>>,
+    report: &SourceReport,
+) -> Facts {
+    let mut facts = Facts::default();
+    // Parse diagnostics remain owned by file checkpoints; replay only restores facts.
+    let mut replay_report = report.clone();
+    replay_report.issues.clear();
+    let mut ordered: Vec<_> = events.values().collect();
+    ordered.sort_by(|a, b| event_projection::order(a).cmp(&event_projection::order(b)));
+    for event in ordered {
+        event_projection::apply(&mut facts, event, &mut replay_report);
+    }
+    facts.events = events;
+    facts
 }
 
 pub(crate) struct MeasurementDelta {
@@ -347,9 +355,10 @@ pub(crate) fn sync_cached(
         return Ok(None);
     }
     let fact_scope = format!("{scope}:facts");
+    let restoring = cache.facts.is_none();
     let mut facts = match cache.facts.take() {
         Some(facts) => facts,
-        None => load_facts(db, &fact_scope, cache.seed.as_ref())?,
+        None => load_facts(db, &fact_scope, cache.seed.as_ref(), &report)?,
     };
     cache.seed = None;
     facts.dirty_events.clear();
@@ -373,42 +382,7 @@ pub(crate) fn sync_cached(
         facts
             .events
             .retain(|_, event| missing_files.contains(&event.position().file_id));
-        facts.measurements.retain(|_, c| {
-            !c.measurement.evidence.is_empty()
-                && c.measurement
-                    .evidence
-                    .iter()
-                    .all(|e| missing.contains(e.file.as_ref()))
-        });
-        facts.operations.retain(|_, o| {
-            !o.evidence.is_empty() && o.evidence.iter().all(|e| missing.contains(e.file.as_ref()))
-        });
-        let retained_threads: BTreeSet<_> = facts
-            .measurements
-            .values()
-            .filter_map(|c| c.measurement.thread_id.clone())
-            .chain(facts.operations.values().map(|o| o.thread_id.clone()))
-            .chain(
-                facts
-                    .events
-                    .values()
-                    .filter_map(|e| e.thread_id().map(Arc::from)),
-            )
-            .collect();
-        facts
-            .threads
-            .retain(|id, _| retained_threads.contains(id.as_str()));
-        facts
-            .turns
-            .retain(|_, t| retained_threads.contains(t.thread_id.as_str()));
-        facts
-            .projects
-            .retain(|id, _| retained_threads.contains(id.as_str()));
-        facts.aliases.clear();
-        facts.measurement_conflicts.clear();
-        facts
-            .parents
-            .retain(|id, _| retained_threads.contains(id.as_str()));
+        facts = replay_events(std::mem::take(&mut facts.events), &report);
         checkpoints.retain(|p, _| missing.contains(p));
         dirty = files
             .iter()
@@ -455,6 +429,12 @@ pub(crate) fn sync_cached(
         checkpoint.boundary = boundary(Path::new(&path), checkpoint.offset)?;
         checkpoint.issues = report.issues.split_off(first);
     }
+    if rebuild {
+        // Missing files were retained before existing files were parsed. Restore
+        // their combined source order before publishing or saving projections.
+        // Checkpoints already own diagnostics; replay must not append them again.
+        facts = replay_events(std::mem::take(&mut facts.events), &report);
+    }
     for cp in checkpoints.values() {
         report.issues.extend(cp.issues.iter().cloned());
     }
@@ -465,8 +445,9 @@ pub(crate) fn sync_cached(
             }
         }
     }
-    // Persist unreconciled candidates. Derived reconciliation may retract old deltas.
-    let full = rebuild || previous.is_empty();
+    // Events restore parser truth; refresh disposable projection rows on restart,
+    // including references whose cached payload may have been discarded.
+    let full = rebuild || previous.is_empty() || restoring;
     let changed_operations = if full || !facts.parents.is_empty() {
         None
     } else {

@@ -2,6 +2,23 @@
 use super::*;
 use crate::session_events::{Event, Payload as SafePayload};
 
+/// Match deterministic source traversal, not timestamp or hashed event-ID order.
+pub(super) fn order(event: &Event) -> (&str, u64, u32) {
+    let evidence = match event.payload() {
+        SafePayload::Thread { evidence, .. }
+        | SafePayload::Turn { evidence, .. }
+        | SafePayload::Ancestry { evidence, .. } => Some(evidence),
+        SafePayload::Measurement { value, .. } => value.evidence.first(),
+        SafePayload::Operation { value, .. } => value.evidence.first(),
+        _ => None,
+    };
+    (
+        evidence.map_or(event.position().file_id.as_str(), |e| e.file.as_ref()),
+        event.position().byte_offset,
+        event.position().ordinal,
+    )
+}
+
 pub(super) fn apply(facts: &mut Facts, event: &Event, report: &mut SourceReport) {
     match event.payload() {
         SafePayload::Thread {

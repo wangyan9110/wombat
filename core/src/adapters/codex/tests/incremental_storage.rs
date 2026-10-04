@@ -147,3 +147,216 @@ fn live_transaction_rollback_truncate_missing_and_body_privacy() {
     assert_eq!(missing.measurements[0].tokens.total, Some(220));
     assert!(missing.issues.iter().any(|i| i.code == "sourceMissing"));
 }
+
+#[test]
+fn missing_source_rebuilds_facts_from_events_without_derived_cache() {
+    use rusqlite::params;
+
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    let path = write(
+        root.path(),
+        "sessions/events-only.jsonl",
+        &[
+            meta("events-only"),
+            context("turn-1", "gpt-5.4", "high"),
+            direct(
+                "events-only",
+                "turn-1",
+                "response-1",
+                "2026-09-29T00:00:01Z",
+                100,
+                60,
+                10,
+            ),
+            json!({"type":"response_item","timestamp":"2026-09-29T00:00:02Z","payload":{"type":"function_call","call_id":"call-1","name":"read_file","arguments":"{\"path\":\"/synthetic/project/AGENTS.md\"}"}}),
+            json!({"type":"response_item","timestamp":"2026-09-29T00:00:03Z","payload":{"type":"function_call_output","call_id":"call-1","output":"synthetic result"}}),
+        ],
+    );
+    let source = CodexAdapter
+        .discover(&DiscoveryRequest {
+            roots: vec![root.path().into()],
+        })
+        .sources
+        .remove(0);
+    let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    let initial = incremental::sync(&db, &source, false).unwrap().unwrap();
+    assert_eq!(initial.threads.len(), 1);
+    assert_eq!(initial.turns.len(), 1);
+    assert_eq!(initial.measurements.len(), 1);
+    assert_eq!(initial.operations.len(), 1);
+
+    let fact_scope = format!("parser:{}:%:1:facts", source.id);
+    let event_count: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM entries e JOIN buckets b ON b.id=e.bucket WHERE b.scope LIKE ?1 AND b.field='events'",
+            [&fact_scope],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(event_count > 0, "the authoritative event rows must remain");
+    let checkpoint_count: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM entries e JOIN buckets b ON b.id=e.bucket WHERE b.scope LIKE ?1 AND b.field='checkpoints'",
+            [format!("parser:{}:%:1", source.id)],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(checkpoint_count, 1, "the parser checkpoint must remain");
+
+    db.execute(
+        "DELETE FROM entries WHERE bucket IN (SELECT id FROM buckets WHERE scope LIKE ?1 AND field <> 'events')",
+        params![fact_scope],
+    )
+    .unwrap();
+    fs::remove_file(path).unwrap();
+
+    let restored = incremental::sync(&db, &source, false).unwrap().unwrap();
+    assert_eq!(restored.threads.len(), 1);
+    assert_eq!(restored.turns.len(), 1);
+    assert_eq!(restored.measurements.len(), 1);
+    assert_eq!(restored.operations.len(), 1);
+    assert_eq!(restored.measurements[0].tokens.total, Some(110));
+    assert_eq!(
+        serde_json::to_value(&restored.threads).unwrap(),
+        serde_json::to_value(&initial.threads).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&restored.turns).unwrap(),
+        serde_json::to_value(&initial.turns).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&restored.measurements).unwrap(),
+        serde_json::to_value(&initial.measurements).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&restored.operations).unwrap(),
+        serde_json::to_value(&initial.operations).unwrap()
+    );
+    assert!(
+        restored
+            .issues
+            .iter()
+            .any(|issue| issue.code == "sourceMissing")
+    );
+    assert!(restored.sources.iter().any(|source| {
+        source
+            .issues
+            .iter()
+            .any(|issue| issue.code == "sourceMissing")
+    }));
+    for field in ["measurements", "operations"] {
+        let count: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM entries e JOIN buckets b ON b.id=e.bucket WHERE b.scope LIKE ?1 AND b.field=?2",
+                params![fact_scope, field],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            count > 0,
+            "the {field} projection must be saved after replay"
+        );
+    }
+}
+
+#[test]
+fn persisted_events_reject_other_source_without_projection_fallback() {
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "sessions/source.jsonl",
+        &[
+            meta("source"),
+            context("u", "gpt-5.4", "high"),
+            direct("source", "u", "r", "2026-09-29T00:00:01Z", 100, 60, 10),
+        ],
+    );
+    let source = CodexAdapter
+        .discover(&DiscoveryRequest {
+            roots: vec![root.path().into()],
+        })
+        .sources
+        .remove(0);
+    let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    incremental::sync(&db, &source, false).unwrap().unwrap();
+    let scope = format!("parser:{}:{}:1:facts", source.id, VERSION);
+    let foreign = crate::session_events::Event::new(
+        crate::session_events::Position {
+            source_instance_id: "other-source".into(),
+            file_id: "foreign-file".into(),
+            generation: "foreign-generation".into(),
+            byte_offset: 0,
+            ordinal: 0,
+        },
+        None,
+        None,
+        crate::session_events::Time {
+            timestamp: None,
+            precision: crate::session_events::Precision::Unknown,
+        },
+        vec![],
+        crate::session_events::Payload::ContextWindow {
+            model: None,
+            tokens: 1,
+        },
+    )
+    .unwrap();
+    crate::live_index::put(&db, &scope, "events", foreign.id(), &foreign).unwrap();
+    let error = incremental::sync(&db, &source, true)
+        .expect_err("foreign events must fail even with valid cached projections");
+    assert!(
+        error
+            .to_string()
+            .contains("stored event source identity mismatch")
+    );
+}
+
+#[test]
+fn rebuild_orders_missing_and_present_file_events_together() {
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "sessions/a.jsonl",
+        &[
+            meta("shared"),
+            context("u", "gpt-5.4", "high"),
+            json!({"type":"event_msg","timestamp":"2026-09-29T00:00:01Z","payload":{"type":"task_complete","turn_id":"u"}}),
+        ],
+    );
+    let missing = write(
+        root.path(),
+        "sessions/b.jsonl",
+        &[
+            meta("shared"),
+            context("u", "gpt-5.4", "high"),
+            json!({"type":"event_msg","timestamp":"2026-09-29T00:00:02Z","payload":{"type":"turn_aborted","turn_id":"u"}}),
+        ],
+    );
+    let source = CodexAdapter
+        .discover(&DiscoveryRequest {
+            roots: vec![root.path().into()],
+        })
+        .sources
+        .remove(0);
+    let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    let initial = incremental::sync(&db, &source, false).unwrap().unwrap();
+    assert_eq!(initial.turns.len(), 1);
+    assert_eq!(initial.turns[0].status, "interrupted");
+    fs::remove_file(missing).unwrap();
+    let verified = incremental::sync(&db, &source, true).unwrap().unwrap();
+    assert_eq!(
+        serde_json::to_value(&verified.turns).unwrap(),
+        serde_json::to_value(&initial.turns).unwrap()
+    );
+    assert_eq!(
+        verified.sources[0]
+            .issues
+            .iter()
+            .filter(|issue| issue.code == "sourceMissing")
+            .count(),
+        1
+    );
+}
