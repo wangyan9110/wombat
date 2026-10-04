@@ -2,7 +2,7 @@ import {t} from '@wombat/client/locale';
 import {accountFixture} from './account.js';
 import {configFixture,createRuleFixture} from './configuration.js';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type UsageSummary, type QueryOptions } from '@wombat/client';
-export const scenarios = ['complete', 'empty', 'error', 'loading', 'running'] as const;
+export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense'] as const;
 export type Scenario = typeof scenarios[number];
 const at = '2026-10-04T02:00:00Z';
 const page = {offset:0,limit:20,total:0,nextOffset:null};
