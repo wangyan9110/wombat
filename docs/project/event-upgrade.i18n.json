@@ -10,8 +10,8 @@
       "en": "8d5145538ebb3031cea4a24e2cd4e66dd0e93bac166843e57f269fe29b7b67c0"
     },
     "/unified-event-timing-and-rule-upgrade-tasks/task-list": {
-      "zh": "4e912ba6738761ccb976b4f286281413de341e4377b3cd290e51665cb71f6c68",
-      "en": "cbd0fe59cd31aa3741b2213c472b9a4af66a4fb096abc84fd3e390179f441f0f"
+      "zh": "3db3362616cbe5e596551d1c908d942217479a6bb40e0effa7be8ea9d9959228",
+      "en": "42f1fa74c3cc8bc9539b9ec32d37af473af02ee33505a823fb9e5222beba8e1f"
     },
     "/unified-event-timing-and-rule-upgrade-tasks/task-list/batch-one-baseline-and-design": {
       "zh": "5178e4adf1fc42de62de9df928bd171ae67717c35d5043a5eee2fb6823aded1c",
@@ -52,6 +52,10 @@
     "/unified-event-timing-and-rule-upgrade-tasks/prototype-consolidation-steering-2026-10-04": {
       "zh": "0c7fded10d13de51b4eef13bb63ec6d192552fa2d2a5160d40b99e28758ea037",
       "en": "e0cfcc07f95d909978480a1162f58c6807c66faeba8af0e5dbc74b88d48ea598"
+    },
+    "/unified-event-timing-and-rule-upgrade-tasks/event-foundation-implementation-2026-10-04": {
+      "zh": "d316e34a4f78072552da37a565912d59543e0116d5c3054eac46d8c48422adc8",
+      "en": "59050947869661c8e82b7cac2f9b560f27a5fad01513ebb56c2b97c8573a628e"
     }
   }
 }

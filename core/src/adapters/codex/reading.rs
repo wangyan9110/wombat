@@ -34,11 +34,7 @@ impl State {
 }
 
 pub(super) fn timestamp(text: Option<&str>) -> Option<String> {
-    text.and_then(|t| DateTime::parse_from_rfc3339(t).ok())
-        .map(|t| {
-            t.to_utc()
-                .to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)
-        })
+    crate::session_events::Time::from_source(text).0.timestamp
 }
 pub(super) fn precision(text: Option<&str>) -> String {
     let fraction = text

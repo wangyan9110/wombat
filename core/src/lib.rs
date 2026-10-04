@@ -18,6 +18,7 @@ pub mod preferences;
 pub mod pricing;
 pub mod pricing_sync;
 mod query_cache;
+pub mod session_events;
 mod shared_text;
 pub mod storage;
 pub mod usage_app;

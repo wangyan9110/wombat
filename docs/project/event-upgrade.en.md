@@ -16,7 +16,7 @@ User steering on 2026-10-04: intermediate batches run only independent tests for
 
 ## Task list
 
-U01–U02 are complete; U03 is consolidating prototypes; U04–U20 await implementation. Assign owners and add commit/PR and verification evidence during execution; this planning change creates no remote issues or additional chats. Dependencies describe integration prerequisites; pure algorithms can start with synthetic data once input contracts are defined.
+U01–U02 are complete; U03 is consolidating prototypes; U04 is in progress; U05–U20 await implementation. Assign owners and add commit/PR and verification evidence during execution; this planning change creates no remote issues or additional chats. Dependencies describe integration prerequisites; pure algorithms can start with synthetic data once input contracts are defined.
 
 ### Batch one: baseline and design
 
@@ -115,3 +115,9 @@ The execution presentation has now moved into a repository React component with 
 Initial-read consolidation: the production preparation component keeps elapsed time inside closed details and announces only the stage. The overview offers source-observed directories with records, without invented per-project scan percentages or completed usage. The initial fixture returns provisional task headers and unknown totals; the execution timeline now marks its unknown interval. Nine independent tests, four language/viewport initial-read journeys, type checks and repository checks passed. No product integration tests or screenshots were run.
 
 Remaining U03 work follows the actual event/interface dependencies: production timing wiring and final state correspondence close with U14/U16/U17, followed by removal of the replaced standalone prototypes. The completed baseline and frozen U02 contract still permit U04–U08 to proceed; reopening prototype consolidation does not require inventing a separate mock transport contract. No old prototype has been removed prematurely and the overall upgrade is not complete.
+
+## Event foundation implementation · 2026-10-04
+
+U04 now has a Rust session_events model: current-version envelopes, source/file/generation/offset/ordinal identities, typed safe payloads, explicit time precision and gaps, native zero-duration preservation, and envelope/payload scope consistency. Construction and deserialization enforce the same invariants; unsupported versions, changed identities and extra top-level payload fields are rejected. Existing Codex timestamp normalization reuses this model.
+
+Seven event-model unit tests and 53 Codex adapter module tests passed, along with cargo fmt and clippy for all targets. An unused import found by clippy was removed before the passing check. No CLI/Web integration or end-to-end tests ran. No storage format was switched: full source-to-event mapping, shared projections, transactions and persistence remain pending, so U04 is not complete.
