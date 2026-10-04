@@ -39,7 +39,7 @@ jobs:
       - name: Validate tag and install locked tools
         run: |
           node -e 'const p=require("./package.json");if(process.env.GITHUB_REF_NAME!==`v${p.version}`)throw new Error(`tag ${process.env.GITHUB_REF_NAME} does not match package ${p.version}`)'
-          npm install --global corepack@0.33.0
+          npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
           rustup component add rustfmt clippy
           cargo fetch --locked --manifest-path core/Cargo.toml
@@ -76,7 +76,7 @@ jobs:
           merge-multiple: true
       - name: Assemble archives
         run: |
-          npm install --global corepack@0.33.0
+          npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
           corepack pnpm build
           corepack pnpm github:pack -- --native-dir native-artifacts --reuse-build
