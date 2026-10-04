@@ -13,7 +13,7 @@ pub(super) struct Checkpoint {
     pub state: State,
     stamp: String,
     physical: String,
-    boundary: String,
+    prefix_sha256: String,
     issues: Vec<Issue>,
 }
 
@@ -38,19 +38,62 @@ fn stamp(meta: &fs::Metadata) -> String {
             .map_or(0, |d| d.as_nanos())
     )
 }
-fn boundary(path: &Path, offset: u64) -> Result<String> {
-    let mut f = File::open(path)?;
-    let mut digest = Sha256::new();
-    for (start, count) in [
-        (0, offset.min(4096)),
-        (offset.saturating_sub(4096), offset.min(4096)),
-    ] {
-        f.seek(SeekFrom::Start(start))?;
-        let mut bytes = vec![0; count as usize];
-        f.read_exact(&mut bytes)?;
-        digest.update(bytes);
+struct PrefixChecksums {
+    committed: String,
+    captured: String,
+}
+
+fn source_changed() -> anyhow::Error {
+    crate::dto::operation_error("SOURCE_CHANGED", "日志读取中发生变化，保留已提交数据并重试")
+}
+
+/// Hash the committed prefix and captured file in one bounded pass. Both checksums
+/// describe the same metadata observation; a concurrent edit requires a retry.
+fn prefix_checksums(path: &Path, offset: u64, expected: &fs::Metadata) -> Result<PrefixChecksums> {
+    let mut file = File::open(path)?;
+    if stamp(&file.metadata()?) != stamp(expected) {
+        return Err(source_changed());
     }
-    Ok(format!("{:x}", digest.finalize()))
+    let result = prefix_checksums_from(path, offset, expected, &mut file)?;
+    if stamp(&file.metadata()?) != stamp(expected) {
+        return Err(source_changed());
+    }
+    Ok(result)
+}
+
+fn prefix_checksums_from(
+    path: &Path,
+    offset: u64,
+    expected: &fs::Metadata,
+    reader: &mut impl Read,
+) -> Result<PrefixChecksums> {
+    let expected_stamp = stamp(expected);
+    if offset > expected.len() || stamp(&fs::metadata(path)?) != expected_stamp {
+        return Err(source_changed());
+    }
+    let mut digest = Sha256::new();
+    let mut committed = (offset == 0).then(|| format!("{:x}", digest.clone().finalize()));
+    let mut consumed = 0;
+    let mut bytes = [0_u8; 64 * 1024];
+    while consumed < expected.len() {
+        let mut count = (expected.len() - consumed).min(bytes.len() as u64);
+        if consumed < offset {
+            count = count.min(offset - consumed);
+        }
+        reader.read_exact(&mut bytes[..count as usize])?;
+        digest.update(&bytes[..count as usize]);
+        consumed += count;
+        if consumed == offset {
+            committed = Some(format!("{:x}", digest.clone().finalize()));
+        }
+    }
+    if stamp(&fs::metadata(path)?) != expected_stamp {
+        return Err(source_changed());
+    }
+    Ok(PrefixChecksums {
+        committed: committed.expect("validated offset lies inside the captured file"),
+        captured: format!("{:x}", digest.finalize()),
+    })
 }
 
 #[derive(Default)]
@@ -313,22 +356,30 @@ pub(crate) fn sync_cached(
     let mut rebuild = verify;
     let mut dirty = BTreeSet::new();
     let mut replaced = BTreeSet::new();
+    let mut observations = BTreeMap::new();
+    let mut unchanged = BTreeMap::new();
     for file in &files {
         let key = file.to_string_lossy().into_owned();
         let meta = fs::metadata(file)?;
-        if let Some(cp) = checkpoints.get(&key) {
-            if cp.stamp == stamp(&meta) && !verify {
-                continue;
-            }
-            if physical_identity(&meta) != cp.physical
-                || meta.len() < cp.offset
-                || boundary(file, cp.offset).ok().as_ref() != Some(&cp.boundary)
-                || (meta.len() == cp.offset && cp.stamp != stamp(&meta))
-            {
-                rebuild = true;
-                replaced.insert(key.clone());
-            }
+        let cp = checkpoints.get(&key);
+        if let Some(cp) = cp
+            && cp.stamp == stamp(&meta)
+            && !verify
+        {
+            unchanged.insert(key, (cp.stamp.clone(), cp.offset, cp.prefix_sha256.clone()));
+            continue;
         }
+        let checksums =
+            prefix_checksums(file, cp.map_or(0, |cp| cp.offset.min(meta.len())), &meta)?;
+        if let Some(cp) = cp
+            && (physical_identity(&meta) != cp.physical
+                || meta.len() < cp.offset
+                || checksums.committed != cp.prefix_sha256)
+        {
+            rebuild = true;
+            replaced.insert(key.clone());
+        }
+        observations.insert(key.clone(), (stamp(&meta), checksums.captured));
         dirty.insert(key);
     }
     let missing: BTreeSet<_> = checkpoints
@@ -399,6 +450,27 @@ pub(crate) fn sync_cached(
             };
         }
         let before = fs::metadata(&path)?;
+        let captured = if let Some((observed_stamp, captured)) = observations.get(&path) {
+            if *observed_stamp != stamp(&before) {
+                return Err(source_changed());
+            }
+            captured.clone()
+        } else {
+            let (offset, expected_prefix) =
+                if let Some((expected_stamp, offset, prefix)) = unchanged.get(&path) {
+                    if *expected_stamp != stamp(&before) {
+                        return Err(source_changed());
+                    }
+                    (*offset, Some(prefix))
+                } else {
+                    (0, None)
+                };
+            let checksums = prefix_checksums(Path::new(&path), offset, &before)?;
+            if expected_prefix.is_some_and(|prefix| *prefix != checksums.committed) {
+                return Err(source_changed());
+            }
+            checksums.captured
+        };
         checkpoint.issues.clear();
         let first = report.issues.len();
         read_file_from(
@@ -410,8 +482,7 @@ pub(crate) fn sync_cached(
             Some(checkpoint),
         );
         let after = fs::metadata(&path)?;
-        if file_changed(&before, &after)
-            || after.len() < before.len()
+        if stamp(&before) != stamp(&after)
             || report.issues[first..].iter().any(|i| {
                 matches!(
                     i.code.as_str(),
@@ -419,14 +490,15 @@ pub(crate) fn sync_cached(
                 )
             })
         {
-            return Err(crate::dto::operation_error(
-                "SOURCE_CHANGED",
-                "日志读取中发生变化，保留已提交数据并重试",
-            ));
+            return Err(source_changed());
+        }
+        let checksums = prefix_checksums(Path::new(&path), checkpoint.offset, &before)?;
+        if checksums.captured != captured {
+            return Err(source_changed());
         }
         checkpoint.stamp = stamp(&before);
         checkpoint.physical = physical_identity(&before);
-        checkpoint.boundary = boundary(Path::new(&path), checkpoint.offset)?;
+        checkpoint.prefix_sha256 = checksums.committed;
         checkpoint.issues = report.issues.split_off(first);
     }
     if rebuild {
@@ -559,6 +631,49 @@ fn facts_empty_marker(result: &Collected) -> bool {
 #[cfg(test)]
 mod sharing_tests {
     use super::*;
+    #[test]
+    fn prefix_checksum_rejects_source_change_during_streaming_read() {
+        use std::io::Write;
+
+        struct ChangingReader {
+            file: File,
+            path: PathBuf,
+            changed: bool,
+        }
+        impl Read for ChangingReader {
+            fn read(&mut self, bytes: &mut [u8]) -> std::io::Result<usize> {
+                let count = self.file.read(bytes)?;
+                if !self.changed && count > 0 {
+                    fs::OpenOptions::new()
+                        .append(true)
+                        .open(&self.path)?
+                        .write_all(b"\n")?;
+                    self.changed = true;
+                }
+                Ok(count)
+            }
+        }
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("changing.jsonl");
+        let record = serde_json::json!({"type":"session_meta","payload":{"id":"synthetic","padding":"x".repeat(128 * 1024)}}).to_string() + "\n";
+        fs::write(&path, record).unwrap();
+        let expected = fs::metadata(&path).unwrap();
+        let mut reader = ChangingReader {
+            file: File::open(&path).unwrap(),
+            path: path.clone(),
+            changed: false,
+        };
+        let result = prefix_checksums_from(&path, expected.len(), &expected, &mut reader);
+        assert!(
+            reader.changed,
+            "the source changed after checksum reading began"
+        );
+        assert!(
+            result.is_err(),
+            "a changing source cannot establish a committed checksum"
+        );
+    }
+
     fn row(id: &str, total: u64) -> Arc<Measurement> {
         Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
     }
