@@ -3,7 +3,7 @@ use crate::adapters::contract::SourceInstance;
 use serde_json::json;
 fn fixture() -> (tempfile::TempDir, Vec<Item>, Capture) {
     let dir = tempfile::tempdir().unwrap();
-    let root = std::fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let path = root.join("config.toml");
     std::fs::write(&path, "[[hooks.SessionStart]]\n[[hooks.SessionStart.hooks]]\ntype='command'\ncommand='echo SYNTHETIC'\n").unwrap();
     let source = SourceInstance {

@@ -15,7 +15,7 @@ impl Inventory {
             return None;
         }
         self.examined += 1;
-        let canonical = match fs::canonicalize(path) {
+        let canonical = match dunce::canonicalize(path) {
             Ok(p) => p,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return None,
             Err(_) => {
@@ -117,7 +117,7 @@ impl Inventory {
             );
             row.characters = Some(text.chars().count() as u64);
             if kind == Kind::Skill {
-                let directory = fs::canonicalize(path)
+                let directory = dunce::canonicalize(path)
                     .is_ok_and(|canonical| canonical == path)
                     .then_some(row.name.as_str());
                 let (metadata, body) = crate::config::measure::skill_in_directory(&text, directory);
@@ -183,7 +183,7 @@ impl Inventory {
             }
             self.items.push(row);
         } else {
-            let safe = fs::canonicalize(path)
+            let safe = dunce::canonicalize(path)
                 .ok()
                 .filter(|p| p.starts_with(allowed) && exact.as_ref().is_ok_and(|found| *found));
             let metadata = safe

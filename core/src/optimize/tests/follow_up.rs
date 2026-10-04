@@ -19,10 +19,10 @@ fn follow_up_observes_only_canonical_associations_after_recheck_in_the_authorize
     for p in [&a, &b, &root, &other] {
         fs::create_dir(p).unwrap();
     }
-    let a = fs::canonicalize(a).unwrap();
-    let b = fs::canonicalize(b).unwrap();
-    let root = fs::canonicalize(root).unwrap();
-    let other = fs::canonicalize(other).unwrap();
+    let a = dunce::canonicalize(a).unwrap();
+    let b = dunce::canonicalize(b).unwrap();
+    let root = dunce::canonicalize(root).unwrap();
+    let other = dunce::canonicalize(other).unwrap();
     let file = a.join("AGENTS.md");
     let log = |base: &Path, id: &str, project: &Path, times: &[(&str, Option<&str>)]| {
         fs::create_dir_all(base.join("sessions")).unwrap();
@@ -141,7 +141,7 @@ fn follow_up_observes_only_canonical_associations_after_recheck_in_the_authorize
 #[test]
 fn mcp_follow_up_requires_unambiguous_ownership_across_the_whole_inventory() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let source = root.join("source");
     fs::create_dir_all(source.join("sessions")).unwrap();
     let projects = [root.join("a"), root.join("b")];

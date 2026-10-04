@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
@@ -10,7 +11,7 @@ import { createHttpClient } from '@wombat/client/http';
 import { startWebHost } from '@wombat/web';
 const binary = path.resolve('dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
 test('handoff reviews all pending files, merges shared targets and refuses changed content before Codex starts', { timeout: 45_000 }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-handoff-'))), root = path.join(dir, 'source'), a = path.join(dir, 'a'), b = path.join(dir, 'b');
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-handoff-'))), root = path.join(dir, 'source'), a = path.join(dir, 'a'), b = path.join(dir, 'b');
   const previous = { WOMBAT_DATA_HOME: process.env.WOMBAT_DATA_HOME, CODEX_HOME: process.env.CODEX_HOME, WOMBAT_AUTO_PRICES: process.env.WOMBAT_AUTO_PRICES };
   Object.assign(process.env, { WOMBAT_DATA_HOME: path.join(dir, 'data'), CODEX_HOME: root, WOMBAT_AUTO_PRICES: '0' });
   let service: ReturnType<typeof spawn> | undefined, host: Awaited<ReturnType<typeof startWebHost>> | undefined;

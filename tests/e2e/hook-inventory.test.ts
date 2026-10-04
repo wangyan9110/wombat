@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,mkdir,writeFile,access,rm} from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import {mkdtemp,mkdir,writeFile,access,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {spawn,spawnSync} from 'node:child_process';
 import {once} from 'node:events';
@@ -11,7 +12,7 @@ import {createHttpClient} from '@wombat/client/http';
 import {startWebHost} from '@wombat/web';
 
 test('Hook declaration measurements agree in CLI and HTTP without measuring or executing referenced scripts', {timeout:30_000}, async()=>{
-  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-hook-inventory-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),marker=path.join(dir,'must-not-exist');
+  const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-hook-inventory-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),marker=path.join(dir,'must-not-exist');
   const old={WOMBAT_DATA_HOME:process.env.WOMBAT_DATA_HOME,CODEX_HOME:process.env.CODEX_HOME,WOMBAT_AUTO_PRICES:process.env.WOMBAT_AUTO_PRICES};
   await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(project);
   const declaration=JSON.stringify({type:'command',command:`node '${path.join(project,'工具.js')}'`,env:{SECRET:'SYNTHETIC_NOT_EXPOSED'}});

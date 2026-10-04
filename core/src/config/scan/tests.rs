@@ -9,7 +9,7 @@ fn source(root: &Path) -> SourceInstance {
 #[test]
 fn hook_declarations_are_discovered_without_executing_or_claiming_effectiveness() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     fs::write(root.join("hooks.json"),r#"{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"SYNTHETIC_SECRET_COMMAND"}]}]}}"#).unwrap();
     fs::write(root.join("config.toml"),"[[hooks.PreToolUse]]\nmatcher='Bash'\n[[hooks.PreToolUse.hooks]]\ntype='command'\ncommand='SYNTHETIC_SECRET_INLINE'\n").unwrap();
     let result = scan(&[source(&root)], &[], "now");
@@ -46,7 +46,7 @@ fn unavailable_source_directory_cannot_prove_a_missing_instruction_file() {
 #[test]
 fn inventory_only_exposes_metadata_and_never_runs_commands() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     fs::create_dir_all(root.join("skills/review")).unwrap();
     fs::write(root.join("skills/review/SKILL.md"), "合成规则").unwrap();
     fs::write(root.join("config.toml"), "[mcp_servers.example]\ncommand = 'SYNTHETIC_SECRET_COMMAND'\nenv = { TOKEN = 'SYNTHETIC_SECRET_VALUE' }\nenabled = false\n").unwrap();
@@ -71,7 +71,7 @@ fn inventory_only_exposes_metadata_and_never_runs_commands() {
 #[test]
 fn malformed_and_oversized_files_are_explicit_gaps() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     fs::write(root.join("config.toml"), "[broken").unwrap();
     fs::write(root.join("AGENTS.md"), vec![b'x'; FILE_LIMIT as usize + 1]).unwrap();
     let result = scan(&[source(&root)], &[], "now");
@@ -89,7 +89,7 @@ fn malformed_and_oversized_files_are_explicit_gaps() {
 #[test]
 fn shared_projects_scan_once_and_keep_global_scope_specific_to_each_source() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let project = root.join("project");
     let second_root = root.join("second");
     fs::create_dir_all(&project).unwrap();
@@ -135,7 +135,7 @@ fn shared_projects_scan_once_and_keep_global_scope_specific_to_each_source() {
 #[test]
 fn overlapping_roots_keep_one_object_with_both_authorized_memberships() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let project = root.join("project");
     let child = project.join("child");
     fs::create_dir_all(&child).unwrap();
@@ -168,7 +168,7 @@ fn overlapping_roots_keep_one_object_with_both_authorized_memberships() {
 #[test]
 fn recursive_agents_exact_names_and_measurement_states() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let project = root.join("project");
     fs::create_dir_all(project.join("nested")).unwrap();
     fs::create_dir_all(project.join("node_modules/example")).unwrap();
@@ -218,7 +218,7 @@ fn recursive_agents_exact_names_and_measurement_states() {
 #[test]
 fn symlinks_cannot_escape_the_authorized_root_or_recurse_forever() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let outside = tempfile::tempdir().unwrap();
     fs::write(outside.path().join("AGENTS.md"), "private").unwrap();
     std::os::unix::fs::symlink(outside.path().join("AGENTS.md"), root.join("AGENTS.md")).unwrap();
@@ -238,7 +238,7 @@ fn symlinks_cannot_escape_the_authorized_root_or_recurse_forever() {
 #[test]
 fn hooks_measure_only_exact_declarations_and_ignore_state_tables() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let json_handler = r#"{ "type": "command", "command": "python3 '工具/large.py'" }"#;
     fs::create_dir(root.join("工具")).unwrap();
     fs::write(root.join("工具/large.py"), "x".repeat(2_000_000)).unwrap();
@@ -279,7 +279,7 @@ fn hooks_measure_only_exact_declarations_and_ignore_state_tables() {
 #[test]
 fn hook_measurements_preserve_inline_toml_and_escaped_json_text() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let inline = r#"{type="command", command="node 中文.js"}"#;
     fs::write(
         root.join("config.toml"),
@@ -316,7 +316,7 @@ fn hook_measurements_preserve_inline_toml_and_escaped_json_text() {
 #[test]
 fn nested_hook_declarations_are_unknown_instead_of_mismeasured_or_invalid() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     fs::write(root.join("config.toml"), "[[hooks.PreToolUse]]\n[[hooks.PreToolUse.hooks]]\ntype='mcp_tool'\nserver='synthetic'\ntool='check'\n[hooks.PreToolUse.hooks.input]\nquery='example'\n").unwrap();
     let result = scan(&[source(&root)], &[], "now");
     let row = result.items.iter().find(|i| i.kind == Kind::Hook).unwrap();

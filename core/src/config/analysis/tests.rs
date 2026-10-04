@@ -38,7 +38,7 @@ fn exact_full_units_preserve_chinese_punctuation_case_and_original_positions() {
 #[test]
 fn no_directory_inference_declared_chains_remain_distinct_from_actual_injection() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let projects = vec![root.to_string_lossy().into()];
     let items = files(
         &root,
@@ -103,7 +103,7 @@ fn review(result: &Analysis, items: &[Item]) -> Suggestion {
 #[test]
 fn recheck_requires_complete_owner_scoped_relation_and_all_members() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let other = root.join("other");
     fs::create_dir(&other).unwrap();
     let manifest =
@@ -173,7 +173,7 @@ fn recheck_requires_complete_owner_scoped_relation_and_all_members() {
 #[test]
 fn declared_copies_require_explicit_direction_and_supported_transform() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let projects = vec![root.to_string_lossy().into()];
     let items = files(
         &root,

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,7 @@ import { createHttpClient } from '@wombat/client/http';
 import { startWebHost } from '@wombat/web';
 
 test('natural follow-up records remain version unknown in CLI/API without changing review time or decisions', { timeout: 40_000 }, async () => {
-  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-follow-up-'))),root=path.join(dir,'source'),project=path.join(dir,'project');
+  const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-follow-up-'))),root=path.join(dir,'source'),project=path.join(dir,'project');
   await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(project);
   const file=path.join(project,'AGENTS.md'),log=path.join(root,'sessions','one.jsonl');
   await writeFile(file,'Synthetic instructions. '.repeat(1000));await writeFile(path.join(root,'AGENTS.md'),'Synthetic global instructions.');

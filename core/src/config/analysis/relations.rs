@@ -28,7 +28,7 @@ fn declared_path<'a>(
         return None;
     }
     let joined = root.join(relative);
-    let canonical = fs::canonicalize(&joined).ok()?;
+    let canonical = dunce::canonicalize(&joined).ok()?;
     if !canonical.starts_with(root) {
         return None;
     }
@@ -59,7 +59,7 @@ pub(super) fn evaluate(
             }
             Ok(_) => {}
         }
-        if !fs::canonicalize(&manifest).is_ok_and(|p| p.starts_with(root)) {
+        if !dunce::canonicalize(&manifest).is_ok_and(|p| p.starts_with(root)) {
             out.issue(
                 "analysisDeclarationOutsideRoot",
                 &manifest.to_string_lossy(),

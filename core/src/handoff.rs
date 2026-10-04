@@ -118,7 +118,7 @@ pub(crate) fn prepare(r: Request, id: String, view: &View) -> Result<Response> {
             .filter(|p| target.shared_projects.contains(p))
             .unwrap_or(&target.shared_projects[0])
             .clone();
-        let canonical = std::fs::canonicalize(&cwd)
+        let canonical = dunce::canonicalize(&cwd)
             .map_err(|_| operation_error("VIEW_EXPIRED", "Project directory unavailable"))?;
         if canonical.to_string_lossy() != cwd {
             return Err(operation_error(

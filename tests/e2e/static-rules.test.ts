@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {spawn,spawnSync} from 'node:child_process';
@@ -10,7 +11,7 @@ import {createHttpClient} from '@wombat/client/http';
 import {startWebHost} from '@wombat/web';
 
 test('local resource checks retain fixed evidence, expose independent outcomes and fail closed on unknown references',{timeout:45_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-reference-checks-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),skill=path.join(project,'.agents/skills/resources/SKILL.md'),data=path.join(dir,'data');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-reference-checks-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),skill=path.join(project,'.agents/skills/resources/SKILL.md'),data=path.join(dir,'data');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.dirname(skill),{recursive:true});
  await writeFile(path.join(root,'AGENTS.md'),'Synthetic source instruction.\n');await writeFile(path.join(project,'AGENTS.md'),'Synthetic project instruction.\n');
  const body='---\nname: resources\ndescription: Synthetic resources\n---\n[Forms](references/forms.md#fields)\n';await writeFile(skill,body);
@@ -39,7 +40,7 @@ test('local resource checks retain fixed evidence, expose independent outcomes a
 });
 
 test('exact blocks, explicit copies, decision fingerprints and unavailable rechecks share real CLI/HTTP results',{timeout:45_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-static-rules-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-static-rules-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.join(project,'copy'),{recursive:true});await mkdir(path.join(project,'.wombat'),{recursive:true});
  await writeFile(path.join(root,'AGENTS.md'),'Synthetic source instruction.\n');
  const source=path.join(project,'AGENTS.md'),copy=path.join(project,'copy/AGENTS.md'),declaration=path.join(project,'.wombat/analysis.json');
@@ -79,7 +80,7 @@ test('exact blocks, explicit copies, decision fingerprints and unavailable reche
 });
 
 test('relation rechecks fail closed across heading changes and identical manifests in other projects; overlapping scopes retain membership',{timeout:45_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-rule-review-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),other=path.join(dir,'other'),nested=path.join(project,'child');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-rule-review-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),other=path.join(dir,'other'),nested=path.join(project,'child');
  await mkdir(path.join(root,'sessions'),{recursive:true});
  const manifest=JSON.stringify({version:1,chains:[{id:'joint',files:['AGENTS.md','child/AGENTS.md']}]});
  for(const p of[project,other]){await mkdir(path.join(p,'child'),{recursive:true});await mkdir(path.join(p,'.wombat'));await writeFile(path.join(p,'.wombat/analysis.json'),manifest);}
@@ -110,7 +111,7 @@ test('relation rechecks fail closed across heading changes and identical manifes
 });
 
 test('two sources share one physical configuration and one review while keeping independent evidence and ledger identities',{timeout:45_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-shared-object-'))),roots=[path.join(dir,'source-one'),path.join(dir,'source-two')],project=path.join(dir,'project'),skill=path.join(project,'.agents/skills/shared/SKILL.md');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-shared-object-'))),roots=[path.join(dir,'source-one'),path.join(dir,'source-two')],project=path.join(dir,'project'),skill=path.join(project,'.agents/skills/shared/SKILL.md');
  await mkdir(path.dirname(skill),{recursive:true});const body='---\nname: shared\ndescription: Synthetic description\n---\n\nComplete synthetic instruction.\n\nComplete synthetic instruction.\n';await writeFile(skill,body);
  await writeFile(path.join(project,'AGENTS.md'),'Synthetic project instruction.\n');
  for(const[n,root]of roots.entries()){

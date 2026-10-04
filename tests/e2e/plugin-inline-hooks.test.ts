@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, readFile, readdir, rm, access } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, access } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,7 @@ import { startWebHost } from '@wombat/web';
 import { nativeCodexFixture } from '../helpers/native-codex.js';
 
 for (const array of [false, true]) test(`inline plugin Hook ${array ? 'array' : 'object'} uses native-expanded project commands and current evidence`, { timeout: 60_000, skip: process.platform === 'win32' }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-plugin-inline-')));
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-plugin-inline-')));
   const root = path.join(dir, 'source'), a = path.join(dir, 'a'), b = path.join(dir, 'b');
   const file = path.join(root, 'arbitrary-package', '.codex-plugin', 'plugin.json'), marker = path.join(dir, 'must-not-exist');
   await mkdir(path.join(root, 'sessions'), { recursive: true }); await mkdir(path.dirname(file), { recursive: true });

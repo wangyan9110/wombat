@@ -122,7 +122,7 @@ fn source_context(row: &Item, source_id: String) -> SourceContext {
 pub(super) fn scan(sources: &[SourceInstance], projects: &[String], now: &str) -> Inventory {
     let mut out = Inventory::default();
     for source in sources {
-        let root = match fs::canonicalize(&source.root) {
+        let root = match dunce::canonicalize(&source.root) {
             Ok(p) => p,
             Err(_) => {
                 out.issue("configUnreadable", Path::new(&source.root));
@@ -143,9 +143,13 @@ pub(super) fn scan(sources: &[SourceInstance], projects: &[String], now: &str) -
         for dir in [root.join("skills"), root.join(".agents/skills")] {
             out.skills(&dir, &root, source, None, now, 0);
         }
-        if fs::canonicalize(crate::home().join(".codex")).ok().as_ref() == Some(&root) {
+        if dunce::canonicalize(crate::home().join(".codex"))
+            .ok()
+            .as_ref()
+            == Some(&root)
+        {
             let dir = crate::home().join(".agents/skills");
-            if let Ok(allowed) = fs::canonicalize(&dir) {
+            if let Ok(allowed) = dunce::canonicalize(&dir) {
                 out.skills(&dir, &allowed, source, None, now, 0);
             }
         }

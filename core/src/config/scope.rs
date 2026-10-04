@@ -153,7 +153,7 @@ pub(crate) fn projects(r: &Request) -> Result<Vec<String>> {
     )?);
     let mut out = BTreeSet::new();
     for root in roots {
-        let p = std::fs::canonicalize(root)
+        let p = dunce::canonicalize(root)
             .map_err(|_| operation_error("INVALID_ARGUMENT", "项目读取根不可访问"))?;
         if !p.is_dir() {
             return Err(operation_error("INVALID_ARGUMENT", "项目读取根必须是目录"));

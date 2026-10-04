@@ -4,6 +4,14 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Verification scope
+        type: choice
+        options:
+          - all
+          - win32-x64
+        default: all
 permissions:
   contents: read
 concurrency:
@@ -12,7 +20,7 @@ concurrency:
 jobs:
   repository:
     name: Repository rules before build
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_dispatch' || inputs.target == 'all') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -31,7 +39,7 @@ jobs:
   verify:
     name: Verify ${{ matrix.target }}
     needs: repository
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_dispatch' || inputs.target == 'all') }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,9 +87,43 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  verify-windows:
+    name: Verify win32-x64
+    if: ${{ github.event.repository.private == false && github.event_name == 'workflow_dispatch' && inputs.target == 'win32-x64' }}
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      WOMBAT_AUTO_PRICES: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - name: Install locked tools and dependencies
+        run: |
+          echo "CODEX_HOME=$RUNNER_TEMP/wombat-source" >> "$GITHUB_ENV"
+          echo "WOMBAT_DATA_HOME=$RUNNER_TEMP/wombat-data" >> "$GITHUB_ENV"
+          npm install --global corepack@0.33.0 --force
+          corepack pnpm install --frozen-lockfile
+          rustup show
+          rustup component add rustfmt clippy
+          cargo fetch --locked --manifest-path core/Cargo.toml
+      - name: Inventory native dependencies on this target
+        run: corepack pnpm licenses:generate
+      - name: Release gate
+        run: corepack pnpm release:check
+      - name: Assemble and install the Windows archive
+        run: corepack pnpm github:pack -- --current-platform --reuse-build
+
   github-candidate:
     name: Assemble GitHub Release candidate
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_dispatch' || inputs.target == 'all') }}
     needs: verify
     runs-on: macos-15
     timeout-minutes: 30
@@ -113,7 +155,7 @@ jobs:
 
   install-candidate:
     name: Install archive on ${{ matrix.target }}
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_dispatch' || inputs.target == 'all') }}
     needs: github-candidate
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
@@ -145,7 +187,7 @@ jobs:
 
   dependency-audit:
     name: Dependency advisories
-    if: ${{ github.event.repository.private == false }}
+    if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_dispatch' || inputs.target == 'all') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

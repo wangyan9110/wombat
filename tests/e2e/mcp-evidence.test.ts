@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -18,7 +19,7 @@ const end=(call_id:string,turn_id:string,tool:string,failed=false)=>row('event_m
 const jsonl=(rows:unknown[])=>rows.map(r=>JSON.stringify(r)+'\n').join('');
 
 test('MCP attempts, resources, fork replay and append/restart share exact CLI and Web evidence', {timeout:60_000}, async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-mcp-evidence-'))),root=path.join(dir,'source'),project=path.join(dir,'project');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-mcp-evidence-'))),root=path.join(dir,'source'),project=path.join(dir,'project');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(project);await writeFile(path.join(root,'config.toml'),"[mcp_servers.docs]\ncommand='synthetic-not-executed'\n");
  const tokens={input_tokens:100,cached_input_tokens:20,cache_write_input_tokens:0,output_tokens:10,reasoning_output_tokens:2,total_tokens:110};
  const call=end('call','u','search',true),read=end('resource','u','read_mcp_resource');
@@ -30,7 +31,8 @@ test('MCP attempts, resources, fork replay and append/restart share exact CLI an
  const host=await startWebHost({client,roots:[root],projectRoots:[project],assets:path.resolve('dist/web'),automaticPrices:false});
  try{
   const token=new URLSearchParams(new URL(host.url).hash.slice(1)).get('token')!;const http=createHttpClient({origin:host.origin,token,fetch:(url,init)=>fetch(url,{...init,headers:{...init?.headers,Origin:host.origin}})});
-  const first=await http.config!({kind:'mcp',scope:{allTime:true}}),item=first.items.find(i=>i.name==='docs')!;assert.ok(item);assert.equal(item.usageCount,2);assert.equal(item.counts.toolCalls,1);assert.equal(item.counts.resourceReads,1);assert.equal(item.counts.failed,1);assert.equal(item.counts.succeeded,1);assert.equal(item.usage?.tokens.total,110);assert.equal(first.coverage.absenceObservable,false);
+  const live=await http.live!({query:{action:'usage',scope:{allTime:true}},mode:'fresh'});
+  const first=await http.config!({kind:'mcp',snapshotId:live.result.snapshotRef.snapshotId,scope:{allTime:true}}),item=first.items.find(i=>i.name==='docs')!;assert.ok(item);assert.equal(item.usageCount,2);assert.equal(item.counts.toolCalls,1);assert.equal(item.counts.resourceReads,1);assert.equal(item.counts.failed,1);assert.equal(item.counts.succeeded,1);assert.equal(item.usage?.tokens.total,110);assert.equal(first.coverage.absenceObservable,false);
   const evidence=await http.config!({action:'evidence',itemId:item.id,readView:first.readView,scope:{allTime:true}});assert.deepEqual(evidence.evidence.map(e=>e.eventType).sort(),['resource_read','tool_call']);assert.ok(!JSON.stringify(evidence).includes('SECRET'));
   const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','inventory','--action','evidence','--root',root,'--project-root',project,'--item',item.id,'--read-view',first.readView!,'--all-time','--json'],{env:process.env,encoding:'utf8',timeout:15_000});assert.equal(cli.status,2,cli.stderr+cli.stdout);assert.deepEqual(JSON.parse(cli.stdout).evidence,evidence.evidence);
   // A child arrives later with copied completed events and a genuinely new retry.

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -10,7 +11,7 @@ import { createHttpClient } from '@wombat/client/http';
 import { startWebHost } from '@wombat/web';
 
 test('unknown tool outcomes agree in CLI/API, retain fixed views and survive service restart', { timeout: 40_000 }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-operation-status-')));
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-operation-status-')));
   const root = path.join(dir, 'source'), project = path.join(dir, 'project'), file = path.join(root, 'sessions', 'one.jsonl');
   await mkdir(path.dirname(file), { recursive: true }); await mkdir(project);
   await writeFile(path.join(project, 'AGENTS.md'), 'Synthetic instructions.');
@@ -48,7 +49,8 @@ test('unknown tool outcomes agree in CLI/API, retain fixed views and survive ser
     const currentQuery = { ...query, snapshotId: second.snapshotRef.snapshotId };
     const after = await http.query(currentQuery); assert.deepEqual(states(after), ['completed', 'failed', 'unknown', 'unknown']);
     assert.deepEqual(states(await http.query(query)), states(before)); assert.equal(after.summary.tokens.total, 110);
-    const inventory = await http.config!({ kind: 'rule', scope: { allTime: true, project } });
+    const live = await http.live!({ query: { action: 'usage', scope: { allTime: true } }, mode: 'fresh' });
+    const inventory = await http.config!({ kind: 'rule', snapshotId: live.result.snapshotRef.snapshotId, scope: { allTime: true, project } });
     const item = inventory.items.find(i => i.path === path.join(project, 'AGENTS.md'))!;
     assert.equal(item.counts.fileReads, 4); assert.equal(item.counts.succeeded, 1); assert.equal(item.counts.failed, 1); assert.equal(item.counts.outcomeUnknown, 2); assert.equal(item.usage?.tokens.total, 110);
     service.kill('SIGTERM'); await once(service, 'exit'); service = spawn(binary, ['--serve-usage'], { stdio: 'ignore', env: process.env }); await once(service, 'spawn');
