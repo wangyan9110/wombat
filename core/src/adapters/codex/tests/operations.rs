@@ -44,7 +44,8 @@ fn native_skill_catalog_and_observed_use_keep_only_resolved_identity() {
     let dir = tempfile::tempdir().unwrap();
     let root = test_absolute("synthetic/project/.agents/skills");
     let skill = Path::new(&root)
-        .join("review/SKILL.md")
+        .join("review")
+        .join("SKILL.md")
         .to_string_lossy()
         .into_owned();
     let catalog = format!(

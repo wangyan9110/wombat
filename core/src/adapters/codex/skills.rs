@@ -390,14 +390,16 @@ mod tests {
                 SkillEntry {
                     name: "local".into(),
                     path: Path::new(&project)
-                        .join("local/SKILL.md")
+                        .join("local")
+                        .join("SKILL.md")
                         .to_string_lossy()
                         .into_owned()
                 },
                 SkillEntry {
                     name: "review".into(),
                     path: Path::new(&home)
-                        .join("review/SKILL.md")
+                        .join("review")
+                        .join("SKILL.md")
                         .to_string_lossy()
                         .into_owned()
                 }
