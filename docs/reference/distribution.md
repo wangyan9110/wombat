@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-Wombat 以 GitHub Releases 为唯一产品分发渠道，不发布 npm 包。根工作区保持 `private: true`，只用于源码开发。当前尚无公开 Release；README 中的一键安装命令在首个 Release 创建后生效。源码工具要求 Node.js 26.4.0 或更新版本，用户安装包已内置固定的 Node.js 26.4.0、CLI/Web 和本机 Rust 内核，无需另装 Node、npm、Rust、pnpm 或编译器。
+Wombat 以 GitHub Releases 为唯一产品分发渠道，不发布 npm 包。根工作区的 npm 包保持 `private: true`，只用于源码开发。`v0.1.0-dev.1` 是首个 Development Preview，通过 GitHub Pre-release 分发；预览版可能调整功能、数据格式和命令。源码工具要求 Node.js 26.4.0 或更新版本，用户安装包已内置固定的 Node.js 26.4.0、CLI/Web 和本机 Rust 内核，无需另装 Node、npm、Rust、pnpm 或编译器。
 
-发行自动化只使用 GitHub 的免费能力：仓库私有期间不启动 GitHub 托管构建，改由本机发行门禁准备开发候选；仓库公开后，CI 和标签发行才使用标准 GitHub 托管运行器，不使用收费的 larger runner。Actions 中间产物只保留 1 天，最终归档进入 GitHub Release。仓库公开前不会创建正式标签。
+发行自动化只使用 GitHub 的免费能力：仓库私有期间不启动 GitHub 托管构建，公开后 CI 和标签发行使用标准 GitHub 托管运行器，不使用收费的 larger runner。Actions 中间产物只保留 1 天，最终归档进入 GitHub Release。带预发行段的版本创建 Pre-release，不占用 `latest` 稳定版入口。
 
 ## 一键安装与升级
 
@@ -16,15 +16,27 @@ macOS / Linux：
 curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
 ```
 
+开发者预览版须指定版本，例如：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1
+```
+
 Windows PowerShell：
 
 ```powershell
 irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
 ```
 
+开发者预览版：
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1
+```
+
 安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。`WOMBAT_INSTALL_PREFIX` 或 `--prefix` 可改安装位置；`--version` 可安装指定版本；`--base-url` 供开发候选或受控镜像验收。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
 
-通过安装器部署后，执行 `wombat update` 下载并安装最新 Release；`wombat update --check` 只检查，`--version X.Y.Z` 安装指定版本。版本保存在并列目录，校验元数据、文件大小和 SHA-256 后原子切换 `current.txt`。正在运行的旧版本不会被覆盖，适用于 Windows 的占用规则；升级器保留当前和上一运行版本，并清理更早的受管版本。源码构建或手工解压副本不带安装指针，升级命令会明确拒绝。
+通过安装器部署后，执行 `wombat update` 下载并安装最新稳定 Release；`wombat update --check` 只检查，`--version X.Y.Z` 安装指定版本。预览版不会进入 `latest`，升级到后续预览版时须显式指定版本。版本保存在并列目录，校验元数据、文件大小和 SHA-256 后原子切换 `current.txt`。正在运行的旧版本不会被覆盖，适用于 Windows 的占用规则；升级器保留当前和上一运行版本，并清理更早的受管版本。源码构建或手工解压副本不带安装指针，升级命令会明确拒绝。
 
 ## GitHub Release 结构
 

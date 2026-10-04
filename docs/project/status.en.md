@@ -2,7 +2,7 @@
 
 [中文](status.md) | English
 
-Updated 2026-10-04. This page tracks current delivery and unfinished boundaries. Requirements are in the [version-one specification](specification.en.md), dated verification is in [progress](progress.en.md), and feature semantics are in the [support matrix](../reference/support-matrix.en.md). Historical test passes do not establish full acceptance of the current working tree. The project has not been publicly released.
+Updated 2026-10-04. This page tracks current delivery and unfinished boundaries. Requirements are in the [version-one specification](specification.en.md), dated verification is in [progress](progress.en.md), and feature semantics are in the [support matrix](../reference/support-matrix.en.md). Historical test passes do not establish full acceptance of the current working tree. The project is entering the `v0.1.0-dev.1` Development Preview; public installability depends on the GitHub Pre-release and the five-platform release workflow.
 
 ## Five surfaces and the full optimization lifecycle · Stage acceptance failed
 
@@ -68,7 +68,7 @@ Current work prioritizes functionality at the user’s request. Performance test
 | Startup and deterministic rules | A1–A4 and deterministic B0/B1/B2/B4 branches in the [specification](startup-rules.en.md) are implemented; A5 retains scale/platform and real-failure acceptance, B3 has Codex0.160.0 registry observations and a Unix static command subset; inline plugin declarations and native-expanded static paths are implemented, remaining dynamic expressions stay unknown, and Windows remains pending; Codex owns execution, while the full lifecycle, runtime observation and desktop remain undelivered |
 | Live scale and resources | Persistent MVCC, dependency-closure merging, database aggregation, million-measurement and 24-hour acceptance; the 500-file sample still exceeds the 256 MiB peak target |
 | Platforms and sources | Windows/Linux, other architectures, and other production Agent adapters each need installation and factual truth verification; compilation alone does not establish support |
-| Public release | Self-contained GitHub Release archives, one-command installation, and in-product updates are implemented; the macOS arm64 development candidate passed, while hosted verification for four other targets, public-repository controls, and the first Release remain pending; the root workspace stays private |
+| Public release | The `v0.1.0-dev.1` Development Preview is prepared; self-contained GitHub Release archives, one-command installation, and in-product updates are implemented; the macOS arm64 development candidate passed, while the free five-platform hosted release gate and first Pre-release are in progress; no stable release exists |
 | Product outcomes | Record real user tasks separately; test counts do not establish usability, savings, or user value |
 
 Future candidates are in the [roadmap](roadmap.en.md). This page does not duplicate individual styling fixes, old test counts, or retired commands; historical evidence explains the corresponding builds.

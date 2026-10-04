@@ -4,9 +4,9 @@
 
 ## Current status
 
-Wombat uses GitHub Releases as its only product distribution channel and does not publish an npm package. The root workspace stays `private: true` for source development. No public Release exists yet; the one-command README installers become usable after the first Release. Source tools require Node.js 26.4.0 or newer. User archives bundle a fixed Node.js 26.4.0 runtime, CLI/Web, and the local Rust core, so users do not install Node, npm, Rust, pnpm, or a compiler.
+Wombat uses GitHub Releases as its only product distribution channel and does not publish an npm package. The root npm workspace stays `private: true` for source development. `v0.1.0-dev.1` is the first Development Preview and is distributed as a GitHub Pre-release. Preview features, data formats, and commands may change. Source tools require Node.js 26.4.0 or newer. User archives bundle a fixed Node.js 26.4.0 runtime, CLI/Web, and the local Rust core, so users do not install Node, npm, Rust, pnpm, or a compiler.
 
-Release automation uses only free GitHub capabilities. GitHub-hosted builds stay disabled while the repository is private, and local release gates prepare development candidates instead. CI and tag releases use standard GitHub-hosted runners after the repository becomes public; paid larger runners are not used. Intermediate Actions artifacts expire after one day, while final archives become GitHub Release assets. No formal tag is created before the repository is public.
+Release automation uses only free GitHub capabilities. GitHub-hosted builds stay disabled while the repository is private. After it becomes public, CI and tag releases use standard GitHub-hosted runners; paid larger runners are not used. Intermediate Actions artifacts expire after one day, while final archives become GitHub Release assets. Versions with a prerelease component create a Pre-release and do not occupy the stable `latest` endpoint.
 
 ## One-command installation and updates
 
@@ -16,15 +16,27 @@ macOS / Linux:
 curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
 ```
 
+Specify a version for a Development Preview:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1
+```
+
 Windows PowerShell:
 
 ```powershell
 irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
 ```
 
+For a Development Preview:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1
+```
+
 The installer detects the local target, downloads `wombat-<target>.tar.gz` and `SHA256SUMS`, verifies the archive, and installs under `~/.local`. `WOMBAT_INSTALL_PREFIX` or `--prefix` changes the destination; `--version` selects a release; `--base-url` supports development candidates or controlled mirrors. The installer replaces only directories and commands carrying Wombat's management marker.
 
-After an installer-managed deployment, `wombat update` downloads and installs the latest Release. `wombat update --check` checks only, and `--version X.Y.Z` selects a version. Releases live in sibling directories. The updater verifies metadata, size, and SHA-256 before atomically switching `current.txt`. It never overwrites the running version, including on Windows, keeps the selected and previously running versions, and cleans older managed versions. Source builds and manually extracted archives have no installation pointer and are rejected explicitly.
+After an installer-managed deployment, `wombat update` downloads and installs the latest stable Release. `wombat update --check` checks only, and `--version X.Y.Z` selects a version. Previews do not enter `latest`, so moving to a later preview requires an explicit version. Releases live in sibling directories. The updater verifies metadata, size, and SHA-256 before atomically switching `current.txt`. It never overwrites the running version, including on Windows, keeps the selected and previously running versions, and cleans older managed versions. Source builds and manually extracted archives have no installation pointer and are rejected explicitly.
 
 ## GitHub Release structure
 

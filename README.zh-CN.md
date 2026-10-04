@@ -17,28 +17,28 @@ Wombat 帮你看清 Codex 的 Token 用量和任务耗时，发现指令、扩�
 
 ## 开始使用
 
-**产品尚未发布。** 首个 GitHub Release 创建后，可安装内置运行时、CLI、Web 和本机内核的独立发行包。当前还没有可供公开安装的 Release。
+**开发者预览版：`v0.1.0-dev.1`。** 这是首个公开预览版本，适合试用和反馈；功能、数据格式和命令仍可能调整。发行工作流完成前，下面的版本化安装地址暂不可用。
 
 macOS 或 Linux：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1
 ~/.local/bin/wombat web --open
 ```
 
 Windows PowerShell：
 
 ```powershell
-irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1
 & "$HOME\.local\bin\wombat.cmd" web --open
 ```
 
-默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可以直接启动；由安装器部署的版本也可以检查并安装更新：
+默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可以直接启动。开发者预览版不会替代最新稳定版；升级到后续预览版时需要指定版本：
 
 ```sh
 wombat web --open
-wombat update --check
-wombat update
+wombat update --check --version 0.1.0-dev.1
+wombat update --version NEXT_PREVIEW_VERSION
 ```
 
 发行目标包括 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。发行包无需另装 Node.js、npm、Rust、pnpm 或编译器；其他平台和实际验收边界见[支持矩阵](docs/reference/support-matrix.md)。浏览器未自动打开时，使用终端输出的完整链接。

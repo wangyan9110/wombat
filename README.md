@@ -17,28 +17,28 @@ This page describes the product direction. See the [support matrix](docs/referen
 
 ## Get started
 
-**Not yet released.** After the first GitHub Release, install the self-contained build with its bundled runtime, CLI, Web app, and native core. There is no public Release to install yet.
+**Development Preview: `v0.1.0-dev.1`.** This first public preview is intended for evaluation and feedback. Features, data formats, and commands may still change. The versioned installation URL below becomes available after the release workflow completes.
 
 On macOS or Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1
 ~/.local/bin/wombat web --open
 ```
 
 On Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1
 & "$HOME\.local\bin\wombat.cmd" web --open
 ```
 
-The default installation prefix is `~/.local`. After adding its `bin` directory to `PATH`, start Wombat directly. Installer-managed copies can also check for and install updates:
+The default installation prefix is `~/.local`. After adding its `bin` directory to `PATH`, start Wombat directly. Development previews do not replace the latest stable release, so specify the version when moving to a later preview:
 
 ```sh
 wombat web --open
-wombat update --check
-wombat update
+wombat update --check --version 0.1.0-dev.1
+wombat update --version NEXT_PREVIEW_VERSION
 ```
 
 Release targets are macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. The archives require no separate Node.js, npm, Rust, pnpm, or compiler installation. See the [support matrix](docs/reference/support-matrix.en.md) for platform and acceptance boundaries. If the browser does not open, use the full URL printed in your terminal.

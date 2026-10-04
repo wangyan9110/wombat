@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/wombat-implementation-status": {
-      "zh": "77e92a13295f2da98b2e337d1f153fa8012c5c65671bf58aea68f947c9c66e5f",
-      "en": "3bcae0828d761e797d457b75e0bf1ccc232f5c6c1e1ba5c5e664081b7a61d660"
+      "zh": "54e22f350531242e1d8997cab9a856d27896c80866834c1fc359eb103c7b7907",
+      "en": "6335ab339726aa40ff146a4e0abb48c4d5e42be3d21e380553efc9af14cd755e"
     },
     "/wombat-implementation-status/five-surfaces-and-the-full-optimization-lifecycle-stage-acceptance-failed": {
       "zh": "13fb879ab02318477a4e467584a295813c19ecf9a1ee299800bcedfcd2fe8d0c",
@@ -22,8 +22,8 @@
       "en": "37ba7724b47a9b1dd58928bc2a75d24b464c04e5f094e7425a4b9cc334be083d"
     },
     "/wombat-implementation-status/remaining-work-and-acceptance-responsibility": {
-      "zh": "3727ed42b40709a6934fcc31b8f02939f7fd31ca7da50af918bd6f513802fd71",
-      "en": "12bc9908ef7fa7f4df866e4270ec1282eec8ac806ad8088d5d1fffc001c1c5b5"
+      "zh": "150085fc8466d8c8581e1a814c1a8eca50aabbdf90a0d2caff93b5c0f159b6ad",
+      "en": "dee7d1c3b10d845b1f0e2fd016ca98fe1fd33af686adbc4cccf20ea7eb5e6340"
     },
     "/wombat-implementation-status/first-web-delivery-2026-10-01": {
       "zh": "66e04aecf1e044ecb7c7340faa96b563a2c713e6d363fc7dd8231041a7727902",

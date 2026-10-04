@@ -45,6 +45,18 @@ description: 构建和发行 Wombat，准备 GitHub Release 独立归档，执�
 
 发布后从 GitHub Release 重新下载归档，核对 SHA-256，在新的隔离前缀运行公开的一键安装命令，再验证版本、CLI、Web 和 `wombat update --check`。确认安装器原始地址无需登录访问。若远端状态不明，先查询 Release 和资产哈希，不重复上传。
 
+## Development Preview 流程
+
+首个公开预览从 `0.1.0-dev.1` 开始，后续候选递增 `dev.N`；进入 beta、RC 或稳定版必须由用户明确决定，不自行改变阶段。预览版使用 GitHub Pre-release，不占用稳定版 `latest`：README、安装验收和升级验收均显式传入版本。
+
+1. 确认工作树和远端基线，选择唯一候选版本与标签 `v<version>`。同步根、`client`、`ui`、`web`、`cli` 的 package 版本和 Rust crate/锁文件；版本断言从根清单读取，不在测试中复制当前版本字符串。
+2. 更新 README、分发状态、支持矩阵和实施状态的中英文配对，记录双语确认。发行工作流根据标签中的预发行段设置 Pre-release；稳定版仍使用同一工作流。
+3. 私有仓库只运行本机 `release:check`，GitHub 托管作业必须跳过。公开后只使用免费的标准 GitHub 托管运行器，不启用 larger runner；中间 Actions 产物保留 1 天。
+4. 最终代码和文档确定后运行一次完整 `release:check`。失败后先做最小修正和定向复验；只有源码、版本、发行脚本、锁文件或清单继续变化时才重新运行完整门禁，不对相同内容机械重复构建。
+5. 提交并推送候选，公开仓库后在同一提交运行五平台 CI。全部通过才创建并推送匹配标签；标签工作流负责重建、汇总、最终归档五平台安装验证、来源证明和 Pre-release 创建。
+6. 等待 Release 完成，读取 `release-set.json` 和 `SHA256SUMS`，从公开 URL 重新下载并核对五份归档。用版本化安装命令在仓库外干净前缀验收当前平台，再执行 `wombat update --check --version <version>`。
+7. 将真实运行、归档哈希、平台结果和未覆盖边界写入进度与当前状态。发布失败保留失败证据并使用新的递增预览版本修复，不移动或覆盖已公开标签。
+
 ## 收尾
 
 用户安装包不要求 Node/npm、Rust、pnpm 或编译器。当前平台为 macOS arm64/x64、Linux glibc arm64/x64、Windows x64；musl、Windows ARM64 和旧系统不能在未验收时宣称支持。
