@@ -4,10 +4,11 @@
 //! establish historical segments, windows and temporal associations only.
 //! A segment must end at a model/effort change, conflict, turn boundary or source gap.
 //! This module never infers a window from a model name or cumulative accounting.
+use super::analysis::check;
 use crate::adapters::contract::Measurement;
 use crate::session_events::{Event, ItemKind, LifecycleKind, Payload};
 use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::sync::{Arc, atomic::AtomicBool};
 type Associated<'a> = (
     &'a Measurement,
     String,
@@ -33,6 +34,21 @@ pub(super) fn summarize_events_with_discontinuities(
     events: &[Arc<Event>],
     discontinuities: &[Arc<Event>],
 ) -> Statistics {
+    summarize_events_cancellable(
+        measurements,
+        events,
+        discontinuities,
+        &AtomicBool::new(false),
+    )
+    .expect("uncancelled context")
+}
+pub(super) fn summarize_events_cancellable(
+    measurements: &[Arc<Measurement>],
+    events: &[Arc<Event>],
+    discontinuities: &[Arc<Event>],
+    cancelled: &AtomicBool,
+) -> anyhow::Result<Statistics> {
+    check(cancelled)?;
     let canonical: BTreeMap<_, _> = measurements
         .iter()
         .map(|value| (value.id.as_str(), value.as_ref()))
@@ -41,6 +57,7 @@ pub(super) fn summarize_events_with_discontinuities(
     let mut breaks = BTreeMap::new();
     let mut identities: BTreeMap<&str, Vec<&Measurement>> = BTreeMap::new();
     for event in events {
+        check(cancelled)?;
         if let Payload::Measurement { value, .. } = event.payload()
             && canonical.contains_key(value.id.as_str())
         {
@@ -70,6 +87,7 @@ pub(super) fn summarize_events_with_discontinuities(
             .push(event.as_ref());
     }
     for event in discontinuities {
+        check(cancelled)?;
         if !event.gaps().is_empty() {
             let position = event.position();
             breaks
@@ -89,6 +107,7 @@ pub(super) fn summarize_events_with_discontinuities(
         .collect();
     let mut seen = BTreeMap::new();
     for offsets in breaks.values_mut() {
+        check(cancelled)?;
         offsets.sort_unstable();
         offsets.dedup();
     }
@@ -96,6 +115,7 @@ pub(super) fn summarize_events_with_discontinuities(
     let mut compactions = Vec::new();
     let mut conflicting_window_records = 0;
     for (scope, mut records) in scopes {
+        check(cancelled)?;
         records.sort_by_key(|event| (event.position().byte_offset, event.position().ordinal));
         let mut previous_model = None;
         let mut previous_window = None;
@@ -104,6 +124,7 @@ pub(super) fn summarize_events_with_discontinuities(
         let mut segment = 0_u64;
         let mut offset = 0;
         while offset < records.len() {
+            check(cancelled)?;
             let end = offset
                 + records[offset..].partition_point(|event| {
                     event.position().byte_offset == records[offset].position().byte_offset
@@ -162,6 +183,7 @@ pub(super) fn summarize_events_with_discontinuities(
                 segment += 1;
             }
             for event in row {
+                check(cancelled)?;
                 let Payload::Measurement { value, .. } = event.payload() else {
                     continue;
                 };
@@ -258,6 +280,7 @@ pub(super) fn summarize_events_with_discontinuities(
                 }
             }
             for event in row {
+                check(cancelled)?;
                 if matches!(
                     event.payload(),
                     Payload::Lifecycle {
@@ -282,21 +305,26 @@ pub(super) fn summarize_events_with_discontinuities(
     // Keep every authoritative candidate in coverage, including measurements for
     // which the retained safe event scope cannot establish a historical position.
     for value in canonical.values() {
+        check(cancelled)?;
         if !seen.contains_key(value.id.as_str()) {
             associated.push((value, format!("unassociated/{}", value.id), None, 0, None));
         }
     }
-    let mut statistics = summarize(associated.iter().map(
-        |(measurement, segment_id, window, _, _)| Candidate {
-            measurement,
-            segment_id,
-            window: *window,
-        },
-    ));
+    let mut statistics = summarize_cancellable(
+        associated
+            .iter()
+            .map(|(measurement, segment_id, window, _, _)| Candidate {
+                measurement,
+                segment_id,
+                window: *window,
+            }),
+        cancelled,
+    )?;
     statistics.conflicting_measurements = conflicts.len();
     statistics.conflicting_window_records = conflicting_window_records;
     let mut sample_index: BTreeMap<&str, Vec<&Associated<'_>>> = BTreeMap::new();
     for entry in &associated {
+        check(cancelled)?;
         if entry.0.request_scoped && entry.0.tokens.raw_input.is_some() && entry.4.is_some() {
             sample_index.entry(&entry.1).or_default().push(entry);
         }
@@ -304,6 +332,7 @@ pub(super) fn summarize_events_with_discontinuities(
     statistics.compactions = compactions
         .into_iter()
         .map(|(event_id, segment_id, position, time)| {
+            check(cancelled)?;
             let reliable = sample_index
                 .get(segment_id.as_str())
                 .map(Vec::as_slice)
@@ -328,15 +357,16 @@ pub(super) fn summarize_events_with_discontinuities(
                     })
                 })
             };
-            CompactionNeighbors {
+            Ok(CompactionNeighbors {
                 event_id,
                 segment_id,
                 before: neighbor(before),
                 after: neighbor(after),
-            }
+            })
         })
-        .collect();
-    statistics
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    check(cancelled)?;
+    Ok(statistics)
 }
 
 // Only disagreements between observed context facts are conflicts. Missing fields
@@ -445,11 +475,19 @@ struct Accumulator {
 /// Missing window values do not remove reliable input samples. Ratios above one
 /// are retained as observations, and zero input remains a valid sample.
 pub fn summarize<'a>(candidates: impl IntoIterator<Item = Candidate<'a>>) -> Statistics {
+    summarize_cancellable(candidates, &AtomicBool::new(false)).expect("uncancelled context")
+}
+fn summarize_cancellable<'a>(
+    candidates: impl IntoIterator<Item = Candidate<'a>>,
+    cancelled: &AtomicBool,
+) -> anyhow::Result<Statistics> {
+    check(cancelled)?;
     let mut segments: BTreeMap<String, Accumulator> = BTreeMap::new();
     let mut inputs = Vec::new();
     let mut ratios = Vec::new();
     let mut count = 0;
     for candidate in candidates {
+        check(cancelled)?;
         count += 1;
         let accumulator = segments.entry(candidate.segment_id.to_owned()).or_default();
         let segment = &mut accumulator.segment;
@@ -486,7 +524,7 @@ pub fn summarize<'a>(candidates: impl IntoIterator<Item = Candidate<'a>>) -> Sta
         accumulator.ratios.push(ratio);
         ratios.push(ratio);
     }
-    Statistics {
+    let result = Statistics {
         method: METHOD,
         quantile_method: QUANTILE_METHOD,
         candidates: count,
@@ -497,14 +535,17 @@ pub fn summarize<'a>(candidates: impl IntoIterator<Item = Candidate<'a>>) -> Sta
         segments: segments
             .into_iter()
             .map(|(id, mut accumulator)| {
+                check(cancelled)?;
                 accumulator.segment.id = id;
                 accumulator.segment.input = distribution(accumulator.inputs);
                 accumulator.segment.ratio = distribution(accumulator.ratios);
-                accumulator.segment
+                Ok(accumulator.segment)
             })
-            .collect(),
+            .collect::<anyhow::Result<Vec<_>>>()?,
         compactions: Vec::new(),
-    }
+    };
+    check(cancelled)?;
+    Ok(result)
 }
 
 fn distribution(mut values: Vec<f64>) -> Distribution {

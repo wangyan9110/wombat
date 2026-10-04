@@ -23,7 +23,7 @@ test('live client accepts a split response without waiting for server EOF', asyn
   try {
     server.listen(endpoint); await once(server, 'listening');
     const binaryPath = path.join(dir, 'endpoint.cjs');
-    const response = JSON.stringify({ ok: true, value: { protocolVersion: 1, socket: endpoint } });
+    const response = JSON.stringify({ ok: true, value: { protocolVersion: 2, socket: endpoint } });
     await writeFile(binaryPath, `process.stdin.resume();process.stdin.on('end',()=>console.log(${JSON.stringify(response)}));`);
     await chmod(binaryPath, 0o700);
     assert.deepEqual(await queryLive({ query: { action: 'usage' } }, {}, { binaryPath, timeoutMs: 1000 }), { marker: 'complete' });
@@ -39,7 +39,7 @@ test('live client retries when the first service process loses the startup race'
   const endpoint = process.platform === 'win32' ? `\\\\.\\pipe\\wombat-test-${randomUUID()}` : path.join(dir, 'socket');
   const counter = path.join(dir, 'starts');
   const binaryPath = path.join(dir, 'endpoint.cjs');
-  const response = JSON.stringify({ ok: true, value: { protocolVersion: 1, socket: endpoint } });
+  const response = JSON.stringify({ ok: true, value: { protocolVersion: 2, socket: endpoint } });
   const success = JSON.stringify({ ok: true, value: { marker: 'retried' } }) + '\n';
   await writeFile(binaryPath, `
 const fs = require('node:fs');
@@ -60,6 +60,59 @@ if (process.argv.includes('--serve-usage')) {
     assert.deepEqual(await queryLive({ query: { action: 'usage' } }, {}, { binaryPath, timeoutMs: 1000 }), { marker: 'retried' });
     assert.equal(await readFile(counter, 'utf8'), '2');
   } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('live client rejects the previous protocol before connecting or starting a service', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-wire-version-'));
+  const binaryPath = path.join(dir, 'endpoint.cjs');
+  const starts = path.join(dir, 'starts');
+  const response = JSON.stringify({ ok: true, value: { protocolVersion: 1, socket: path.join(dir, 'absent') } });
+  await writeFile(binaryPath, `if(process.argv.includes('--serve-usage')){require('node:fs').writeFileSync(${JSON.stringify(starts)},'started');}else{process.stdin.resume();process.stdin.on('end',()=>console.log(${JSON.stringify(response)}));}`);
+  await chmod(binaryPath, 0o700);
+  try {
+    await assert.rejects(queryLive({ timing: { action: 'capabilities' } }, {}, { binaryPath }), { code: 'PROTOCOL_ERROR' });
+    await assert.rejects(readFile(starts), { code: 'ENOENT' });
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('cancelling one timing connection preserves another reader and sends no hook inputs', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-wire-cancel-'));
+  const endpoint = process.platform === 'win32' ? `\\\\.\\pipe\\wombat-test-${randomUUID()}` : path.join(dir, 'socket');
+  const binaryPath = path.join(dir, 'endpoint.cjs');
+  const response = JSON.stringify({ ok: true, value: { protocolVersion: 2, socket: endpoint } });
+  await writeFile(binaryPath, `process.stdin.resume();process.stdin.on('end',()=>console.log(${JSON.stringify(response)}));`);
+  await chmod(binaryPath, 0o700);
+  const connections = new Set<Socket>();
+  const received: { timing: { threadId: string } }[] = [];
+  let release!: () => void;
+  const bothReceived = new Promise<void>(resolve => { release = resolve; });
+  const server = createServer(socket => {
+    connections.add(socket);
+    socket.once('close', () => connections.delete(socket));
+    socket.once('data', bytes => {
+      const request = JSON.parse(bytes.toString()); received.push(request);
+      if (received.length === 2) release();
+      if (request.timing.threadId === 'other') setTimeout(() => socket.end('{"ok":true,"value":{"marker":"other"}}\n'), 100);
+    });
+  });
+  try {
+    server.listen(endpoint); await once(server, 'listening');
+    const cancelled = new AbortController();
+    const firstRequest = { timing: { action: 'summary' as const, threadId: 'cancelled', turnId: 'turn' } };
+    const secondRequest = { timing: { action: 'summary' as const, threadId: 'other', turnId: 'turn' } };
+    const first = queryLive(firstRequest, { signal: cancelled.signal }, { binaryPath, timeoutMs: 2000, codexBinaryPath: path.join(dir, 'must-not-run') });
+    const rejected = assert.rejects(first, { code: 'CANCELLED' });
+    const second = queryLive(secondRequest, {}, { binaryPath, timeoutMs: 2000, codexBinaryPath: path.join(dir, 'must-not-run') });
+    await bothReceived;
+    cancelled.abort(); await rejected;
+    assert.deepEqual(await second, { marker: 'other' });
+    assert.deepEqual(received.sort((a, b) => a.timing.threadId.localeCompare(b.timing.threadId)), [firstRequest, secondRequest]);
+    assert.equal(server.listening, true);
+  } finally {
+    for (const connection of connections) connection.destroy();
+    await new Promise<void>(resolve => server.close(() => resolve()));
     await rm(dir, { recursive: true, force: true });
   }
 });

@@ -41,5 +41,16 @@ export function createHttpClient(options: { origin: string; token: string; fetch
       throw new CoreError('TRANSPORT_ERROR', error instanceof Error ? error.message : String(error));
     } finally { await reader?.cancel().catch(() => {}); }
   };
-  return createUsageClient((r, q) => send('query', r, q), (r, q) => send('prices', r, q), (r, q) => send('live', r, q), (r, q) => send('config', r, q), (r, q) => send('optimize', r, q), (r,q)=>send('preferences',r,q),(r,q)=>send('directories',r,q),{account:(r,q)=>send('account',r,q),handoff:(r,q)=>send('handoff',r,q)});
+  return createUsageClient({
+    query: (r, q) => send('query', r, q),
+    prices: (r, q) => send('prices', r, q),
+    live: (r, q) => send('live', r, q),
+    config: (r, q) => send('config', r, q),
+    optimize: (r, q) => send('optimize', r, q),
+    preferences: (r, q) => send('preferences', r, q),
+    directories: (r, q) => send('directories', r, q),
+    timing: (r, q) => send('timing', r, q),
+    account: (r, q) => send('account', r, q),
+    handoff: (r, q) => send('handoff', r, q),
+  });
 }

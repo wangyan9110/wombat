@@ -1,0 +1,1430 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response",
+  "anyOf": [
+    {
+      "$ref": "#/definitions/LocalResponse"
+    },
+    {
+      "$ref": "#/definitions/ShareResponse"
+    },
+    {
+      "$ref": "#/definitions/EvidenceResponse"
+    },
+    {
+      "$ref": "#/definitions/CapabilitiesResponse"
+    }
+  ],
+  "definitions": {
+    "LocalResponse": {
+      "type": "object",
+      "properties": {
+        "outputVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action": {
+          "$ref": "#/definitions/SummaryAction"
+        },
+        "methodVersion": {
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/definitions/LocalProfile"
+        },
+        "privacy": {
+          "$ref": "#/definitions/Privacy"
+        },
+        "readView": {
+          "$ref": "#/definitions/ReadView"
+        },
+        "scope": {
+          "$ref": "#/definitions/LocalScope"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/Capabilities"
+        },
+        "anchors": {
+          "$ref": "#/definitions/Anchors"
+        },
+        "time": {
+          "$ref": "#/definitions/Time"
+        },
+        "context": {
+          "$ref": "#/definitions/Context"
+        },
+        "work": {
+          "$ref": "#/definitions/Work"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Finding"
+          }
+        },
+        "coverage": {
+          "$ref": "#/definitions/Coverage"
+        },
+        "quality": {
+          "$ref": "#/definitions/Quality"
+        },
+        "freshness": {
+          "$ref": "#/definitions/QueryFreshness"
+        },
+        "evidence": {
+          "$ref": "#/definitions/EvidenceIndex"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "outputVersion",
+        "action",
+        "methodVersion",
+        "profile",
+        "privacy",
+        "readView",
+        "scope",
+        "capabilities",
+        "anchors",
+        "time",
+        "context",
+        "work",
+        "findings",
+        "coverage",
+        "quality",
+        "freshness",
+        "evidence"
+      ]
+    },
+    "SummaryAction": {
+      "type": "string",
+      "enum": [
+        "summary"
+      ]
+    },
+    "LocalProfile": {
+      "type": "string",
+      "enum": [
+        "local"
+      ]
+    },
+    "Privacy": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/PrivacyProfile"
+        },
+        "omittedFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aliases": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "omittedFields",
+        "aliases"
+      ]
+    },
+    "PrivacyProfile": {
+      "type": "string",
+      "enum": [
+        "local",
+        "share-v1"
+      ]
+    },
+    "ReadView": {
+      "type": "object",
+      "properties": {
+        "snapshotId": {
+          "type": "string"
+        },
+        "snapshotSchema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "adapterVersions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "projectionVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "snapshotId",
+        "snapshotSchema",
+        "createdAt",
+        "adapterVersions",
+        "projectionVersion"
+      ]
+    },
+    "LocalScope": {
+      "type": "object",
+      "properties": {
+        "sourceInstanceId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "agentKind": {
+          "type": "string"
+        },
+        "wholeTurn": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sourceInstanceId",
+        "threadId",
+        "turnId",
+        "agentKind",
+        "wholeTurn"
+      ]
+    },
+    "Capabilities": {
+      "type": "object",
+      "properties": {
+        "wallClock": {
+          "$ref": "#/definitions/Capability"
+        },
+        "nativeTtft": {
+          "$ref": "#/definitions/Capability"
+        },
+        "firstContentRecordDelay": {
+          "$ref": "#/definitions/Capability"
+        },
+        "lifecycleIntervals": {
+          "$ref": "#/definitions/Capability"
+        },
+        "contextPressure": {
+          "$ref": "#/definitions/Capability"
+        },
+        "strictResponseGap": {
+          "$ref": "#/definitions/Capability"
+        },
+        "exploratoryGap": {
+          "$ref": "#/definitions/Capability"
+        },
+        "commandLabels": {
+          "$ref": "#/definitions/Capability"
+        },
+        "fileChanges": {
+          "$ref": "#/definitions/Capability"
+        },
+        "messageRecords": {
+          "$ref": "#/definitions/Capability"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "wallClock",
+        "nativeTtft",
+        "firstContentRecordDelay",
+        "lifecycleIntervals",
+        "contextPressure",
+        "strictResponseGap",
+        "exploratoryGap",
+        "commandLabels",
+        "fileChanges",
+        "messageRecords"
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "properties": {
+        "support": {
+          "$ref": "#/definitions/Support"
+        },
+        "reason": {
+          "$ref": "#/definitions/Basis"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "support",
+        "reason"
+      ]
+    },
+    "Support": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "partial",
+        "unavailable"
+      ]
+    },
+    "Basis": {
+      "type": "string",
+      "enum": [
+        "native_record",
+        "explicit_boundary",
+        "lifecycle_union",
+        "lifecycle_sum",
+        "interval_mask",
+        "request_input",
+        "historical_window",
+        "type7",
+        "safe_message_record",
+        "safe_message_delay",
+        "safe_event_count",
+        "response_gap_v1",
+        "not_recorded",
+        "adapter_not_mapped",
+        "unsupported_method",
+        "missing_identity",
+        "missing_time",
+        "boundary_conflict",
+        "source_partial",
+        "resource_limit",
+        "numeric_range",
+        "no_candidates",
+        "missing_batch_cycle",
+        "missing_repository_baseline"
+      ]
+    },
+    "Anchors": {
+      "type": "object",
+      "properties": {
+        "startMs": {
+          "$ref": "#/definitions/TimingMetric_int64"
+        },
+        "endMs": {
+          "$ref": "#/definitions/TimingMetric_int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "startMs",
+        "endMs"
+      ]
+    },
+    "TimingMetric_int64": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991
+        },
+        "status": {
+          "$ref": "#/definitions/MetricStatus"
+        },
+        "basis": {
+          "$ref": "#/definitions/Basis"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "status",
+        "basis",
+        "evidenceRefs"
+      ]
+    },
+    "MetricStatus": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "derived",
+        "proxy",
+        "unavailable"
+      ]
+    },
+    "Time": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/TurnState"
+        },
+        "nativeWallClockMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "derivedWallClockMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "nativeTtftMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "firstContentRecordDelayMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "boundaryDiscrepancyMs": {
+          "$ref": "#/definitions/TimingMetric_int64"
+        },
+        "observedWindowMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "command": {
+          "$ref": "#/definitions/Category"
+        },
+        "compaction": {
+          "$ref": "#/definitions/Category"
+        },
+        "reasoning": {
+          "$ref": "#/definitions/Category"
+        },
+        "intersectionMasksMs": {
+          "description": "Masks 0..7: command bit 1, compaction bit 2, reasoning bit 4.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TimingMetric_uint64"
+          }
+        },
+        "coveredMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unclassifiedMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "coverageRatio": {
+          "$ref": "#/definitions/TimingMetric_double"
+        },
+        "waitingProxyMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "strictResponseGapMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "exploratoryGapMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "nativeWallClockMs",
+        "derivedWallClockMs",
+        "nativeTtftMs",
+        "firstContentRecordDelayMs",
+        "boundaryDiscrepancyMs",
+        "observedWindowMs",
+        "command",
+        "compaction",
+        "reasoning",
+        "intersectionMasksMs",
+        "coveredMs",
+        "unclassifiedMs",
+        "coverageRatio",
+        "waitingProxyMs",
+        "strictResponseGapMs",
+        "exploratoryGapMs"
+      ]
+    },
+    "TurnState": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "unknown"
+      ]
+    },
+    "TimingMetric_uint64": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "$ref": "#/definitions/MetricStatus"
+        },
+        "basis": {
+          "$ref": "#/definitions/Basis"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "status",
+        "basis",
+        "evidenceRefs"
+      ]
+    },
+    "Category": {
+      "type": "object",
+      "properties": {
+        "candidates": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "closed": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unionMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "sumMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "candidates",
+        "closed",
+        "unionMs",
+        "sumMs"
+      ]
+    },
+    "TimingMetric_double": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/MetricStatus"
+        },
+        "basis": {
+          "$ref": "#/definitions/Basis"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "status",
+        "basis",
+        "evidenceRefs"
+      ]
+    },
+    "Context": {
+      "type": "object",
+      "properties": {
+        "activeContextOccupancy": {
+          "$ref": "#/definitions/TimingMetric_double"
+        },
+        "compactionRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "compactionTimeMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "method": {
+          "type": "string"
+        },
+        "quantileMethod": {
+          "type": "string"
+        },
+        "candidates": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "conflictingMeasurements": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "conflictingWindowRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "input": {
+          "$ref": "#/definitions/Distribution"
+        },
+        "ratio": {
+          "$ref": "#/definitions/Distribution"
+        },
+        "segmentCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Segment"
+          }
+        },
+        "compactionNeighbors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CompactionNeighbors"
+          }
+        },
+        "detail": {
+          "$ref": "#/definitions/Capability"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "activeContextOccupancy",
+        "compactionRecords",
+        "compactionTimeMs",
+        "method",
+        "quantileMethod",
+        "candidates",
+        "conflictingMeasurements",
+        "conflictingWindowRecords",
+        "input",
+        "ratio",
+        "segmentCount",
+        "segments",
+        "compactionNeighbors",
+        "detail"
+      ]
+    },
+    "Distribution": {
+      "type": "object",
+      "properties": {
+        "samples": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "median": {
+          "$ref": "#/definitions/TimingMetric_double"
+        },
+        "p90": {
+          "$ref": "#/definitions/TimingMetric_double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "samples",
+        "median",
+        "p90"
+      ]
+    },
+    "Segment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "candidates": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "nonRequestScoped": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingRawInput": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingWindow": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "invalidWindow": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "sameRecordWindows": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "continuedWindows": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "aboveWindow": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "input": {
+          "$ref": "#/definitions/Distribution"
+        },
+        "ratio": {
+          "$ref": "#/definitions/Distribution"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "candidates",
+        "nonRequestScoped",
+        "missingRawInput",
+        "missingWindow",
+        "invalidWindow",
+        "sameRecordWindows",
+        "continuedWindows",
+        "aboveWindow",
+        "input",
+        "ratio"
+      ]
+    },
+    "CompactionNeighbors": {
+      "type": "object",
+      "properties": {
+        "evidenceRef": {
+          "type": "string"
+        },
+        "segmentId": {
+          "type": "string"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Neighbor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Neighbor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "evidenceRef",
+        "segmentId"
+      ]
+    },
+    "Neighbor": {
+      "type": "object",
+      "properties": {
+        "measurementRef": {
+          "type": "string"
+        },
+        "rawInput": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "ratio": {
+          "$ref": "#/definitions/TimingMetric_double"
+        },
+        "distanceMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "measurementRef",
+        "rawInput",
+        "ratio",
+        "distanceMs"
+      ]
+    },
+    "Work": {
+      "type": "object",
+      "properties": {
+        "operationCandidates": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "closedOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "failedOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "labelledCommandMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "fileChangeRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "changedFiles": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "addedLines": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "removedLines": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "messageRecordCandidates": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "nonemptyVisibleContentRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unknownContentRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingContentTimeRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "userBoundaryRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "injectedContextRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "reasoningMessageRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "compactionRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "repositoryBaseline": {
+          "$ref": "#/definitions/Capability"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operationCandidates",
+        "closedOperations",
+        "failedOperations",
+        "labelledCommandMs",
+        "fileChangeRecords",
+        "changedFiles",
+        "addedLines",
+        "removedLines",
+        "messageRecordCandidates",
+        "nonemptyVisibleContentRecords",
+        "unknownContentRecords",
+        "missingContentTimeRecords",
+        "userBoundaryRecords",
+        "injectedContextRecords",
+        "reasoningMessageRecords",
+        "compactionRecords",
+        "repositoryBaseline"
+      ]
+    },
+    "Finding": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/FindingKind"
+        },
+        "metricRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "kind",
+        "metricRefs",
+        "evidenceRefs"
+      ]
+    },
+    "FindingKind": {
+      "type": "string",
+      "enum": [
+        "fact",
+        "proxy",
+        "user_annotation"
+      ]
+    },
+    "Coverage": {
+      "type": "object",
+      "properties": {
+        "facts": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "bytes": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "metadata": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "eventBlocks": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "scopedEvents": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "scopedMeasurements": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "boundaryCandidates": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "lifecycleCandidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TimingMetric_uint64"
+          }
+        },
+        "linkedLifecycles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TimingMetric_uint64"
+          }
+        },
+        "conflictingLifecycles": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingIdentityLifecycles": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "contentCandidates": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "domainCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingWatermarks": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "generationMismatches": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "incompleteDomains": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "snapshotUnassignedTotal": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "threadUnassignedTotal": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "sourceStatus": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "facts",
+        "bytes",
+        "metadata",
+        "eventBlocks",
+        "scopedEvents",
+        "scopedMeasurements",
+        "boundaryCandidates",
+        "lifecycleCandidates",
+        "linkedLifecycles",
+        "conflictingLifecycles",
+        "missingIdentityLifecycles",
+        "contentCandidates",
+        "domainCount",
+        "missingWatermarks",
+        "generationMismatches",
+        "incompleteDomains",
+        "snapshotUnassignedTotal",
+        "threadUnassignedTotal",
+        "sourceStatus"
+      ]
+    },
+    "Quality": {
+      "type": "object",
+      "properties": {
+        "partial": {
+          "type": "boolean"
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "censored": {
+          "type": "boolean"
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Basis"
+          }
+        },
+        "factLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "summaryLimitBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "partial",
+        "running",
+        "censored",
+        "reasonCodes",
+        "factLimit",
+        "summaryLimitBytes"
+      ]
+    },
+    "QueryFreshness": {
+      "description": "Internal selector observation; not a request option or source capability.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ]
+    },
+    "EvidenceIndex": {
+      "type": "object",
+      "properties": {
+        "collections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidenceCollection"
+          }
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "method": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "collections",
+        "available",
+        "limit",
+        "snapshotId",
+        "refs",
+        "method"
+      ]
+    },
+    "EvidenceCollection": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/CollectionKind"
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/definitions/LocalScope"
+        },
+        "count": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "method": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "kind",
+        "snapshotId",
+        "scope",
+        "count",
+        "method"
+      ]
+    },
+    "CollectionKind": {
+      "type": "string",
+      "enum": [
+        "turn_events",
+        "canonical_measurements",
+        "source_controls",
+        "native_boundary_index"
+      ]
+    },
+    "ShareResponse": {
+      "type": "object",
+      "properties": {
+        "basisCollections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShareCollection"
+          }
+        },
+        "outputVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action": {
+          "$ref": "#/definitions/SummaryAction"
+        },
+        "methodVersion": {
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/definitions/ShareProfile"
+        },
+        "privacy": {
+          "$ref": "#/definitions/Privacy"
+        },
+        "scope": {
+          "$ref": "#/definitions/ShareScope"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/Capabilities"
+        },
+        "relativeAnchors": {
+          "$ref": "#/definitions/Anchors"
+        },
+        "time": {
+          "$ref": "#/definitions/Time"
+        },
+        "context": {
+          "$ref": "#/definitions/Context"
+        },
+        "work": {
+          "$ref": "#/definitions/Work"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Finding"
+          }
+        },
+        "coverage": {
+          "$ref": "#/definitions/Coverage"
+        },
+        "quality": {
+          "$ref": "#/definitions/Quality"
+        },
+        "freshness": {
+          "$ref": "#/definitions/ShareFreshness"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "basisCollections",
+        "outputVersion",
+        "action",
+        "methodVersion",
+        "profile",
+        "privacy",
+        "scope",
+        "capabilities",
+        "relativeAnchors",
+        "time",
+        "context",
+        "work",
+        "findings",
+        "coverage",
+        "quality",
+        "freshness"
+      ]
+    },
+    "ShareCollection": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/CollectionKind"
+        },
+        "taskAlias": {
+          "type": "string"
+        },
+        "turnAlias": {
+          "type": "string"
+        },
+        "count": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "method": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "kind",
+        "taskAlias",
+        "turnAlias",
+        "count",
+        "method"
+      ]
+    },
+    "ShareProfile": {
+      "type": "string",
+      "enum": [
+        "share-v1"
+      ]
+    },
+    "ShareScope": {
+      "type": "object",
+      "properties": {
+        "taskAlias": {
+          "type": "string"
+        },
+        "turnAlias": {
+          "type": "string"
+        },
+        "wholeTurn": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "taskAlias",
+        "turnAlias",
+        "wholeTurn"
+      ]
+    },
+    "ShareFreshness": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ]
+    },
+    "EvidenceResponse": {
+      "type": "object",
+      "properties": {
+        "outputVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action": {
+          "$ref": "#/definitions/EvidenceAction"
+        },
+        "methodVersion": {
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/definitions/LocalProfile"
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/definitions/LocalScope"
+        },
+        "total": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidenceRow"
+          }
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "outputVersion",
+        "action",
+        "methodVersion",
+        "profile",
+        "snapshotId",
+        "scope",
+        "total",
+        "rows"
+      ]
+    },
+    "EvidenceAction": {
+      "type": "string",
+      "enum": [
+        "evidence"
+      ]
+    },
+    "EvidenceRow": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        },
+        "recordKind": {
+          "type": "string"
+        },
+        "timestampMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "presence": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "origin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "durationMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "firstTokenMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "gapCodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "recordKind",
+        "gapCodes"
+      ]
+    },
+    "Cursor": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "maxLength": 8192
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "token"
+      ]
+    },
+    "CapabilitiesResponse": {
+      "type": "object",
+      "properties": {
+        "outputVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action": {
+          "$ref": "#/definitions/CapabilitiesAction"
+        },
+        "methodVersion": {
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/definitions/PrivacyProfile"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/Capabilities"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "outputVersion",
+        "action",
+        "methodVersion",
+        "profile",
+        "capabilities"
+      ]
+    },
+    "CapabilitiesAction": {
+      "type": "string",
+      "enum": [
+        "capabilities"
+      ]
+    }
+  }
+}

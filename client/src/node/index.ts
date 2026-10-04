@@ -11,15 +11,20 @@ export interface NodeClientOptions extends CoreProcessOptions,CodexOptions { aut
 /** The CLI supplies a packaged binary path; source use can locate the root build. */
 export function createNodeClient(options: NodeClientOptions = {}): UsageClient {
   let account: Promise<AccountTransport> | undefined, handoff: Promise<HandoffTransport> | undefined;
-  const client = createUsageClient((request, queryOptions) => invokeCore(request, queryOptions, options),
-    (request, queryOptions) => queryPrices(request, queryOptions, options),
-    (request, queryOptions) => queryLive(request, queryOptions, options),
-    (request, queryOptions) => queryLive({ config: request }, queryOptions, options),
-    (request, queryOptions) => queryLive({ optimize: request }, queryOptions, options),
-    (request, queryOptions) => invokeOperation('preferences',request,queryOptions,options),
-    createDirectoryTransport(options,options.directoryPicker),{
-      account:async (r,q)=>(await (account??=import('./codex/account.js').then(m=>m.createAccountTransport(options))))(r,q),
-      handoff:async (r,q)=>(await (handoff??=import('./codex/handoff.js').then(m=>m.createHandoffTransport(options))))(r,q),
-    });
+  const client = createUsageClient({
+    query: (request, queryOptions) => invokeCore(request, queryOptions, options),
+    prices: (request, queryOptions) => queryPrices(request, queryOptions, options),
+    live: (request, queryOptions) => queryLive(request, queryOptions, options),
+    config: (request, queryOptions) => queryLive({ config: request }, queryOptions, options),
+    optimize: (request, queryOptions) => queryLive({ optimize: request }, queryOptions, options),
+    preferences: (request, queryOptions) => invokeOperation('preferences', request, queryOptions, options),
+    directories: createDirectoryTransport(options, options.directoryPicker),
+    timing: (request, queryOptions) => request.action === 'capabilities'
+      || (request.snapshotId != null && !request.snapshotId.startsWith('live:'))
+      ? invokeOperation('timing', request, queryOptions, options)
+      : queryLive({ timing: request }, queryOptions, options),
+    account: async (r, q) => (await (account ??= import('./codex/account.js').then(m => m.createAccountTransport(options))))(r, q),
+    handoff: async (r, q) => (await (handoff ??= import('./codex/handoff.js').then(m => m.createHandoffTransport(options))))(r, q),
+  });
   return options.automaticPrices === false ? client : withAutomaticPrices(client);
 }

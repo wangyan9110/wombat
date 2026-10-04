@@ -25,12 +25,19 @@ fn breaks(event: &Event) -> bool {
 /// domains need their own explicit start and agreeing first-record timestamps.
 /// Unknown/untimed earlier candidates and source breaks are never filled by a
 /// later known record. O(E log E) time, O(E) space within the analysis event budget.
-pub(super) fn first_record(events: &[Arc<Event>], controls: &[Arc<Event>], result: &mut Analysis) {
+pub(super) fn first_record(
+    events: &[Arc<Event>],
+    controls: &[Arc<Event>],
+    result: &mut Analysis,
+    cancelled: &AtomicBool,
+) -> anyhow::Result<()> {
+    check(cancelled)?;
     let mut candidates: BTreeMap<(&str, &str), Vec<&Event>> = BTreeMap::new();
     let mut signatures = BTreeMap::new();
     let mut starts = BTreeMap::new();
     let mut source_breaks: BTreeMap<_, BTreeSet<_>> = BTreeMap::new();
     for event in events {
+        check(cancelled)?;
         if matches!(
             event.payload(),
             Payload::Lifecycle {
@@ -50,6 +57,7 @@ pub(super) fn first_record(events: &[Arc<Event>], controls: &[Arc<Event>], resul
         }
     }
     for event in events.iter().chain(controls) {
+        check(cancelled)?;
         if breaks(event) {
             source_breaks
                 .entry(domain(event))
@@ -59,6 +67,7 @@ pub(super) fn first_record(events: &[Arc<Event>], controls: &[Arc<Event>], resul
     }
     let mut conflict = false;
     for event in events {
+        check(cancelled)?;
         let Payload::Message {
             origin,
             presence,
@@ -112,16 +121,17 @@ pub(super) fn first_record(events: &[Arc<Event>], controls: &[Arc<Event>], resul
     }
     if conflict {
         result.coverage.partial = true;
-        return;
+        return Ok(());
     }
     let Some(start) = result.start.as_ref() else {
-        return;
+        return Ok(());
     };
     let start_ms = start.timestamp_ms;
     let mut first_times = BTreeSet::new();
     let mut unknown = false;
     if !candidates.is_empty() {
         for event in events.iter().chain(controls) {
+            check(cancelled)?;
             if breaks(event) && !candidates.contains_key(&domain(event)) {
                 unknown = true;
                 result
@@ -131,6 +141,7 @@ pub(super) fn first_record(events: &[Arc<Event>], controls: &[Arc<Event>], resul
         }
     }
     for (domain_id, mut records) in candidates {
+        check(cancelled)?;
         records.sort_by_key(|event| order(event));
         records.dedup_by_key(|event| event.id());
         let first = records[0];
@@ -176,6 +187,7 @@ pub(super) fn first_record(events: &[Arc<Event>], controls: &[Arc<Event>], resul
         // A later record whose clock moves behind the first record makes this
         // order ambiguous. Unknown later records cannot alter an established first.
         for later in records.iter().skip(1) {
+            check(cancelled)?;
             if timestamp(later)
                 .zip(first_ms)
                 .is_some_and(|(later, first)| later < first)
@@ -213,4 +225,6 @@ pub(super) fn first_record(events: &[Arc<Event>], controls: &[Arc<Event>], resul
         result.first_content_record_delay_ms =
             Some((i128::from(*time) - i128::from(start_ms)) as u64);
     }
+    check(cancelled)?;
+    Ok(())
 }

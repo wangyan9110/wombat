@@ -126,5 +126,57 @@ pub(super) fn config_query(
     crate::config::execute(request, id, &view)
 }
 
+pub(super) fn timing_query(
+    request: crate::timing_dto::Request,
+    shared: &Shared,
+    jobs: &mpsc::SyncSender<Job>,
+    configs: &Mutex<crate::config::Store>,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<crate::timing_dto::Response> {
+    use crate::timing_dto::{Mode as TimingMode, Request as TimingRequest};
+    crate::timing::validate(&request)?;
+    if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(operation_error("CANCELLED", "Cancelled"));
+    }
+    let (roots, identity, mode) = match &request {
+        TimingRequest::Capabilities { privacy_profile } => {
+            return crate::timing::capabilities(*privacy_profile);
+        }
+        TimingRequest::Summary {
+            roots,
+            snapshot_id,
+            mode,
+            ..
+        } => (
+            roots.clone(),
+            snapshot_id.clone(),
+            match mode {
+                TimingMode::Auto => Mode::Auto,
+                TimingMode::Fresh => Mode::Fresh,
+                TimingMode::Cached => Mode::Cached,
+            },
+        ),
+        TimingRequest::Evidence {
+            roots, snapshot_id, ..
+        } => (roots.clone(), Some(snapshot_id.clone()), Mode::Cached),
+    };
+    let selector = selection::ReadViewSelector::new(roots, identity, mode, false, false)?;
+    let (snapshot, freshness) = select_with_retained(&selector, shared, jobs, configs, cancelled)?;
+    crate::timing::query_on_snapshot(
+        &snapshot,
+        &request,
+        crate::timing_dto::QueryFreshness {
+            status: freshness.status,
+            checked_at: freshness.checked_at,
+            // The live revision is an opaque snapshot identity, not a numeric sequence.
+            revision: None,
+            error_code: freshness.error_code,
+        },
+        cancelled,
+    )
+}
+
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod timing_tests;

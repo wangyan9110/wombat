@@ -215,8 +215,13 @@ impl Snapshot {
             .turns
             .get(target.turn)
             .ok_or_else(|| operation_error("NOT_FOUND", "未找到轮次"))?;
-        let measurements = self.timing_measurements(owner, turn, target, &mut meter)?;
         let exact = meter.partition(self, &EventTarget::turn(target.thread, target.turn))?;
+        // This complete bucket's count is already known. Reject before loading
+        // measurements or a prefix of a target that cannot fit the fact budget.
+        if exact.is_some_and(|partition| partition.count > meter.limits.max_facts) {
+            return Err(meter.limit());
+        }
+        let measurements = self.timing_measurements(owner, turn, target, &mut meter)?;
         let mut events = vec![];
         if let Some(partition) = exact {
             for index in 0..partition.chunks.len() {

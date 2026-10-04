@@ -72,6 +72,7 @@ struct MemoryTurn {
     operations: Vec<Arc<Operation>>,
 }
 pub struct Snapshot {
+    pub(crate) timing_cache: Mutex<crate::timing::cache::Cache>,
     pub(crate) query_cache: Mutex<crate::query_cache::QueryCache>,
     live_rows: Option<Vec<Arc<PricedMeasurement>>>,
     live_events: Option<BTreeMap<EventTarget, Vec<Arc<crate::session_events::Event>>>>,
@@ -89,6 +90,8 @@ pub use events::{
 mod event_tests;
 mod files;
 mod memory;
+mod native_boundary;
+pub use native_boundary::NativeBoundaryIndex;
 mod price_pool;
 mod query;
 #[cfg(test)]

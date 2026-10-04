@@ -192,6 +192,7 @@ pub(super) fn save_with_prices(
         &serde_json::to_vec(&manifest.snapshot_ref)?,
     )?;
     Ok(Snapshot {
+        timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
         directory: final_dir,
@@ -265,6 +266,7 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
     }
     super::events::check_index_version(raw["events"]["version"].as_u64())?;
+    super::native_boundary::check_versions(&raw["events"])?;
     if raw
         .get("watermarks")
         .and_then(serde_json::Value::as_array)
@@ -289,6 +291,7 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
         return Err(corrupt("快照身份不匹配"));
     }
     Ok(Snapshot {
+        timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
         directory,

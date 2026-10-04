@@ -1,3 +1,10 @@
+import type { Request as TimingRequest } from './generated/timing-request.js';
+import type { Response as TimingResult } from './generated/timing-response.js';
+export type { Request as TimingRequest } from './generated/timing-request.js';
+export type { Response as TimingResult } from './generated/timing-response.js';
+export type { LocalResponse as TimingLocalResult } from './generated/timing-local-response.js';
+export type { ShareResponse as TimingShareResult } from './generated/timing-share-response.js';
+export type TimingTransport = (request: TimingRequest, options: QueryOptions) => Promise<unknown>;
 import type { Request as LiveRequest } from './generated/live-request.js';
 import type { Response as LiveResult } from './generated/live-response.js';
 import type {Request as AccountRequest} from './generated/account-request.js';
@@ -56,6 +63,7 @@ export type PricingTransport = (request: PricingRequest, options: QueryOptions) 
 export type LiveTransport = (request: LiveRequest, options: QueryOptions) => Promise<unknown>;
 
 export interface UsageClient {
+  timing?(request: TimingRequest, options?: QueryOptions): Promise<TimingResult>;
   handoff?(request:HandoffRequest,options?:QueryOptions):Promise<HandoffResult>;
   account?(request:AccountRequest,options?:QueryOptions):Promise<AccountResult>;
   directories?(request:DirectoriesRequest,options?:QueryOptions):Promise<DirectoriesResult>;
@@ -67,8 +75,34 @@ export interface UsageClient {
   prices(request: PricingRequest, options?: QueryOptions): Promise<PricingResult>;
 }
 
-export function createUsageClient(transport: UsageTransport, pricingTransport?: PricingTransport, liveTransport?: LiveTransport, configTransport?: ConfigTransport, optimizeTransport?: OptimizeTransport, preferencesTransport?: PreferencesTransport,directoriesTransport?:DirectoriesTransport,hosts:HostTransports={}): UsageClient {
+export interface ClientTransports extends HostTransports {
+  query: UsageTransport;
+  prices?: PricingTransport;
+  live?: LiveTransport;
+  config?: ConfigTransport;
+  optimize?: OptimizeTransport;
+  preferences?: PreferencesTransport;
+  directories?: DirectoriesTransport;
+  timing?: TimingTransport;
+}
+
+export function createUsageClient(transports: ClientTransports): UsageClient {
+  const { query: transport, prices: pricingTransport, live: liveTransport,
+    config: configTransport, optimize: optimizeTransport, preferences: preferencesTransport,
+    directories: directoriesTransport } = transports;
+  const hosts = transports;
   return {
+    ...(transports.timing ? { async timing(request: TimingRequest, options: QueryOptions = {}): Promise<TimingResult> {
+      const [{validate: input}, {validate: output}] = await Promise.all([
+        import('./generated/validate-timing-request.js'), import('./generated/validate-timing-response.js'),
+      ]);
+      if (options.signal?.aborted) throw new CoreError('CANCELLED', 'Cancelled');
+      if (!input(request)) throw new CoreError('INVALID_ARGUMENT', 'Invalid timing request');
+      const result = await transports.timing!(request, options);
+      if (options.signal?.aborted) throw new CoreError('CANCELLED', 'Cancelled');
+      if (!output(result) || !matchesTiming(request, result)) throw new CoreError('PROTOCOL_ERROR', 'Invalid timing response');
+      return result;
+    } } : {}),
     ...(hosts.handoff?{async handoff(request:HandoffRequest,options:QueryOptions={}):Promise<HandoffResult>{
       const [{validate:input},{validate:output}]=await Promise.all([import('./generated/validate-handoff-request.js'),import('./generated/validate-handoff-response.js')]);
       if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
@@ -147,4 +181,24 @@ export function createUsageClient(transport: UsageTransport, pricingTransport?: 
       return result;
     },
   };
+}
+
+function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
+  const profile = request.privacyProfile ?? 'local';
+  if (result.outputVersion !== 1 || result.action !== request.action || result.profile !== profile
+    || result.methodVersion !== 'safe_event_turn_v1') return false;
+  if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
+  if (request.action === 'summary' && profile === 'share-v1') {
+    // Sharing deliberately omits local locating identities; core selection owns
+    // target binding. The separate schema validates the identifier-free branch.
+    return 'relativeAnchors' in result && !('readView' in result)
+      && result.privacy.profile === profile;
+  }
+  if (!('scope' in result) || !('threadId' in result.scope)
+    || result.scope.threadId !== request.threadId || result.scope.turnId !== request.turnId
+    || result.scope.wholeTurn !== true || result.scope.agentKind !== (request.scope?.agentKind ?? 'codex')
+    || (request.scope?.sourceInstanceId != null && result.scope.sourceInstanceId !== request.scope.sourceInstanceId)) return false;
+  if (request.action === 'evidence') return 'rows' in result && result.snapshotId === request.snapshotId;
+  return 'readView' in result && result.privacy.profile === profile
+    && (request.snapshotId == null || result.readView.snapshotId === request.snapshotId);
 }

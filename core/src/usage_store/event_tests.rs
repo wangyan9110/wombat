@@ -579,7 +579,13 @@ fn index_rejects_cross_chunk_duplicates_even_when_its_digest_is_updated() {
             _ => unreachable!(),
         }
         partition.sha256 = crate::hash(
-            serde_json::to_vec(&(&partition.target, partition.count, &partition.chunks)).unwrap(),
+            serde_json::to_vec(&(
+                &partition.target,
+                partition.count,
+                &partition.chunks,
+                &partition.native_boundary,
+            ))
+            .unwrap(),
         );
         assert!(super::events::validate_index(&index).is_err());
     }

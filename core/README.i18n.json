@@ -10,16 +10,16 @@
       "en": "90cc03e7bd56b26dbec2b6cf073457ef31c3032a0b1aec2f54b7700681a4445f"
     },
     "/rust-core/internal-business-modules": {
-      "zh": "4326241c57247a8471e07e528fe5899c7ddd9a382eebf1f6541931bf993d207a",
-      "en": "2726119b7aa2cef53a5556644313ca2995e3a660f967f58359d77020bb4b375c"
+      "zh": "caca44ca4479c403418b4106f0dd6c83cdfc504786ff2858e1f161ccafec8027",
+      "en": "d310e5c57f629f041e74c67df25cac0ce8dfdb4cc895b726036d158f5515afc7"
     },
     "/rust-core/limits-and-verification": {
       "zh": "9276092cfbc6b4c7ce51d2be0fca1ee8a0f908bd8f6a5bf629fe13597f2e7a94",
       "en": "76624f3c61442ba9de3a4ad1f30cd15b9f32f12383a6d513158c51f2d28c38fb"
     },
     "/rust-core/storage-and-service-lifecycle": {
-      "zh": "7282b3f38d5c372d393db9fb540a5fbe7eeb7b21c34a55f7daccc1b40b8e1f0b",
-      "en": "3ab8c8cfd0c8739f11ca593bc03c3a5175148fb8d5667d6b91d33660fe35f004"
+      "zh": "6b421b34e10c4328d7ae69704656e77be725a78ca78f3e7309bc81e9a7e99258",
+      "en": "e93f2c6446160a200208f6ea3e62f3135e3e11c47d701742a0d773583001e1ef"
     }
   }
 }

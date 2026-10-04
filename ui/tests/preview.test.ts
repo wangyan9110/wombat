@@ -22,7 +22,7 @@ test('preview failure and cancellable loading apply to configuration as well as 
 test('preview fixtures pass the same public client validation as host responses',async()=>{
  const {createUsageClient}=await import('@wombat/client');
  const raw=createPreviewClient('complete');
- const client=createUsageClient(raw.query,raw.prices,undefined,raw.config,raw.optimize,undefined,undefined,{account:raw.account});
+ const client=createUsageClient({query:raw.query,prices:raw.prices,config:raw.config,optimize:raw.optimize,account:raw.account});
  await client.query({action:'usage'});
  await client.query({action:'threads'});
  await client.config!({action:'list'});
@@ -35,7 +35,7 @@ test('preview fixtures pass the same public client validation as host responses'
 test('initial read exposes task headers without inventing a completed ledger',async()=>{
  const raw=createPreviewClient('initial');
  const {createUsageClient}=await import('@wombat/client');
- const client=createUsageClient(raw.query,raw.prices,raw.live);
+ const client=createUsageClient({query:raw.query,prices:raw.prices,live:raw.live});
  const response=await client.live!({query:{action:'threads'}});
  assert.equal(response.result.freshness?.initialScan,true);
  assert.equal(response.result.summary.tokens.total,null);

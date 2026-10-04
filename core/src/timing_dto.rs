@@ -1,0 +1,551 @@
+//! Narrow timing protocol. Sharing has an independent whitelist; no source payloads.
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SummaryAction {
+    Summary,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceAction {
+    Evidence,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilitiesAction {
+    Capabilities,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum LocalProfile {
+    Local,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum ShareProfile {
+    ShareV1,
+}
+pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+pub const OUTPUT_VERSION: u32 = 1;
+pub const METHOD_VERSION: &str = "safe_event_turn_v1";
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum PrivacyProfile {
+    #[default]
+    Local,
+    ShareV1,
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Mode {
+    #[default]
+    Auto,
+    Fresh,
+    Cached,
+}
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Scope {
+    pub source_instance_id: Option<String>,
+    pub agent_kind: Option<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Cursor {
+    #[schemars(length(max = 8192))]
+    pub token: String,
+}
+fn page_limit() -> usize {
+    50
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(
+    tag = "action",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum Request {
+    Summary {
+        thread_id: String,
+        turn_id: String,
+        snapshot_id: Option<String>,
+        #[serde(default)]
+        roots: Vec<String>,
+        scope: Option<Scope>,
+        #[serde(default)]
+        mode: Mode,
+        #[serde(default)]
+        privacy_profile: PrivacyProfile,
+    },
+    Evidence {
+        thread_id: String,
+        turn_id: String,
+        snapshot_id: String,
+        #[serde(default)]
+        roots: Vec<String>,
+        scope: Option<Scope>,
+        cursor: Option<Cursor>,
+        #[serde(default = "page_limit")]
+        #[schemars(range(min = 1, max = 200))]
+        limit: usize,
+        #[serde(default)]
+        privacy_profile: PrivacyProfile,
+    },
+    Capabilities {
+        #[serde(default)]
+        privacy_profile: PrivacyProfile,
+    },
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MetricStatus {
+    Observed,
+    Derived,
+    Proxy,
+    Unavailable,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Basis {
+    NativeRecord,
+    ExplicitBoundary,
+    LifecycleUnion,
+    LifecycleSum,
+    IntervalMask,
+    RequestInput,
+    HistoricalWindow,
+    Type7,
+    SafeMessageRecord,
+    SafeMessageDelay,
+    SafeEventCount,
+    ResponseGapV1,
+    NotRecorded,
+    AdapterNotMapped,
+    UnsupportedMethod,
+    MissingIdentity,
+    MissingTime,
+    BoundaryConflict,
+    SourcePartial,
+    ResourceLimit,
+    NumericRange,
+    NoCandidates,
+    MissingBatchCycle,
+    MissingRepositoryBaseline,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[schemars(bound = "T: JsonSchema", rename = "TimingMetric_{T}")]
+pub struct Metric<T> {
+    #[schemars(schema_with = "numeric_value_schema::<T>")]
+    pub value: Option<T>,
+    pub status: MetricStatus,
+    pub basis: Basis,
+    pub evidence_refs: Vec<String>,
+}
+pub type Count = Metric<u64>;
+pub type Number = Metric<f64>;
+pub type Signed = Metric<i64>;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Support {
+    Supported,
+    Partial,
+    Unavailable,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Capability {
+    pub support: Support,
+    pub reason: Basis,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Capabilities {
+    pub wall_clock: Capability,
+    pub native_ttft: Capability,
+    pub first_content_record_delay: Capability,
+    pub lifecycle_intervals: Capability,
+    pub context_pressure: Capability,
+    pub strict_response_gap: Capability,
+    pub exploratory_gap: Capability,
+    pub command_labels: Capability,
+    pub file_changes: Capability,
+    pub message_records: Capability,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TurnState {
+    Running,
+    Completed,
+    Failed,
+    Cancelled,
+    Unknown,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Anchors {
+    pub start_ms: Signed,
+    pub end_ms: Signed,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Category {
+    pub candidates: Count,
+    pub closed: Count,
+    pub union_ms: Count,
+    pub sum_ms: Count,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Time {
+    pub state: TurnState,
+    pub native_wall_clock_ms: Count,
+    pub derived_wall_clock_ms: Count,
+    pub native_ttft_ms: Count,
+    pub first_content_record_delay_ms: Count,
+    pub boundary_discrepancy_ms: Signed,
+    pub observed_window_ms: Count,
+    pub command: Category,
+    pub compaction: Category,
+    pub reasoning: Category,
+    /// Masks 0..7: command bit 1, compaction bit 2, reasoning bit 4.
+    pub intersection_masks_ms: Vec<Count>,
+    pub covered_ms: Count,
+    pub unclassified_ms: Count,
+    pub coverage_ratio: Number,
+    pub waiting_proxy_ms: Count,
+    pub strict_response_gap_ms: Count,
+    pub exploratory_gap_ms: Count,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Distribution {
+    pub samples: Count,
+    pub median: Number,
+    pub p90: Number,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Segment {
+    pub id: String,
+    pub candidates: Count,
+    pub non_request_scoped: Count,
+    pub missing_raw_input: Count,
+    pub missing_window: Count,
+    pub invalid_window: Count,
+    pub same_record_windows: Count,
+    pub continued_windows: Count,
+    pub above_window: Count,
+    pub input: Distribution,
+    pub ratio: Distribution,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Neighbor {
+    pub measurement_ref: String,
+    pub raw_input: Count,
+    pub ratio: Number,
+    pub distance_ms: Count,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CompactionNeighbors {
+    pub evidence_ref: String,
+    pub segment_id: String,
+    pub before: Option<Neighbor>,
+    pub after: Option<Neighbor>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Context {
+    pub active_context_occupancy: Number,
+    pub compaction_records: Count,
+    pub compaction_time_ms: Count,
+    pub method: String,
+    pub quantile_method: String,
+    pub candidates: Count,
+    pub conflicting_measurements: Count,
+    pub conflicting_window_records: Count,
+    pub input: Distribution,
+    pub ratio: Distribution,
+    pub segment_count: Count,
+    pub segments: Vec<Segment>,
+    pub compaction_neighbors: Vec<CompactionNeighbors>,
+    pub detail: Capability,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Work {
+    pub operation_candidates: Count,
+    pub closed_operations: Count,
+    pub failed_operations: Count,
+    pub labelled_command_ms: Count,
+    pub file_change_records: Count,
+    pub changed_files: Count,
+    pub added_lines: Count,
+    pub removed_lines: Count,
+    pub message_record_candidates: Count,
+    pub nonempty_visible_content_records: Count,
+    pub unknown_content_records: Count,
+    pub missing_content_time_records: Count,
+    pub user_boundary_records: Count,
+    pub injected_context_records: Count,
+    pub reasoning_message_records: Count,
+    pub compaction_records: Count,
+    pub repository_baseline: Capability,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FindingKind {
+    Fact,
+    Proxy,
+    UserAnnotation,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Finding {
+    pub code: String,
+    pub kind: FindingKind,
+    pub metric_refs: Vec<String>,
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Coverage {
+    pub facts: Count,
+    pub bytes: Count,
+    pub metadata: Count,
+    pub event_blocks: Count,
+    pub scoped_events: Count,
+    pub scoped_measurements: Count,
+    pub boundary_candidates: Count,
+    pub lifecycle_candidates: Vec<Count>,
+    pub linked_lifecycles: Vec<Count>,
+    pub conflicting_lifecycles: Count,
+    pub missing_identity_lifecycles: Count,
+    pub content_candidates: Count,
+    pub domain_count: Count,
+    pub missing_watermarks: Count,
+    pub generation_mismatches: Count,
+    pub incomplete_domains: Count,
+    pub snapshot_unassigned_total: Count,
+    pub thread_unassigned_total: Count,
+    pub source_status: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Quality {
+    pub partial: bool,
+    pub running: bool,
+    pub censored: bool,
+    pub reason_codes: Vec<Basis>,
+    pub fact_limit: usize,
+    pub summary_limit_bytes: usize,
+}
+/// Internal selector observation; not a request option or source capability.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct QueryFreshness {
+    pub status: String,
+    pub checked_at: Option<String>,
+    pub revision: Option<u64>,
+    pub error_code: Option<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ShareFreshness {
+    pub status: String,
+    pub error_code: Option<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReadView {
+    pub snapshot_id: String,
+    pub snapshot_schema: u32,
+    pub created_at: String,
+    pub adapter_versions: Vec<String>,
+    pub projection_version: u32,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalScope {
+    pub source_instance_id: String,
+    pub thread_id: String,
+    pub turn_id: String,
+    pub agent_kind: String,
+    pub whole_turn: bool,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ShareScope {
+    pub task_alias: String,
+    pub turn_alias: String,
+    pub whole_turn: bool,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Privacy {
+    pub profile: PrivacyProfile,
+    pub omitted_fields: Vec<String>,
+    pub aliases: String,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CollectionKind {
+    TurnEvents,
+    CanonicalMeasurements,
+    SourceControls,
+    NativeBoundaryIndex,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EvidenceCollection {
+    pub reference: String,
+    pub kind: CollectionKind,
+    pub snapshot_id: String,
+    pub scope: LocalScope,
+    pub count: Count,
+    pub method: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ShareCollection {
+    pub reference: String,
+    pub kind: CollectionKind,
+    pub task_alias: String,
+    pub turn_alias: String,
+    pub count: Count,
+    pub method: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EvidenceIndex {
+    pub collections: Vec<EvidenceCollection>,
+    pub available: bool,
+    pub limit: usize,
+    pub snapshot_id: String,
+    pub refs: Vec<String>,
+    pub method: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalResponse {
+    pub output_version: u32,
+    pub action: SummaryAction,
+    pub method_version: String,
+    pub profile: LocalProfile,
+    pub privacy: Privacy,
+    pub read_view: ReadView,
+    pub scope: LocalScope,
+    pub capabilities: Capabilities,
+    pub anchors: Anchors,
+    pub time: Time,
+    pub context: Context,
+    pub work: Work,
+    pub findings: Vec<Finding>,
+    pub coverage: Coverage,
+    pub quality: Quality,
+    pub freshness: QueryFreshness,
+    pub evidence: EvidenceIndex,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ShareResponse {
+    pub basis_collections: Vec<ShareCollection>,
+    pub output_version: u32,
+    pub action: SummaryAction,
+    pub method_version: String,
+    pub profile: ShareProfile,
+    pub privacy: Privacy,
+    pub scope: ShareScope,
+    pub capabilities: Capabilities,
+    pub relative_anchors: Anchors,
+    pub time: Time,
+    pub context: Context,
+    pub work: Work,
+    pub findings: Vec<Finding>,
+    pub coverage: Coverage,
+    pub quality: Quality,
+    pub freshness: ShareFreshness,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EvidenceRow {
+    pub reference: String,
+    pub record_kind: String,
+    pub timestamp_ms: Option<i64>,
+    pub phase: Option<String>,
+    pub presence: Option<String>,
+    pub origin: Option<String>,
+    pub duration_ms: Option<u64>,
+    pub first_token_ms: Option<u64>,
+    pub gap_codes: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EvidenceResponse {
+    pub output_version: u32,
+    pub action: EvidenceAction,
+    pub method_version: String,
+    pub profile: LocalProfile,
+    pub snapshot_id: String,
+    pub scope: LocalScope,
+    pub total: Count,
+    pub rows: Vec<EvidenceRow>,
+    pub next_cursor: Option<Cursor>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CapabilitiesResponse {
+    pub output_version: u32,
+    pub action: CapabilitiesAction,
+    pub method_version: String,
+    pub profile: PrivacyProfile,
+    pub capabilities: Capabilities,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum Response {
+    Local(Box<LocalResponse>),
+    Share(Box<ShareResponse>),
+    Evidence(EvidenceResponse),
+    Capabilities(CapabilitiesResponse),
+}
+
+/// CLI error output; core/socket transports retain their standard failure envelope.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TimingErrorOutput {
+    pub output_version: u32,
+    pub error: TimingError,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TimingError {
+    pub code: String,
+    pub message: String,
+}
+
+fn numeric_value_schema<T: JsonSchema>(
+    generator: &mut schemars::SchemaGenerator,
+) -> schemars::Schema {
+    let mut schema = generator.subschema_for::<Option<T>>();
+    // Ratios/Type7 use JSON numbers. Integer measures require the safe JS range.
+    if std::any::type_name::<T>() == "u64" || std::any::type_name::<T>() == "i64" {
+        schema
+            .ensure_object()
+            .insert("maximum".into(), serde_json::json!(MAX_SAFE_INTEGER));
+        let minimum = if std::any::type_name::<T>() == "i64" {
+            -(MAX_SAFE_INTEGER as i64)
+        } else {
+            0
+        };
+        schema
+            .ensure_object()
+            .insert("minimum".into(), serde_json::json!(minimum));
+    }
+    schema
+}

@@ -64,6 +64,8 @@ pub struct EventPartition {
     pub target: EventTarget,
     pub count: usize,
     pub chunks: Vec<EventChunk>,
+    /// Required complete reduction of this immutable partition's native boundaries.
+    pub native_boundary: super::native_boundary::NativeBoundaryIndex,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -245,6 +247,7 @@ fn build_events(
             target: target.clone(),
             count: events.len(),
             chunks,
+            native_boundary: super::native_boundary::build(target, events)?,
         };
         partition.sha256 = partition_hash(&partition)?;
         partitions.push(partition);
@@ -270,7 +273,12 @@ fn partition_hash(partition: &EventPartition) -> Result<String> {
     let mut writer = HashWriter(Sha256::new());
     serde_json::to_writer(
         &mut writer,
-        &(&partition.target, partition.count, &partition.chunks),
+        &(
+            &partition.target,
+            partition.count,
+            &partition.chunks,
+            &partition.native_boundary,
+        ),
     )?;
     Ok(format!("{:x}", writer.0.finalize()))
 }
@@ -348,6 +356,7 @@ pub(super) fn validate_index(index: &EventIndex) -> Result<()> {
     check_index_version(Some(u64::from(index.version)))?;
     let mut files = BTreeSet::new();
     for (number, partition) in index.partitions.iter().enumerate() {
+        super::native_boundary::validate(partition)?;
         if partition.sha256 != partition_hash(partition)?
             || !partition.target.valid()
             || partition.count == 0

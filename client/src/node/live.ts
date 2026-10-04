@@ -4,10 +4,10 @@ import { spawn } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { CoreError } from '../errors.js';
-import type { ConfigRequest, OptimizeRequest, LiveRequest, QueryOptions,HandoffRequest } from '../client.js';
+import type { ConfigRequest, OptimizeRequest, LiveRequest, QueryOptions,HandoffRequest,TimingRequest } from '../client.js';
 import { binaryPath, decode, invokeOperation, type CoreProcessOptions } from './core.js';
 
-type ProductRequest = LiveRequest | { config: ConfigRequest } | { optimize: OptimizeRequest } | {handoff:HandoffRequest};
+type ProductRequest = { timing: TimingRequest } | LiveRequest | { config: ConfigRequest } | { optimize: OptimizeRequest } | {handoff:HandoffRequest};
 type NativeRequest = ProductRequest & { nativeHooks?: Awaited<ReturnType<typeof captureHooks>> };
 function exchange(socket: string, request: NativeRequest, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -48,7 +48,7 @@ export async function queryLive(request: ProductRequest, options: QueryOptions, 
   }
   if ('query' in request && request.query.action === 'refresh') options.onProgress?.('同步本机日志并保存用量');
   const endpoint = await invokeOperation('live_endpoint', {}, options, config) as { protocolVersion?: number; socket?: string };
-  if (endpoint.protocolVersion !== 1 || typeof endpoint.socket !== 'string') throw new CoreError('PROTOCOL_ERROR', '实时用量接口版本不兼容');
+  if (endpoint.protocolVersion !== 2 || typeof endpoint.socket !== 'string') throw new CoreError('PROTOCOL_ERROR', '实时用量接口版本不兼容');
   let started = false;
   const deadline = Date.now() + 5_000;
   for (;;) {

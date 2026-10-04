@@ -115,7 +115,7 @@ fn directory() -> Result<PathBuf> {
 #[cfg(windows)]
 fn socket_path() -> Result<PathBuf> {
     Ok(PathBuf::from(format!(
-        r"\\.\pipe\wombat-{}",
+        r"\\.\pipe\wombat-{}-v2",
         &crate::hash(fs::canonicalize(directory()?)?.to_string_lossy().as_bytes())[..24]
     )))
 }
@@ -146,10 +146,10 @@ fn socket_path() -> Result<PathBuf> {
             return Err(operation_error("EACCES", "实时用量接口目录权限不正确"));
         }
     }
-    Ok(parent.join("usage.sock"))
+    Ok(parent.join("usage-v2.sock"))
 }
 pub fn endpoint() -> Result<Value> {
-    Ok(json!({"protocolVersion":1,"socket":socket_path()?}))
+    Ok(json!({"protocolVersion":2,"socket":socket_path()?}))
 }
 mod collection;
 mod preview;
@@ -158,6 +158,6 @@ mod scheduling;
 mod selection;
 mod transport;
 use collection::{restore, source_key, sources, sync};
-use query::{config_query, query};
+use query::{config_query, query, timing_query};
 use selection::select_view;
 pub use transport::serve;

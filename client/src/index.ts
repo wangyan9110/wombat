@@ -13,3 +13,5 @@ export type { LiveRequest, LiveResult, LiveTransport } from './client.js';
 
 export type { AnalysisDeclaration,DeclaredChain,DeclaredCopy } from './generated/analysis-declaration.js';
 export { allowanceStatus, type AllowanceAssessment } from './allowance.js';
+
+export type { ClientTransports, TimingRequest, TimingResult, TimingLocalResult, TimingShareResult, TimingTransport } from './client.js';

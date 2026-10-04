@@ -126,6 +126,7 @@ pub(crate) fn memory(
         threads,
     };
     Ok(Snapshot {
+        timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
         directory: PathBuf::new(),

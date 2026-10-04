@@ -1,5 +1,7 @@
 //! Pure, identity-bound interval coverage; response proxies never cover unknown time.
+use super::analysis::check;
 use std::collections::BTreeMap;
+use std::sync::atomic::AtomicBool;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Window {
@@ -89,6 +91,17 @@ pub fn analyze(
     gaps: &[Window],
     budget: usize,
 ) -> IntervalMetrics {
+    analyze_cancellable(window, intervals, gaps, budget, &AtomicBool::new(false))
+        .expect("uncancelled intervals")
+}
+pub(super) fn analyze_cancellable(
+    window: Option<Window>,
+    intervals: &[LifecycleInterval],
+    gaps: &[Window],
+    budget: usize,
+    cancelled: &AtomicBool,
+) -> anyhow::Result<IntervalMetrics> {
+    check(cancelled)?;
     let mut result = IntervalMetrics {
         observed_window_ms: None,
         category_union_ms: [0; 3],
@@ -116,10 +129,11 @@ pub fn analyze(
     {
         result.partial = true;
         result.issues.push(Issue::ResourceLimit);
-        return result;
+        return Ok(result);
     }
     let mut unique: BTreeMap<&Identity, Option<&LifecycleInterval>> = BTreeMap::new();
     for interval in intervals {
+        check(cancelled)?;
         result.candidates[interval.category.index()] += 1;
         unique
             .entry(&interval.identity)
@@ -136,6 +150,7 @@ pub fn analyze(
         endpoints.entry(window.end_ms).or_default();
     }
     for (identity, interval) in unique {
+        check(cancelled)?;
         let Some(interval) = interval else {
             result.issues.push(Issue::Conflict(identity.clone()));
             continue;
@@ -164,6 +179,7 @@ pub fn analyze(
         }
     }
     for gap in gaps {
+        check(cancelled)?;
         if gap.end_ms < gap.start_ms {
             result.issues.push(Issue::InvalidGap);
         } else if let Some(value) = usable_window.and_then(|window| clip(*gap, window)) {
@@ -172,11 +188,12 @@ pub fn analyze(
         }
     }
     let Some(window) = usable_window else {
-        return result;
+        return Ok(result);
     };
     let mut active = [0_i64; 4];
     let mut previous = window.start_ms;
     for (time, changes) in endpoints {
+        check(cancelled)?;
         let duration = length(Window {
             start_ms: previous,
             end_ms: time,
@@ -203,7 +220,7 @@ pub fn analyze(
     result.covered_ms = Some(covered);
     result.unclassified_ms = Some(result.mask_ms[0]);
     result.coverage_ratio = (observed != 0).then(|| covered as f64 / observed as f64);
-    result
+    Ok(result)
 }
 
 #[cfg(test)]

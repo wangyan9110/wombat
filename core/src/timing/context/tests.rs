@@ -692,3 +692,27 @@ fn real_adapter_unknown_model_or_effort_keeps_same_record_ratios_without_neighbo
         assert_eq!(result.compactions[0].after, None);
     }
 }
+
+#[test]
+fn cancellation_during_candidate_iteration_returns_no_prefix_statistics() {
+    let cancelled = AtomicBool::new(false);
+    let value = measurement("sample", Some(100), true);
+    let candidates = (0..100).map(|index| {
+        if index == 2 {
+            cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        Candidate {
+            measurement: &value,
+            segment_id: "segment",
+            window: None,
+        }
+    });
+    let error = summarize_cancellable(candidates, &cancelled).unwrap_err();
+    assert_eq!(
+        error
+            .downcast_ref::<crate::dto::OperationError>()
+            .unwrap()
+            .code,
+        "CANCELLED"
+    );
+}

@@ -2,8 +2,12 @@
 use super::{context, intervals};
 use crate::adapters::contract::Measurement;
 use crate::session_events::{Event, Gap, ItemKind, LifecycleKind, Payload, Phase, Precision};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 /// Canonical measurements are the reconciled accounting projection, never raw event copies.
 pub struct AnalyzeInput<'a> {
@@ -22,7 +26,8 @@ pub struct Budget {
     pub lifecycle_records: usize,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum State {
     Running,
     Completed,
@@ -31,7 +36,8 @@ pub enum State {
     Unknown,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Anchor {
     pub timestamp_ms: i64,
     pub precision: Precision,
@@ -107,17 +113,199 @@ pub struct Analysis {
 }
 
 #[derive(Default)]
-struct Boundaries {
+pub struct BoundaryReducer {
+    candidates: usize,
     starts: BTreeMap<i64, Precision>,
     ends: BTreeMap<i64, Precision>,
     durations: BTreeSet<u64>,
     ttfts: BTreeSet<u64>,
     native_ids: BTreeSet<String>,
     states: BTreeSet<u8>,
+    clock_domain_limit: bool,
     clock_domains: BTreeMap<(String, String), (bool, bool)>,
     missing_start: bool,
     missing_end: bool,
     conflict: bool,
+}
+
+pub const BOUNDARY_METHOD_VERSION: &str = "safe_event_turn_boundary_v1";
+
+/// Complete exact-turn boundary reduction shared with the persisted native index.
+/// Unique values retain at most two witnesses; clock domains retain at most
+/// 100,000 entries. Domain overflow hides anchors, never independent native values.
+/// Absolute anchors and independent native values retain separate conflict flags.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BoundarySummary {
+    pub format_version: u32,
+    pub state: State,
+    pub start: Option<Anchor>,
+    pub end: Option<Anchor>,
+    pub native_wall_clock_ms: Option<u64>,
+    pub native_ttft_ms: Option<u64>,
+    pub candidates: usize,
+    pub identity_conflict: bool,
+    pub state_conflict: bool,
+    pub boundary_conflict: bool,
+    pub native_duration_conflict: bool,
+    pub native_ttft_conflict: bool,
+    pub clock_domain_limit: bool,
+    pub missing_start_time: bool,
+    pub missing_end_time: bool,
+}
+impl BoundaryReducer {
+    /// Caller supplies only the complete, source-validated exact turn partition.
+    /// Returns whether this record has a missing boundary timestamp.
+    pub fn observe(&mut self, event: &Event) -> bool {
+        let mut missing_time = false;
+        if let Payload::Lifecycle {
+            lifecycle: LifecycleKind::Turn,
+            phase,
+            native_id,
+            duration_ms,
+            first_token_ms,
+        } = event.payload()
+        {
+            self.candidates += 1;
+            self.conflict |= conflicting(event);
+
+            if let Some(id) = native_id
+                && self.native_ids.len() < 2
+            {
+                self.native_ids.insert(id.clone());
+            }
+            if terminal(phase)
+                && let Some(value) = duration_ms
+                && self.durations.len() < 2
+            {
+                self.durations.insert(*value);
+            }
+            if let Some(value) = first_token_ms
+                && self.ttfts.len() < 2
+            {
+                self.ttfts.insert(*value);
+            }
+            let destination = if *phase == Phase::Started {
+                self.states.insert(0);
+                Some(&mut self.starts)
+            } else if terminal(phase) {
+                self.states.insert(match phase {
+                    Phase::Completed => 1,
+                    Phase::Failed => 2,
+                    Phase::Cancelled => 3,
+                    _ => unreachable!(),
+                });
+                Some(&mut self.ends)
+            } else {
+                None
+            };
+            if let Some(destination) = destination {
+                if let Some(time) = timestamp(event) {
+                    let key = (
+                        event.position().file_id.clone(),
+                        event.position().generation.clone(),
+                    );
+                    if self.clock_domains.len() >= 100_000 && !self.clock_domains.contains_key(&key)
+                    {
+                        self.clock_domain_limit = true;
+                    } else {
+                        let domain = self.clock_domains.entry(key).or_default();
+                        if *phase == Phase::Started {
+                            domain.0 = true;
+                        } else {
+                            domain.1 = true;
+                        }
+                    }
+                    let precision = event.time().precision.clone();
+                    // Two distinct values permanently establish conflict. Same
+                    // value precision still uses the least precise observation.
+                    if destination.len() < 2 || destination.contains_key(&time) {
+                        destination
+                            .entry(time)
+                            .and_modify(|old| {
+                                if precision_rank(&precision) < precision_rank(old) {
+                                    *old = precision.clone();
+                                }
+                            })
+                            .or_insert(precision);
+                    }
+                } else {
+                    if *phase == Phase::Started {
+                        self.missing_start = true;
+                    } else {
+                        self.missing_end = true;
+                    }
+                    missing_time = true;
+                }
+            }
+        }
+
+        missing_time
+    }
+    pub fn finish(self) -> BoundarySummary {
+        let mut result = BoundarySummary {
+            format_version: 1,
+            state: State::Unknown,
+            start: None,
+            end: None,
+            native_wall_clock_ms: None,
+            native_ttft_ms: None,
+            candidates: self.candidates,
+            identity_conflict: false,
+            state_conflict: false,
+            boundary_conflict: false,
+            native_duration_conflict: self.durations.len() > 1,
+            native_ttft_conflict: self.ttfts.len() > 1,
+            clock_domain_limit: self.clock_domain_limit,
+            missing_start_time: self.missing_start,
+            missing_end_time: self.missing_end,
+        };
+        let identity_conflict = self.conflict || self.native_ids.len() > 1;
+        let state_conflict = self.states.iter().filter(|value| **value != 0).count() > 1;
+        let boundary_conflict = self.clock_domain_limit
+            || identity_conflict
+            || state_conflict
+            || self.starts.len() > 1
+            || self.ends.len() > 1
+            || (!self.starts.is_empty()
+                && !self.ends.is_empty()
+                && !self
+                    .clock_domains
+                    .values()
+                    .any(|(start, end)| *start && *end));
+        if !boundary_conflict {
+            result.start = (!self.missing_start)
+                .then(|| anchor(&self.starts))
+                .flatten();
+            result.end = (!self.missing_end).then(|| anchor(&self.ends)).flatten();
+        }
+        if !identity_conflict && !state_conflict {
+            result.state = match self
+                .states
+                .iter()
+                .find(|value| **value != 0)
+                .copied()
+                .or_else(|| self.states.first().copied())
+            {
+                Some(0) => State::Running,
+                Some(1) => State::Completed,
+                Some(2) => State::Failed,
+                Some(3) => State::Cancelled,
+                _ => State::Unknown,
+            };
+        }
+        // Invalid or conflicting absolute anchors cannot invalidate an independent
+        // native duration, but conflicting turn identities invalidate both methods.
+        if !identity_conflict {
+            result.native_wall_clock_ms = singleton(&self.durations);
+            result.native_ttft_ms = singleton(&self.ttfts);
+        }
+
+        result.identity_conflict = identity_conflict;
+        result.state_conflict = state_conflict;
+        result.boundary_conflict = boundary_conflict;
+        result
+    }
 }
 
 #[derive(Default)]
@@ -188,6 +376,28 @@ fn anchor(values: &BTreeMap<i64, Precision>) -> Option<Anchor> {
 /// An input limit returns partial unknown results, never a selected prefix. Native
 /// durations are independent observations and cannot supply absolute endpoints.
 pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
+    analyze_impl(input, &AtomicBool::new(false)).expect("uncancelled analysis")
+}
+
+/// Cancellation is checked during bounded record and identity reduction, not
+/// merely before and after the query. It never returns a successful prefix.
+pub fn analyze_cancellable(
+    input: AnalyzeInput<'_>,
+    cancelled: &AtomicBool,
+) -> anyhow::Result<Analysis> {
+    analyze_impl(input, cancelled)
+}
+pub(super) fn check(cancelled: &AtomicBool) -> anyhow::Result<()> {
+    if cancelled.load(Ordering::Relaxed) {
+        return Err(crate::dto::operation_error(
+            "CANCELLED",
+            "Timing query cancelled",
+        ));
+    }
+    Ok(())
+}
+fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Result<Analysis> {
+    check(cancelled)?;
     let mut result = Analysis {
         method: "safe_event_turn_v1",
         state: State::Unknown,
@@ -215,14 +425,14 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
         .any(|id| id.is_empty())
     {
         result.issues.push(Issue::InvalidScope);
-        return result;
+        return Ok(result);
     }
     if input.events.len() > input.budget.events
         || input.measurements.len() > input.budget.measurements
     {
         result.coverage.partial = true;
         result.issues.push(Issue::ResourceLimit);
-        return result;
+        return Ok(result);
     }
     let events: Vec<_> = input
         .events
@@ -264,6 +474,7 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
         .collect();
     let mut domains = BTreeMap::new();
     for event in &events {
+        check(cancelled)?;
         let position = event.position();
         let span = domains
             .entry((position.file_id.as_str(), position.generation.as_str()))
@@ -293,96 +504,33 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
         .cloned()
         .collect();
     for event in &discontinuities {
+        check(cancelled)?;
         result.issues.push(Issue::SourceGap(event.id().to_owned()));
         if event.gaps().contains(&Gap::SourcePartial) {
             result.coverage.partial = true;
         }
     }
-    result.context = Some(context::summarize_events_with_discontinuities(
+    result.context = Some(context::summarize_events_cancellable(
         &measurements,
         &events,
         &discontinuities,
-    ));
-    let mut boundaries = Boundaries::default();
+        cancelled,
+    )?);
+    let mut boundaries = BoundaryReducer::default();
     let mut items: BTreeMap<intervals::Identity, Item> = BTreeMap::new();
     let lifecycle_records = events.iter().filter(|event| matches!(event.payload(), Payload::Item { item_kind, .. } if category(item_kind).is_some()) || matches!(event.payload(), Payload::Lifecycle { lifecycle: LifecycleKind::Compaction, .. })).count();
     for event in &events {
+        check(cancelled)?;
         if !event.gaps().is_empty() {
             result.issues.push(Issue::SourceGap(event.id().to_owned()));
             if event.gaps().contains(&Gap::SourcePartial) {
                 result.coverage.partial = true;
             }
         }
-        if let Payload::Lifecycle {
-            lifecycle: LifecycleKind::Turn,
-            phase,
-            native_id,
-            duration_ms,
-            first_token_ms,
-        } = event.payload()
-        {
-            result.coverage.boundary_candidates += 1;
-            boundaries.conflict |= conflicting(event);
-
-            if let Some(id) = native_id {
-                boundaries.native_ids.insert(id.clone());
-            }
-            if terminal(phase)
-                && let Some(value) = duration_ms
-            {
-                boundaries.durations.insert(*value);
-            }
-            if let Some(value) = first_token_ms {
-                boundaries.ttfts.insert(*value);
-            }
-            let destination = if *phase == Phase::Started {
-                boundaries.states.insert(0);
-                Some(&mut boundaries.starts)
-            } else if terminal(phase) {
-                boundaries.states.insert(match phase {
-                    Phase::Completed => 1,
-                    Phase::Failed => 2,
-                    Phase::Cancelled => 3,
-                    _ => unreachable!(),
-                });
-                Some(&mut boundaries.ends)
-            } else {
-                None
-            };
-            if let Some(destination) = destination {
-                if let Some(time) = timestamp(event) {
-                    let domain = boundaries
-                        .clock_domains
-                        .entry((
-                            event.position().file_id.clone(),
-                            event.position().generation.clone(),
-                        ))
-                        .or_default();
-                    if *phase == Phase::Started {
-                        domain.0 = true;
-                    } else {
-                        domain.1 = true;
-                    }
-                    let precision = event.time().precision.clone();
-                    destination
-                        .entry(time)
-                        .and_modify(|old| {
-                            if precision_rank(&precision) < precision_rank(old) {
-                                *old = precision.clone();
-                            }
-                        })
-                        .or_insert(precision);
-                } else {
-                    if *phase == Phase::Started {
-                        boundaries.missing_start = true;
-                    } else {
-                        boundaries.missing_end = true;
-                    }
-                    result
-                        .issues
-                        .push(Issue::MissingBoundaryTime(event.id().to_owned()));
-                }
-            }
+        if boundaries.observe(event) {
+            result
+                .issues
+                .push(Issue::MissingBoundaryTime(event.id().to_owned()));
         }
         let candidate = match event.payload() {
             Payload::Item {
@@ -480,55 +628,21 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
                 .push(Issue::MissingItemTime(event.id().to_owned()));
         }
     }
-    let identity_conflict = boundaries.conflict || boundaries.native_ids.len() > 1;
-    let state_conflict = boundaries
-        .states
-        .iter()
-        .filter(|value| **value != 0)
-        .count()
-        > 1;
-    let boundary_conflict = identity_conflict
-        || state_conflict
-        || boundaries.starts.len() > 1
-        || boundaries.ends.len() > 1
-        || (!boundaries.starts.is_empty()
-            && !boundaries.ends.is_empty()
-            && !boundaries
-                .clock_domains
-                .values()
-                .any(|(start, end)| *start && *end));
-    if boundary_conflict {
-        result.issues.push(Issue::BoundaryConflict);
-    } else {
-        result.start = (!boundaries.missing_start)
-            .then(|| anchor(&boundaries.starts))
-            .flatten();
-        result.end = (!boundaries.missing_end)
-            .then(|| anchor(&boundaries.ends))
-            .flatten();
+    let boundary = boundaries.finish();
+    if boundary.clock_domain_limit {
+        result.coverage.partial = true;
+        result.issues.push(Issue::ResourceLimit);
     }
-    if !identity_conflict && !state_conflict {
-        result.state = match boundaries
-            .states
-            .iter()
-            .find(|value| **value != 0)
-            .copied()
-            .or_else(|| boundaries.states.first().copied())
-        {
-            Some(0) => State::Running,
-            Some(1) => State::Completed,
-            Some(2) => State::Failed,
-            Some(3) => State::Cancelled,
-            _ => State::Unknown,
-        };
-    }
-    // Invalid or conflicting absolute anchors cannot invalidate an independent
-    // native duration, but conflicting turn identities invalidate both methods.
-    if !identity_conflict {
-        result.native_wall_clock_ms = singleton(&boundaries.durations);
-        result.native_ttft_ms = singleton(&boundaries.ttfts);
-    }
-    if boundaries.durations.len() > 1 || boundaries.ttfts.len() > 1 {
+    result.coverage.boundary_candidates = boundary.candidates;
+    result.state = boundary.state;
+    result.start = boundary.start;
+    result.end = boundary.end;
+    result.native_wall_clock_ms = boundary.native_wall_clock_ms;
+    result.native_ttft_ms = boundary.native_ttft_ms;
+    if boundary.boundary_conflict
+        || boundary.native_duration_conflict
+        || boundary.native_ttft_conflict
+    {
         result.issues.push(Issue::BoundaryConflict);
     }
     let window = result
@@ -552,7 +666,7 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
         .native_wall_clock_ms
         .zip(result.derived_wall_clock_ms)
         .map(|(native, derived)| i128::from(native) - i128::from(derived));
-    content::first_record(&events, &discontinuities, &mut result);
+    content::first_record(&events, &discontinuities, &mut result, cancelled)?;
     if lifecycle_records > input.budget.lifecycle_records {
         result.coverage.partial = true;
         result.issues.push(Issue::ResourceLimit);
@@ -566,10 +680,11 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
             .intervals
             .issues
             .push(intervals::Issue::ResourceLimit);
-        return result;
+        return Ok(result);
     }
     let mut mapped = Vec::new();
     for (identity, item) in items {
+        check(cancelled)?;
         let prefer_native_start = item
             .domains
             .values()
@@ -582,6 +697,7 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
         let mut ends = BTreeSet::new();
         let mut pairs = BTreeSet::new();
         for domain in item.domains.values() {
+            check(cancelled)?;
             let start = if prefer_native_start {
                 &domain.native_starts
             } else {
@@ -637,14 +753,21 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
             end_ms,
         });
     }
-    result.intervals = intervals::analyze(window, &mapped, &[], input.budget.lifecycle_records);
+    result.intervals = intervals::analyze_cancellable(
+        window,
+        &mapped,
+        &[],
+        input.budget.lifecycle_records,
+        cancelled,
+    )?;
     result.category_union_ms = std::array::from_fn(|index| {
         (result.intervals.observed_window_ms.is_some()
             && !result.intervals.partial
             && result.intervals.complete_intervals[index] > 0)
             .then_some(result.intervals.category_union_ms[index])
     });
-    result
+    check(cancelled)?;
+    Ok(result)
 }
 
 mod content;

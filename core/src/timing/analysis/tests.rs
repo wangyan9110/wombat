@@ -1268,3 +1268,51 @@ fn copied_source_domains_need_agreeing_record_times_and_allow_started_empty_snap
             .any(|issue| matches!(issue, Issue::ContentConflict(_)))
     );
 }
+
+#[test]
+fn complete_boundary_reduction_latches_conflicts_with_bounded_unique_witnesses() {
+    let mut reducer = BoundaryReducer::default();
+    for i in 0..10 {
+        reducer.observe(&boundary(
+            i,
+            Some(i as i64),
+            Phase::Completed,
+            Some(i),
+            Some(i),
+        ));
+    }
+    assert_eq!(reducer.ends.len(), 2);
+    assert_eq!(reducer.durations.len(), 2);
+    assert_eq!(reducer.ttfts.len(), 2);
+    let result = reducer.finish();
+    assert!(result.boundary_conflict);
+    assert!(result.native_duration_conflict);
+    assert!(result.native_ttft_conflict);
+    assert_eq!(result.native_wall_clock_ms, None);
+}
+#[test]
+fn cancellable_analysis_never_returns_partial_success() {
+    let error = analyze_cancellable(
+        AnalyzeInput {
+            source: "source",
+            thread: "thread",
+            turn: "turn",
+            events: &[],
+            measurements: &[],
+            budget: Budget {
+                events: 100,
+                measurements: 100,
+                lifecycle_records: 100,
+            },
+        },
+        &AtomicBool::new(true),
+    )
+    .unwrap_err();
+    assert_eq!(
+        error
+            .downcast_ref::<crate::dto::OperationError>()
+            .unwrap()
+            .code,
+        "CANCELLED"
+    );
+}
