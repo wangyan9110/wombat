@@ -18,8 +18,8 @@
       "en": "7463e48b3f4fa3c94b4b862e7b6c15eb8c8283a81d0a82ba04427bf58775e329"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/proposal": {
-      "zh": "a4f1414bc9d1e8b53ef8491ceaf371fc0596bbb9c57db39b9c71f4229c783ba5",
-      "en": "c13a77730d51817c8b1849a6042b1eb435c0400ab97facbc7d2d0330f1360e41"
+      "zh": "70a2d29e361380a18769d44798c97e970b54593072aa6be102f2559b7b29aacb",
+      "en": "9b09cedfaddfac802110c214fc5decf0fac4e46537e61d0cc88e136df0641ef0"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/proposal/1-data-availability-and-collection-decisions": {
       "zh": "8b4f9f5018d5962ad623820c42a8b6549b43b2e0ef43d898f6430aaeb844eb10",
@@ -86,8 +86,8 @@
       "en": "41756c8a455116919c972b7f691fa11a4265b4bfd1670c1a1e318df0a7d34c5d"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/proposal/17-implementation-units-and-gates": {
-      "zh": "1ee5e4ba39307ac7a7f8b0491f25f325f231329e3b15379d6500e45ab345f75b",
-      "en": "1a02532aed0da3b0db29692d9f5866a219bd235a740ddeb5df3863a6f3ee5d11"
+      "zh": "f343c4bb267725423233ca50ac9928887215f20603e027f47ebd9a7825e2522e",
+      "en": "b9aa2aece40545f7fbcaf2dc52b780519cd774fa7ae4d8777a9fc09f34e3919c"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/proposal/18-unified-session-event-facts-and-multiple-projections": {
       "zh": "bdaa06a0da8ce2107b8868510de1704016edd1afc4c8630f2a5d21da96fb9233",
@@ -170,8 +170,8 @@
       "en": "0c3b3c04c5064dd449c4cbb786c7a6d575aa20cca7cd1b0bdd79b4c5f3899238"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/remaining-implementation-boundaries": {
-      "zh": "4a67517f1a037732226158eb0b0afd9e2057d2662edb4f39549ca7ee88ea0e5b",
-      "en": "41432ff4de56415e9963769f900be6e7be90e9ce9258ddbd2fb2553c7a77f7c1"
+      "zh": "08e4d4a1a9d691ebec801e3a426c1a173a8a498d3b2d543d2164e5c406a19575",
+      "en": "48048260f5aabd6c44ea6a8e89d9f70572172f719f6deb0aa860bcb31847ee1a"
     }
   }
 }

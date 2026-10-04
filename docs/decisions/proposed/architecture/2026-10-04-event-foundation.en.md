@@ -127,7 +127,7 @@ Propose a safe, reconstructible SessionEvent fact layer in Wombat. It represents
 |---|---|---|
 | Tokens | Native response counts, cumulative reports, model/effort, explicit identities and replay relationships | Preserve ledger deduplication, cumulative reconciliation, and cache-subcategory rules; event counts cannot fill missing usage, and costs require an independent price revision |
 | Timing | Turn boundaries, native duration, lifecycles, tool phases, compaction, and windows | Missing times/identities stay unknown; per-request streams, actual queues, networks, and complete request context cannot be invented |
-| Skills | Catalog availability, targeted reads, native loads, their times and turns | Present used/no observed use; counts follow actual operations in section19, excluding catalogs and declarations; current file checks still require authorized scans |
+| Skills | Catalog availability, targeted reads, native loads, their times and turns | Present used/no observed use; counts follow actual operations in [section 19 of the metrics workstream](2026-10-04-event-metrics.en.md), excluding catalogs and declarations; current file checks still require authorized scans |
 | MCP | Explicit server/tool/call identities, attempts, native outcomes, resource discovery/reads | Historical calls establish neither full server inventories nor current connectivity; exposed-tool lists need explicit catalog evidence |
 | Configuration/accounts/user decisions | Links to fixed external observation versions | Current configuration, Hook registration, allowance, and user decisions are not raw session events and cannot backfill historical facts |
 

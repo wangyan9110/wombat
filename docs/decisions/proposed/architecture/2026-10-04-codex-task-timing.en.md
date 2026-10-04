@@ -46,7 +46,7 @@ Proceed workstream by workstream, keeping one detailed design per scope. This ov
 | [Unified events and persistence](2026-10-04-event-foundation.en.md) | U04–U08 |
 | [Timing metrics and use counts](2026-10-04-event-metrics.en.md) | U09–U10 |
 | [Rule evaluation over unified evidence](2026-10-04-event-rules.en.md) | U11–U13 |
-| [Event query interfaces and shared pages](2026-10-04-event-delivery.en.md) | U14–U17; continues U03 |
+| [Event query interfaces and shared pages](2026-10-04-event-delivery.en.md) | U14–U17; supplies page-design detail for U03, whose primary task and gates remain in this overview |
 | Overview and delivery gates | U01–U03, U18–U20 |
 
 The first usable version answers one selected turn: elapsed time, recorded activity intervals, overlap, time without activity evidence, and per-request input size. Accounts, current configuration, and suggestion handling retain their own business responsibilities.
@@ -130,7 +130,7 @@ See “Task batches and acceptance” below for execution order and the 20 tasks
 
 | Order | Delivery unit | Dependencies and completion gate |
 |---|---|---|
-| D0 | User journeys, page and interaction design | After initial metric/event definitions, alongside D1/D2; deliver layouts, a clickable synthetic-data prototype, states/copy, presentation-contract mapping, and five journey walkthroughs from section 16; complete before D4 contract finalization |
+| D0 | User journeys, page and interaction design | After initial metric/event definitions, alongside D1/D2; deliver layouts, a clickable synthetic-data prototype, states/copy, presentation-contract mapping, and five journey walkthroughs from [section 16 of the delivery workstream](2026-10-04-event-delivery.en.md); complete before D4 contract finalization |
 | D1 | Unified safe events, existing usage/operation projections, Codex mappings | Synthetic native fields, identity/conflicts, complete/partial-tail lines, body isolation; existing independent usage truth conserved |
 | D2 | Transactional events, read watermarks, projections, snapshot references | D1; current-format restart, cached no-scan, independent source failures, unknown-version rejection with preserved files, same-version saving, initial-preview isolation |
 | D3 | Pure timing algorithms and Skill/MCP use-count projections | Can begin with synthetic facts; integration requires D1/D2; union/mask conservation, window segmentation, aliases/privacy counterexamples |
@@ -300,4 +300,4 @@ On closure, record scope, commit/PR, actual verification commands/results, corpu
 
 #### Remaining implementation boundaries
 
-U03 follows U14/U16/U17 to wire production interfaces and migrate every page and state, then remove the corresponding standalone prototypes after verification. U04/U05 still require complete source mapping. Replay fixtures cover log-derived thread/turn, accounting, and operation facts; external metadata such as titles must not be assumed to be covered by events. U06/U08 must cover middle-of-file rewrites in large logs, rebuilding loaded indexes from events, per-source watermarks, event shards, and query budgets; first/last boundary probes or whole-event-file reads do not satisfy acceptance. The live protocol still needs to move from protocol1 to protocol2. User-decision preservation, full-path checks, and performance acceptance remain in the final stage.
+U03 follows U14/U16/U17 to wire production interfaces and migrate every page and state, then remove the corresponding standalone prototypes after verification. U04/U05 still require complete source mapping. Replay fixtures cover log-derived thread/turn, accounting, and operation facts; external metadata such as titles must not be assumed to be covered by events. U06/U08 must fully accept middle-of-file rewrite detection in large logs, index recovery and source replacement, per-source watermarks, event shards, and query resource budgets; first/last boundary probes or whole-event-file reads do not satisfy acceptance. The live protocol still needs to move from protocol1 to protocol2. User-decision preservation, full-path checks, and performance acceptance remain in the final stage.
