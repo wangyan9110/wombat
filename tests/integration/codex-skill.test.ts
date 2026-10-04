@@ -7,6 +7,11 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { test } from 'node:test';
 import { installCodexSkill } from '../../scripts/install-codex-skill.ts';
 
+function canonicalPath(file: string): string {
+  const resolved = realpathSync.native(file);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
 async function stopService(child: ChildProcess): Promise<void> {
   const stopped = () => child.exitCode !== null || child.signalCode !== null;
   if (stopped()) return;
@@ -47,6 +52,7 @@ test('installed runtime queries synthetic usage, fixed drill-down and configurat
     writeFileSync(path.join(project, 'AGENTS.md'), '# Project\nSynthetic instructions.\n');
     const skill = path.join(project, '.agents/skills/sample/SKILL.md'); mkdirSync(path.dirname(skill), { recursive: true });
     writeFileSync(skill, `---\nname: sample\ndescription: ${'x'.repeat(501)}\n---\nSynthetic skill.\n`);
+    const canonicalSkill = canonicalPath(skill);
     writeFileSync(path.join(source, 'AGENTS.md'), 'Synthetic source rules.\n');
     const row = (type: string, payload: object) => ({ timestamp: '2026-10-02T17:00:00Z', type, payload });
     for (const [id, input] of [['high', 200], ['low', 100]] as const) {
@@ -84,11 +90,11 @@ test('installed runtime queries synthetic usage, fixed drill-down and configurat
     const configArgs = ['--root', source, '--project-root', project];
     const inventory = invoke(['optimize', 'inventory', ...configArgs]);
     assert.ok(
-      inventory.items.some((item: { path: string }) => item.path === skill),
+      inventory.items.some((item: { path: string }) => canonicalPath(item.path) === canonicalSkill),
       `installed inventory did not include ${skill}: ${JSON.stringify(inventory.items.map((item: { path: string }) => item.path))}`,
     );
     const suggestions = invoke(['optimize', 'list', ...configArgs, '--read-view', inventory.readView]);
-    assert.ok(suggestions.suggestions.some((item: { item: { path: string }; findings: { rule: string }[] }) => item.item.path === skill && item.findings.some(finding => finding.rule === 'descriptionSize')));
+    assert.ok(suggestions.suggestions.some((item: { item: { path: string }; findings: { rule: string }[] }) => canonicalPath(item.item.path) === canonicalSkill && item.findings.some(finding => finding.rule === 'descriptionSize')));
     await stopService(service); service = undefined;
     assert.equal(installCodexSkill(skills, true), installed);
     assert.ok(invoke(['--help']).commands.includes('optimize'));
