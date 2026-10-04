@@ -32,5 +32,7 @@ try {
   assert.equal(value.readView, null);
   console.log(`Shared-service startup probe passed on ${process.platform}/${process.arch} without scanning sources.`);
 } finally {
-  rmSync(temporary, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  // Windows retains the named-pipe service directory until the bounded idle
+  // shutdown completes; retry long enough to remove every probe artifact.
+  rmSync(temporary, { recursive: true, force: true, maxRetries: 20, retryDelay: 1_000 });
 }
