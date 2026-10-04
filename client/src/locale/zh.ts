@@ -1,5 +1,13 @@
 // Product copy. Keep keys stable; add complete messages with parameters.
 export const zh = {
+  "preview.title": "预览 · 模拟数据",
+  "preview.scenario": "预览场景",
+  "preview.task": "核对登录后的跳转",
+  "preview.complete": "完整",
+  "preview.empty": "空结果",
+  "preview.error": "失败",
+  "preview.loading": "加载中",
+  "preview.running": "进行中",
   "webui.sourceNotFound": "未找到来源",
   "webui.sourceNotFoundHint": "检查来源目录是否存在，并在来源设置中确认路径。已有结果和本地检查仍可查看。",
   "webui.sourceUnreadable": "无法读取",

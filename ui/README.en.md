@@ -63,3 +63,11 @@ Optimize merges findings by object. URLs retain category, pending/history, sugge
 The shell renders before asynchronous preference restoration, with user selections taking priority. SYNC_PENDING shows page waiting seconds and follows up automatically; cancellation does not claim to stop shared scanning. Sources can read startup authorization before the first result. Discovered tasks without measurements can be opened by expanding date/model filters. The default 30 days preserve relative intent; manual dates and fixed versions do not roll.
 
 The time trend draws known dates only. All-date totals retain undated usage, with a separate detail entry. Failed updates show the last successful read time nearby and retain its scope/results; unfinished scope changes still prevent old results from representing a new query. Shared configuration details expand source-specific evidence. Task configuration and usage actions have separate spacing and wrap.
+
+## Shared-component preview
+
+Run `corepack pnpm --filter @wombat/ui preview` and open `http://127.0.0.1:5173/preview.html?page=threads&allTime=true`. This development entry renders the production App with an injected synthetic UsageClient; it does not connect to HTTP hosts, source logs, or native accounts. The production entry does not import preview modules.
+
+The current preview supports task, instruction, extension and suggestion examples, five independent assessment outcomes, decisions and rechecks, and a synthetic account window. The development selector provides complete, empty, failure, loading and running scenarios. Rule decisions last only within the current scenario; switching scenarios resets the fixture. Date, model, source filtering and all legacy design states have not yet been fully modeled. This is incremental migration, not acceptance of the full prototype.
+
+Use `corepack pnpm --filter @wombat/ui exec node --import tsx --test tests/preview.test.ts` for fixture behavior. Intermediate verification uses module tests and DOM/interaction checks; full product integration remains a final-stage gate. Maintain one component/style implementation: add scenarios through fixtures, not a separate HTML UI.

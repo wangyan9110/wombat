@@ -1,5 +1,13 @@
 import type { zh } from './zh.js';
 export const en = {
+  "preview.title": "Preview · Synthetic data",
+  "preview.scenario": "Preview scenario",
+  "preview.task": "Review the post-login redirect",
+  "preview.complete": "Complete",
+  "preview.empty": "Empty",
+  "preview.error": "Failure",
+  "preview.loading": "Loading",
+  "preview.running": "In progress",
   "webui.sourceNotFound": "Source not found",
   "webui.sourceNotFoundHint": "Check that the source folder exists and confirm its path in source settings. Previous results and local checks remain available.",
   "webui.sourceUnreadable": "Cannot read source",

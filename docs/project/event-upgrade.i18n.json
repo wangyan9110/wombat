@@ -2,16 +2,16 @@
   "version": 2,
   "sections": {
     "/unified-event-timing-and-rule-upgrade-tasks": {
-      "zh": "6ad6e47cc492f54fa66468ad332cfde99568bf82f9ba3b20b09a5ff39c33477e",
-      "en": "6670565323b7aa52ebfdc3277e386909df28ab53534fa01dddaf20d41dd247cd"
+      "zh": "025282cb216aaece16ca102f31531cbc3d6fd4e621d523c86237518de3c203e5",
+      "en": "f428a2675e3022496e1c71d85cdc09d5b57db1e527fc1f3cf07b54595c275447"
     },
     "/unified-event-timing-and-rule-upgrade-tasks/scope-and-delivery-principles": {
       "zh": "8175cacee9b0de0eebc419f84f9c3dcf04dea0dfbcb3519cd24660a05533af24",
       "en": "8d5145538ebb3031cea4a24e2cd4e66dd0e93bac166843e57f269fe29b7b67c0"
     },
     "/unified-event-timing-and-rule-upgrade-tasks/task-list": {
-      "zh": "e7d0d2bedde5ff142b3d1d6c2245f790f7ff511fc4a5d62dde391106e98d3049",
-      "en": "d154c54b245df14b9a08be6ae20b10873d7ac9b01242571a7c59b5d4977ca787"
+      "zh": "4e912ba6738761ccb976b4f286281413de341e4377b3cd290e51665cb71f6c68",
+      "en": "cbd0fe59cd31aa3741b2213c472b9a4af66a4fb096abc84fd3e390179f441f0f"
     },
     "/unified-event-timing-and-rule-upgrade-tasks/task-list/batch-one-baseline-and-design": {
       "zh": "5178e4adf1fc42de62de9df928bd171ae67717c35d5043a5eee2fb6823aded1c",
@@ -48,6 +48,10 @@
     "/unified-event-timing-and-rule-upgrade-tasks/batch-one-record-and-frozen-contracts-2026-10-04": {
       "zh": "04a6d68cf5530f7ba25e2367d1c9342fe94f3741c5ceb879fa462e24ea535fc8",
       "en": "7fa4d21eb9fb4b1530d80a266f9bef634c9ef778080b92556b44cae45629729b"
+    },
+    "/unified-event-timing-and-rule-upgrade-tasks/prototype-consolidation-steering-2026-10-04": {
+      "zh": "86b45fe7636a461238c066649d29b8f0e03842101e60261b4ac8ad7e801c2a38",
+      "en": "baa2bb28cb6e268f6e1c0cb83e0ead083aa459934879a4c179849e86991037e8"
     }
   }
 }

@@ -2,7 +2,7 @@
 
 [中文](event-upgrade.md) | English
 
-Updated 2026-10-04. Status: batch-one baseline, contracts, and incremental prototype complete; product implementation starts in batch two. The [design proposal](../decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md) owns architecture and semantics. This page tracks tasks, dependencies, and completion gates without redefining algorithms. Existing gaps remain in [implementation status](status.en.md); this upgrade does not replace previous product acceptance.
+Updated 2026-10-04. Status: batch-one baseline and contracts complete; U03 reopened for consolidation into shared product components. The [design proposal](../decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md) owns architecture and semantics. This page tracks tasks, dependencies, and completion gates without redefining algorithms. Existing gaps remain in [implementation status](status.en.md); this upgrade does not replace previous product acceptance.
 
 ## Scope and delivery principles
 
@@ -16,7 +16,7 @@ User steering on 2026-10-04: intermediate batches run only independent tests for
 
 ## Task list
 
-U01–U03 are complete; U04–U20 await implementation. Assign owners and add commit/PR and verification evidence during execution; this planning change creates no remote issues or additional chats. Dependencies describe integration prerequisites; pure algorithms can start with synthetic data once input contracts are defined.
+U01–U02 are complete; U03 is consolidating prototypes; U04–U20 await implementation. Assign owners and add commit/PR and verification evidence during execution; this planning change creates no remote issues or additional chats. Dependencies describe integration prerequisites; pure algorithms can start with synthetic data once input contracts are defined.
 
 ### Batch one: baseline and design
 
@@ -101,3 +101,11 @@ U02 freezes these implementation constraints for the next batch; storage has not
 - The next format uses rollout-6, live-v2/DB4, usage-v4/schema4, and protocol2 from design section 14. Preserve old index directories and explicit old snapshots and reject mixed reads. Preserve user-v1/reviews.sqlite3 independently; rebuilding neither opens its write transaction nor clears decisions, reasons, or baselines. Post-switch preservation checks belong to final integration.
 
 U03 extends the existing internal prototype while retaining navigation, task summaries, projects, and account structure. Execution, operation evidence, use counts, sharing, and five assessment outcomes are embedded in existing pages. Twenty added-module checks passed across two languages, wide/narrow screens, and four scenarios; screenshot review and field mapping are complete. The prototype uses synthetic data, is not a public-build dependency, and does not constitute product-interface acceptance. U01–U03 are closed; product features, performance, platforms, and final integration remain unfinished.
+
+## Prototype consolidation steering · 2026-10-04
+
+The user now requires one code implementation for all current prototype pages and states, hosted in the repository and shared with product components. The prototype-parity skill was removed as requested. The earlier private prototype is historical design evidence, not a second maintained implementation. U03 is reopened until all current page/state differences have been transferred and the corresponding standalone prototypes removed.
+
+The development-only ui/preview.html entry now injects a synthetic UsageClient into the existing App, with complete, empty, error, loading, and running scenarios. It never imports the HTTP client. This is the preview foundation, not completed migration: configuration details, rule scenarios, account/startup scenarios, and the event-upgrade interactions still need transfer and independent checks before removing their old copies. Intermediate verification remains module-only; final integration stays in U19.
+
+The preview foundation now includes populated configuration, five rule outcomes, keep/recheck/redisplay, and a synthetic account. Four independent fixture tests pass, including validation through the public typed client. Client/UI module builds, repository checks and DOM checks for tasks/instructions/extensions/optimization passed; no screenshots or product integration tests were run. Production assets exclude the preview entry and fixtures. This is a reviewable incremental commit; U03 remains open for the remaining design/state migration and old-copy removal.

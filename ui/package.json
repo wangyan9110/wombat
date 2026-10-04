@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts",
+    "preview": "vite --host 127.0.0.1"
   },
   "dependencies": {
     "@wombat/client": "workspace:*",
