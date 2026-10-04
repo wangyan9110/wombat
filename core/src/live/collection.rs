@@ -23,7 +23,7 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
             };
         }
         match field {
-            "messageObservationVersion" => {}
+            "messageObservationVersion" | "workObservationVersion" => {}
             "watermarkVersion" => {
                 watermark_version = Some(serde_json::from_str::<u32>(payload)?);
             }
@@ -85,17 +85,26 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
 /// Guard before reading facts and before sync's unchanged/cached fast path.
 fn validate_message_mapping(db: &rusqlite::Connection, key: &str) -> Result<()> {
     let scope = format!("projection:{key}");
-    if crate::live_index::has_scope(db, &scope)?
-        && crate::live_index::scalar(db, &scope, "messageObservationVersion")?
-            .and_then(|value| value.as_u64())
-            != Some(u64::from(
+    if crate::live_index::has_scope(db, &scope)? {
+        for (field, version) in [
+            (
+                "workObservationVersion",
+                adapters::codex::incremental::WORK_OBSERVATION_VERSION,
+            ),
+            (
+                "messageObservationVersion",
                 adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
-            ))
-    {
-        return Err(operation_error(
-            "UNSUPPORTED_VERSION",
-            "不支持此投影消息观察映射",
-        ));
+            ),
+        ] {
+            if crate::live_index::scalar(db, &scope, field)?.and_then(|value| value.as_u64())
+                != Some(u64::from(version))
+            {
+                return Err(operation_error(
+                    "UNSUPPORTED_VERSION",
+                    "不支持此投影来源观察映射",
+                ));
+            }
+        }
     }
     Ok(())
 }
@@ -237,6 +246,13 @@ pub(super) fn sync(
                 "messageObservationVersion",
                 "",
                 &adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
+            )?;
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "workObservationVersion",
+                "",
+                &adapters::codex::incremental::WORK_OBSERVATION_VERSION,
             )?;
             crate::live_index::replace_field(
                 &tx,

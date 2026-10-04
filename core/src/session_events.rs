@@ -360,10 +360,15 @@ impl TryFrom<StoredEvent> for Event {
                     && fact.source_instance_id.as_ref() == value.position.source_instance_id,
                 "measurement event scope mismatch"
             ),
-            Payload::Operation { value: fact, .. } => ensure!(
-                thread == Some(fact.thread_id.as_ref()) && turn == fact.turn_id.as_deref(),
-                "operation event scope mismatch"
-            ),
+            Payload::Operation { value: fact, .. } => {
+                ensure!(
+                    thread == Some(fact.thread_id.as_ref()) && turn == fact.turn_id.as_deref(),
+                    "operation event scope mismatch"
+                );
+                if let Some(work) = &fact.work {
+                    work.validate()?;
+                }
+            }
             Payload::ContextWindow { tokens, .. } => {
                 ensure!(*tokens > 0, "context window must be positive")
             }

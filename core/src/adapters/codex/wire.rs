@@ -71,6 +71,10 @@ pub(super) struct Payload<'a> {
     #[serde(borrow)]
     pub result: Option<&'a RawValue>,
     pub status: Option<String>,
+    #[serde(borrow)]
+    pub success: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub changes: Option<&'a RawValue>,
     #[serde(alias = "exitCode")]
     pub exit_code: Option<i64>,
     #[serde(borrow, alias = "durationMs")]

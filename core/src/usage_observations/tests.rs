@@ -17,6 +17,7 @@ fn operation(id: &str, kind: &str) -> Operation {
         exit_code: None,
         duration_ms: None,
         path: Some("/synthetic/skill/SKILL.md".into()),
+        work: None,
         server: None,
         tool: None,
         evidence: vec![],

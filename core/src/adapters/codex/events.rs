@@ -363,7 +363,8 @@ pub(super) fn process(
         operations::mcp_event(
             &p, event, &thread, turn, time, raw_time, evidence, facts, report,
         );
-    } else if (kind == "response_item" || matches!(event, "item_completed" | "item_started"))
+    } else if (kind == "response_item"
+        || matches!(event, "item_completed" | "item_started" | "patch_apply_end"))
         && let Some(thread) = owner
     {
         operation(

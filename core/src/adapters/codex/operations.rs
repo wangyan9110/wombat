@@ -3,6 +3,7 @@ use super::*;
 mod mcp;
 mod merge;
 mod replay;
+mod work;
 pub(super) use merge::merge_metadata;
 pub(super) fn operation_id(thread: &str, turn: Option<&str>, identity: &str) -> String {
     stable_id(&[thread, "operation", turn.unwrap_or(""), identity])
@@ -34,6 +35,7 @@ pub(super) fn empty_operation(
         exit_code: None,
         duration_ms: None,
         path: None,
+        work: None,
         server: None,
         tool: None,
         evidence: vec![evidence.clone()],
@@ -68,6 +70,7 @@ pub(super) fn operation(
         "FileChange" | "fileChange" | "file_change" => {
             ("file", "apply_patch", event == "item_completed")
         }
+        "patch_apply_end" => ("file", "apply_patch", true),
         "McpToolCall" | "mcpToolCall" | "mcp_tool_call" => (
             "mcp",
             item.tool.as_deref().unwrap_or("MCP"),
@@ -119,6 +122,7 @@ pub(super) fn operation(
     op.status = match item.status.as_deref() {
         Some("failed" | "error") => "failed",
         Some("interrupted" | "cancelled") => "interrupted",
+        Some("declined") => "declined",
         Some("completed" | "success") => "completed",
         _ if completed && operation_kind != "tool" && operation_kind != "mcp" => "completed",
         _ if completed => "unknown",
@@ -134,6 +138,13 @@ pub(super) fn operation(
         op.status = "failed".into();
     }
     op.path = item.path.as_deref().map(safe_text);
+    if operation_kind == "file" {
+        op.work = Some(work::file_changes(item, completed, report, &evidence));
+        // Legacy success is outcome evidence, not permission to erase a declined status.
+        if item.success.is_some_and(|r| r.get() == "false") && op.status.as_ref() != "declined" {
+            op.status = "failed".into();
+        }
+    }
     op.server = item.server.as_deref().map(|s| safe_text(s).into());
     op.tool = item.tool.as_deref().map(|s| safe_text(s).into());
     #[derive(Deserialize)]

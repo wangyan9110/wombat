@@ -6,6 +6,7 @@ pub(in crate::adapters::codex) fn merge_metadata(
     report: &mut SourceReport,
 ) {
     merge_mcp(old, operation, report);
+    super::work::merge(old, operation, report);
     if operation
         .timestamp
         .as_ref()
@@ -20,6 +21,7 @@ pub(in crate::adapters::codex) fn merge_metadata(
         && (operation.status.as_ref() != "unknown" || old.status.as_ref() == "running")
         && old.status.as_ref() != "failed"
         && old.status.as_ref() != "interrupted"
+        && old.status.as_ref() != "declined"
     {
         old.status = std::mem::take(&mut operation.status);
     }

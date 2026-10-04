@@ -1,4 +1,83 @@
 use super::*;
+
+#[test]
+fn required_work_mapping_rejects_old_parser_and_projection_before_payload_without_mutation() {
+    use std::io::Write;
+    let root_a = tempfile::tempdir().unwrap();
+    let root_b = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    let path = source(root_a.path(), "work-a");
+    source(root_b.path(), "work-b");
+    let roots = vec![
+        root_a.path().to_string_lossy().into_owned(),
+        root_b.path().to_string_lossy().into_owned(),
+    ];
+    let key = source_key(&roots);
+    let mut db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    let mut caches = BTreeMap::new();
+    let initial = sync(&mut db, &key, &roots, false, None, &mut caches)
+        .unwrap()
+        .unwrap();
+    let source_id = sources(&[roots[0].clone()]).sources.remove(0).id;
+    let projection = format!("projection:{source_id}");
+    let parser = format!("parser:{source_id}:{}:1", adapters::codex::VERSION);
+    let saved_projection = crate::live_index::load_map(&db, &projection).unwrap();
+    let saved_parser = crate::live_index::load_map(&db, &parser).unwrap();
+    let saved_view = crate::live_index::load_map(&db, &format!("view:{key}")).unwrap();
+    for (scope, original) in [(&projection, &saved_projection), (&parser, &saved_parser)] {
+        assert_eq!(original["workObservationVersion"], json!(1));
+        for header in [None, Some(json!(2))] {
+            crate::live_index::save_map(&db, &projection, &saved_projection).unwrap();
+            crate::live_index::save_map(&db, &parser, &saved_parser).unwrap();
+            let mut tampered = original.clone();
+            tampered.remove("workObservationVersion");
+            if let Some(header) = header {
+                tampered.insert("workObservationVersion".into(), header);
+            }
+            // Future payload failure must not win over version rejection or enter source fallback.
+            tampered.insert("futureWorkField".into(), json!({"unknown":true}));
+            crate::live_index::save_map(&db, scope, &tampered).unwrap();
+            for append in [false, true] {
+                if append {
+                    fs::OpenOptions::new()
+                        .append(true)
+                        .open(&path)
+                        .unwrap()
+                        .write_all(b"\n")
+                        .unwrap();
+                }
+                let error = sync(&mut db, &key, &roots, false, Some(&initial), &mut caches)
+                    .err()
+                    .unwrap();
+                assert_eq!(
+                    crate::live_index::failure_code(&error),
+                    "UNSUPPORTED_VERSION"
+                );
+                assert_eq!(crate::live_index::load_map(&db, scope).unwrap(), tampered);
+                assert_eq!(
+                    crate::live_index::load_map(&db, &format!("view:{key}")).unwrap(),
+                    saved_view
+                );
+            }
+            if scope == &projection {
+                let error = restore(&db, &key, &roots).err().unwrap();
+                assert_eq!(
+                    crate::live_index::failure_code(&error),
+                    "UNSUPPORTED_VERSION"
+                );
+                assert_eq!(
+                    crate::live_index::load_map(&db, &parser).unwrap(),
+                    saved_parser
+                );
+            } else {
+                assert_eq!(
+                    crate::live_index::load_map(&db, &projection).unwrap(),
+                    saved_projection
+                );
+            }
+        }
+    }
+}
 fn source(root: &std::path::Path, id: &str) -> PathBuf {
     fs::create_dir_all(root.join("sessions")).unwrap();
     let path = root.join("sessions/fixture.jsonl");
@@ -50,13 +129,17 @@ fn mixed_failure_observations_belong_to_new_view_and_survive_restore() {
     let root_a = tempfile::tempdir().unwrap();
     let root_b = tempfile::tempdir().unwrap();
     let index = tempfile::tempdir().unwrap();
-    source(root_a.path(), "a");
+    let path_a = source(root_a.path(), "a");
     let path_b = source(root_b.path(), "b");
     let roots = vec![
         root_a.path().to_string_lossy().into_owned(),
         root_b.path().to_string_lossy().into_owned(),
     ];
     let key = source_key(&roots);
+    use std::io::Write;
+    fs::OpenOptions::new().append(true).open(&path_a).unwrap().write_all(
+        (json!({"type":"event_msg","payload":{"type":"patch_apply_end","call_id":"failed-patch","turn_id":"turn","status":"failed","success":false,"changes":{"one.rs":{"type":"add","content":"PRIVATE_PATCH_BODY"},"two.rs":{"type":"delete","content":"PRIVATE_PATCH_BODY"}}}}).to_string()+"\n").as_bytes()
+    ).unwrap();
     let mut db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
     let mut caches = BTreeMap::new();
     let initial = sync(&mut db, &key, &roots, false, None, &mut caches)
@@ -64,7 +147,6 @@ fn mixed_failure_observations_belong_to_new_view_and_survive_restore() {
         .unwrap();
     let source_a = sources(&roots).sources[0].id.clone();
     invalidate_parser(&db, &source_a);
-    use std::io::Write;
     fs::OpenOptions::new()
         .append(true)
         .open(path_b)
@@ -96,6 +178,13 @@ fn mixed_failure_observations_belong_to_new_view_and_survive_restore() {
         next.manifest.snapshot_ref.snapshot_id
     );
     let restored = restore(&db, &key, &roots).unwrap().unwrap();
+    let before = initial.operation_facts().next().unwrap();
+    assert_eq!(before.status.as_ref(), "failed");
+    assert!(
+        matches!(&before.work.as_ref().unwrap().data, adapters::contract::WorkData::FileChange { changes: Some(paths) } if paths.len() == 2)
+    );
+    assert_eq!(next.operation_facts().collect::<Vec<_>>(), vec![before]);
+    assert_eq!(restored.operation_facts().collect::<Vec<_>>(), vec![before]);
     assert_eq!(restored.manifest.watermarks, next.manifest.watermarks);
     assert_eq!(
         serde_json::to_value(&restored.manifest.snapshot_ref).unwrap(),

@@ -10,8 +10,14 @@ use std::{
 };
 
 mod watermarks;
+mod work;
 pub(crate) use watermarks::validate_watermarks;
 pub use watermarks::{SourceWatermark, WATERMARK_FORMAT_VERSION, WatermarkIssue, WatermarkState};
+pub(crate) use work::valid_work_path;
+pub use work::{
+    ChangeKind, FilePathChange, WORK_OBSERVATION_VERSION, WORK_PATH_BYTES, WORK_PATH_LIMIT,
+    WorkData, WorkGap, WorkObservation, WorkStage,
+};
 
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
@@ -166,6 +172,8 @@ pub struct Operation {
     pub exit_code: Option<i64>,
     pub duration_ms: Option<u64>,
     pub path: Option<String>,
+    /// Safe source metadata; absent observations cannot establish zero work.
+    pub work: Option<WorkObservation>,
     pub server: Option<Arc<str>>,
     pub tool: Option<Arc<str>>,
     pub evidence: Vec<EvidenceRef>,

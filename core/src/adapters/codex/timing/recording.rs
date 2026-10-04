@@ -29,6 +29,7 @@ impl Context {
                 Phase::Started
             }
             "item_completed"
+            | "patch_apply_end"
             | "mcp_tool_call_end"
             | "function_call_output"
             | "custom_tool_call_output" => Phase::Completed,
