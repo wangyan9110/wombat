@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -33,6 +34,7 @@ try {
   console.log(`Shared-service startup probe passed on ${process.platform}/${process.arch} without scanning sources.`);
 } finally {
   // Windows retains the named-pipe service directory until the bounded idle
-  // shutdown completes; retry long enough to remove every probe artifact.
-  rmSync(temporary, { recursive: true, force: true, maxRetries: 20, retryDelay: 1_000 });
+  // shutdown completes. Its recursive-delete retries do not span that window.
+  if (process.platform === 'win32') await delay(17_000);
+  rmSync(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 }
