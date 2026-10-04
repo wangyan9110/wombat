@@ -1,9 +1,11 @@
 import {t} from '@wombat/client/locale';
 import {previewTiming} from './timing.js';
-import {accountFixture} from './account.js';
+import {accountScenarios,previewAccount} from './account.js';
+import {directoryScenarios,previewDirectories} from './directories.js';
+import {handoffScenarios,previewHandoff} from './handoff.js';
 import {configFixture,createRuleFixture} from './configuration.js';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type UsageSummary, type QueryOptions } from '@wombat/client';
-export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap'] as const;
+export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap',...accountScenarios,...directoryScenarios,...handoffScenarios] as const;
 export type Scenario = typeof scenarios[number];
 const at = '2026-10-04T02:00:00Z';
 const page = {offset:0,limit:20,total:0,nextOffset:null};
@@ -15,10 +17,13 @@ export function usageFixture(request:UsageRequest,scenario:Scenario):UsageResult
  return {outputVersion:3,action:request.action??'usage',snapshotRef:{snapshotId:'preview:1',createdAt:at},scope,availableRange:{since:'2026-10-04',until:'2026-10-05'},summary:usage,items,page:{...page,total:items.length},quality:{status:'complete',issues:[],sources:[]},facets:{directories:['/synthetic/wombat'],hasUnassigned:false,models:['synthetic-model'],reasoningEfforts:['medium'],agents:['codex'],discoveredThreadCount:scenario==='empty'?0:1}};
 }
 export function createPreviewClient(scenario:Scenario):UsageClient {
+ const account=previewAccount(scenario);
  const rules=createRuleFixture(scenario==='empty',scenario==='resolved'?'resolved':scenario==='rule-upgraded'?'incomparable':scenario==='evidence-gap'?'unknown':'unchanged');
  const ready=async(options?:QueryOptions)=>{if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');if(scenario==='error')throw new CoreError('SOURCE_UNREADABLE','Synthetic source error');if(scenario==='loading')await new Promise<void>((_,reject)=>options?.signal?.addEventListener('abort',()=>reject(new CoreError('CANCELLED','Cancelled')),{once:true}));};
  return {
   timing:previewTiming(scenario),
+  handoff:previewHandoff(scenario),
+  directories:previewDirectories(scenario),
   ...(scenario==='initial'?{async live(request:import('@wombat/client').LiveRequest){
    const result=usageFixture(request.query,'complete');
    const unknown:UsageSummary={measurementCount:0,tokens:{total:null},price:{...summary.price,cost:null,knownCost:'0',status:'unknown'}};
@@ -37,7 +42,7 @@ export function createPreviewClient(scenario:Scenario):UsageClient {
    return usageFixture(request,scenario);
   },
   async prices(request){return {outputVersion:1,action:request.action??'status',origin:'synthetic',updated:false,source:'synthetic',catalogHash:'preview',catalog:{revision:'preview',verifiedAt:at,policy:'synthetic',currency:'USD',models:[]}};},
-  async account(request,options){await ready(options);return accountFixture(request,scenario==='empty');},
+  async account(request,options){await ready(options);return account(request,options);},
   async config(request,options){await ready(options);return configFixture(request,scenario==='empty');},
   async optimize(request,options){await ready(options);return rules(request);},
  };
