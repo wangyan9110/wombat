@@ -57,3 +57,21 @@ test('rejects malformed versions and incomplete release surfaces before writing'
   assert.throws(() => prepareVersionFiles(driftedRoot, '0.1.0-dev.2'), /core\/Cargo\.toml: expected current version/);
   assert.equal(JSON.parse(readFileSync(path.join(driftedRoot, 'package.json'), 'utf8')).version, '0.1.0-dev.1');
 });
+
+test('release preparation leaves proposal and historical acceptance text unchanged', t => {
+  const root = fixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const proposal = path.join(root, 'docs/decisions/proposed/product/acceptance.md');
+  const evidence = path.join(root, 'docs/benchmarks/acceptance.json');
+  const retiredStatus = path.join(root, 'docs/project/status.md');
+  const retained = 'Acceptance evidence for 0.1.0-dev.1 must not become evidence for a new release.\n';
+  for (const file of [proposal, evidence, retiredStatus]) {
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, retained);
+  }
+  prepareVersionFiles(root, '0.1.0-dev.2');
+  assert.deepEqual(consistencyErrors(root), []);
+  for (const file of [proposal, evidence, retiredStatus]) {
+    assert.equal(readFileSync(file, 'utf8'), retained);
+  }
+});

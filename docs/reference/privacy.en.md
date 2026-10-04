@@ -2,7 +2,7 @@
 
 [中文](privacy.md) | English
 
-This page describes current privacy boundaries. See [architecture](../development/architecture.en.md) for data directories and storage mechanisms.
+This page describes current privacy boundaries. See [core guide](../../core/README.en.md) for data directories and storage mechanisms.
 
 Wombat needs no API key and reads local Codex rollout logs and the title index without modifying Codex logs, configuration, authentication, or installation. Live queries download a catalog from a fixed official OpenAI address by default when eligible usage lacks a price; explicit `prices update` also accesses the network. Requests contain no local logs, titles, paths, usage, or credentials, but the server can observe the connection IP and Wombat User-Agent. Downloads reject redirects and enforce timeout and response-size limits.
 
@@ -10,7 +10,7 @@ Set `WOMBAT_AUTO_PRICES=0` to disable automatic network access; `--cached`, fixe
 
 Derived indexes and snapshots retain token categories, pricing basis, source/conversation/turn identities, model and reasoning effort, time, project, native titles, and safe operation fields (tool name, file path, exit code, duration, MCP server/tool). Raw user messages, model text, complete command arguments, and tool output are excluded from snapshots and Node responses. Models, titles, paths, and names can still contain sensitive information and should not be shared indiscriminately.
 
-Product data uses the system application data directory, overridable with WOMBAT_DATA_HOME. Files use atomic replacement. Unix creates private permissions; Windows inherits the data directory ACL, so use a private directory for the current user. Snapshots are not encrypted vaults. This version has no upload, full-text replay, evidence export, or arbitrary execution capability.
+Product data uses the system application data directory, overridable with WOMBAT_DATA_HOME. Files use atomic replacement. Unix creates private permissions; Windows inherits the data directory ACL, so use a private directory for the current user. Snapshots are not encrypted vaults. Basic scanning does not upload data, replay full text, or expose arbitrary execution. Explicit user sends to Codex transfer necessary targets, working directories, rules, and evidence versions; Codex manages subsequent model requests, execution, and recovery, as described in the [handoff guide](../guides/cli.en.md). Account reads do not copy credentials.
 
 Source directories change continuously. Each refresh fixes the observed boundary of each file; partial failures, incomplete tails, and uncertain associations retain explicit status. Tool calls without exclusive token accounting do not receive invented costs. Official-standard API-equivalent cost is not a subscription invoice.
 

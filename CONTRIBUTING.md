@@ -2,7 +2,7 @@
 
 English | [中文](CONTRIBUTING.zh-CN.md)
 
-Wombat uses a shared Rust core and a Node CLI/Web. Read [AGENTS.md](AGENTS.md), [architecture](docs/development/architecture.en.md), [development](docs/development/workflow.en.md) and the [v1 specification](docs/project/specification.en.md).
+Wombat uses a shared Rust core and a Node CLI/Web. Read [AGENTS.md](AGENTS.md), [architecture](docs/development/architecture.en.md), and [development](docs/development/workflow.en.md).
 
 Install locked dependencies, build, then run type checking, generated contract checks and tests. Cross-language tests use dist and must run after a build. Rust changes require formatting and clippy with warnings denied.
 

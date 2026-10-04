@@ -16,7 +16,7 @@ GitHub Releases 成为唯一产品分发渠道。每个版本生成 macOS arm64/
 
 标签工作流参考 [Mole 的 GitHub Release 矩阵、校验和与来源证明流程](https://github.com/tw93/Mole/blob/main/.github/workflows/release.yml)，但按 Wombat 的 Rust+Node 架构独立实现。五个平台先导出内核、Node 运行时和许可哈希，汇总后再由五个平台验证最终归档。与 `package.json` 不匹配的标签拒绝发布，普通 CI 和候选构建不上传。
 
-本决定取代 [npm 平台分发决定](2026-10-03-npm-platform-distribution.md)的当前渠道、安装和升级部分；其中平台范围、原生产物身份与许可校验原则继续适用。
+本决定取代原先全内核 npm 单包和后续 npm 平台包；相关页面合并到这里。继续按目标准确选择原生产物，核验版本、源码提交、目标、哈希与许可；缺失、损坏、身份不符或许可缺失均拒绝，不回退到另一架构。当前操作说明只由[分发说明](../../../reference/distribution.md)维护。
 
 ## 考虑过的方案
 
@@ -27,3 +27,5 @@ GitHub Releases 成为唯一产品分发渠道。每个版本生成 macOS arm64/
 用户下载包变大，因为每个平台归档内置约 145 MB 的未压缩 Node 运行时；macOS arm64 开发候选压缩后约 48.5 MiB。换来的结果是用户无需 Node/npm，运行环境与验证环境一致。版本目录会短期保留当前和上一运行版本，占用更多磁盘；之后的升级清理更早受管目录。
 
 macOS arm64 开发候选已完成构建、归档哈希、干净解压、实时/追加/固定快照/Web 验证、一键安装，以及应用 PATH 为空时的版本和实时查询。升级的检查、下载、归档约束、哈希与原子切换使用本地模拟 Release 通过。其他四个平台已配置 CI 和标签发布矩阵，尚无本轮托管运行证据；公开 Release、公开安装地址、跨真实版本远端升级和旧系统兼容仍未验收。
+
+全内核单包曾以一个安装入口换取所有平台内核的重复下载；按平台 npm 依赖减少下载，但引入主包与原生包的精确版本协调。该方案参考 [Codex 包定义](https://github.com/openai/codex/blob/main/codex-cli/package.json)及[打包脚本](https://github.com/openai/codex/blob/main/codex-cli/scripts/build_npm_package.py)，实现独立。此前因运行时体积和更新维护成本暂不内置 Node；本决定为无需预装运行时的安装体验接受该成本。平台产物完整性、干净安装和目标系统验收仍是门禁，不能从跨目标编译推断通过。

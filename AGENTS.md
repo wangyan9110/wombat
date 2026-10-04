@@ -4,8 +4,8 @@ Wombat analyzes local Agent usage and configuration through a shared Rust core, 
 
 ## Read by task
 
-- Code: read [architecture](docs/development/architecture.en.md), applicable AGENTS.md files, and the owning module README.
-- Product behavior: consult the owning module README or technical reference; requirements: [specification](docs/project/specification.en.md); outstanding acceptance: [status](docs/project/status.en.md). Retrieve historical evidence only when the task needs it.
+- Code: read [architecture](docs/development/architecture.en.md), [code conventions](docs/development/workflow.en.md), scoped AGENTS.md, and the module README.
+- Product behavior: consult the owning module README or technical reference; unfinished requirements and acceptance belong in [proposed decisions](docs/decisions/proposed/). Retrieve historical evidence only when needed.
 - Documentation: follow [docs/AGENTS.md](docs/AGENTS.md); use [wombat-docs](.agents/skills/wombat-docs/SKILL.md) for restructuring. Maintain each fact once and link elsewhere.
 - Verification: use [wombat-verify](.agents/skills/wombat-verify/SKILL.md). Builds/releases: [wombat-release](.agents/skills/wombat-release/SKILL.md). Development scripts: [scripts/AGENTS.md](scripts/AGENTS.md).
 
@@ -32,4 +32,4 @@ Select checks by changed scope; do not repeat unaffected passing checks. Source 
 - Performance: fixed fixtures, release build, explicit cache/scope, elapsed time, peak memory, and consistent results. Parsing alone is not scan performance; mapped pages still use memory. Releases require target-platform and clean-install verification.
 - Dependency changes: run `licenses:generate` and `licenses:check`. Before publication run `repo:check`, `public:check`, and `github:pack`, all via corepack pnpm. Checks do not replace commit review or platform acceptance.
 
-Report changed scope, actual verification, remaining limits, and how to run. Do not mark whole plans complete. Record only durable cross-module or standing tradeoffs as [decisions](docs/decisions/README.en.md); local fixes need no new document.
+Report changed scope, actual verification, remaining limits, and how to run. Do not mark whole plans complete. Maintain [decisions](docs/decisions/README.en.md) for lasting rationale absent from code, tests, and existing docs. Update the owner; mechanical/local edits, including UI, are exempt.

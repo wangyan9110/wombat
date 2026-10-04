@@ -25,7 +25,7 @@
     "docs:budget": "node scripts/check-doc-budgets.mjs",
     "docs:i18n:check": "node scripts/check-doc-i18n.mjs",
     "docs:i18n:record": "node scripts/check-doc-i18n.mjs --write",
-    "docs:check": "pnpm run skills:check && pnpm run notes:check && pnpm run docs:budget && pnpm run docs:i18n:check && pnpm run public:check",
+    "docs:check": "pnpm run skills:check && pnpm run notes:check && pnpm run docs:budget && pnpm run docs:structure && pnpm run docs:i18n:check && pnpm run public:check",
     "repo:check": "pnpm run docs:check && node scripts/check-module-boundaries.mjs && pnpm run i18n:check && pnpm run test:repo",
     "licenses:generate": "node scripts/dependency-licenses.mjs",
     "licenses:check": "node scripts/dependency-licenses.mjs --check",
@@ -38,7 +38,8 @@
     "i18n:check": "node scripts/check-ui-i18n.mjs",
     "test:repo": "node --import tsx --test scripts/*.test.mjs scripts/*.test.ts",
     "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
-    "benchmark:live": "node --import tsx scripts/benchmark-live.ts"
+    "benchmark:live": "node --import tsx scripts/benchmark-live.ts",
+    "docs:structure": "node scripts/check-doc-structure.ts"
   },
   "devDependencies": {
     "@types/node": "26.0.0",

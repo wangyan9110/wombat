@@ -1,25 +1,25 @@
 {
   "version": 2,
   "sections": {
-    "/decision-note-read-only-configuration-and-composite-read-views": {
+    "/decision-read-only-configuration-and-composite-read-views": {
       "zh": "8fb9b847b1cd945a6212223295d4a440c5e385c09188937b1aeb6ce8fd745719",
-      "en": "1e9f3e9d2c26e45e81f0e0814f879689c2c92f753fa1969b7a771c1562ba15b0"
+      "en": "44410c9c4ff8dcb9ae4e3dbf399179d27a9b87a804ebb6527ef3d0dcfd005bf9"
     },
-    "/decision-note-read-only-configuration-and-composite-read-views/problem": {
-      "zh": "45c388bccfc62638e6a77e3a6e86f380ca2c021bb29f3be462aa0673185bdd42",
-      "en": "6ffaaf1b85cae36eb0ba193bce352eba663861209d7ad8b29b6de8a15f9b76da"
+    "/decision-read-only-configuration-and-composite-read-views/problem": {
+      "zh": "f1129ed971dc596ff719ecba01ca6ca99f725e9cd5918f983ab88115582f184f",
+      "en": "feb234dc6da81c7ed81310fc1f59b5450c915def418ac32260217c5aca899962"
     },
-    "/decision-note-read-only-configuration-and-composite-read-views/decision": {
-      "zh": "cbaec315ee101de09a03e6aa824617fe64bf3828378c5c724d659d009cedb9b0",
-      "en": "6c9e5b6239ea565d18d87f40dcb465f753c9775db42aeda013ba9a9c61cde1a9"
+    "/decision-read-only-configuration-and-composite-read-views/decision": {
+      "zh": "31de1d9480b4c8976c1fc5ab245728113466503aba01b7f33b43835714a5da26",
+      "en": "2f2ff8007eb2987f5c47f032b285e18f14183ae67a49a8b3b5c05eeee8055ed9"
     },
-    "/decision-note-read-only-configuration-and-composite-read-views/alternatives-considered": {
-      "zh": "188a61826cd344e7978c5256e1443e9208b05c4ebac858dcc1efda410aac4572",
-      "en": "66a3c5982c5467ea980d1930197e5c7382c7a0c82cbebaaa9cec5450279b9342"
+    "/decision-read-only-configuration-and-composite-read-views/alternatives-considered": {
+      "zh": "a75ca16a8bfc0c2b1d58a817a339095d2a62bdb19e80789f63a929e8fff8501b",
+      "en": "8315acff2b7cbe3efefc2f6ae790a764328b844b46dd0c05a30ef4b7f122b12f"
     },
-    "/decision-note-read-only-configuration-and-composite-read-views/impact-and-verification": {
-      "zh": "efb8f46655adc93898ca28164565217b669931e8665b88d3967b31e61781388b",
-      "en": "e791937c1db8920619a6c047b9bed0addb909aa3d110da6fea6cb4c91572d1e9"
+    "/decision-read-only-configuration-and-composite-read-views/consequences-and-verification": {
+      "zh": "3bc7a671723f474553b53f7dca052e49aa00936c0e7ffabe83bc5461ca77f866",
+      "en": "f21e6979fd2a2ae390dcb0fe3b54d7627a3a8091399ce7f723b51f478a341d58"
     }
   }
 }

@@ -2,23 +2,24 @@
 
 [中文](workflow.md) | English
 
-Follow the [version-one specification](../project/specification.en.md) and [architecture](architecture.en.md). Current capabilities are defined in the [architecture](architecture.en.md); CLI/Web share Rust contracts.
+This page defines code-change and verification procedures. Module responsibilities belong in [architecture](architecture.en.md), product fields in [contracts](contracts.en.md), and repository constraints in [AGENTS.md](../../AGENTS.md).
 
-## Implementation boundaries
+## Code conventions
 
-- Deliver new capabilities through Web and a JSON entry requiring no TTY. Define DTOs in Rust and generate schemas, TS, and runtime validators; do not maintain fields independently on each side.
-- Source adapters normalize facts. Pricing, aggregation, deduplication, and project attribution stay out of Node.
-- Runtime, builds, types, and tests do not depend on ccusage. Lock general libraries as needed; independent synthetic truth establishes accounting acceptance.
-- Original sources are read-only. Live refresh downloads official prices when missing rates can be resolved; WOMBAT_AUTO_PRICES=0 disables this. Snapshots store allowlisted metadata; no text replay or arbitrary execution interface is provided.
-- Keep missing, zero, partially priced, and unknown distinct. Output amounts as decimal strings; lists round for display only.
-- Date ranges include since and exclude until. Use timezone calendar days, Monday week boundaries, and each measurement's date for conversations and turns spanning days.
-- Preserve existing user work before changes. Removing old code must not remove user data directories, identity registrations, or recovery materials.
-- Follow [independent module boundaries](architecture.en.md): peer root modules `core/`, `client/`, `ui/`, `web/`, and `cli/`. Each declares dependencies, builds, and tests and uses only public exports or protocols. UI accesses business operations through an injected `UsageClient`. Typechecking includes import-boundary checks.
-- GitHub Release archives bundle Node.js 26.4.0, so users install no runtime; source tools require 26.4.0+. See [distribution](../reference/distribution.en.md) for release structure. The default CLI prints usage; Web is started explicitly. No terminal rendering or FFI startup is required.
+- Identify the domain owner and current consumers before choosing an implementation. New abstractions, options, and compatibility paths need a present requirement. Cross-module access uses public exports or protocols.
+- Deliver new capabilities through Web and non-TTY interfaces. Generate public DTOs from Rust; check all consumers and cancellation, error, and state semantics when changing them.
+- Validate untrusted data at configuration, file, process, and network entries; do not repeatedly simulate hostile input for typed same-process values. Keep TypeScript strict. Explain why narrowing is infeasible for new any or assertions; never use double assertions to bypass validation.
+- Exhaust closed unions by their discriminants; open source values need an explicit unknown branch. Resolve defaults once at the owning entry and report invalid configuration at the earliest reliable point.
+- Enforce authorization and version checks in the operation itself, not solely through disabled UI or wrapper filters. Verify that direct and alternate callers cannot bypass them.
+- Give each asynchronous operation one lifecycle controller or transaction. Additional state needs an independent responsibility; settle success, failure, and cancellation. Cleanup waits boundedly for child work to stop, and late results cannot update expired views.
+- Publish state and notifications only after durable commit succeeds; preserve committed facts on failure. Derive caches and presentation from the same authoritative result.
+- Apply resource limits where the complete emitted or retained value is known, including envelopes, metadata, and multibyte encoding. Cover tiny limits, exact boundaries, and oversized single chunks.
+- Limit catch blocks to the expected failing operation. Explain ignored errors and preserve observable failure. Callback exceptions must not break unrelated requests or cleanup.
+- Comments describe caller-relevant behavior, failures, timing, and ownership. Link decision rationale instead of narrating code or review. Update the owning documentation with the change; local edits need no new decision.
 
 ## Verification
 
-Run `corepack pnpm repo:check` for source rules without a preceding build. A separate CI job runs it before platform release checks. Maintain development scripts under [scripts/AGENTS.md](../../scripts/AGENTS.md) and select verification with [wombat-verify](../../.agents/skills/wombat-verify/SKILL.md).
+Run `corepack pnpm repo:check` for source rules without dist; CI runs it before platform builds. Follow [scripts/AGENTS.md](../../scripts/AGENTS.md) for check scripts and [wombat-verify](../../.agents/skills/wombat-verify/SKILL.md) for scope selection. Code review and relevant behavior tests verify the semantic conventions above; static checks do not claim complete coverage.
 
 ```sh
 corepack pnpm build
@@ -29,12 +30,8 @@ corepack pnpm test
 ~/.cargo/bin/cargo clippy --locked --manifest-path core/Cargo.toml --all-targets -- -D warnings
 ```
 
-After building, run synthetic development scripts: `node --import tsx scripts/benchmark-usage-v1.ts --output /tmp/wombat-query.json` and `node --import tsx scripts/benchmark-live.ts --output /tmp/wombat-live.json` check fixed-snapshot queries and the live index.
+Select commands by changed scope; run all for full-chain changes. Cross-language tests use dist, so build first. Do not repeat unaffected passing checks. Product behavior changes require observable results through a real assembled entry; manually composed mocks alone cannot establish delivery. External services and nondeterministic inputs may be replaced. Accounting uses [independent truth](adapters.en.md), not old output as its only oracle.
 
-Choose tests by the actual change; run all for complete-chain delivery. Cross-language tests call dist and require a preceding build. Independent truth covers A01–A12; correctness is not equivalence to old output. Verify Web interaction, narrow screens, cancellation, and return paths in a browser. Performance reports specify fixed fixtures, release builds, cold/warm queries, core startup, and peak memory; parsing alone does not establish total performance.
+Verify hosts, real core, browsers, and installed assets separately. Web checks cover narrow layouts, cancellation, failure, and return paths. Performance uses fixed fixtures and release builds, recording cache state, startup, elapsed time, peak memory, and result consistency separately; benchmark entry points are the package.json benchmark scripts.
 
-Review dependency changes and run `corepack pnpm licenses:generate` and `licenses:check`. Release acceptance uses `corepack pnpm public:check`, `corepack pnpm github:pack`, and installation in a clean directory. Do not claim support for untested platforms. Report only checks that actually passed.
-
-## Web-First Migration
-
-Tauri 2 is selected; Web ships first and TUI product code has been removed. Boundaries and pending work are defined in [architecture](architecture.en.md). After building, run `node dist/wombat.js web`; rebuild and restart after changes. Host, real core, browser, and installed assets require separate verification.
+For dependency changes run `corepack pnpm licenses:generate` and `corepack pnpm licenses:check`. Verify target platforms and clean installation under the [release Skill](../../.agents/skills/wombat-release/SKILL.md) and [distribution guide](../reference/distribution.en.md). Report actual verification only; builds do not establish product or platform acceptance.

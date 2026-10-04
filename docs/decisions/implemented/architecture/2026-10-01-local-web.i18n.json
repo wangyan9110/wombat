@@ -1,25 +1,25 @@
 {
   "version": 2,
   "sections": {
-    "/decision-note-local-web-and-shared-frontend": {
+    "/decision-local-web-and-a-shared-frontend": {
       "zh": "d49e0d46d39d80e46cf954c850e2834e265f16764515343315822791436bc58b",
-      "en": "38cdae804da5704d7bdb83c69c42b55bd3ba299fdd0e74403c5d90bd0200f699"
+      "en": "48966a425025e4e6ddce89b39469c0002b67ba7bc9af8a37d89dd07e7794daeb"
     },
-    "/decision-note-local-web-and-shared-frontend/problem": {
-      "zh": "079ab42afec24eb50b96db0fc79aa4f428183771d81ee29e6ff76c8e8f1bda8a",
-      "en": "ae7408f4228ea7db2152e902c915a7f44042a82ef3521023a2c1c3fd184c7333"
+    "/decision-local-web-and-a-shared-frontend/problem": {
+      "zh": "9d65006add68dc7545f3a6025734ac4672b4495d30f2c598bdcc0163f9af9694",
+      "en": "7779e8a79fc0a0b2465cdc08c938120a1afa6cda01c4f6653a0322f68145011b"
     },
-    "/decision-note-local-web-and-shared-frontend/decision": {
-      "zh": "46205bc35e16d50f7860df00f0f36177378abdd73339bba0ba2b6951c75d03ab",
-      "en": "237a034085b8288a75488204c9cf381587467c755de9046843cae8abff0099e4"
+    "/decision-local-web-and-a-shared-frontend/decision": {
+      "zh": "5d8bf9ccc81c9b2b45e8613fa4b54b8adb3a722527fd2469b020392fc27593c4",
+      "en": "51b2f33e402674893786cfeaa107b937fa558f34d83a71dc3d1041d14c53c9cd"
     },
-    "/decision-note-local-web-and-shared-frontend/alternatives-considered": {
-      "zh": "4cb467218148757b254c55cd9c822c00916a88da03529bfbf0bac349a113edf4",
-      "en": "6c6a07a95973a0d1d2b31f6e97dbded5ae6a320a7b989207e21a0b1aeb3d0ec3"
+    "/decision-local-web-and-a-shared-frontend/alternatives-considered": {
+      "zh": "87a9beb06f4982d9ea8636b3f425da87626a32d48c7a034c0f6bc254677b9277",
+      "en": "9d496ba9a6208e10b3ea288402fc97d4c2f893bf815f201a97ceb94069a725a6"
     },
-    "/decision-note-local-web-and-shared-frontend/impact-and-verification": {
-      "zh": "194fb33c2ccb1d1e2b86f5f81ff148ddbe3a5725a23d85273c743082157f1f88",
-      "en": "f214e646ec1766e35f43c8485a5a4f81876b4565522e5ce70c46471953fd45d7"
+    "/decision-local-web-and-a-shared-frontend/consequences-and-verification": {
+      "zh": "b39d94784af38462763c20a2404735dfd47a6111c4d7c0bf5846b30a63fbb979",
+      "en": "f075f24bb3f84c9c5172a99c0c244837cc5f472d5732d2b5d663a3f374ad9a1c"
     }
   }
 }

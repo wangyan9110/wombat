@@ -10,9 +10,9 @@ The product retains GUI, CLI, and CLI+Web; new pages do not migrate the old term
 
 ## Decision
 
-Following the user's explicit sequence, commit and push the Web baseline as `74ca1bb`, then remove the TUI module, interactive launcher, dedicated messages, preview/PTY scripts, CI terminal journeys, and dedicated HTML-to-OpenTUI skill. Shared progress messages remain in the client locale module.
+Remove the TUI module, interactive launcher, dedicated messages, preview/PTY tools, CI terminal journeys, and dedicated skill, ending the separate terminal maintenance path. Shared progress messages remain in the client locale module.
 
-Bare `wombat` prints usage text just like `wombat usage`; `wombat web` explicitly starts interactive pages. Retain Rust, generated contracts, old-snapshot reading, CLI, and Web without creating a Tauri project. This decision supersedes transitional TUI retention in the [local Web decision](2026-10-01-local-web.en.md).
+The CLI defaults to text and Web provides local interaction; the [CLI guide](../../../guides/cli.en.md) owns commands. Shared Rust and generated contracts remain, while this removal does not deliver desktop. Reads follow the [current-format decision](2026-10-03-current-format-only.en.md), without an old-snapshot compatibility requirement.
 
 ## Alternatives considered
 
@@ -20,6 +20,6 @@ The previous plan retained the TUI until desktop implementation. The user explic
 
 ## Impact and verification
 
-Old terminal shortcuts, theme environment variables, and FFI startup are unavailable. The terminal guide retains a retirement notice and current entry points so historical links remain valid; user logs and product data directories are unchanged.
+Remove obsolete terminal shortcuts, theme environment variables, FFI startup, and the retired guide. Source history retains the former implementation without becoming current capability or operating guidance.
 
 Verification covers default text output with terminal flags, the CLI/Web shared core, cancellation, builds, types, module boundaries, dependency licenses, and installed packages. Actual results and platform limits are recorded in verification records retained in Git history.

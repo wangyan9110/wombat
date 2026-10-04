@@ -4,7 +4,7 @@
 
 Status: implemented
 
-更新（2026-10-01）：[TUI 移除](../architecture/2026-10-01-remove-tui.md)后，下述终端专属行为仅为历史。当前 Web 范围与导航以[前端契约](../../../../ui/README.md)为准，共享内核查询仍为数据口径依据。
+字段语义由[契约](../../../development/contracts.md)维护，当前 Web 导航见[前端说明](../../../../ui/README.md)。
 
 ## 问题
 
@@ -12,14 +12,14 @@ Status: implemented
 
 ## 决定
 
-内核在分页前计算 distribution 元数据、Token share 和 costShare，公开给 CLI/TUI 共用。金额占比使用完整范围已计价小计；未知金额不按零，零分母返回缺失。未计价 Token 按计量的未知价格分项计数，不重复计入推理 Token，缺少分类事实时返回缺失。
+内核在分页前计算 distribution 元数据、Token share 和 costShare，公开给 CLI/Web 共用。金额占比使用完整范围已计价小计；未知金额不按零，零分母返回缺失。未计价 Token 按计量的未知价格分项计数，不重复计入推理 Token，缺少分类事实时返回缺失。
 
-usage 显式 presentation 为 distribution 或 details 时按时段分页，details 包含所选时段全部模型/强度行；省略 presentation 保留逐行分页，兼容旧调用者与候选列表查询。对话按 threadUsage 排序，matchedUsage 只表达所选片段，轮次保留完整记录。TUI 负责指标、展示方式和导航状态，通过生成契约查询；不自行汇总隐藏页。
+usage 显式 presentation 为 distribution 或 details 时按时段分页，details 包含所选时段全部模型/强度行；省略 presentation 保留逐行分页，用于逐行及候选列表查询。matchedUsage 与 threadUsage 分别保留所选片段和完整任务量，具体排序由当前查询契约规定。展示入口负责指标、展示方式和导航状态，通过生成契约查询；不自行汇总隐藏页。
 
 ## 考虑过的方案
 
-曾考虑在 TUI 聚合当前页，无法得到隐藏页的最大值、并列峰值及分母，因此改为完整范围元数据。也考虑维持所有查询逐行分页，但显式明细会拆日期组；采用可选 presentation 区分分页单位，保留旧查询行为。
+曾考虑在界面聚合当前页，无法得到隐藏页的最大值、并列峰值及分母，因此改为完整范围元数据。也考虑维持所有查询逐行分页，但显式明细会拆日期组；采用可选 presentation 区分分页单位，支持不同查询目的。
 
 ## 影响与验证
 
-这是 v3 的可选字段扩展，Rust DTO 生成 TS/Schema 与校验器；无新增依赖。合成查询验证分页前后刻度和份额不变、明细不拆组、未计价分项及完整对话关联。中英文原生渲染与真实终端验收见 Git 历史中的验证记录，字段语义见[契约](../../../development/contracts.md)。
+Rust DTO 生成 TS/Schema 与校验器，无新增依赖。合成查询验证翻页刻度和份额不变、明细不拆组、未计价分项及完整对话关联。当前入口验收不能由退役终端的渲染测试代替。

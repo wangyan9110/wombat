@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-Choose documentation by task. Source code, technical references, and implementation evidence define current behavior. Specifications and proposals describe targets; historical results apply only to their recorded builds.
+Choose documentation by task. Source code, technical references, and implementation evidence define current behavior. Unfinished proposals describe targets; historical results apply only to their recorded builds.
 
 ## User guides · guides
 
@@ -23,18 +23,11 @@ Choose documentation by task. Source code, technical references, and implementat
 - [Multi-entry development workflow](development/workflow.en.md): delivering and verifying the same business capability.
 - [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and formats.
 - [Source adapter acceptance](development/adapters.en.md): independent truth, attribution, and failure cases.
-- [Four-entry Web and configuration analysis proposal](decisions/proposed/architecture/2026-10-01-config-analysis-web.en.md): shared Rust contracts, configuration evidence, versions and phased acceptance; partly delivered with remaining stages pending acceptance.
 - [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
 
-## Project status · project
-
-- [Version-one specification](project/specification.en.md) maintains requirements and acceptance criteria.
-- [Codex Skill product plan](project/codex-skill.en.md) defines task workflows, CLI capability mapping and local installation boundaries.
-- [Configuration measurement/manual review upgrade](project/config-upgrade.en.md) maintains additional requirements and boundaries.
-- [Startup and deterministic rule upgrade](project/startup-rules.en.md) maintains startup-state and static-rule specifications, phase A/B work, and conditional capabilities still awaiting implementation.
-- [Implementation status](project/status.en.md) tracks current delivery and remaining acceptance.
-
 ## Decisions and documentation maintenance
+
+[Proposed decisions](decisions/proposed/) own unfinished requirements, designs, and acceptance criteria. Module guides and technical references own delivered behavior; tests, CI, or necessary artifacts retain run evidence.
 
 The [decision directory](decisions/README.en.md) preserves lasting rationale, alternatives, and costs, distinguishing proposed, implemented, and rejected records. When consolidating existing pages, extract useful tradeoffs into decisions, retain current operations in guides, delete obsolete and repeated passages, and preserve dates and scope for verification results.
 

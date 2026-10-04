@@ -1,8 +1,8 @@
 # Decision Record Instructions
 
-Follow [root instructions](../../AGENTS.md) and [documentation instructions](../AGENTS.md). Format and lifecycle belong in the [decision guide](README.en.md).
+Follow [documentation instructions](../AGENTS.md). [Decision maintenance](README.en.md) owns lifecycle, format, supersession, and consolidation rules.
 
-- Record durable choices, tradeoffs, and verification responsibility only. Mechanical moves, local styling, and test fixes need no new record.
-- proposed describes unshipped choices and acceptance criteria; implemented describes actual decisions and costs in present tense. Match directory, status, and code.
-- Update the existing record for the same decision. A replacement decision gets a new, cross-linked record. Keep implemented paths, defaults, and mechanisms current with code.
-- Maintain bilingual pairs under the [pairing workflow](../i18n/README.en.md). Run corepack pnpm notes:check and corepack pnpm docs:i18n:check.
+- Search existing decisions before adding one; update the owner for the same choice. Review supersession whenever adding or reversing a decision.
+- Keep rationale here and current behavior in its module/reference owner. Never turn a decision into a feature catalog, test transcript, or second status ledger.
+- Preserve unique tradeoffs and verification gaps before consolidation; partial replacement does not justify deletion.
+- Run corepack pnpm notes:check and corepack pnpm docs:check. Mechanical checks do not establish the truth of rationale.

@@ -51,7 +51,7 @@ corepack pnpm build
 corepack pnpm github:pack -- --current-platform --reuse-build --runtime-license /path/to/node/LICENSE
 ```
 
-Use `--native-dir <artifacts>` for a full five-platform set. `--reuse-build` still checks source and output fingerprints and cannot reuse a stale build. See the [acceptance status](../project/status.en.md) for platform boundaries and the [release Skill](../../.agents/skills/wombat-release/SKILL.md) for operating steps.
+Use `--native-dir <artifacts>` for a full five-platform set. `--reuse-build` still checks source and output fingerprints and cannot reuse a stale build. Actual archive acceptance belongs to the corresponding Release/CI results; see the [release Skill](../../.agents/skills/wombat-release/SKILL.md) for operating steps.
 
 ## GitHub description
 
