@@ -1,4 +1,4 @@
-//! Read one canonical turn slice; skip operation payloads without allocating them.
+//! Read measurements and canonical operations in one bounded, verified turn slice.
 use super::timing_evidence::{Meter, TurnTarget};
 use super::*;
 use serde::{
@@ -7,6 +7,11 @@ use serde::{
 };
 use sha2::{Digest, Sha256};
 use std::{fmt, io};
+
+pub(super) struct CanonicalTurnFacts {
+    pub measurements: Vec<Arc<Measurement>>,
+    pub operations: Vec<Arc<Operation>>,
+}
 
 struct LiveRows<'a> {
     indices: &'a [usize],
@@ -97,32 +102,52 @@ impl<'de> DeserializeSeed<'de> for OneFact<'_, '_> {
         PricedMeasurement::deserialize(d)
     }
 }
-struct Operations<'a, 'b>(&'a mut Meter<'b>);
+fn exact_operation(operation: &Operation, target: TurnTarget<'_>) -> bool {
+    operation.thread_id.as_ref() == target.thread
+        && operation.turn_id.as_deref() == Some(target.turn)
+}
+struct Operations<'a, 'b> {
+    meter: &'a mut Meter<'b>,
+    target: TurnTarget<'a>,
+}
 impl<'de> DeserializeSeed<'de> for Operations<'_, '_> {
-    type Value = ();
-    fn deserialize<D: serde::Deserializer<'de>>(self, d: D) -> std::result::Result<(), D::Error> {
+    type Value = Vec<Arc<Operation>>;
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        d: D,
+    ) -> std::result::Result<Self::Value, D::Error> {
         d.deserialize_seq(self)
     }
 }
 impl<'de> Visitor<'de> for Operations<'_, '_> {
-    type Value = ();
+    type Value = Vec<Arc<Operation>>;
     fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("bounded operations")
+        f.write_str("bounded canonical operations")
     }
-    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> std::result::Result<(), A::Error> {
-        while seq.next_element_seed(SkipOperation(self.0))?.is_some() {}
-        Ok(())
+    fn visit_seq<A: SeqAccess<'de>>(
+        self,
+        mut seq: A,
+    ) -> std::result::Result<Self::Value, A::Error> {
+        let mut out = vec![];
+        while let Some(operation) = seq.next_element_seed(OneOperation(self.meter))? {
+            if !exact_operation(&operation, self.target) {
+                return Err(serde::de::Error::custom("operation attribution mismatch"));
+            }
+            out.push(Arc::new(operation));
+        }
+        Ok(out)
     }
 }
-struct SkipOperation<'a, 'b>(&'a mut Meter<'b>);
-impl<'de> DeserializeSeed<'de> for SkipOperation<'_, '_> {
-    type Value = serde::de::IgnoredAny;
+struct OneOperation<'a, 'b>(&'a mut Meter<'b>);
+impl<'de> DeserializeSeed<'de> for OneOperation<'_, '_> {
+    type Value = Operation;
     fn deserialize<D: serde::Deserializer<'de>>(
         self,
         d: D,
     ) -> std::result::Result<Self::Value, D::Error> {
         self.0.facts(1).map_err(serde::de::Error::custom)?;
-        serde::de::IgnoredAny::deserialize(d)
+        self.0.work(1).map_err(serde::de::Error::custom)?;
+        Operation::deserialize(d)
     }
 }
 struct TurnSlice<'a, 'b> {
@@ -130,7 +155,7 @@ struct TurnSlice<'a, 'b> {
     target: TurnTarget<'a>,
 }
 impl<'de> DeserializeSeed<'de> for TurnSlice<'_, '_> {
-    type Value = Vec<Arc<Measurement>>;
+    type Value = CanonicalTurnFacts;
     fn deserialize<D: serde::Deserializer<'de>>(
         self,
         d: D,
@@ -139,7 +164,7 @@ impl<'de> DeserializeSeed<'de> for TurnSlice<'_, '_> {
     }
 }
 impl<'de> Visitor<'de> for TurnSlice<'_, '_> {
-    type Value = Vec<Arc<Measurement>>;
+    type Value = CanonicalTurnFacts;
     fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("canonical turn data")
     }
@@ -148,7 +173,7 @@ impl<'de> Visitor<'de> for TurnSlice<'_, '_> {
         mut map: A,
     ) -> std::result::Result<Self::Value, A::Error> {
         let mut measurements = None;
-        let mut operations = false;
+        let mut operations = None;
         while let Some(key) = map.next_key::<String>()? {
             self.meter.check().map_err(serde::de::Error::custom)?;
             match key.as_str() {
@@ -158,9 +183,11 @@ impl<'de> Visitor<'de> for TurnSlice<'_, '_> {
                         target: self.target,
                     })?)
                 }
-                "operations" if !operations => {
-                    map.next_value_seed(Operations(self.meter))?;
-                    operations = true;
+                "operations" if operations.is_none() => {
+                    operations = Some(map.next_value_seed(Operations {
+                        meter: self.meter,
+                        target: self.target,
+                    })?);
                 }
                 _ => {
                     return Err(serde::de::Error::custom(
@@ -169,10 +196,11 @@ impl<'de> Visitor<'de> for TurnSlice<'_, '_> {
                 }
             }
         }
-        if !operations {
-            return Err(serde::de::Error::missing_field("operations"));
-        }
-        measurements.ok_or_else(|| serde::de::Error::missing_field("measurements"))
+        Ok(CanonicalTurnFacts {
+            measurements: measurements
+                .ok_or_else(|| serde::de::Error::missing_field("measurements"))?,
+            operations: operations.ok_or_else(|| serde::de::Error::missing_field("operations"))?,
+        })
     }
 }
 impl Snapshot {
@@ -182,7 +210,7 @@ impl Snapshot {
         entry: &TurnEntry,
         target: TurnTarget<'_>,
         meter: &mut Meter<'_>,
-    ) -> Result<Vec<Arc<Measurement>>> {
+    ) -> Result<CanonicalTurnFacts> {
         meter.check()?;
         if let Some(turns) = &self.memory_turns {
             let data = turns
@@ -218,7 +246,18 @@ impl Snapshot {
                 }
                 out.push(row.fact.clone());
             }
-            return Ok(out);
+            let mut operations = Vec::with_capacity(data.operations.len());
+            for operation in &data.operations {
+                meter.work(1)?;
+                if !exact_operation(operation, target) {
+                    return Err(corrupt("轮次操作归属不匹配"));
+                }
+                operations.push(operation.clone());
+            }
+            return Ok(CanonicalTurnFacts {
+                measurements: out,
+                operations,
+            });
         }
         meter.bytes(entry.slice.length)?;
         let mut file = fs::File::open(safe_file(&self.directory, &owner.file.file)?)

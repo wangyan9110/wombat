@@ -389,7 +389,7 @@ fn measurement_visitor_stops_before_parsing_an_over_budget_next_record() {
     );
 }
 #[test]
-fn ignored_operation_arrays_still_charge_facts_and_complete_encoded_bytes() {
+fn canonical_operation_arrays_share_facts_bytes_and_metadata_budget() {
     let root = tempfile::tempdir().unwrap();
     let mut data = facts(vec![]);
     let op:Operation=serde_json::from_value(serde_json::json!({"id":"op","threadId":"thread","turnId":"turn","callId":"native","kind":"tool","name":"read_file","sequence":1,"timePrecision":"unknown","status":"running","evidence":[]})).unwrap();
@@ -405,6 +405,8 @@ fn ignored_operation_arrays_still_charge_facts_and_complete_encoded_bytes() {
     assert_eq!(a.coverage, b.coverage);
     assert_eq!(a.coverage.facts, 2);
     assert_eq!(a.measurements.len(), 1);
+    assert_eq!(a.operations, b.operations);
+    assert_eq!(a.operations.len(), 1);
     for snapshot in [&memory, &disk] {
         assert_eq!(
             code(
@@ -618,5 +620,216 @@ fn retained_generation_mismatch_and_failed_file_observation_are_public_coverage(
         ));
         assert!(out.source.unwrap().capabilities.usage);
         assert_eq!(out.events.len(), 1); // Failure/replacement never deletes retained observations.
+    }
+}
+
+fn operation(id: &str) -> Arc<Operation> {
+    Arc::new(
+        serde_json::from_value(serde_json::json!({
+            "id":id,"threadId":"thread","turnId":"turn","callId":"native-call",
+            "kind":"skillRead","name":"read_file","path":"/synthetic/skills/query/SKILL.md",
+            "sequence":1,"timePrecision":"unknown","status":"failed","evidence":[]
+        }))
+        .unwrap(),
+    )
+}
+#[test]
+fn operations_only_keep_canonical_rows_replays_missing_identity_and_time() {
+    let root = tempfile::tempdir().unwrap();
+    let replay = operation("canonical-operation");
+    let mut unknown = replay.as_ref().clone();
+    unknown.id = "anonymous-record".into();
+    unknown.call_id = None;
+    let mut data = facts(vec![]);
+    data.measurements.clear();
+    data.operations = vec![replay.clone(), replay.clone(), Arc::new(unknown)];
+    let expected = data.operations.clone();
+    let (memory, disk) = pair(root.path(), data);
+    for snapshot in [&memory, &disk] {
+        let out = snapshot
+            .timing_evidence(
+                target(),
+                TimingReadBudget::default(),
+                &AtomicBool::new(false),
+            )
+            .unwrap();
+        assert!(out.measurements.is_empty());
+        assert!(out.events.is_empty());
+        assert!(out.domains.is_empty());
+        assert_eq!(out.operations, expected);
+        assert_eq!(out.coverage.facts, 3);
+        assert!(out.operations[2].call_id.is_none());
+        assert!(out.operations[2].timestamp.is_none());
+    }
+}
+#[test]
+fn operation_thread_and_turn_are_validated_in_both_read_modes() {
+    for mismatch in ["thread", "turn", "missing_turn"] {
+        let root = tempfile::tempdir().unwrap();
+        let mut data = facts(vec![]);
+        data.operations = vec![operation("operation")];
+        let (mut memory, mut disk) = pair(root.path(), data);
+        let mut invalid = operation("operation").as_ref().clone();
+        match mismatch {
+            "thread" => invalid.thread_id = "foreign-thread".into(),
+            "turn" => invalid.turn_id = Some("foreign-turn".into()),
+            _ => invalid.turn_id = None,
+        }
+        memory
+            .memory_turns
+            .as_mut()
+            .unwrap()
+            .get_mut(&("thread".into(), "turn".into()))
+            .unwrap()
+            .operations = vec![Arc::new(invalid.clone())];
+        let mut slice = disk.turn("thread", "turn").unwrap();
+        slice.operations = vec![invalid];
+        replace_slice(&mut disk, &serde_json::to_vec(&slice).unwrap());
+        for snapshot in [&memory, &disk] {
+            assert_eq!(
+                code(
+                    snapshot
+                        .timing_evidence(
+                            target(),
+                            TimingReadBudget::default(),
+                            &AtomicBool::new(false)
+                        )
+                        .unwrap_err()
+                ),
+                "SNAPSHOT_CORRUPT",
+                "{mismatch}"
+            );
+        }
+    }
+}
+#[test]
+fn operations_and_events_share_the_complete_target_budget() {
+    let root = tempfile::tempdir().unwrap();
+    let mut data = facts(vec![event(1, Some("thread"), Some("turn"), false)]);
+    data.operations = vec![operation("operation")];
+    let (memory, disk) = pair(root.path(), data);
+    let cancel = AtomicBool::new(false);
+    let a = memory
+        .timing_evidence(target(), TimingReadBudget::default(), &cancel)
+        .unwrap();
+    let b = disk
+        .timing_evidence(target(), TimingReadBudget::default(), &cancel)
+        .unwrap();
+    assert_eq!(a.coverage, b.coverage);
+    assert_eq!(a.coverage.facts, 3);
+    for snapshot in [&memory, &disk] {
+        for budget in [
+            TimingReadBudget {
+                max_facts: 2,
+                ..Default::default()
+            },
+            TimingReadBudget {
+                max_bytes: a.coverage.bytes - 1,
+                ..Default::default()
+            },
+            TimingReadBudget {
+                max_metadata: a.coverage.metadata - 1,
+                ..Default::default()
+            },
+        ] {
+            assert_eq!(
+                code(
+                    snapshot
+                        .timing_evidence(target(), budget, &cancel)
+                        .unwrap_err()
+                ),
+                "RESOURCE_LIMIT"
+            );
+        }
+    }
+}
+#[test]
+fn operation_seed_stops_before_parsing_an_over_budget_or_metadata_record() {
+    let root = tempfile::tempdir().unwrap();
+    let (_, mut disk) = pair(root.path(), facts(vec![]));
+    let op = serde_json::to_string(&operation("operation")).unwrap();
+    replace_slice(
+        &mut disk,
+        format!("{{\"measurements\":[],\"operations\":[{op},null]}}").as_bytes(),
+    );
+    let cancel = AtomicBool::new(false);
+    let mut meter = Meter::new(TimingReadBudget::default(), &cancel);
+    meter.work(1).unwrap(); // The first thread entry locates the owner.
+    meter
+        .work(
+            disk.manifest.threads[0]
+                .turns
+                .len()
+                .checked_ilog2()
+                .unwrap_or(0) as usize
+                + 1,
+        )
+        .unwrap();
+    meter
+        .partition(&disk, &EventTarget::turn("thread", "turn"))
+        .unwrap();
+    let metadata_before_operations = meter.coverage.metadata;
+    for budget in [
+        TimingReadBudget {
+            max_facts: 1,
+            ..Default::default()
+        },
+        TimingReadBudget {
+            max_metadata: metadata_before_operations + 1,
+            ..Default::default()
+        },
+    ] {
+        assert_eq!(
+            code(disk.timing_evidence(target(), budget, &cancel).unwrap_err()),
+            "RESOURCE_LIMIT"
+        );
+    }
+    assert_eq!(
+        code(
+            disk.timing_evidence(target(), TimingReadBudget::default(), &cancel)
+                .unwrap_err()
+        ),
+        "SNAPSHOT_CORRUPT"
+    );
+}
+#[test]
+fn canonical_turn_reads_ignore_unrelated_turn_and_ledger_damage() {
+    let root = tempfile::tempdir().unwrap();
+    let mut data = facts(vec![]);
+    let expected = operation("target-operation");
+    let mut other = operation("other-operation").as_ref().clone();
+    other.turn_id = Some("other-turn".into());
+    data.operations = vec![expected.clone(), Arc::new(other)];
+    let (mut memory, disk) = pair(root.path(), data);
+    let other_slice = &disk.manifest.threads[0].turns["other-turn"].slice;
+    let path = disk.directory.join(&disk.manifest.threads[0].file.file);
+    let mut bytes = fs::read(&path).unwrap();
+    bytes[other_slice.offset as usize] ^= 1;
+    fs::write(path, bytes).unwrap();
+    fs::write(
+        disk.directory.join(&disk.manifest.ledger.file),
+        b"invalid ledger",
+    )
+    .unwrap();
+    memory
+        .memory_turns
+        .as_mut()
+        .unwrap()
+        .get_mut(&("thread".into(), "other-turn".into()))
+        .unwrap()
+        .operations = vec![Arc::new(Operation {
+        thread_id: "foreign".into(),
+        ..expected.as_ref().clone()
+    })];
+    for snapshot in [&memory, &disk] {
+        let out = snapshot
+            .timing_evidence(
+                target(),
+                TimingReadBudget::default(),
+                &AtomicBool::new(false),
+            )
+            .unwrap();
+        assert_eq!(out.operations, vec![expected.clone()]);
+        assert_eq!(out.measurements.len(), 1);
     }
 }

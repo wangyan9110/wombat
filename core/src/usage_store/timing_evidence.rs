@@ -3,7 +3,7 @@
 //! and metadata inspections. It never traverses the ledger or unrelated event blocks.
 //! Production timing queries use this reader. All three budgets apply simultaneously:
 //! reaching fewer than 100,000 facts can exhaust metadata.
-//! Bytes include full touched encodings, facts include skipped operations and every
+//! Bytes include full touched encodings, facts include canonical operations and every
 //! event in touched blocks; these limits do not claim a process-wide RAM bound.
 use super::*;
 use crate::session_events::{Event, Position};
@@ -61,6 +61,8 @@ pub struct TimingEvidence<'a> {
     /// Existing generic parser capabilities; this does not invent timing support.
     pub source: Option<&'a SourceReport>,
     pub measurements: Vec<Arc<Measurement>>,
+    /// Canonical adapter operations; storage never re-pairs events or deduplicates them.
+    pub operations: Vec<Arc<Operation>>,
     pub events: Vec<Arc<Event>>,
     pub controls: Vec<Arc<Event>>,
     pub domains: Vec<DomainCoverage<'a>>,
@@ -221,7 +223,7 @@ impl Snapshot {
         if exact.is_some_and(|partition| partition.count > meter.limits.max_facts) {
             return Err(meter.limit());
         }
-        let measurements = self.timing_measurements(owner, turn, target, &mut meter)?;
+        let canonical = self.timing_measurements(owner, turn, target, &mut meter)?;
         let mut events = vec![];
         if let Some(partition) = exact {
             for index in 0..partition.chunks.len() {
@@ -336,7 +338,8 @@ impl Snapshot {
             thread: &owner.thread,
             turn: turn.turn.as_ref(),
             source,
-            measurements,
+            measurements: canonical.measurements,
+            operations: canonical.operations,
             events,
             controls,
             domains,
