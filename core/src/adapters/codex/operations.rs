@@ -43,6 +43,7 @@ pub(super) fn empty_operation(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn operation(
     p: &Payload<'_>,
+    item: &Payload<'_>,
     event: &str,
     thread: &str,
     turn: Option<String>,
@@ -53,26 +54,6 @@ pub(super) fn operation(
     facts: &mut Facts,
     report: &mut SourceReport,
 ) {
-    let parsed;
-    let item = if let Some(raw) = p.item {
-        match serde_json::from_str::<Payload>(raw.get()) {
-            Ok(value) => {
-                parsed = value;
-                &parsed
-            }
-            Err(_) => {
-                issue(
-                    report,
-                    "invalidOperation",
-                    "操作记录格式无效",
-                    Some(evidence),
-                );
-                return;
-            }
-        }
-    } else {
-        p
-    };
     let kind = item.kind.as_deref().unwrap_or("");
     let (operation_kind, name, completed) = match kind {
         "function_call" | "custom_tool_call" => {
@@ -145,7 +126,10 @@ pub(super) fn operation(
     }
     .into();
     op.exit_code = item.exit_code;
-    op.duration_ms = item.duration_ms.and_then(timing::safe_integer);
+    op.duration_ms = item
+        .duration_ms
+        .and_then(timing::safe_integer)
+        .or_else(|| item.duration.and_then(mcp::duration));
     if op.exit_code.is_some_and(|code| code != 0) {
         op.status = "failed".into();
     }

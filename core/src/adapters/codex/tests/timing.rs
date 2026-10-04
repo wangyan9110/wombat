@@ -22,7 +22,7 @@ fn lifecycle_retains_native_zero_precision_context_changes_and_safe_metadata() {
         &[meta("t"), start, window, end],
     );
     let facts = collect(root.path());
-    assert_eq!(facts.events.len(), 4);
+    assert_eq!(facts.events.len(), 5);
     assert_eq!(facts.measurements.len(), 1);
     let values = facts
         .events

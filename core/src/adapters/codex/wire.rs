@@ -74,6 +74,10 @@ pub(super) struct Payload<'a> {
     #[serde(borrow, alias = "durationMs")]
     pub duration_ms: Option<&'a RawValue>,
     #[serde(borrow)]
+    pub started_at_ms: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub completed_at_ms: Option<&'a RawValue>,
+    #[serde(borrow)]
     pub time_to_first_token_ms: Option<&'a RawValue>,
     #[serde(borrow)]
     pub model_context_window: Option<&'a RawValue>,

@@ -210,8 +210,13 @@ pub(super) fn read_file_from(
             byte_offset: consumed - row.bytes().len() as u64,
             ordinal: 0,
         };
-        process(
+        facts.event_context = Some(timing::Context::new(
             position,
+            record.timestamp,
+            record.kind,
+            payload.kind.as_deref(),
+        ));
+        process(
             record.kind,
             payload,
             time,
@@ -223,6 +228,7 @@ pub(super) fn read_file_from(
             source,
             report,
         );
+        facts.event_context = None;
     }
     if valid_records > 0 || length == 0 {
         report.files_read += 1;

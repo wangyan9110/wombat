@@ -2,7 +2,6 @@
 use super::*;
 #[allow(clippy::too_many_arguments)]
 pub(super) fn process(
-    position: crate::session_events::Position,
     kind: &str,
     p: Payload<'_>,
     time: Option<String>,
@@ -55,8 +54,25 @@ pub(super) fn process(
         .as_ref()
         .zip(p.turn_id.as_deref().filter(|id| !id.is_empty()))
         .map(|(thread, turn)| facts.turn(thread, turn, time.as_deref(), None));
+    let decoded_item = match p.item {
+        Some(raw) => match serde_json::from_str::<Payload>(raw.get()) {
+            Ok(item) => Some(item),
+            Err(_) => {
+                issue(
+                    report,
+                    "invalidOperation",
+                    "操作记录格式无效",
+                    Some(evidence),
+                );
+                return;
+            }
+        },
+        _ => None,
+    };
+    let item = decoded_item.as_ref().unwrap_or(&p);
     timing::observe(
         &p,
+        item,
         event,
         owner.as_deref(),
         explicit_turn.as_deref().or_else(|| {
@@ -64,8 +80,6 @@ pub(super) fn process(
                 .then_some(state.turn.as_deref())
                 .flatten()
         }),
-        raw_time,
-        position,
         facts,
         report,
         &evidence,
@@ -354,6 +368,7 @@ pub(super) fn process(
     {
         operation(
             &p,
+            item,
             event,
             &thread,
             turn,

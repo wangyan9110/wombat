@@ -1,6 +1,6 @@
 //! Safe, versioned source facts. Source bodies cannot be represented in this model.
 //! Storage and projections share these identities; public query DTOs remain separate.
-use crate::adapters::contract::{Measurement, Operation, Thread, Turn};
+use crate::adapters::contract::{MAX_SAFE_INTEGER, Measurement, Operation, Thread, Turn};
 use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -136,6 +136,26 @@ pub enum ActivityKind {
     Tool,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ItemKind {
+    Assistant,
+    Reasoning,
+    User,
+    Command,
+    File,
+    Mcp,
+    Tool,
+    Compaction,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativeDuration {
+    pub secs: u64,
+    pub nanos: u32,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Payload {
@@ -151,6 +171,7 @@ pub enum Payload {
         direct: bool,
         cumulative: Option<u64>,
         interval_start: Option<u64>,
+        fingerprint: String,
     },
     Operation {
         value: Arc<Operation>,
@@ -165,6 +186,14 @@ pub enum Payload {
     },
     Activity {
         activity: ActivityKind,
+    },
+    Item {
+        item_kind: ItemKind,
+        native_id: Option<String>,
+        phase: Phase,
+        started_at_ms: Option<i64>,
+        completed_at_ms: Option<i64>,
+        duration: Option<NativeDuration>,
     },
     ContextWindow {
         model: Option<String>,
@@ -279,6 +308,30 @@ impl TryFrom<StoredEvent> for Event {
                 native_id.as_ref().is_none_or(|id| !id.is_empty()),
                 "empty lifecycle identity"
             ),
+            Payload::Item {
+                native_id,
+                duration,
+                started_at_ms,
+                completed_at_ms,
+                ..
+            } => {
+                ensure!(
+                    native_id.as_ref().is_none_or(|id| !id.is_empty()),
+                    "empty item identity"
+                );
+                ensure!(
+                    duration.as_ref().is_none_or(
+                        |d| d.nanos < 1_000_000_000 && d.secs <= MAX_SAFE_INTEGER / 1000
+                    ),
+                    "invalid native duration"
+                );
+                ensure!(
+                    [started_at_ms, completed_at_ms]
+                        .into_iter()
+                        .all(|v| v.is_none_or(|n| n.unsigned_abs() <= MAX_SAFE_INTEGER)),
+                    "unsafe native timestamp"
+                );
+            }
             Payload::Activity { .. } => {}
         }
         value.time.validate()?;

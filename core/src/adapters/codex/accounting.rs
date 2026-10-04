@@ -4,6 +4,7 @@ impl Facts {
     pub(super) fn measurement(&mut self, mut candidate: Candidate, report: &mut SourceReport) {
         self.strings
             .measurement(Arc::make_mut(&mut candidate.measurement));
+        timing::measurement(self, &candidate, report);
         self.dirty_measurements
             .insert(candidate.measurement.id.clone());
         if let Some(existing) = self.measurements.get_mut(&candidate.measurement.id) {

@@ -186,3 +186,22 @@ fn native_zero_duration_is_preserved_without_inventing_a_timestamp() {
         }
     ));
 }
+
+#[test]
+fn restored_item_retains_submillisecond_duration_and_rejects_unsafe_native_numbers() {
+    let mut json = serde_json::to_value(event()).unwrap();
+    json["payload"] = serde_json::json!({"kind":"item","item_kind":"command","native_id":"c","phase":"completed","started_at_ms":0,"completed_at_ms":1,"duration":{"secs":0,"nanos":1}});
+    let restored: Event = serde_json::from_value(json.clone()).unwrap();
+    assert!(
+        matches!(restored.payload(), Payload::Item { duration: Some(d), .. } if d.secs == 0 && d.nanos == 1)
+    );
+    for (pointer, value) in [
+        ("/payload/duration/nanos", 1_000_000_000u64),
+        ("/payload/duration/secs", u64::MAX),
+        ("/payload/completed_at_ms", MAX_SAFE_INTEGER + 1),
+    ] {
+        let mut malformed = json.clone();
+        *malformed.pointer_mut(pointer).unwrap() = serde_json::json!(value);
+        assert!(serde_json::from_value::<Event>(malformed).is_err());
+    }
+}

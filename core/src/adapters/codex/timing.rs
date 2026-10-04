@@ -6,6 +6,10 @@ use crate::session_events::{
     Event, Gap, LifecycleKind, Payload as SafePayload, Phase, Position, Time,
 };
 
+mod recording;
+use recording::record;
+pub(super) use recording::{Context, measurement, operation};
+
 pub(super) fn safe_integer(raw: &RawValue) -> Option<u64> {
     serde_json::from_str::<u64>(raw.get())
         .ok()
@@ -15,18 +19,16 @@ pub(super) fn safe_integer(raw: &RawValue) -> Option<u64> {
 #[allow(clippy::too_many_arguments)]
 pub(super) fn observe(
     payload: &Payload<'_>,
+    item: &Payload<'_>,
     kind: &str,
     thread: Option<&str>,
     turn: Option<&str>,
-    raw_time: Option<&str>,
-    position: Position,
     facts: &mut Facts,
     report: &mut SourceReport,
     evidence: &EvidenceRef,
 ) {
-    let (time, gap) = Time::from_source(raw_time);
     let mut observations = Vec::new();
-    let mut gaps: Vec<_> = gap.into_iter().collect();
+    let mut gaps = Vec::new();
     let phase = match kind {
         "task_started" => Some(Phase::Started),
         "task_complete" => Some(Phase::Completed),
@@ -88,30 +90,18 @@ pub(super) fn observe(
             tokens,
         });
     }
-    for (ordinal, payload) in observations.into_iter().enumerate() {
-        let position = Position {
-            ordinal: ordinal as u32,
-            ..position.clone()
-        };
-        match Event::new(
-            position,
+    for payload in observations {
+        record(
+            facts,
             thread.map(str::to_owned),
             turn.map(str::to_owned),
-            time.clone(),
-            gaps.clone(),
             payload,
-        ) {
-            Ok(event) => {
-                let id = event.id().to_owned();
-                facts.dirty_events.insert(id.clone());
-                facts.events.insert(id, Arc::new(event));
-            }
-            Err(_) => issue(
-                report,
-                "invalidEventIdentity",
-                "事件关联身份不完整",
-                Some(evidence.clone()),
-            ),
-        }
+            gaps.clone(),
+            report,
+            evidence,
+        );
     }
+    items::observe(payload, item, kind, thread, turn, facts, report, evidence);
 }
+
+mod items;

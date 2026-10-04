@@ -9,6 +9,8 @@ pub(super) struct Facts {
     pub(super) turns: BTreeMap<String, Turn>,
     pub(super) measurements: BTreeMap<String, Candidate>,
     pub(super) operations: BTreeMap<String, Arc<Operation>>,
+    #[serde(skip)]
+    pub(super) event_context: Option<timing::Context>,
     pub(super) events: BTreeMap<String, Arc<crate::session_events::Event>>,
     #[serde(skip)]
     pub(super) dirty_events: BTreeSet<String>,
@@ -138,6 +140,7 @@ impl Facts {
     }
     pub(super) fn operation(&mut self, mut operation: Operation, report: &mut SourceReport) {
         self.strings.operation(&mut operation);
+        timing::operation(self, &operation, report);
         self.observe_operation(&operation);
         let aliases: Vec<_> = [operation.call_id.as_deref(), operation.item_id.as_deref()]
             .into_iter()
