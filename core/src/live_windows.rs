@@ -142,7 +142,7 @@ impl Drop for Stream {
             // client stalls; interprocess's unbounded background flush is not used.
             self.read_deadline.set(self.write_deadline.get());
             let _ = bounded(self.write_deadline.get(), || {
-                match (&*self).read(&mut [0]) {
+                match (&*self).read(&mut [0; 1]) {
                     Ok(0) => Ok(()),
                     Ok(_) => Err(io::ErrorKind::WouldBlock.into()),
                     Err(error) => Err(error),
@@ -182,7 +182,7 @@ mod tests {
                 .set_read_timeout(Some(Duration::from_millis(30)))
                 .unwrap();
             assert_eq!(
-                (&stream).read(&mut [0]).unwrap_err().kind(),
+                (&stream).read(&mut [0; 1]).unwrap_err().kind(),
                 io::ErrorKind::TimedOut
             );
             idle_tx.send(()).unwrap();
@@ -218,5 +218,25 @@ mod tests {
         drop(stream);
         assert!(start.elapsed() < Duration::from_secs(1));
         drop(client);
+    }
+
+    #[test]
+    fn response_survives_until_the_client_reads_it() {
+        let name = format!(r"\\.\pipe\wombat-test-{}", uuid::Uuid::new_v4());
+        let listener = Listener::bind(Path::new(&name)).unwrap();
+        let mut client = DuplexPipeStream::<Bytes>::connect_by_path(name.as_str()).unwrap();
+        let worker = std::thread::spawn(move || {
+            let (mut stream, ()) = listener.accept().unwrap();
+            stream
+                .set_write_timeout(Some(Duration::from_secs(2)))
+                .unwrap();
+            stream.write_all(b"response\n").unwrap();
+        });
+        std::thread::sleep(Duration::from_millis(50));
+        let mut response = [0; 9];
+        client.read_exact(&mut response).unwrap();
+        assert_eq!(&response, b"response\n");
+        drop(client);
+        worker.join().unwrap();
     }
 }

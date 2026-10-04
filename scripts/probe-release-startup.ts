@@ -25,8 +25,16 @@ async function stop(child: ChildProcess): Promise<void> {
     child.once('exit', finished);
   });
   if (stopped()) return;
-  const exited = waitForExit(2_000);
-  child.kill('SIGKILL');
+  const exited = waitForExit(5_000);
+  if (process.platform === 'win32' && child.pid) {
+    const killed = spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      encoding: 'utf8',
+      windowsHide: true,
+    });
+    if (killed.error) throw killed.error;
+  } else {
+    child.kill('SIGKILL');
+  }
   await exited;
   assert.equal(stopped(), true, 'shared service did not stop after the probe');
 }
