@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realpathSync } from 'node:fs';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -18,11 +20,14 @@ test('cancelled handoff distinguishes before-queue failure from after-queue unce
   const source = path.join(dir, 'source'), project = path.join(dir, 'project');
   const previous = { WOMBAT_DATA_HOME: process.env.WOMBAT_DATA_HOME, CODEX_HOME: process.env.CODEX_HOME, WOMBAT_AUTO_PRICES: process.env.WOMBAT_AUTO_PRICES };
   Object.assign(process.env, { WOMBAT_DATA_HOME: path.join(dir, 'data'), CODEX_HOME: source, WOMBAT_AUTO_PRICES: '0' });
+  let service: ChildProcess | undefined;
   try {
     await mkdir(path.join(source, 'sessions'), { recursive: true }); await mkdir(project);
     await writeFile(path.join(project, 'AGENTS.md'), 'x'.repeat(16_385));
+    const binary = path.resolve('dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
+    service = spawn(binary, ['--serve-usage'], { stdio: 'ignore', env: process.env }); await once(service, 'spawn');
     const native = await nativeCodexFixture(dir);
-    const client = createNodeClient({ binaryPath: path.resolve('dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core'), codexBinaryPath: native.binary, automaticPrices: false });
+    const client = createNodeClient({ binaryPath: binary, codexBinaryPath: native.binary, automaticPrices: false });
     const base = { roots: [source], projectRoots: [project], project };
     const before = await client.optimize!({ ...base, action: 'list' });
     const calls = async () => (await readFile(native.calls, 'utf8')).trim().split('\n').filter(Boolean).map(row => JSON.parse(row).method);
@@ -65,6 +70,7 @@ test('cancelled handoff distinguishes before-queue failure from after-queue unce
     });
     assert.ok(!(await readFile(native.lifecycle, 'utf8')).includes('delayedResponse'));
   } finally {
+    if (service && service.exitCode === null && service.signalCode === null) { const closed = once(service, 'close'); service.kill('SIGTERM'); await closed; }
     for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
     await rm(dir, { recursive: true, force: true });
   }

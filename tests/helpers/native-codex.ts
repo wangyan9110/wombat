@@ -44,7 +44,11 @@ if(process.argv.includes('proxy')){
     const deadline = Date.now() + 3000;
     for (;;) {
       const events = (await readFile(lifecycle, 'utf8')).trim().split('\n').filter(Boolean).map(row => JSON.parse(row));
-      if (events.filter(e => e.event === 'spawn').every(e => events.some(end => end.pid === e.pid && end.event === 'exit'))) return;
+      const running = events.filter(e => e.event === 'spawn').some(e => {
+        try { process.kill(e.pid, 0); return true; }
+        catch { return false; }
+      });
+      if (!running) return;
       if (Date.now() >= deadline) throw new Error('Synthetic native processes did not exit after product cleanup');
       await new Promise(resolve => setTimeout(resolve, 20));
     }
