@@ -4,6 +4,7 @@ import {t} from '@wombat/client/locale';
 import {Execution} from './Execution.js';
 import {QueryError} from '../Feedback.js';
 import {timestamp} from '../components.js';
+import {TurnUses} from './Uses.js';
 
 const phaseLabel=(phase?:string|null)=>t(phase==='started'?'execution.started':phase==='completed'?'execution.completed':phase==='failed'?'execution.failed':phase==='cancelled'?'execution.cancelled':phase==='running'?'execution.running':'execution.unknown');
 type Evidence=Extract<TimingResult,{action:'evidence';collection:'turn_events'}>;
@@ -32,6 +33,7 @@ export class TimingDetailSelection {
  private revision=0;
  constructor(private reader:TimingDetailReader){}
  invalidate=()=>{this.revision++;this.reader.stop();};
+ expire=()=>{this.reader.expired=true;this.invalidate();};
  select(alias:string|undefined,entries:TimingLocalResult['evidence']['intervalPages']['entries']):LocatedPages|undefined {
   this.invalidate();
   return alias?(entries.find(entry=>entry.intervalAlias===alias)?.pages??[]):undefined;
@@ -54,16 +56,18 @@ export function TurnExecution({client,summary,loading=false,unavailable=false,er
  const selection=useRef<TimingDetailSelection|null>(null),epoch=useRef(0),opener=useRef<HTMLElement|null>(null),dialog=useRef<HTMLDialogElement|null>(null);
  const lastRead=useRef<{kind:'evidence'|'share';cursor?:{token:string};limit:number}|undefined>(undefined);
  const [navigation,setNavigation]=useState<{cursor?:{token:string}|null;limit:number;evidenceRefs:string[]}[]>();
- useEffect(()=>{const current=new TimingDetailReader(client,snapshotId,threadId,turnId);const coordinator=new TimingDetailSelection(current);selection.current=coordinator;epoch.current++;setEvidence(undefined);setRefs(undefined);setShare(undefined);setError(undefined);setDetailExpired(false);setBusy(false);setNavigation(undefined);setCopy('');lastRead.current=undefined;return()=>{epoch.current++;coordinator.invalidate();};},[client,snapshotId,threadId,turnId]);
+ useEffect(()=>{const current=new TimingDetailReader(client,snapshotId,threadId,turnId);const coordinator=new TimingDetailSelection(current);selection.current=coordinator;epoch.current++;setEvidence(undefined);setRefs(undefined);setShare(undefined);setError(undefined);setDetailExpired(false);setBusy(false);setNavigation(undefined);setCopy('');lastRead.current=undefined;if(expired)coordinator.expire();return()=>{epoch.current++;coordinator.invalidate();};},[client,summary,snapshotId,threadId,turnId]);
  useEffect(()=>{if(share&&!dialog.current?.open)dialog.current?.showModal();},[share]);
  const blocked=expired||detailExpired;
+ const expire=()=>{epoch.current++;selection.current?.expire();setBusy(false);setDetailExpired(true);};
+ useEffect(()=>{if(blocked){epoch.current++;selection.current?.expire();setBusy(false);}},[blocked]);
  const read=async(kind:'evidence'|'share',cursor?:{token:string},limit=200)=>{
   if(blocked||!selection.current)return;
   lastRead.current={kind,cursor,limit};const identity=epoch.current;setBusy(true);setError(undefined);
   const outcome=await selection.current.read(kind,cursor,limit);
   if(epoch.current!==identity||outcome.superseded)return;
   if(outcome.result){if(kind==='share'&&outcome.result.action==='summary'&&outcome.result.profile==='share-v1'){setShare(outcome.result);setCopy('');}else if(outcome.result.action==='evidence'&&outcome.result.collection==='turn_events')setEvidence(outcome.result);}
-  if(outcome.error){const code=outcome.error instanceof CoreError?outcome.error.code:'INTERNAL_ERROR';if(code!=='CANCELLED'){setError(code);setDetailExpired(code==='VIEW_EXPIRED');}}
+  if(outcome.error){const code=outcome.error instanceof CoreError?outcome.error.code:'INTERNAL_ERROR';if(code!=='CANCELLED'){setError(code);if(code==='VIEW_EXPIRED')expire();}}
   setBusy(false);
  };
  const inspect=(references:string[],intervalAlias?:string)=>{
@@ -75,6 +79,7 @@ export function TurnExecution({client,summary,loading=false,unavailable=false,er
  const close=()=>{selection.current?.invalidate();setBusy(false);setRefs(undefined);setEvidence(undefined);opener.current?.focus();};
  if(!summary)return <section className="execution" aria-label={t('execution.title')}><h3>{t('execution.title')}</h3><p role="status">{t(loading?'webui.loading':errorCode?'execution.readUnavailable':unavailable?'execution.unsupported':'execution.missing')}</p>{errorCode&&<QueryError error={errorCode==='CANCELLED'?'CANCELLED':t('execution.readUnavailable')} code={errorCode} retry={refresh} hasResult={false}/>}</section>;
  return <>{errorCode&&<QueryError error={errorCode==='CANCELLED'?'CANCELLED':t('execution.readUnavailable')} code={errorCode} retry={refresh} previousResultAt={summary.freshness.checkedAt??undefined}/>}<Execution summary={summary} refresh={refresh} onEvidence={inspect} onShare={()=>{opener.current=document.activeElement as HTMLElement;void read('share');}} updating={loading} blocked={blocked}/>
+ <TurnUses key={JSON.stringify([summary.readView.snapshotId,summary.scope.sourceInstanceId,summary.scope.threadId,summary.scope.turnId,summary.methodVersion])} client={client} summary={summary} blocked={blocked} refresh={refresh} onExpired={expire} timezone={timezone}/>
  {busy&&<p role="status">{t('webui.loading')}</p>}{error&&<QueryError error={error==='CANCELLED'?'CANCELLED':t('execution.readUnavailable')} code={error} retry={blocked?refresh:()=>{const request=lastRead.current;if(request)void read(request.kind,request.cursor,request.limit);}}/>}
  {refs&&<aside className="execution-evidence" aria-label={t('execution.evidence')}><h3>{t('execution.evidence')}</h3><p>{t('execution.wholeTurn')}</p><details><summary>{t('execution.technical')}</summary><p>{refs.join(', ')||t('execution.missing')}</p></details>{navigation?.length===0&&<p>{t('execution.navigationUnavailable')}</p>}{summary.evidence.collections.filter(collection=>refs.includes(collection.reference)).map(collection=><details key={collection.reference}><summary>{t('execution.collectionBasis')}</summary><p>{collection.kind} · {collection.count.value??t('execution.missing')} · {collection.method}</p></details>)}{navigation&&navigation.length>1&&navigation.map((page,index)=><button key={index} disabled={busy||blocked} onClick={()=>{void read('evidence',page.cursor??undefined,page.limit);}}>{t('execution.evidencePage',{number:index+1})}</button>)}{evidence&&<><p>{t('execution.evidenceCount',{count:evidence.total.value??t('execution.missing')})}</p>{evidence.rows.map(row=><TimingEvidenceRecord key={row.reference} row={row} selected={refs.includes(row.reference)} timezone={timezone}/>)}{evidence.nextCursor&&<button disabled={busy||blocked} onClick={()=>{void read('evidence',evidence.nextCursor!);}}>{t('execution.nextEvidence')}</button>}</>}<button className="link" onClick={close}>{t('execution.closeEvidence')}</button></aside>}
  <dialog ref={dialog} className="execution-share" onClose={()=>{setShare(undefined);opener.current?.focus();}}><h3>{t('execution.sharePreview')}</h3><p>{t('execution.shareNote')}</p>{share&&<><p>{t('execution.shareCutoff')}</p><pre>{JSON.stringify(share,null,2)}</pre></>}<button disabled={!share} onClick={()=>{if(share){const identity=epoch.current;void (async()=>{try{if(!navigator.clipboard)throw new Error('Clipboard unavailable');await navigator.clipboard.writeText(JSON.stringify(share,null,2));if(epoch.current===identity)setCopy(t('execution.copied'));}catch{if(epoch.current===identity)setCopy(t('execution.copyFailed'));}})();}}}>{t('execution.copy')}</button><button onClick={()=>dialog.current?.close()}>{t('execution.close')}</button><p role="status">{copy}</p></dialog>

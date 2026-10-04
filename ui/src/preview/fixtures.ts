@@ -5,7 +5,7 @@ import {directoryScenarios,previewDirectories} from './directories.js';
 import {handoffScenarios,previewHandoff} from './handoff.js';
 import {configFixture,createRuleFixture} from './configuration.js';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type UsageSummary, type QueryOptions } from '@wombat/client';
-export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap',...accountScenarios,...directoryScenarios,...handoffScenarios] as const;
+export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap','uses-failure','uses-expired',...accountScenarios,...directoryScenarios,...handoffScenarios] as const;
 export type Scenario = typeof scenarios[number];
 const at = '2026-10-04T02:00:00Z';
 const page = {offset:0,limit:20,total:0,nextOffset:null};

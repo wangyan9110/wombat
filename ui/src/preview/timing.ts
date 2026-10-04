@@ -1,11 +1,12 @@
 import {CoreError,type TimingLocalResult,type TimingShareResult,type TimingRequest,type TimingResult,type QueryOptions} from '@wombat/client';
 import type {Scenario} from './fixtures.js';
+import {usesFixture,shareUsesFixture,usesEvidence} from './uses.js';
 const metric = { value: null, status: 'unavailable', basis: 'not_recorded', evidenceRefs: [] } as const;
 const unavailable = { support: 'unavailable', reason: 'not_recorded' } as const;
 const capabilities = {
   wallClock: unavailable, nativeTtft: unavailable, firstContentRecordDelay: unavailable,
   lifecycleIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
-  exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: unavailable,
+  exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: {support:'supported',reason:'canonical_use_records'} as const,
 };
 export const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v1', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
@@ -70,10 +71,11 @@ export function timingFixture(scenario:Scenario='complete',snapshotId='preview:1
  result.time.timeline={...result.time.timeline,presentation:missing?'list':'timeline',detail:{support:missing?'unavailable':'supported',reason:missing?'missing_time':'explicit_boundary'},tracks:missing?[]:tracks,unclassifiedGaps:missing?[]:[{startMs:9000,endMs:10000,evidenceScope:'turn_collection',evidenceRefs:['collection:turn']}],entryCount:measured(missing?0:tracks.length,'safe_event_count'),identifiedIntervalCount:measured(tracks.length,'safe_event_count'),unlocatedIntervalCount:measured(missing?tracks.length:0,'safe_event_count')};
  result.evidence.available=true;result.evidence.collections=[{reference:'collection:turn',kind:'turn_events',snapshotId,scope:result.scope,count:measured(4,'safe_event_count'),method:result.methodVersion}];
  result.evidence.intervalPages={detail:{support:'supported',reason:'safe_event_count'},candidateIntervalCount:measured(tracks.length,'safe_event_count'),locatedIntervalCount:measured(tracks.length,'safe_event_count'),missingEventRefCount:measured(0,'safe_event_count'),pageCount:measured(1,'safe_event_count'),limitBytes:65536,entries:tracks.map(track=>({intervalAlias:track.intervalAlias,pages:[{limit:200,evidenceRefs:track.evidenceRefs}]}))};
+ result.uses=usesFixture(result,scenario);result.capabilities={...result.capabilities,objectUses:result.uses.detail};
  return result;
 }
 export function timingShareFixture(local:TimingLocalResult):TimingShareResult {
- const result=structuredClone(baseShare);result.time=structuredClone(local.time);result.quality=structuredClone(local.quality);
+ const result=structuredClone(baseShare);result.time=structuredClone(local.time);result.quality=structuredClone(local.quality);result.uses=shareUsesFixture(local);result.capabilities={...result.capabilities,objectUses:local.uses.detail};
  // Synthetic Rust-share-shaped facts use package aliases only; no local view is added.
  result.time.nativeWallClockMs.evidenceRefs=[];result.time.observedWindowMs.evidenceRefs=[];result.time.command.unionMs.evidenceRefs=[];result.time.command.sumMs.evidenceRefs=[];
  result.time.timeline.tracks=result.time.timeline.tracks.map((track,index)=>({...track,intervalAlias:`interval-${index}`,evidenceRefs:[]}));result.time.timeline.unclassifiedGaps=result.time.timeline.unclassifiedGaps.map(gap=>({...gap,evidenceRefs:[]}));
@@ -88,7 +90,7 @@ export function previewTiming(scenario:Scenario){
   if(request.action==='capabilities')return {...capabilityResult,profile:request.privacyProfile??'local'};
   const local=timingFixture(scenario,request.snapshotId??'preview:1',request.threadId,request.turnId);
   if(request.action==='summary')return request.privacyProfile==='share-v1'?timingShareFixture(local):local;
-  if(request.collection&&request.collection!=='turn_events')throw new CoreError('TIMING_DETAIL_UNAVAILABLE','Synthetic use evidence is unavailable');
+  if(request.collection&&request.collection!=='turn_events')return usesEvidence(local,scenario,request);
   return {outputVersion:1,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:{value:4,status:'observed',basis:'safe_event_count',evidenceRefs:[]},rows:request.cursor?[{reference:'event:end-0',recordKind:'lifecycle',phase:'completed',timestampMs:4000,gapCodes:[]}]:[{reference:'event:start-0',recordKind:'lifecycle',phase:'started',timestampMs:1000,gapCodes:[]}],nextCursor:request.cursor?null:{token:'synthetic-next'}};
  };
 }
