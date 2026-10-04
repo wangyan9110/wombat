@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, appendFile, readFile, readdir, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, appendFile, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
@@ -11,7 +12,7 @@ import { startWebHost } from '@wombat/web';
 import type { ConfigRequest } from '@wombat/client';
 
 test('configuration evidence shares the ledger, pins versions and enforces host read scope', { timeout: 40_000 }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-config-e2e-')));
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-config-e2e-')));
   const root = path.join(dir, 'source'), project = path.join(dir, 'project'), data = path.join(dir, 'data');
   const skill = path.join(project, '.agents/skills/review/SKILL.md');
   await mkdir(path.join(root, 'sessions'), { recursive: true });

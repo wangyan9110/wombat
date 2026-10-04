@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,mkdir,writeFile,rm,rename} from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import {mkdtemp,mkdir,writeFile,rm,rename} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
@@ -10,7 +11,7 @@ import {createHttpClient} from '@wombat/client/http';
 import {startWebHost} from '@wombat/web';
 
 test('host-selected grants persist, cannot be forged, and revoked projects leave the reading scope',{timeout:30_000},async()=>{
-  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-directories-'))),source=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data');
+  const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-directories-'))),source=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data');
   await mkdir(path.join(source,'sessions'),{recursive:true});await mkdir(project);await writeFile(path.join(project,'AGENTS.md'),'Preserve verified evidence.\n');
   const previous={WOMBAT_DATA_HOME:process.env.WOMBAT_DATA_HOME,CODEX_HOME:process.env.CODEX_HOME,WOMBAT_AUTO_PRICES:process.env.WOMBAT_AUTO_PRICES};
   Object.assign(process.env,{WOMBAT_DATA_HOME:data,CODEX_HOME:source,WOMBAT_AUTO_PRICES:'0'});

@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createNodeClient } from '@wombat/client/node';
 import { nativeCodexFixture } from '../helpers/native-codex.js';
 
 test('native handoff rechecks the actual task model and only confirmed applicable exhaustion prevents queueing', {timeout:60_000}, async()=>{
-  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-native-gate-'))),source=path.join(dir,'source'),project=path.join(dir,'project');
+  const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-native-gate-'))),source=path.join(dir,'source'),project=path.join(dir,'project');
   const previous={WOMBAT_DATA_HOME:process.env.WOMBAT_DATA_HOME,CODEX_HOME:process.env.CODEX_HOME,WOMBAT_AUTO_PRICES:process.env.WOMBAT_AUTO_PRICES};
   Object.assign(process.env,{WOMBAT_DATA_HOME:path.join(dir,'data'),CODEX_HOME:source,WOMBAT_AUTO_PRICES:'0'});
   let native: Awaited<ReturnType<typeof nativeCodexFixture>> | undefined;

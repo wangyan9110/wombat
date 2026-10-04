@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,7 @@ import { startWebHost } from '@wombat/web';
 import { nativeCodexFixture } from '../helpers/native-codex.js';
 
 test('native Hook registry is version-bound, project-specific and private across HTTP and core queries', { timeout: 60_000 }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-hook-registry-')));
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-hook-registry-')));
   const root = path.join(dir, 'source'), a = path.join(dir, 'a'), b = path.join(dir, 'b'), config = path.join(root, 'config.toml');
   const old = { WOMBAT_DATA_HOME: process.env.WOMBAT_DATA_HOME, CODEX_HOME: process.env.CODEX_HOME, WOMBAT_AUTO_PRICES: process.env.WOMBAT_AUTO_PRICES };
   await mkdir(path.join(root, 'sessions'), { recursive: true }); await mkdir(a); await mkdir(b);

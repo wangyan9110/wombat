@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,7 @@ import { startWebHost } from '@wombat/web';
 import { nativeCodexFixture } from '../helpers/native-codex.js';
 
 test('Hook script findings, project scope, independent rechecks and handoff share version-bound evidence', { timeout: 60_000, skip: process.platform === 'win32' }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-hook-target-'))), root = path.join(dir, 'source'), a = path.join(dir, 'a'), b = path.join(dir, 'b');
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-hook-target-'))), root = path.join(dir, 'source'), a = path.join(dir, 'a'), b = path.join(dir, 'b');
   await mkdir(path.join(root, 'sessions'), { recursive: true }); await mkdir(a); await mkdir(b);
   const config = path.join(root, 'config.toml'), marker = path.join(dir, 'must-not-exist'), filename = '工具 script.py';
   const script = `from pathlib import Path\nPath(${JSON.stringify(marker)}).write_text('executed')\n`;
@@ -59,7 +60,7 @@ test('Hook script findings, project scope, independent rechecks and handoff shar
 });
 
 test('native project inheritance is observed per view and unavailable registration retains scoped history', {timeout:45_000,skip:process.platform==='win32'}, async()=>{
-  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-hook-inherited-'))),root=path.join(dir,'source'),parent=path.join(dir,'parent'),child=path.join(parent,'child'),config=path.join(parent,'.codex/config.toml');
+  const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-hook-inherited-'))),root=path.join(dir,'source'),parent=path.join(dir,'parent'),child=path.join(parent,'child'),config=path.join(parent,'.codex/config.toml');
   await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.dirname(config),{recursive:true});await mkdir(child);
   await writeFile(config,"[[hooks.SessionStart]]\n[[hooks.SessionStart.hooks]]\ntype='command'\ncommand='python3 ./local.py'\n[hooks.SessionStart.hooks.extra]\nvalue='synthetic'\n");await writeFile(path.join(parent,'local.py'),'MUST_NOT_EXECUTE');
   const native=await nativeCodexFixture(dir);

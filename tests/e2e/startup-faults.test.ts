@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,mkdir,rm,writeFile} from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import {mkdtemp,mkdir,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {spawn,spawnSync} from 'node:child_process';
@@ -11,7 +12,7 @@ import {createHttpClient} from '@wombat/client/http';
 import {startWebHost} from '@wombat/web';
 
 test('index initialization faults return actual errors, retain unsupported records and recover in the same service',{timeout:20_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-startup-fault-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data'),database=path.join(data,'live-v1/index.sqlite');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-startup-fault-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data'),database=path.join(data,'live-v1/index.sqlite');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.dirname(database),{recursive:true});
  await mkdir(project);const instructions=path.join(project,'AGENTS.md');await writeFile(instructions,'Synthetic local instructions. '.repeat(1000));await writeFile(path.join(root,'AGENTS.md'),'Synthetic global instructions.');
  const unsupported=new DatabaseSync(database);unsupported.exec("CREATE TABLE sample(value TEXT); INSERT INTO sample VALUES('retained'); PRAGMA user_version=99;");unsupported.close();

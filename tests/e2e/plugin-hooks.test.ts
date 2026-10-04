@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, readFile, readdir, rm, access, symlink } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, access, symlink } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,7 @@ import { startWebHost } from '@wombat/web';
 import { nativeCodexFixture } from '../helpers/native-codex.js';
 
 test('plugin Hook identity, project coverage, retained declarations and rechecks share the native binding', { timeout: 60_000, skip: process.platform === 'win32' }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-plugin-hooks-')));
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-plugin-hooks-')));
   const root = path.join(dir, 'source'), a = path.join(dir, 'a'), b = path.join(dir, 'b'), c = path.join(dir, 'c');
   // The product must use native-listed files rather than guessing the native plugin cache layout.
   const file = path.join(root, 'custom-package', 'hooks', '声明.json'), config = path.join(root, 'config.toml'), marker = path.join(dir, 'must-not-exist');

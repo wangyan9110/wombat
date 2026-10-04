@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -10,7 +11,7 @@ import { createHttpClient } from '@wombat/client/http';
 import { startWebHost } from '@wombat/web';
 
 test('unknown tool outcomes agree in CLI/API, retain fixed views and survive service restart', { timeout: 40_000 }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-operation-status-')));
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-operation-status-')));
   const root = path.join(dir, 'source'), project = path.join(dir, 'project'), file = path.join(root, 'sessions', 'one.jsonl');
   await mkdir(path.dirname(file), { recursive: true }); await mkdir(project);
   await writeFile(path.join(project, 'AGENTS.md'), 'Synthetic instructions.');

@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {spawn,spawnSync} from 'node:child_process';
@@ -11,7 +12,7 @@ import {startWebHost} from '@wombat/web';
 import type {OptimizeRequest} from '@wombat/client';
 
 test('static configuration reviews, manual recheck, all dates and preferences share CLI/Web contracts', {timeout:45_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-upgrade-e2e-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data'),skill=path.join(project,'.agents/skills/example/SKILL.md');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-upgrade-e2e-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data'),skill=path.join(project,'.agents/skills/example/SKILL.md');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.dirname(skill),{recursive:true});
  const large=`---\nname: example\ndescription: ${'字'.repeat(501)}\n---\n${'x '.repeat(4999)+'x'}`;
  await writeFile(skill,large);await writeFile(path.join(project,'AGENTS.md'),'你好，世界！\r\n');await writeFile(path.join(root,'AGENTS.md'),'Synthetic source instruction.\n');

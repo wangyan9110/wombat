@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -10,7 +11,7 @@ import { createHttpClient } from '@wombat/client/http';
 import { startWebHost } from '@wombat/web';
 
 test('switching to a project discovered from local history reads its configuration without a separate grant', { timeout: 30_000 }, async () => {
-  const dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wombat-project-switch-')));
+  const dir = realpathSync.native(await mkdtemp(path.join(tmpdir(), 'wombat-project-switch-')));
   const source = path.join(dir, 'source'), project = path.join(dir, 'project'), added = path.join(dir, 'added'), other = path.join(dir, 'other'), data = path.join(dir, 'data');
   await mkdir(path.join(source, 'sessions'), { recursive: true }); await mkdir(project); await mkdir(added); await mkdir(other);
   await writeFile(path.join(project, 'AGENTS.md'), 'Synthetic project instruction. '.repeat(1_000));

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
+import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
@@ -18,7 +19,7 @@ const end=(call_id:string,turn_id:string,tool:string,failed=false)=>row('event_m
 const jsonl=(rows:unknown[])=>rows.map(r=>JSON.stringify(r)+'\n').join('');
 
 test('MCP attempts, resources, fork replay and append/restart share exact CLI and Web evidence', {timeout:60_000}, async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-mcp-evidence-'))),root=path.join(dir,'source'),project=path.join(dir,'project');
+ const dir=realpathSync.native(await mkdtemp(path.join(tmpdir(),'wombat-mcp-evidence-'))),root=path.join(dir,'source'),project=path.join(dir,'project');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(project);await writeFile(path.join(root,'config.toml'),"[mcp_servers.docs]\ncommand='synthetic-not-executed'\n");
  const tokens={input_tokens:100,cached_input_tokens:20,cache_write_input_tokens:0,output_tokens:10,reasoning_output_tokens:2,total_tokens:110};
  const call=end('call','u','search',true),read=end('resource','u','read_mcp_resource');
