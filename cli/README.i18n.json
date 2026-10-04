@@ -6,12 +6,16 @@
       "en": "1d9f713783917de37796f2a3e6834a5a23ce195b9282ac9f0e41b33f69dcc9b5"
     },
     "/cli-command-entry/public-entries": {
-      "zh": "69c3086b2ee329f38fb21d0066c6762ad1b9a22ef98d3f53c015bb514cdbb5c3",
-      "en": "e0c433a6392f57326492bb3ee51036743892b5a9beca7775de1411275dc944e2"
+      "zh": "12876987a9fa59713c88cde124ef71c06f7fc35db73caa7a6e72f11b23e7bd47",
+      "en": "fa6f980d508f32f30d0d945d12ae0ebdd072ee08a59ba83da9b82099c111cce5"
     },
     "/cli-command-entry/limits-and-verification": {
       "zh": "12c9c0385e44206a9b2b33221a156bb212f0b5f14041e20c8649d22c560d9065",
       "en": "35fc9510fdca89b18ea5add1e68d0fa716d14bf349272c90f201ea12e392db67"
+    },
+    "/cli-command-entry/whole-turn-timing": {
+      "zh": "87a95df16dc864b71c16fdeac617968d915a8ee5557cfc0160e6c364a461cdeb",
+      "en": "61e9532a3019690a34678eb5499bfff324b39fd4cd897dbf106f2ee33f385826"
     },
     "/cli-command-entry/web-assembly": {
       "zh": "b6b2b941d986128d01738cdca5b68f9df6100afccf07184c5c89db93c5eb8d05",

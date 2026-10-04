@@ -12,15 +12,15 @@ Status: proposed
 
 ### 7. 最小 CLI 与 JSON 契约
 
-拟议命令，仅说明设计，不是运行指南：
+CLI 契约包含三个动作；当前操作说明见[CLI 指南](../../../guides/cli.md)：
 
 ```sh
-wombat timing --thread THREAD_ID --turn TURN_ID --json
-wombat timing --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --json
-wombat timing --thread THREAD_ID --turn TURN_ID --cached --json
+wombat timing [summary] --thread THREAD_ID --turn TURN_ID [--snapshot SNAPSHOT_ID] [--share]
+wombat timing evidence --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID [--limit 50] [--cursor OPAQUE_TOKEN]
+wombat timing capabilities [--share]
 ```
 
-首期支持现有 `--root` 多根、`--source`、`--fresh` / `--cached`、`--snapshot`、`--lang` 与取消语义。只接受完整 Wombat 身份，不默认转用上游 ID；两者不匹配或任务不存在明确报错。`--turn` 必填，任务级汇总后续独立交付。拒绝日期/Token/金额筛选和分页对整轮窗口的切碎；默认最终单个 JSON，状态写 stderr。耗时分析不需要价格，明确绕过自动补价下载，基础操作保持离线。
+摘要支持重复 `--root`、`--source`、`--fresh` / `--cached`、`--snapshot`、`--lang` 与取消。只接受完整 Wombat 身份，不默认转用上游 ID；目标不匹配或不存在明确报错。`--turn` 必填，任务级汇总后续独立交付。拒绝日期/Token/金额筛选和分页对摘要整轮窗口的切碎。证据要求相同固定目标、版本和范围，默认50/最大200条，通过不透明游标分页，仅支持本机投影且不接受刷新模式。能力查询不接受目标或来源路径，不执行扫描。默认最终单个 JSON，状态写 stderr；显式 `--text` 与 `--json` 互斥。分享请求 Rust 独立投影。耗时查询绕过自动补价、配置扫描、Hook 采集和账户观察。错误保留独立 v1 安全信封；取消退出130，不终止共享同步。
 
 新增独立 `timing_dto.rs`，Rust 生成 Schema、TS 与校验器；操作 `timing` 的 request 使用 `summary/evidence/capabilities` 窄联合类型（技术装配见第15节），响应 `outputVersion:1`，另有 `methodVersion`。用量 JSON v3、适配器、索引、耗时分析快照及分析方法分别版本化；不把耗时分析 action 塞进旧 usage union 而仍宣称协议不变。普通本机 JSON 含本机定位身份，分享版另行投影。
 
@@ -156,7 +156,7 @@ UI 使用 `fact/proxy/unavailable` 及对应依据文案；不生成“主要原
 
 页面设计任务必须交付宽屏与窄屏布局、可点击合成数据原型、指标与展示契约映射、状态文案，以及 CLI 的对应信息顺序。至少走通五条用户旅程：找到目标轮次并返回；理解并行操作为什么不能相加；确认同轮三次 Skill 读取为何计三次；区分零值、未记录和读取失败；日志追加后刷新并分享同一批数据。原型同时覆盖长名称、大量操作、键盘导航和中英文，合成数据显式标识。原型走查不等于真实用户研究；D5 还需用实际产品完成浏览器验收。原型与验收证据未产出前，不将页面设计任务标为完成。
 
-原型至少提供完整记录、时间记录缺失和进行中三套合成场景，分别验证时间轴、列表降级和整组刷新。宽屏与窄屏截图需检查视觉层级、长名称和展开后的空间，不能仅凭控件可点击认定设计通过。
+原型至少提供完整记录、时间记录缺失和进行中三套合成场景，分别验证时间轴、列表降级和整组刷新。通过 DOM/源码检查与宽窄屏布局、交互走查，检查视觉层级、长名称和展开后的空间，不能仅凭控件可点击认定设计通过。
 
 #### 16.4 视觉方向与结构草图
 

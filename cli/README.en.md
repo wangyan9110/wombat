@@ -7,7 +7,7 @@
 ## Public entries
 
 - The package root exports argument parsing and `runUsageCli`; `./format` exports result text formatting.
-- `refresh`, `usage`, `threads`, `turns`, `steps`, `prices`, and `optimize` call the shared core through `@wombat/client/node`.
+- `refresh`, `usage`, `threads`, `turns`, `steps`, `prices`, `optimize`, and `timing` call the shared core through `@wombat/client/node`.
 - With no subcommand, the CLI prints usage text, just like `usage`; `web` explicitly starts interactive pages.
 
 - Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).
@@ -15,6 +15,12 @@
 ## Limits and verification
 
 The CLI owns arguments, output, progress, and exit codes, not pricing or snapshot semantics. JSON progress goes to stderr and results to stdout; after a build, verify argument errors, partial results, and complete command paths under the [CLI rules](AGENTS.md).
+
+## Whole-turn timing
+
+`wombat timing` (or `timing summary`) requires full task and turn identities. It defaults to one JSON object; `--text` selects localized text and conflicts with `--json`. `--share` requests the core's separate projection. `timing evidence` requires the same target and a fixed snapshot, with opaque cursors and pages of 1..200 rows; `timing capabilities` accepts no target or source paths and performs no scan. Timing bypasses automatic prices, configuration, Hook capture, and account observations.
+
+Summary exit codes follow core quality: 0 for complete inspected scope even when optional values are unknown, 2 for partial or provisional results, 1 for errors, and 130 for cancellation. Successful evidence navigation and capability queries return 0 without inferring turn completeness. JSON errors use safe v1 templates; source paths and underlying error details are not printed. Independent synthetic CLI tests do not establish real-core or browser acceptance.
 
 ## Web Assembly
 

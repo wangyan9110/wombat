@@ -25,7 +25,7 @@ The Node client and local service use protocol 2 with a separate endpoint and se
 
 `@wombat/client/http` exports `createHttpClient({ origin, token })`, implementing the same `UsageClient`, validating results and preserving progress, cancellation, and errors. The browser sends narrow operations to the local host rather than accessing the core directly.
 
-The local Web host implements `/api/timing`; see the [Web host](../web/README.en.md) for scope and version authorization. The CLI command and timing UI are not implemented yet. Integration with the real core and browser has not been accepted.
+The local Web host implements `/api/timing`; see the [Web host](../web/README.en.md) for scope and version authorization. The CLI exposes timing summary, evidence, and capabilities; see the [CLI guide](../docs/guides/cli.en.md). The timing UI is not implemented yet. Integration with the real core and browser has not been accepted.
 
 `UsageClient.config` provides measurements/evidence, `optimize` static suggestions, user records and manual rechecks, and `preferences` only gets/sets zh/en. Rust generates all three v1 contracts with peer Node/HTTP implementations; see [public contracts](../docs/development/contracts.en.md).
 

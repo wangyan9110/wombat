@@ -2,7 +2,7 @@
 
 中文 | [English](cli.en.md)
 
-Wombat 默认增量同步本机 Codex 日志，查询增量更新；显式 refresh 另外保存固定快照。当前提供用量、任务、配置测量与人工处理查询；所有子命令无需 TTY，JSON 与 Web使用同一 Rust 查询。
+Wombat 默认增量同步本机 Codex 日志，查询增量更新；显式 refresh 另外保存固定快照。当前提供用量、任务、整轮耗时、配置测量与人工处理查询；所有子命令无需 TTY，JSON 与 Web使用同一 Rust 查询。
 
 ```sh
 wombat prices --json
@@ -47,9 +47,28 @@ corepack pnpm skills:install
 - `usage --watch --json` 输出逐行 JSON，版本、日期范围或状态改变时发出结果；Ctrl+C 退出130。普通 `--json` 仍只输出一个对象。
 - `refresh --verify` 完整重读来源再保存快照，用于核验追加快速路径无法证明的历史前缀改写。正常 refresh 利用增量游标。
 - `--snapshot ID`固定当前快照，后续分页继续传同一snapshotId，不能重新解析latest。未知格式明确拒绝。
-- `--root` 可用于实时查询；每次省略时仍使用默认 Codex 来源，不会因为另一窗口指定根而改变。固定快照不能同时指定来源根。
+- `--root` 可用于实时查询；每次省略时仍使用默认 Codex 来源，不会因为另一窗口指定根而改变。固定用量快照不能同时指定来源根；耗时查询的来源根用于将请求范围绑定到固定版本。
 
 同一数据目录共用按需 Rust 服务；文件通知加约2秒巡检，CLI watch约每秒查询。没有有效配置读取版本时，最后一个调用结束约15秒后退出；配置读取版本最长保留10分钟。实时接口当前在macOS验收；Windows/Linux 未作本机安装验收。计量以完整日志记录为准，模型还未写入的Token无法即时显示。
+
+## 整轮耗时
+
+```sh
+wombat timing --thread THREAD_ID --turn TURN_ID
+wombat timing summary --thread THREAD_ID --turn TURN_ID --text --lang en
+wombat timing --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --share
+wombat timing evidence --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --limit 50
+wombat timing evidence --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --limit 50 --cursor OPAQUE_TOKEN
+wombat timing capabilities
+```
+
+`timing` 与 `timing summary` 等价，默认输出一个最终 v1 JSON 对象；`--text` 选择本地化文本，不能与 `--json` 同用。使用任务查询返回的完整 Wombat 任务和轮次身份。未知值在 JSON 中保留 null，文本显示未知；原生耗时、派生耗时、原生 TTFT 与首条内容记录延迟分别展示。区间并集与累加可能重叠，不能相加。
+
+摘要支持重复 `--root`、`--source`，以及 `--fresh` 或 `--cached` 之一。`--snapshot` 固定结果，不能与 `--fresh` 同用；固定版本同时指定来源根或来源时，必须匹配该版本的授权范围。后续证据页使用结果返回的快照身份；缺失或过期版本不会退回 latest。证据只支持本机投影，要求固定快照与相同目标和范围，接受 `--limit 1..200`（默认50）及原样传回的 `nextCursor.token`，不接受刷新模式。分页不改变整轮摘要。能力查询只接受输出、语言选项和可选 `--share`，不执行扫描；它报告解析器支持，不能证明某轮次实际存在这些字段。
+
+`--share` 请求 Rust 独立的安全摘要投影，CLI 不从本机 JSON 删除字段拼成分享结果。耗时查询绕过自动补价、配置扫描、Hook 采集和账户观察，拒绝日期、Token、金额、offset、compare、watch 参数。达到资源上限时，结果仍可保留已验证原生标量，派生值保持未知。
+
+摘要在内核标明已检查范围完整时退出0，即使可选值未知；部分或暂定结果退出2。证据导航和能力查询成功时退出0，不据此证明整轮完整。错误退出1，取消退出130；JSON 错误使用 `{outputVersion:1,error:{code,message}}` 本地化安全模板，包括 NOT_FOUND 和 VIEW_EXPIRED，不输出来源路径或底层错误详情。状态写 stderr；Ctrl+C 取消本次调用，不终止共享同步。独立合成 CLI 测试已通过，真实内核与浏览器耗时联调尚未验收。
 
 ## 官方价表
 
@@ -71,7 +90,7 @@ corepack pnpm skills:install
 
 ## JSON
 
-`outputVersion: 3`。成功对象包含 action、snapshotRef、scope、availableRange、summary、items、page、quality。运行时对生成 Schema 校验，未知参数拒绝。普通查询 stdout 只有一个最终 JSON 对象，watch为NDJSON；状态说明写stderr。实时结果另有freshness，status区分current、syncing、stale、failed和fixed，checkedAt为最后成功检查时间；current只表示已处理本次观察到的日志范围。
+用量使用 `outputVersion: 3`。成功对象包含 action、snapshotRef、scope、availableRange、summary、items、page、quality。运行时对生成 Schema 校验，未知参数拒绝。普通查询 stdout 只有一个最终 JSON 对象，watch为NDJSON；状态说明写stderr。实时结果另有freshness，status区分current、syncing、stale、failed和fixed，checkedAt为最后成功检查时间；current只表示已处理本次观察到的日志范围。
 
 金额为十进制字符串；Token 为安全整数或 null。`price.cost=null` 表示金额不完整，`knownCost` 为已知小计，status 区分 priced、partial、unknown。缺失不是零，reportedCost 不与标准折算相加。不能从已显示的两位金额重新求和。
 
@@ -81,7 +100,7 @@ corepack pnpm skills:install
 
 ## 旧版迁移
 
-仅读取当前v3快照，未知版本拒绝并保留已有文件和用户记录。不提供迁移或旧命令/输出兼容。已退出的scan/report/checkup/quota/codex/observe/compare命令不留占位入口。
+仅读取当前 usage-v4 快照（schema4）；用量 JSON v3 与耗时 JSON v1 是独立输出格式。未知版本拒绝并保留已有文件和用户记录。不提供迁移或旧命令/输出兼容。已退出的scan/report/checkup/quota/codex/observe/compare命令不留占位入口。
 
 ## 本机 Web
 

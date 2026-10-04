@@ -12,15 +12,15 @@ This record owns all design responsibilities from section 7, section 8, section 
 
 ### 7. Minimum CLI and JSON contract
 
-Proposed commands describe a design, not a runnable guide:
+The CLI contract has three actions; current usage is documented in the [CLI guide](../../../guides/cli.en.md):
 
 ```sh
-wombat timing --thread THREAD_ID --turn TURN_ID --json
-wombat timing --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --json
-wombat timing --thread THREAD_ID --turn TURN_ID --cached --json
+wombat timing [summary] --thread THREAD_ID --turn TURN_ID [--snapshot SNAPSHOT_ID] [--share]
+wombat timing evidence --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID [--limit 50] [--cursor OPAQUE_TOKEN]
+wombat timing capabilities [--share]
 ```
 
-The first phase supports existing repeated `--root`, `--source`, `--fresh` / `--cached`, `--snapshot`, `--lang`, and cancellation semantics. Accept full Wombat identities, without silently falling back to upstream IDs; reject mismatched or missing tasks. `--turn` is required; task aggregates come later. Reject date/Token/cost filtering or pagination that fragments a whole-turn window. Emit one final JSON object by default with status on stderr. Diagnosis requires no pricing and explicitly bypasses automatic price downloads to stay offline.
+Summary supports repeated `--root`, `--source`, `--fresh` / `--cached`, `--snapshot`, `--lang`, and cancellation. Accept full Wombat identities without silently falling back to upstream IDs; reject mismatched or missing targets. `--turn` is required; task aggregates come later. Reject date/Token/cost filtering or pagination that fragments the summary's whole-turn window. Evidence uses the same fixed target/version/scope with default50/max200 rows and an opaque cursor, local profile only and no refresh mode. Capabilities accepts no target or source paths and performs no scan. Emit one final JSON object by default with status on stderr; explicit `--text` and `--json` are mutually exclusive. Sharing requests Rust's separate projection. Timing bypasses automatic pricing, configuration scans, Hook capture, and account observation. Errors retain the separate v1 safe envelope; cancellation exits130 and does not stop shared synchronization.
 
 Add `timing_dto.rs`, generating Schema, TS, and validators from Rust. Operation `timing` uses the narrow `summary/evidence/capabilities` request union (integration in section15), response `outputVersion:1`, and a separate `methodVersion`. Version usage JSON v3, adapter, index, diagnostic snapshot, and analysis methods separately. Do not add a diagnostic action to the old usage union while claiming an unchanged protocol. Ordinary local JSON retains local locating identities; sharing has its own projection.
 
@@ -156,7 +156,7 @@ On narrow screens, stack the same information order and provide an equivalent op
 
 The page-design task must deliver wide/narrow layouts, a clickable synthetic-data prototype, a metric-to-presentation-contract mapping, state copy, and matching CLI information order. Walk through at least five user journeys: find a turn and return; understand why concurrent durations cannot be added; verify why three Skill reads in one turn count as three uses; distinguish zero, unrecorded values, and read failures; refresh after log appends and share the same data batch. Cover long names, many operations, keyboard navigation, and both languages, clearly labeling synthetic data. Prototype walkthroughs are not real user research; D5 additionally requires browser acceptance against the actual product. Do not mark page design complete before producing the prototype and acceptance evidence.
 
-Provide at least three synthetic prototype scenarios: complete records, missing time records, and a running turn. Validate the timeline, fallback list, and group refresh respectively. Review wide/narrow screenshots for visual hierarchy, long names, and expanded content spacing; clickable controls alone do not establish design acceptance.
+Provide at least three synthetic prototype scenarios: complete records, missing time records, and a running turn. Validate the timeline, fallback list, and group refresh respectively. Review the DOM/source and walk through wide/narrow layouts and interactions for visual hierarchy, long names, and expanded content spacing; clickable controls alone do not establish design acceptance.
 
 #### 16.4 Visual direction and structural sketch
 

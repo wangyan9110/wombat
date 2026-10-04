@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/cli-and-automation": {
-      "zh": "f8bbdb00c44e5c90703ab9705ccd8ef61473a4496f359ceafc0c9506fe41b0b6",
-      "en": "a79d3458695f56160cb645f84d9307dca8cc3164897c3d0ce470e4e77865e659"
+      "zh": "d5533345e3363991fbad29a88716f36777ada20f888715cdd5c6e26252b9fce3",
+      "en": "dbb4951e146470be3f18c724f7ead4580e411e8c40eeac4aff24d13c9fcaf0dc"
     },
     "/cli-and-automation/codex-skill": {
       "zh": "cb57a82f5e65836173224aefab61595a1a9d093de7ca565f5c4c3f505211be0c",
@@ -14,8 +14,12 @@
       "en": "cfcd29aa701e358926ef720610ea8bfd04163393062050e955faa3d7c94f0d81"
     },
     "/cli-and-automation/automatic-synchronization": {
-      "zh": "e655173fd246ce68de526f097d3f262691ebf6bb28fd33e7509aa98e1115e565",
-      "en": "fc83d0b53fddcec0315b27e418a9f874f129df3aac2b77cbbde6643750ab163d"
+      "zh": "ea87522b7d2aa6546902faf687e9d309e7303d37c6b64734b7343475201688e2",
+      "en": "c82285332867b19c56622bc8ea3c5d91c4a27043ddd34878b53b89c49732750f"
+    },
+    "/cli-and-automation/whole-turn-timing": {
+      "zh": "d850c2bb8b3a6cbfb44632c4c9d66c0005e134ca2f4371f5aade0fc88905ecad",
+      "en": "1aadccc4240947bcda0e561078d2b1cc64169b6e930b9ad37eba7d7077eafd4f"
     },
     "/cli-and-automation/official-price-catalog": {
       "zh": "3e21a5311caf73994096301e2a6cd457372d029b55552c06146778a8db92ed46",
@@ -26,12 +30,12 @@
       "en": "91b096d08e7d12ff97bc2dea5e341d2f5dcca763cf9b255ee70bd512dc5e0898"
     },
     "/cli-and-automation/json": {
-      "zh": "31e897a6761cbe04ec1101f754f6d5c3123688785f70dbc10bed2cfd7864e178",
-      "en": "642d1f21b19a1c38e49f9f437fdfb90a15fe99cc919577bc7e6c4252242779e7"
+      "zh": "b28bdd4b6d57368b4abdc7926e47a625062f7768f5e58ac5a24920020f65532a",
+      "en": "1ca549f58ce8ec2dffdb4ed9e8f97681140f1b80ea5af0be94fc59edfa41029a"
     },
     "/cli-and-automation/current-formats": {
-      "zh": "a93aa190b4e25bd794be159a6f2e2cd4a80875550ba27835fd31adf790d77a6b",
-      "en": "1290c8227ed5c110148ec3c866bb17550c0ebd538d853ab2a2e7ae67c9cb22c9"
+      "zh": "a306a04e2b08fea8a11927825ba889acf33d1385648d6e47b0d4f9b5b6d4d9a9",
+      "en": "e020de93e738011aa7357752ac2409865326dd48039de1924b764b2aa35e877a"
     },
     "/cli-and-automation/local-web": {
       "zh": "7b43eb1463913ef50fcb482891bbc8ce440575efa7f127890b078327bd321ffa",
