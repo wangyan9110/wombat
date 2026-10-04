@@ -2,7 +2,7 @@
 
 [中文](specification.md) | English
 
-This page maintains requirements and acceptance criteria, baselined on 2026-09-30. It does not establish acceptance of every target. See [implementation status](status.en.md) for delivery and gaps and [progress](progress.en.md) for results. The pre-migration code inventory is retired from the current specification; lasting tradeoffs are in the [independent-accounting decision](../decisions/implemented/architecture/2026-09-30-independent-accounting.en.md) and [snapshot decision](../decisions/implemented/architecture/2026-09-30-snapshot-storage.en.md).
+This page maintains requirements and acceptance criteria, baselined on 2026-09-30. It does not establish acceptance of every target. See [implementation status](status.en.md) for delivery and gaps and verification records retained in Git history for results. The pre-migration code inventory is retired from the current specification; lasting tradeoffs are in the [independent-accounting decision](../decisions/implemented/architecture/2026-09-30-independent-accounting.en.md) and [snapshot decision](../decisions/implemented/architecture/2026-09-30-snapshot-storage.en.md).
 
 Shared Rust queries present usage and tasks, aggregating complete ranges before pagination and separating matching from full-task usage. Additional page, configuration measurement and manual-review requirements are in the [upgrade specification](config-upgrade.en.md).
 
@@ -18,7 +18,7 @@ Shared Rust queries present usage and tasks, aggregating complete ranges before 
 | Multiple entries | Rust operations reach Node CLI, JSON, and local Web through generated contracts; future hosts reuse the same narrow interface |
 | Platform and language | GitHub Release archives bundle Node.js 26.4.0, source tools require ≥26.4.0, and macOS arm64 is accepted first; Chinese/English follow the [language contract](../i18n/product.en.md); other platforms need separate installation acceptance |
 
-Accounts and Codex handoff follow the [lifecycle upgrade](optimization-lifecycle.en.md). The base usage entry provides no checkup, automatic configuration writes/repair, evidence-package export, threshold notifications, comparison, parent/child task analysis or HTML reports. Read-only configuration, static reminders and manual reviews follow the upgrade specification; desktop hosting remains future work. Inheritance/fork facts serve only necessary attribution and deduplication. See the [support matrix](../reference/support-matrix.en.md) for complete current boundaries.
+Accounts and Codex handoff follow the [lifecycle upgrade](optimization-lifecycle.en.md). The base usage entry provides no checkup, automatic configuration writes/repair, evidence-package export, threshold notifications, comparison, parent/child task analysis or HTML reports. Read-only configuration, static reminders and manual reviews follow the upgrade specification; desktop hosting remains future work. Inheritance/fork facts serve only necessary attribution and deduplication. See the [architecture](../development/architecture.en.md) for complete current boundaries.
 
 ## User journeys
 
@@ -64,4 +64,4 @@ Snapshot list/expansion p95 ≤300ms and cold query ≤1s are original targets, 
 | Web | Chinese/English switching, long names, narrow layouts, filters, expansion, return, cancellation, and host shutdown |
 | Safety and installation | Large lines, tails/truncation, allowlisted metadata without bodies, no arbitrary execution, clean builds/installs, executable permissions/notices, no source writes |
 
-Select checks through the [development workflow](../development/workflow.en.md): build before cross-language tests, check generated contracts/module boundaries, update licenses with dependencies, and verify package contents/clean installation for releases. Web and noninteractive delivery together complete a capability; builds cannot replace browser acceptance. Only actual evidence enters [progress](progress.en.md); other platforms and real-user outcomes require separate acceptance.
+Select checks through the [development workflow](../development/workflow.en.md): build before cross-language tests, check generated contracts/module boundaries, update licenses with dependencies, and verify package contents/clean installation for releases. Web and noninteractive delivery together complete a capability; builds cannot replace browser acceptance. Report only completed verification in the task or PR; other platforms and real-user outcomes require separate acceptance.

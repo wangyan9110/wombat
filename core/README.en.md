@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-`wombat-core` reads local Agent records, creates immutable snapshots, and serves usage and conversation queries from one business model. Codex is the current production source; see the [support matrix](../docs/reference/support-matrix.en.md) for the supported scope.
+`wombat-core` reads local Agent records, creates immutable snapshots, and serves usage and conversation queries from one business model. Codex is the current production source; see the [source acceptance reference](../docs/development/adapters.en.md) for the supported scope.
 
 ## Entry points and responsibilities
 

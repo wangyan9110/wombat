@@ -2,7 +2,7 @@
 
 [中文](codex-skill.md) | English
 
-This plan defines a local assistant entry based on the existing CLI. See the [product specification](optimization-lifecycle.en.md) and [frontend guide](../../ui/README.en.md) for Web capabilities; the [support matrix](../reference/support-matrix.en.md) still defines current business boundaries. Installation is in the [CLI guide](../guides/cli.en.md#codex-skill). Implementation and actual verification are separate; this plan does not prove runtime outcomes.
+This plan defines a local assistant entry based on the existing CLI. See the [product specification](optimization-lifecycle.en.md) and [frontend guide](../../ui/README.en.md) for Web capabilities; the [architecture](../development/architecture.en.md) still defines current business boundaries. Installation is in the [CLI guide](../guides/cli.en.md#codex-skill). Implementation and actual verification are separate; this plan does not prove runtime outcomes.
 
 Status: technical exploration draft, not installed or behaviorally accepted. At the user's request, product design will revise it against the latest manual's “send from Web to Codex for handling, then return to Wombat for recheck” workflow. Sections using current source execution capabilities are draft references, not decisions for the updated product.
 
@@ -55,4 +55,4 @@ The default location is `~/.agents/skills/wombat`; skills-root is configurable. 
 
 This round requires discoverable metadata and an isolated installation that starts outside the repository; synthetic usage, sorting, fixed-revision drill-down and suggestions must match independent truth. Existing custom Skills must not be overwritten; updates/runtime files must retain executable permissions. Static and type/boundary checks must pass. Actual model routing, continuing conversation and plan review require separate human task acceptance; command success does not establish those outcomes.
 
-Use trials to evaluate multi-query output size and latency. Add bounded aggregate entries only when repeated mechanical needs emerge, reusing generated contracts. Public plugins/installers, MCP, persistent conversation workspaces and continuous monitoring are outside this round. Record verified outcomes only in [progress](progress.en.md); retain unverified scope here.
+Use trials to evaluate multi-query output size and latency. Add bounded aggregate entries only when repeated mechanical needs emerge, reusing generated contracts. Public plugins/installers, MCP, persistent conversation workspaces and continuous monitoring are outside this round. Record verified outcomes in the task or PR; retain unverified scope here.

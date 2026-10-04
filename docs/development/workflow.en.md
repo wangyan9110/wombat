@@ -2,7 +2,7 @@
 
 [中文](workflow.md) | English
 
-Follow the [version-one specification](../project/specification.en.md) and [architecture](architecture.en.md). Usage and conversations are the product views; CLI/Web share Rust operations, filtering, accounting, and pricing.
+Follow the [version-one specification](../project/specification.en.md) and [architecture](architecture.en.md). Current capabilities are defined in the [architecture](architecture.en.md); CLI/Web share Rust contracts.
 
 ## Implementation boundaries
 
@@ -18,6 +18,8 @@ Follow the [version-one specification](../project/specification.en.md) and [arch
 
 ## Verification
 
+Run `corepack pnpm repo:check` for source rules without a preceding build. A separate CI job runs it before platform release checks. Maintain development scripts under [scripts/AGENTS.md](../../scripts/AGENTS.md) and select verification with [wombat-verify](../../.agents/skills/wombat-verify/SKILL.md).
+
 ```sh
 corepack pnpm build
 corepack pnpm typecheck
@@ -31,7 +33,7 @@ After building, run synthetic development scripts: `node --import tsx scripts/be
 
 Choose tests by the actual change; run all for complete-chain delivery. Cross-language tests call dist and require a preceding build. Independent truth covers A01–A12; correctness is not equivalence to old output. Verify Web interaction, narrow screens, cancellation, and return paths in a browser. Performance reports specify fixed fixtures, release builds, cold/warm queries, core startup, and peak memory; parsing alone does not establish total performance.
 
-Review dependency changes and run `corepack pnpm licenses:generate` and `licenses:check`. Release acceptance uses `corepack pnpm public:check`, `corepack pnpm github:pack`, and installation in a clean directory. Do not claim support for untested platforms. Only checks actually passed enter completion records.
+Review dependency changes and run `corepack pnpm licenses:generate` and `licenses:check`. Release acceptance uses `corepack pnpm public:check`, `corepack pnpm github:pack`, and installation in a clean directory. Do not claim support for untested platforms. Report only checks that actually passed.
 
 ## Web-First Migration
 

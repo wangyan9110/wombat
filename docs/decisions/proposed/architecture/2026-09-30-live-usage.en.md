@@ -4,7 +4,7 @@
 
 Status: proposed
 
-This note retains the full target, which is not fully implemented. Resumable cursors, SQLite transactions, an on-demand shared service and automatic CLI/TUI updates were delivered on 2026-09-30; the current documents below describe their boundaries. See the [current architecture](../../../development/architecture.en.md) and [support matrix](../../../reference/support-matrix.en.md) for shipped behavior. Interfaces, timings and performance figures below are proposed specifications or acceptance targets.
+This note retains the full target, which is not fully implemented. Resumable cursors, SQLite transactions, an on-demand shared service and automatic CLI/TUI updates were delivered on 2026-09-30; the current documents below describe their boundaries. See the [current architecture](../../../development/architecture.en.md) and [architecture](../../../development/architecture.en.md) for shipped behavior. Interfaces, timings and performance figures below are proposed specifications or acceptance targets.
 
 ## Implementation progress
 
@@ -118,7 +118,7 @@ Connection failures show the last successful check and recovery state; reconnect
 3. **Introduce the on-demand service**: local IPC, single-instance behavior, events/reconciliation, precise appends, cancellation, leases and recovery. `--fresh/--cached` and all query entry points share the core.
 4. **Deliver automatic behavior**: default TUI following, Agent watch streams, stable selection and visible freshness. Verify lifecycle, resources and faults. The user's requirement is complete only after this phase passes.
 
-Each phase is independently verifiable. Avoid simultaneously replacing source accounting, all pages and old storage formats. Lock/review new dependencies and update third-party notices. Do not remove “incremental index not implemented” from current support documentation before delivery.
+Each phase is independently verifiable. Avoid simultaneously replacing source accounting, all pages and old storage formats. Lock/review new dependencies and update third-party notices. Update module guides only after the corresponding capability ships; do not mark the complete proposal implemented prematurely.
 
 ## Alternatives considered
 

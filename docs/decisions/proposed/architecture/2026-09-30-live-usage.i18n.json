@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/decision-note-fast-automatic-usage-updates": {
-      "zh": "284ddba356a2402c47485b96d815c53824bf6656e7152c1f376551aa52d532aa",
-      "en": "349148671916b8e24e67a6340342523182811fbf273265658ca2522794679992"
+      "zh": "3bd584f74241fcc8a737cdfc623829f00066d4b685544c0ce13a935f67101e18",
+      "en": "5003f8c33132628fa1ae6eaeaf5f596ff0d8c1da4a2ec58911e5034070dde35f"
     },
     "/decision-note-fast-automatic-usage-updates/implementation-progress": {
       "zh": "437ab2f9e4fb777bc7aeb1cb47a22a341835a234f20ea2d83ede8d16452f4e92",
@@ -42,8 +42,8 @@
       "en": "4982f667038e0fe2fd9de97c7a243c4d823637529cb411b6207212cc885b1e18"
     },
     "/decision-note-fast-automatic-usage-updates/proposal/7-implementation-sequence": {
-      "zh": "acadd62812db6bd873db27a91ef87d237c3424b3230099a792171bb169675de4",
-      "en": "f92223940e8642b9018e3c8ccf5ebae4ef27de437839eaaf240982d8002ee441"
+      "zh": "6fe15244c2c5efb8f0790262e2906d861cac857b7e8fdad4bb61fc7555e44547",
+      "en": "aeae7d763ee09be4c234f8cbe1b7039d661c5375c4beaa48a538f9ccfbb44d11"
     },
     "/decision-note-fast-automatic-usage-updates/alternatives-considered": {
       "zh": "f11e0b38e7a520481714171682b48acb71c8e51674f5adc778a7c48e64c8b2ef",

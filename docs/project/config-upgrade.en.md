@@ -2,7 +2,7 @@
 
 [中文](config-upgrade.md) | English
 
-This is the independent public specification for the 2026-10-01 upgrade, not a completion claim. See the [support matrix](../reference/support-matrix.en.md) for current capabilities and [progress](progress.en.md) for evidence.
+This is the independent public specification for the 2026-10-01 upgrade, not a completion claim. See the [architecture](../development/architecture.en.md) for current capabilities and verification records retained in Git history for evidence.
 
 ## Entry points and scope
 
@@ -56,7 +56,7 @@ Explain zero, unknown and incomplete records within usage counting. Input includ
 
 ### Source mapping and gaps
 
-This table records source inspection on 2026-10-03, not browser or end-to-end acceptance in this round. The [support matrix](../reference/support-matrix.en.md) still defines support limits.
+This table records source inspection on 2026-10-03, not browser or end-to-end acceptance in this round. The [architecture](../development/architecture.en.md) still defines support limits.
 
 | Area | Current code | Remaining difference |
 |---|---|---|

@@ -51,7 +51,7 @@ corepack pnpm build
 corepack pnpm github:pack -- --current-platform --reuse-build --runtime-license /path/to/node/LICENSE
 ```
 
-完整五平台候选使用 `--native-dir <artifacts>`。`--reuse-build` 仍校验源码与构建产物指纹，不能复用过期构建。平台边界和实际验收见[支持矩阵](support-matrix.md)，发行步骤见[发行 Skill](../../.agents/skills/wombat-release/SKILL.md)。
+完整五平台候选使用 `--native-dir <artifacts>`。`--reuse-build` 仍校验源码与构建产物指纹，不能复用过期构建。平台边界和实际验收见[验收状态](../project/status.md)，发行步骤见[发行 Skill](../../.agents/skills/wombat-release/SKILL.md)。
 
 ## GitHub 简介
 

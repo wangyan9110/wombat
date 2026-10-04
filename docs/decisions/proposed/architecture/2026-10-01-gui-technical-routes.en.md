@@ -10,7 +10,7 @@ Research date: 2026-10-01. This note records desktop frameworks, core integratio
 
 ## Problem
 
-Compare the runtime cost, implementation reuse, and maintenance cost of GUI, CLI, and CLI+Web. The current code still includes CLI/TUI; see the [architecture](../../../development/architecture.en.md) for module boundaries and the [support matrix](../../../reference/support-matrix.en.md) for actual support. TUI removal is an unimplemented product direction. Current product boundaries are only a research baseline, not a constraint on the forthcoming product plan.
+Compare the runtime cost, implementation reuse, and maintenance cost of GUI, CLI, and CLI+Web. The current code still includes CLI/TUI; see the [architecture](../../../development/architecture.en.md) for module boundaries and the [architecture](../../../development/architecture.en.md) for actual support. TUI removal is an unimplemented product direction. Current product boundaries are only a research baseline, not a constraint on the forthcoming product plan.
 
 Source evidence: the generic [UsageClient](../../../../client/src/client.ts) provides generated contract validation, queries, pricing, and an optional live interface; the [Node host](../../../../client/src/node/core.ts) manages core subprocesses; [live transport](../../../../client/src/node/live.ts) connects to the shared service; and [pricing transport](../../../../client/src/node/prices.ts) performs restricted downloads. A shared [Rust library](../../../../core/src/lib.rs) and executable entry point already exist, but their lifecycle when embedded in a desktop host has not been verified.
 
@@ -39,7 +39,7 @@ The target entry points are a desktop GUI, a non-TTY CLI, and a CLI+Web edition 
 
 Performance comparisons distinguish one-shot CLI calls, a running GUI, and CLI+Web. Use the same data, cache, and query conditions, accounting separately for startup and resident costs and stating which browser processes are included for Web. Editions may upgrade independently; shared-service access must verify the running service's protocol, storage, and capability compatibility rather than only its bundled binary. Cancelling one client must not kill a shared service used by another entry point.
 
-The current [multi-entry delivery workflow](../../../development/workflow.en.md) still describes the CLI/TUI baseline. Implementing the product migration will require corresponding updates to the conventions, support matrix, and distribution manifest; this research does not present the target as shipped behavior.
+The current [multi-entry delivery workflow](../../../development/workflow.en.md) still describes the CLI/TUI baseline. Implementing the product migration will require corresponding updates to the conventions, module guides, and distribution manifest; this research does not present the target as shipped behavior.
 
 ### Candidate reuse between desktop and Web
 

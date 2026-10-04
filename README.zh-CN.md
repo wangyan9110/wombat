@@ -13,7 +13,7 @@ Wombat 帮你看清 Codex 的 Token 用量和任务耗时，发现指令、扩�
 
 用量、额度和优化建议集中展示。打开就能看到哪些工作需要关注；处理完成后，回到 Wombat 检查结果。
 
-产品方向以本页为准；当前实现、平台支持和发行验收边界见[支持矩阵](docs/reference/support-matrix.md)。
+产品方向以本页为准；当前实现、平台支持和发行验收边界见[分发说明](docs/reference/distribution.md)。
 
 ## 开始使用
 
@@ -41,7 +41,7 @@ wombat update --check --version 0.1.0-dev.2
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 
-发行目标包括 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。发行包无需另装 Node.js、npm、Rust、pnpm 或编译器；其他平台和实际验收边界见[支持矩阵](docs/reference/support-matrix.md)。浏览器未自动打开时，使用终端输出的完整链接。
+发行目标包括 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。发行包无需另装 Node.js、npm、Rust、pnpm 或编译器；其他平台和实际验收边界见[分发说明](docs/reference/distribution.md)。浏览器未自动打开时，使用终端输出的完整链接。
 
 首次使用时，确认读取位置并选择“读取本机记录”。首批结果可先查看；没有历史记录，也可以检查已授权的指令和扩展。
 

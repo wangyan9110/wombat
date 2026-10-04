@@ -1,10 +1,9 @@
-# 命令入口开发约定
+# CLI Instructions
 
-本目录同时遵循[根目录约定](../AGENTS.md)及[开发约定](../docs/development/workflow.md)。公开入口与输出承诺见[CLI 模块说明](README.md)。
+Follow [root instructions](../AGENTS.md) and the [delivery workflow](../docs/development/workflow.en.md). Public behavior belongs in the [module README](README.en.md).
 
-- 参数解析、帮助、JSON/文本输出和退出码留在 CLI；计量、计价、筛选和快照查询通过类型化客户端交给内核。
-- 无子命令时输出用量文本，与显式 usage 同口径；交互页面由 web 显式启动，不再引入终端渲染或 FFI。
-- JSON 输出与生成契约同口径，进度写 stderr；部分结果、取消和参数错误保留可区分的退出状态。
-- 修改参数或输出时先构建，再运行 CLI 单元及真实内核端到端测试；同步更新用户命令文档和受影响的双语入口。
-
-- `web` 只装配本机宿主，范围来自启动参数；退出取消自身请求，不终止其他入口共享的内核服务。
+- CLI owns arguments, help, JSON/text rendering, and exit codes. Delegate accounting, pricing, filtering, and queries through the typed client.
+- No subcommand means usage text with the same semantics as explicit usage. Start Web explicitly; no terminal rendering or FFI.
+- JSON follows generated contracts; progress goes to stderr. Preserve distinct partial-result, cancellation, and argument-error states.
+- Rebuild before CLI unit and real-core end-to-end tests when arguments/output change. Update affected bilingual command documentation.
+- web only assembles the local host with startup scope. Exiting cancels this client's requests, not the shared core service used by other clients.

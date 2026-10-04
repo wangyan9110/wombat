@@ -111,21 +111,6 @@
       "record": "docs/reference/privacy.i18n.json"
     },
     {
-      "zh": "docs/project/progress.md",
-      "en": "docs/project/progress.en.md",
-      "record": "docs/project/progress.i18n.json"
-    },
-    {
-      "zh": "docs/project/roadmap.md",
-      "en": "docs/project/roadmap.en.md",
-      "record": "docs/project/roadmap.i18n.json"
-    },
-    {
-      "zh": "docs/reference/support-matrix.md",
-      "en": "docs/reference/support-matrix.en.md",
-      "record": "docs/reference/support-matrix.i18n.json"
-    },
-    {
       "zh": "docs/guides/terminal.md",
       "en": "docs/guides/terminal.en.md",
       "record": "docs/guides/terminal.i18n.json"
@@ -300,6 +285,7 @@
   "excluded": [
     "docs/decisions/AGENTS.md",
     "AGENTS.md",
+    "scripts/AGENTS.md",
     "THIRD_PARTY_NOTICES.md",
     "cli/AGENTS.md",
     "client/AGENTS.md",

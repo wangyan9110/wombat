@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-`wombat-core` 读取本机 Agent 记录，生成不可变快照，并为用量与对话查询提供同一业务口径。当前生产来源为 Codex；具体支持范围见[支持矩阵](../docs/reference/support-matrix.md)。
+`wombat-core` 读取本机 Agent 记录，生成不可变快照，并为用量与对话查询提供同一业务口径。当前生产来源为 Codex；具体支持范围见[来源适配参考](../docs/development/adapters.md)。
 
 ## 入口与职责
 

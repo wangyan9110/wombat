@@ -22,4 +22,4 @@ Aggregating the current page in TUI was considered, but cannot provide hidden-pa
 
 ## Impact and verification
 
-This is an optional v3 field extension. Rust DTOs generate TS/Schema and validators, with no added dependencies. Synthetic queries verify unchanged scales and shares across pages, complete detail groups, unpriced components, and full-thread links. See [progress](../../../project/progress.en.md) for bilingual native rendering and actual terminal verification, and [contracts](../../../development/contracts.en.md) for field semantics.
+This is an optional v3 field extension. Rust DTOs generate TS/Schema and validators, with no added dependencies. Synthetic queries verify unchanged scales and shares across pages, complete detail groups, unpriced components, and full-thread links. See verification records retained in Git history for bilingual native rendering and actual terminal verification, and [contracts](../../../development/contracts.en.md) for field semantics.

@@ -1,40 +1,32 @@
-# Wombat 文档维护约定
+# Documentation Instructions
 
-本文件补充[仓库约定](../AGENTS.md)，仅适用于 `docs/`。修改前核对相关源码、生成契约和实际验证；方案描述不作为已交付证据。需要跨文档整理时使用 [wombat-docs Skill](../.agents/skills/wombat-docs/SKILL.md)。
+Follow [root instructions](../AGENTS.md). Verify claims against source, generated contracts, and actual execution; proposals do not prove delivery. Use [wombat-docs](../.agents/skills/wombat-docs/SKILL.md) for restructuring.
 
-公开的人类可读文档按[双语流程](i18n/README.md)维护。页面两种语言同次修改并重录配对；现有公开说明已完成配对，新增页面不得引入单语待办。`AGENTS.md` 是工作指令，单语维护。
+## Ownership
 
-## 目录与归属
+Maintain each fact in one place and link elsewhere. Update an existing owner before creating a page; add a page only for a distinct reader task or responsibility. Parent pages orient readers without repeating descendant details.
 
-`guides/` 放用户操作，`reference/` 放当前产品口径，`development/` 放开发与架构，`project/` 放规格、状态和历史。`decisions/` 保存理由，`i18n/` 管理语言；`schemas/` 与 `benchmarks/` 分别保留生成契约和日期化证据。新说明进入对应目录并更新双语索引，不再平铺根目录。
-
-每项事实选择一个主要归属，其他页面简述并链接，不复制完整段落。
-
-| 内容 | 主要归属 |
+| Subject | Owner |
 |---|---|
-| 全仓与子目录的长期开发规则 | 根目录或对应子目录的 `AGENTS.md` |
-| 可重复执行的任务步骤、检查顺序与工具用法 | `.agents/skills/<name>/SKILL.md`；不在 Skill 中另写产品契约 |
-| 跨模块或长期约束的决策理由、被放弃的方案 | [决策记录](decisions/README.md)；机械改动无需新建 |
-| 首版目标与取舍 | [首版方案](project/specification.md)；未完成部分不得写成现状 |
-| 已实现的结构、模块职责和数据流 | [架构](development/architecture.md)；具体字段与行为由源码及[契约](development/contracts.md)说明 |
-| 每个根模块的公开入口、限制与验证 | 对应模块的 README；跨模块关系仍由[架构](development/architecture.md)说明 |
-| 当前支持范围与限制 | [支持矩阵](reference/support-matrix.md) |
-| 当前阶段的任务状态 | [实施跟踪](project/status.md) |
-| 已完成事项、日期、验证命令与证据边界 | [进度](project/progress.md)及带日期的 `benchmarks/` 证据；旧记录合并保留结果、日期及证据边界 |
-| 后续候选方向 | [路线图](project/roadmap.md) |
-| 多入口交付与贡献者开发流程 | [开发约定](development/workflow.md) |
-| CLI/Web 用户操作 | [Agent/CLI 说明](guides/cli.md)和[前端说明](../ui/README.md) |
-| 来源与计价的具体边界 | [适配器用例](development/adapters.md)和[价格口径](reference/pricing.md) |
+| Standing Agent rules | Root or scoped AGENTS.md, in English |
+| Repeatable procedures | .agents/skills/; no separate product contracts |
+| Durable rationale and tradeoffs | [Decisions](decisions/README.en.md); no record for mechanical/local fixes |
+| Requirements and acceptance criteria | project/ specifications; never present targets as delivered |
+| Module relationships and data flow | [Architecture](development/architecture.en.md) |
+| Public entries, behavior, and limitations | Owning module README or technical reference; fields derive from source/generated contracts |
+| Outstanding work and acceptance | [Status](project/status.en.md); no duplicate feature catalog |
+| Verification evidence | Test output, CI/PR results, and scoped benchmarks/ artifacts; no rolling progress ledger |
+| Contributor workflow | [Development](development/workflow.en.md) |
+| User operations | guides/ and module READMEs |
 
-## 修改规则
+## Editing
 
-- 新的人类可读页面先确定读者和用途：教程按前提、步骤、可观察结果及失败恢复组织；参考文档按主题提供当前行为和限制。混合内容较多时分开页面，不在上层文档重述下层细节。
-- 写清当前实现、目标方案和历史验证分别属于哪一类；不要用旧进度中的命令、测试数或截图证明当前构建。
-- 先改事实的主要归属，再更新受影响的入口、支持矩阵、阶段记录和交叉链接。仅在实际完成验证后追加进度，不预写完成结论。
-- 用户命令、默认值、错误和平台支持须由当前源码或本次运行证据支持；无法验证的边界直接标明。
-- 生成的 Schema、TS 类型与校验器以 Rust DTO 为源头；不要手写一份易漂移的字段清单。注释与 JSDoc 只记录调用者需要而代码不显然的行为、失败、时机和所有权，不写推理过程或测试复述。
-- 维护页面只写目前有效的承诺；历史经过放进带日期的进度、决策记录或故障复盘。发现重复段落时保留一个主要归属，其余改为短链接。
-- 公开文档只引用仓库可公开文件；私人原型、真实会话、账户数据和未经审查的输出不进入文档或示例。
-- 常驻指令、架构与开发文档按[篇幅清单](../scripts/doc-budgets.json)限制非空白字符数；超限先移到正确归属，再精简，确有必要才提高上限并在改动说明中解释。上限不是删减必要故障或限制的目标。
-- 整理旧文档时将有长期价值的理由提炼到决策目录；删除重复和已失效的操作说明，不把历史结果升级为当前承诺。
-- 文档重命名或移动时同步修复引用、双语记录、篇幅清单及发行文件清单。对纯文档改动，检查链接、状态口径，执行 `corepack pnpm docs:check` 和 `git diff --check`；修改 Skill 时同一检查会验证 Skill 元数据。
+- Public prose follows the [bilingual workflow](i18n/README.en.md): update both languages and confirm only reviewed pairs. AGENTS.md files use English and are exempt from pairing.
+- Tutorials follow prerequisites, steps, observable results, and failure recovery. References describe current behavior by topic. Split substantial mixed content.
+- Update only affected owners and links. Change status only when acceptance changes. Do not recreate roadmap, support-matrix, or progress ledgers elsewhere.
+- Verify commands, defaults, errors, and platform claims against current source/execution. State unverified limits; historical tests and screenshots do not validate today's checkout.
+- Generated schemas/types/validators derive from Rust DTOs. Do not hand-maintain field catalogs. Comments document non-obvious behavior, failure, timing, and ownership, not reasoning transcripts or tests.
+- Keep current promises in maintained prose, rationale in decisions, and historical evidence in Git/CI or scoped artifacts. Remove duplicate or obsolete instructions without discarding outstanding requirements.
+- Public references must not expose private material, conversations, account data, or unreviewed output.
+- [Budgets](../scripts/doc-budgets.json) count non-whitespace Unicode characters. Relocate or condense before raising a ceiling; justify changes, including language conversion. Never remove necessary failure/limitation rules merely to fit.
+- Moves/deletions update incoming links, bilingual records, budgets, and release manifests together. Run corepack pnpm docs:check and git diff --check; repository-rule changes also require corepack pnpm repo:check.

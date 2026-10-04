@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/wombat-implementation-status": {
-      "zh": "46647ad49c706866d5af52201e1d1c1cb74b3efb95f65f01aa12bf8f352875f2",
-      "en": "b6543375a4acb7b6ed0bda8e109ec8ecf8bdf2c146dcd792a7279f47265a047a"
+      "zh": "7ee4241e91ac183c61c2111b8956ef78e30e4f9cca4792e2b9c8470569252122",
+      "en": "16f023a845a8d38f27fe014693243d8d7a1d6775ba2fb8051a4720f1ce8f0af3"
     },
     "/wombat-implementation-status/five-surfaces-and-the-full-optimization-lifecycle-stage-acceptance-failed": {
       "zh": "13fb879ab02318477a4e467584a295813c19ecf9a1ee299800bcedfcd2fe8d0c",
@@ -14,24 +14,12 @@
       "en": "2b81169493135500ee68e8c5aa2fad5067ee37a90cbf800f13176be18fd8eea1"
     },
     "/wombat-implementation-status/five-surfaces-and-the-full-optimization-lifecycle-stage-acceptance-failed/existing-requirement-gaps-register": {
-      "zh": "fe2926ef954b8b155da3424ee5b8437e45e8ecc7d0a917c31d1e824b0d2c0abe",
-      "en": "bd1d95837e3a6cf794de1baae6328cd68d9ddea82fada7131f2a09c1bfbc71b4"
-    },
-    "/wombat-implementation-status/delivered-baseline": {
-      "zh": "dc150061f746e35986753c7fa1430ea6402edf7be1457e5c17a755bb19d8e557",
-      "en": "37ba7724b47a9b1dd58928bc2a75d24b464c04e5f094e7425a4b9cc334be083d"
+      "zh": "56cca02b4c072bf9921fc9389e66648f19ed66bb74c05e5af629b44c4a63aa09",
+      "en": "f6d834def67efab451c61a3a1fb6f743512e460d9029633f14597ec8c738da23"
     },
     "/wombat-implementation-status/remaining-work-and-acceptance-responsibility": {
-      "zh": "dae8649c26945af3363cce46f39f8d1ab791e5a34328f2653f6e5d36e32741c5",
-      "en": "dfcca8429f2f4624933d8f844fcb2a29a7d1279344c0bdbc244f145a1fa0f728"
-    },
-    "/wombat-implementation-status/first-web-delivery-2026-10-01": {
-      "zh": "66e04aecf1e044ecb7c7340faa96b563a2c713e6d363fc7dd8231041a7727902",
-      "en": "9471248fa9694c2c2dbd6b8b2dbfea22ba99408894ee1d685e8a03835acd45d3"
-    },
-    "/wombat-implementation-status/configuration-measurement-and-manual-reviews-2026-10-02": {
-      "zh": "4cf362851d10dadc1b9fa954284eb426b414eafd3ce51500f32440cb087cb389",
-      "en": "77677be842aa055bafadcbeb905fbea579b98808eca2dc5e3c73d6114cdac245"
+      "zh": "114a961564a28b40fc2c157610183b0775ae83010f78524f016ff3d1bfca35e3",
+      "en": "c0882ba7e38b72f69273e27bca8866dd7ce3cc6394e865a3269e6bedfd276663"
     }
   }
 }

@@ -2,7 +2,7 @@
 
 中文 | [English](workflow.en.md)
 
-以[首版方案](../project/specification.md)及[架构](architecture.md)为依据。产品只有用量与对话，CLI/Web 共用 Rust 操作、筛选、计量与价格。
+以[首版方案](../project/specification.md)及[架构](architecture.md)为依据。当前能力见[架构](architecture.md)，CLI/Web 共用 Rust 契约。
 
 ## 实现边界
 
@@ -18,6 +18,8 @@
 
 ## 验证
 
+源码规则用 `corepack pnpm repo:check`，无需先构建；CI 在平台发行检查前单独运行。开发脚本按 [scripts/AGENTS.md](../../scripts/AGENTS.md)维护，验证用 [wombat-verify](../../.agents/skills/wombat-verify/SKILL.md)。
+
 ```sh
 corepack pnpm build
 corepack pnpm typecheck
@@ -31,7 +33,7 @@ corepack pnpm test
 
 按改动选择对应测试，完整链路交付运行全部。跨语言测试调用 dist，必须先构建。独立真值覆盖 A01–A12；正确性不是“与旧输出一样”。Web 在浏览器验证交互、窄屏、取消与完整返回路径。性能须报告固定语料、release、冷暖查询、内核启动及峰值内存，不以局部解析代表整体。
 
-依赖变化审查并执行 `corepack pnpm licenses:generate`、`licenses:check`。发行验收执行 `corepack pnpm public:check`、`corepack pnpm github:pack` 与干净目录安装；其他平台未经实测不能宣称支持。只有实际通过的项目进入进度完成记录。
+依赖变化审查并执行 `corepack pnpm licenses:generate`、`licenses:check`。发行验收执行 `corepack pnpm public:check`、`corepack pnpm github:pack` 与干净目录安装；其他平台未经实测不能宣称支持。只报告实际通过的验证。
 
 ## Web 优先迁移
 

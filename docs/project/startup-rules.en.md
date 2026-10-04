@@ -2,7 +2,7 @@
 
 [中文](startup-rules.md) | English
 
-2026-10-02. Status: A1–A4 are implemented; A5 has controlled-failure and local acceptance evidence with scale/platform work remaining. B0/B1/B2/B4 deliver deterministic branches; B3 only exposes an unavailable capability boundary. It supplements the [version-one specification](specification.en.md) and [configuration upgrade](config-upgrade.en.md), without replacing the [support matrix](../reference/support-matrix.en.md) or [implementation status](status.en.md). Public builds, tests, and contributions do not depend on external prototypes or private materials.
+2026-10-02. Status: A1–A4 are implemented; A5 has controlled-failure and local acceptance evidence with scale/platform work remaining. B0/B1/B2/B4 deliver deterministic branches; B3 only exposes an unavailable capability boundary. It supplements the [version-one specification](specification.en.md) and [configuration upgrade](config-upgrade.en.md), without replacing the [architecture](../development/architecture.en.md) or [implementation status](status.en.md). Public builds, tests, and contributions do not depend on external prototypes or private materials.
 
 ## Product boundaries
 

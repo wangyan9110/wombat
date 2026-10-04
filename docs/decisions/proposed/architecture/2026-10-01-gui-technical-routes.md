@@ -10,7 +10,7 @@ Status: proposed
 
 ## 问题
 
-需要比较 GUI、CLI 与 CLI+Web 的运行成本、现有实现复用程度和维护成本。当前代码仍包含 CLI/TUI，模块边界见[架构](../../../development/architecture.md)，实际支持范围见[支持矩阵](../../../reference/support-matrix.md)。TUI 退出属于尚未实施的产品方向，当前产品边界只作为调研基线，不用于限制后续产品方案。
+需要比较 GUI、CLI 与 CLI+Web 的运行成本、现有实现复用程度和维护成本。当前代码仍包含 CLI/TUI，模块边界见[架构](../../../development/architecture.md)，实际支持范围见[架构](../../../development/architecture.md)。TUI 退出属于尚未实施的产品方向，当前产品边界只作为调研基线，不用于限制后续产品方案。
 
 源码依据：通用 [UsageClient](../../../../client/src/client.ts)提供生成契约校验、查询、价表与可选实时接口；[Node 宿主](../../../../client/src/node/core.ts)管理内核子进程；[实时传输](../../../../client/src/node/live.ts)连接共享服务；[价表传输](../../../../client/src/node/prices.ts)负责受限下载。共享 [Rust library](../../../../core/src/lib.rs)和可执行入口已经存在，但直接嵌入桌面宿主的生命周期尚未验收。
 
@@ -39,7 +39,7 @@ Status: proposed
 
 性能对照区分一次性 CLI、持续运行 GUI 和 CLI+Web；记录相同数据、缓存与查询条件，分别计入进程启动和驻留开销，Web 版本应同时说明浏览器进程的统计范围。各版本可能独立升级，共用服务前需验证运行中服务的协议、存储及能力兼容性；不能只检查随包二进制。取消一个客户端不得误杀其他入口使用的共享服务。
 
-现行[多入口开发约定](../../../development/workflow.md)仍描述 CLI/TUI 基线。实施产品迁移时需同步修订约定、支持矩阵与发行清单；本调研不把目标写成当前已交付能力。
+现行[多入口开发约定](../../../development/workflow.md)仍描述 CLI/TUI 基线。实施产品迁移时需同步修订约定、模块说明与发行清单；本调研不把目标写成当前已交付能力。
 
 ### 桌面与 Web 的复用候选
 

@@ -2,7 +2,7 @@
 
 中文 | [English](architecture.en.md)
 
-Wombat 采用共享 Rust 内核、生成契约和可替换宿主。方向为 GUI、CLI 与 CLI+Web，桌面框架已选 Tauri 2；本机 Web 已落地，TUI 已移除，桌面宿主待实施。实际支持及验证见[支持矩阵](../reference/support-matrix.md)与[进度](../project/progress.md)。
+Wombat 采用共享 Rust 内核、生成契约和可替换宿主。方向为 GUI、CLI 与 CLI+Web，桌面框架已选 Tauri 2；本机 Web 已落地，TUI 已移除，桌面宿主待实施。模块接口见各模块 README，未完成验收见[实施状态](../project/status.md)。
 
 ## 数据流
 
@@ -76,7 +76,7 @@ HTTP只开放生成的查询、同步、价表、配置、优化、授权、偏�
 
 发行包内置Node.js 26.4.0；源码工具要求同版本以上。构建顺序为内核、客户端、Web与CLI，再组装平台归档。前端随`dist/web/`打包，运行时无需Vite。React DOM渲染界面，Tauri 2仍是已选桌面宿主；桌面传输和生命周期需独立实施，本机HTTP验证不等于Tauri验收。
 
-协议与宿主测试使用合成客户端；端到端测试从发行入口启动 HTTP，比较真实 Rust 和 CLI 的独立真值、固定版本下钻、认证及退出。浏览器交互、窄屏、失败/取消、安装包资产与跨平台需分别验证；通过范围只写入进度。详细流程见[开发约定](workflow.md)，Web 的取舍见[本地 Web 决策](../decisions/implemented/architecture/2026-10-01-local-web.md)。
+协议与宿主测试使用合成客户端；端到端测试从发行入口启动 HTTP，比较真实 Rust 和 CLI 的独立真值、固定版本下钻、认证及退出。浏览器交互、窄屏、失败/取消、安装包资产与跨平台需分别验证；验证结果记录在任务、PR 或 CI。详细流程见[开发约定](workflow.md)，Web 的取舍见[本地 Web 决策](../decisions/implemented/architecture/2026-10-01-local-web.md)。
 
 `core/config` 读取项目范围并复用用量事实，`config_dto` 生成v1契约供Web/CLI调用。本机Web只接受Rust已观察项目或宿主添加目录；缓存等见[配置契约](contracts.md)，流程见[初始化](../project/initialization.md)。
 

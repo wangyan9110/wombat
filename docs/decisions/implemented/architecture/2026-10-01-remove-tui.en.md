@@ -22,4 +22,4 @@ The previous plan retained the TUI until desktop implementation. The user explic
 
 Old terminal shortcuts, theme environment variables, and FFI startup are unavailable. The terminal guide retains a retirement notice and current entry points so historical links remain valid; user logs and product data directories are unchanged.
 
-Verification covers default text output with terminal flags, the CLI/Web shared core, cancellation, builds, types, module boundaries, dependency licenses, and installed packages. Actual results and platform limits are recorded in [progress](../../../project/progress.en.md).
+Verification covers default text output with terminal flags, the CLI/Web shared core, cancellation, builds, types, module boundaries, dependency licenses, and installed packages. Actual results and platform limits are recorded in verification records retained in Git history.

@@ -24,6 +24,6 @@ Database aggregation and persistent MVCC could further reduce full-history rebui
 
 ## Impact and verification
 
-Public DTOs are unchanged. Regressions cover healthy-source progress, failed-source retention, all-source failure, restart and recovery; cache bounds, response ownership and revision isolation; existing adapter fixtures compare full scans, increments, restarts, corrections and retractions. Performance uses the same release synthetic corpus and records latency, peak memory and conservation; see [progress](../../../project/progress.en.md).
+Public DTOs are unchanged. Regressions cover healthy-source progress, failed-source retention, all-source failure, restart and recovery; cache bounds, response ownership and revision isolation; existing adapter fixtures compare full scans, increments, restarts, corrections and retractions. Performance uses the same release synthetic corpus and records latency, peak memory and conservation; see verification records retained in Git history.
 
 Appends still traverse some full-history safe facts and rebuild memory indices; uncached filters still aggregate. This is not constant time or memory. Roots share one sync worker; this change removes cached restoration blocking ready queries. macOS verification does not establish Windows/Linux acceptance.

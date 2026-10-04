@@ -13,7 +13,7 @@ Wombat helps you understand Codex token usage and task timing, and find issues i
 
 Usage, account allowance, and optimization recommendations appear in one local overview. See what needs attention, then return after Codex makes changes to check the results.
 
-This page describes the product direction. See the [support matrix](docs/reference/support-matrix.en.md) for current implementation, platform support, and release acceptance boundaries.
+This page describes the product direction. See the [distribution guide](docs/reference/distribution.en.md) for current implementation, platform support, and release acceptance boundaries.
 
 ## Get started
 
@@ -41,7 +41,7 @@ wombat update --check --version 0.1.0-dev.2
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 
-Release targets are macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. The archives require no separate Node.js, npm, Rust, pnpm, or compiler installation. See the [support matrix](docs/reference/support-matrix.en.md) for platform and acceptance boundaries. If the browser does not open, use the full URL printed in your terminal.
+Release targets are macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. The archives require no separate Node.js, npm, Rust, pnpm, or compiler installation. See the [distribution guide](docs/reference/distribution.en.md) for platform and acceptance boundaries. If the browser does not open, use the full URL printed in your terminal.
 
 On first use, confirm the source location and select **Read local records**. You can view the first available results before loading finishes.
 

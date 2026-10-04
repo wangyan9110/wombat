@@ -22,4 +22,4 @@ usage 显式 presentation 为 distribution 或 details 时按时段分页，deta
 
 ## 影响与验证
 
-这是 v3 的可选字段扩展，Rust DTO 生成 TS/Schema 与校验器；无新增依赖。合成查询验证分页前后刻度和份额不变、明细不拆组、未计价分项及完整对话关联。中英文原生渲染与真实终端验收见[进度](../../../project/progress.md)，字段语义见[契约](../../../development/contracts.md)。
+这是 v3 的可选字段扩展，Rust DTO 生成 TS/Schema 与校验器；无新增依赖。合成查询验证分页前后刻度和份额不变、明细不拆组、未计价分项及完整对话关联。中英文原生渲染与真实终端验收见 Git 历史中的验证记录，字段语义见[契约](../../../development/contracts.md)。

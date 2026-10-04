@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/startup-and-deterministic-rule-upgrade-specification": {
-      "zh": "c5355e56baba26c824d29e406bfa55838dde9fedae18e16fce986094ed9c5d7a",
-      "en": "d664ade4308c8a4ab2765a80d41089015afd21df1df3e0cca693b71808f0dd2d"
+      "zh": "1eadac511997dff4c71630174cd2563e11d65cbac1311b48a64a37ad2f5b5be8",
+      "en": "b62bb1da7268b28f6f9661f8b7c813424a8f643f626176c17a260f77a7714439"
     },
     "/startup-and-deterministic-rule-upgrade-specification/product-boundaries": {
       "zh": "ba261f9a40446e350a52b6021d55ba9b915dc5708d65118d952289bcc9cf7c44",

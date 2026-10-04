@@ -37,4 +37,4 @@ Wombat 的独立合成样本使用协议字段与手算期望，不安装或运�
 - 工具返回没有可靠成功或失败字段时显示未知，不沿用开始事件的运行中状态；已知失败、取消或成功不被未知返回覆盖，重放开始不重新开启操作。
 - 原生标题来自同来源 `session_index.jsonl`。标题缺失保持缺失，不用用户提问生成标题；多次设置、失败和缺失字段按来源证据处理。
 
-运行方式：`cargo test --locked --manifest-path core/Cargo.toml adapters`、`cargo test --locked --manifest-path core/Cargo.toml pricing`；完整 CLI 链路先执行 `corepack pnpm build`，再运行相应集成测试。验证结果和未完成的验收条件记录在[进度记录](../project/progress.md)，本页不以测试名称代替测试通过证据。
+运行方式：`cargo test --locked --manifest-path core/Cargo.toml adapters`、`cargo test --locked --manifest-path core/Cargo.toml pricing`；完整 CLI 链路先执行 `corepack pnpm build`，再运行相应集成测试。验证结果写入任务或 CI，未完成的验收条件留在实施状态，本页不以测试名称代替测试通过证据。

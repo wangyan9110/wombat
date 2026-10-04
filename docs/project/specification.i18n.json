@@ -2,12 +2,12 @@
   "version": 2,
   "sections": {
     "/wombat-usage-and-conversations-version-one-specification": {
-      "zh": "00d5766138af93ffdeb88bfa1b3fc0319e23aa0153588303544f7aea7b47269d",
-      "en": "bb82ae935a31781fd0b07f7e2b311c25e9146ee0055fe1770732332e61c6a063"
+      "zh": "7e1fafb10af56d8aa34b5b97e4d78adf33bd0596c5342fee200643a70a30cb16",
+      "en": "bd5a75ecf983ac08e3f1f9ff9d36e902bf12de359817c993888733ef7dc75a27"
     },
     "/wombat-usage-and-conversations-version-one-specification/scope": {
-      "zh": "9afa4026bbddbf60b38457554eaf5a475a502536d6cc7cdf0609fb4bfdf06830",
-      "en": "6f7a1352996fad33bdbc0da08a921f3729d4a372b13a8f003221ecbe62e14b02"
+      "zh": "49755d55f0e956e1f7ecc1e3bed30d443b3ee84b9d1efd9a2c6b7adcc6cbd6e9",
+      "en": "cd00e716cfb9715a21d1f859bb9e0d5447e82b92b0632e5b2c87c833f7d93d49"
     },
     "/wombat-usage-and-conversations-version-one-specification/user-journeys": {
       "zh": "d705e66fe22607b9b5b205b8b3d28db9a7b3d692b88fb5cee444940f63fa770f",
@@ -22,8 +22,8 @@
       "en": "1451fc92776a84ce3b43db64f400937f0ed591f1c692b9c4d4e9df4f673ae577"
     },
     "/wombat-usage-and-conversations-version-one-specification/acceptance-and-delivery": {
-      "zh": "45e5e455383999ead654f0fe260c88d3fc9793d46ecbb366c754acb77bf6f991",
-      "en": "ec1170216d4ae3fb7faa44c06db3a26eec99cdfd18622ac3c0720e4b6fe5a80f"
+      "zh": "c1a8fe7757009cde653f7e7b7de39478e0c4b9b9091a057969ccee54d5ba5d29",
+      "en": "d042b6a995a2973b083de0762a941b62181fc4484e7c3482466ccca8d618dd80"
     }
   }
 }

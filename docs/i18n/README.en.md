@@ -12,7 +12,7 @@ The [pairing manifest](../../scripts/doc-i18n.manifest.json) lists all paired pa
 
 ## Update workflow
 
-1. Check source code, contracts, and current verification evidence before editing the page that owns a fact; do not infer current support from old progress records.
+1. Check source code, contracts, and current verification evidence before editing the page that owns a fact; do not infer current support from historical records.
 2. Update the other language to match the changed passage. Preserve heading levels, list structure, commands, and code blocks; translated links should target an available counterpart, while links to exempt documents and machine evidence keep the same target.
 3. Review terminology, negative conditions, numbers, limits, and executable commands. Run `corepack pnpm docs:i18n:record -- <Chinese file>` for each confirmed page; record only explicitly named pairs.
 4. Run `corepack pnpm docs:check` and `git diff --check`, then review the changes in both languages and the record.

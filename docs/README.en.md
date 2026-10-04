@@ -12,7 +12,6 @@ Choose documentation by task. Source code, technical references, and implementat
 
 ## Technical references · reference
 
-- [Support matrix](reference/support-matrix.en.md): current sources, platforms, capabilities, and limits.
 - [Distribution and public descriptions](reference/distribution.en.md): unreleased status, GitHub description candidates and README asset boundaries.
 - [Pricing rules](reference/pricing.en.md): official evidence, cost policies, unknown values, and explicit updates.
 - [Privacy and data boundaries](reference/privacy.en.md): local reads/writes, body allowlists, and public materials.
@@ -34,8 +33,6 @@ Choose documentation by task. Source code, technical references, and implementat
 - [Configuration measurement/manual review upgrade](project/config-upgrade.en.md) maintains additional requirements and boundaries.
 - [Startup and deterministic rule upgrade](project/startup-rules.en.md) maintains startup-state and static-rule specifications, phase A/B work, and conditional capabilities still awaiting implementation.
 - [Implementation status](project/status.en.md) tracks current delivery and remaining acceptance.
-- [Roadmap](project/roadmap.en.md) maintains future candidates.
-- [Progress and verification](project/progress.en.md) indexes dated results; raw synthetic evidence lives in [benchmarks](benchmarks/). Old commands and screenshots do not represent the current product.
 
 ## Decisions and documentation maintenance
 

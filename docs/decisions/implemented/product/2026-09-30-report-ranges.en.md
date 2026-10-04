@@ -20,4 +20,4 @@ Only the current week/month limits comparison with preceding periods; all histor
 
 ## Impact and verification
 
-This changes the default range of daily/weekly/monthly requests without dates, without changing collection, snapshots or protocol fields. Fixed date boundaries, synthetic CLI ledgers, native interactions and PTY switching cover verification. Execution results belong in the [progress log](../../../project/progress.en.md).
+This changes the default range of daily/weekly/monthly requests without dates, without changing collection, snapshots or protocol fields. Fixed date boundaries, synthetic CLI ledgers, native interactions and PTY switching cover verification. Execution results belong in the verification records retained in Git history.

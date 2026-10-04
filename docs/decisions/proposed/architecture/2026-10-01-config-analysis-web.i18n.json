@@ -2,12 +2,12 @@
   "version": 2,
   "sections": {
     "/decision-note-four-entry-web-and-configuration-usage-analysis": {
-      "zh": "85056528926b9dacfc9a175cb77052958f18e2e1a61e43482c92d4452e237aa2",
-      "en": "227f27434c8032dee6bcf879b8e00a86693184c9c8509cc3cb6eca53e93c8636"
+      "zh": "8bc412686f72e2cfd92bd2e83d5074d4c42719c2447480a4b08179d0c6a8f969",
+      "en": "719b8b89c1182cd13381da35312dae7fcdf746fc1a6c230ad7e7fd073c863abd"
     },
     "/decision-note-four-entry-web-and-configuration-usage-analysis/problem": {
-      "zh": "22a00c4c5a82f5643e0162e0e31704c25b7bf01f4d32609d40db1aaeeb8a08b8",
-      "en": "54db99ce3e83ed587c83fc679e250cb2845ed8f01942c744b6fe95c11704e990"
+      "zh": "d69328baccc431a0d6887b5509ac251b778e4d7ddd5835fd9fa6ad18f8b7f6d8",
+      "en": "69d67dd3fade7201dbc3b9fb009473377e943307ba9b285c8d0f94cdab19f484"
     },
     "/decision-note-four-entry-web-and-configuration-usage-analysis/proposal": {
       "zh": "ca258a5d37ffa6a0ba7c117647724fda51cdfe6385c17e4b18e9127ab0445f72",
@@ -54,8 +54,8 @@
       "en": "bcfcf89a18278bf993c12858e925000b927a71a03b6e2f3def7aa085cda87f93"
     },
     "/decision-note-four-entry-web-and-configuration-usage-analysis/acceptance-criteria": {
-      "zh": "283448fb240e69f63bc5ef9c5f6923a59e1b0666c21a0722d7621c9be1ccfba2",
-      "en": "a2d9bd5d690a7539792b5870d9f4c7c2a6f2d5b082b694f62f0b8ee22959c00e"
+      "zh": "0ca568733d858430358d05d933df103adc5e0770013449dcc2e19b65333bd2fb",
+      "en": "9634c4471709d834b0a94867f32916c8247bd561aa445c3e3b6288d17015ee4e"
     }
   }
 }

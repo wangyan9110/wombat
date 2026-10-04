@@ -20,4 +20,4 @@ Windows 通过锁定的 interprocess 库提供本地命名管道，拒绝远程�
 
 ## 影响与验证
 
-单包体积增大，安装不需要 Rust 或额外的二进制下载脚本。Linux 当前 CI 基于 Ubuntu 24.04/glibc，未声明 Alpine/musl 或 Windows ARM64。Windows 的系统权限与 ConPTY 仍须在 Windows runner 实测；配置存在、交叉类型检查和 macOS 测试不能代替目标平台验收。当前证据见[进度](../../../project/progress.md)，远端安全控制见[安全政策](../../../../SECURITY.zh-CN.md)。
+单包体积增大，安装不需要 Rust 或额外的二进制下载脚本。Linux 当前 CI 基于 Ubuntu 24.04/glibc，未声明 Alpine/musl 或 Windows ARM64。Windows 的系统权限与 ConPTY 仍须在 Windows runner 实测；配置存在、交叉类型检查和 macOS 测试不能代替目标平台验收。当前证据见 Git 历史中的验证记录，远端安全控制见[安全政策](../../../../SECURITY.zh-CN.md)。

@@ -4,13 +4,13 @@
 
 Status: proposed
 
-Technical review draft dated 2026-10-01; the complete proposal remains proposed. Four entries, read-only configuration, fixed-reference estimates, static suggestions and manual reviews are implemented. Stable projects, incremental indexes, persistent composite views and source writes remain pending; phases A–C are not complete as a whole. See the [architecture](../../../development/architecture.en.md) and [support matrix](../../../reference/support-matrix.en.md) for current behavior. This document independently describes public development requirements without depending on private prototypes, real configurations or historical conversations.
+Technical review draft dated 2026-10-01; the complete proposal remains proposed. Four entries, read-only configuration, fixed-reference estimates, static suggestions and manual reviews are implemented. Stable projects, incremental indexes, persistent composite views and source writes remain pending; phases A–C are not complete as a whole. See the [architecture](../../../development/architecture.en.md) and [architecture](../../../development/architecture.en.md) for current behavior. This document independently describes public development requirements without depending on private prototypes, real configurations or historical conversations.
 
 ## Problem
 
 The revised interface needs usage, conversations, configuration and optimization within one work scope. Configuration is more than a file listing: it must distinguish current configuration, historical usage evidence, associated turn usage and content size, and let users open the exact turn, inspect use in other projects and return to their original filters.
 
-Rust already owns source parsing, accounting, pricing, versioned queries and some safe operation extraction; Node Web provides local transport and React presents results. The following table records the proposal baseline; consult the support matrix for current status.
+Rust already owns source parsing, accounting, pricing, versioned queries and some safe operation extraction; Node Web provides local transport and React presents results. The following table records the proposal baseline; consult source and module guides for current status.
 
 | Capability | Existing foundation | Required additions |
 |---|---|---|
@@ -178,6 +178,6 @@ Before B, define supported Codex versions, configuration layers/plugin directori
 3. User paths: inventory→evidence turn→return, turn→configuration, other-project use→return,390px layouts, light/dark, Chinese/English, empty/partial/unreadable/over-limit states, cancellation, reload and keyboard focus all require actual acceptance.
 4. Multi-entry contracts: cover no TTY, Unicode/spaced paths, malformed JSON/fields/versions, stdout contamination, crashes, concurrent scope isolation, usable exit-code2 results, per-request cancellation and trusted executable location.
 5. Resources and privacy: no MCP network probes or configuration-command execution, no credentials/raw bodies in storage or output; fault fixtures for root restrictions, symlinks, large lines/files and scan cancellation. Segmented performance and old-path regression meet the measurement requirements above.
-6. Delivery: expose new capabilities through both Web and noninteractive interfaces with Rust-generated DTOs. Build before tests and run types/boundaries, contracts, Rust fmt/clippy and repository checks per the workflow. Review licenses for changed dependencies; update the support matrix and completion records only after actual verification.
+6. Delivery: expose new capabilities through both Web and noninteractive interfaces with Rust-generated DTOs. Build before tests and run types/boundaries, contracts, Rust fmt/clippy and repository checks per the workflow. Review licenses for changed dependencies; update module guides and acceptance status only after actual verification.
 
-This task only reviewed code, revised interaction requirements and official interface boundaries and produced a technical proposal. It did not implement configuration features or new host transports, read real configuration/logs or revalidate browser interaction. The existing public first-release specification retains its current boundary; update requirements, contracts, roadmap and support matrix when implementing the corresponding phase.
+This task only reviewed code, revised interaction requirements and official interface boundaries and produced a technical proposal. It did not implement configuration features or new host transports, read real configuration/logs or revalidate browser interaction. The existing public first-release specification retains its current boundary; update requirements, contracts and affected module guides when implementing the corresponding phase.

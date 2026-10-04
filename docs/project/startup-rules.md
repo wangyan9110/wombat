@@ -2,7 +2,7 @@
 
 中文 | [English](startup-rules.en.md)
 
-2026-10-02。状态：A1—A4已实施，A5已有受控故障及本机验收但规模/平台边界未完成；B0/B1/B2/B4已交付确定性分支，B3仅有不可用能力边界。它补充[首版规格](specification.md)与[配置升级](config-upgrade.md)，不替代[支持矩阵](../reference/support-matrix.md)和[实施状态](status.md)。公开构建、测试和贡献不依赖外部原型或私有资料。
+2026-10-02。状态：A1—A4已实施，A5已有受控故障及本机验收但规模/平台边界未完成；B0/B1/B2/B4已交付确定性分支，B3仅有不可用能力边界。它补充[首版规格](specification.md)与[配置升级](config-upgrade.md)，不替代[架构](../development/architecture.md)和[实施状态](status.md)。公开构建、测试和贡献不依赖外部原型或私有资料。
 
 ## 产品边界
 

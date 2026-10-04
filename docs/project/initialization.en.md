@@ -2,7 +2,7 @@
 
 [中文](initialization.md) | English
 
-2026-10-04. This document defines one read flow for first run, later runs, and projects added while Wombat is running. It supplements the [version-one specification](specification.en.md) and [startup rules](startup-rules.en.md). The [support matrix](../reference/support-matrix.en.md) and source remain authoritative for implementation status.
+2026-10-04. This document defines one read flow for first run, later runs, and projects added while Wombat is running. It supplements the [version-one specification](specification.en.md) and [startup rules](startup-rules.en.md). The [architecture](../development/architecture.en.md) and source remain authoritative for implementation status.
 
 ## Goals
 

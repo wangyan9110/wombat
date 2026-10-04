@@ -2,7 +2,7 @@
 
 [中文](status.md) | English
 
-Updated 2026-10-04. This page tracks current delivery and unfinished boundaries. Requirements are in the [version-one specification](specification.en.md), dated verification is in [progress](progress.en.md), and feature semantics are in the [support matrix](../reference/support-matrix.en.md). Historical test passes do not establish full acceptance of the current working tree. The project is entering the `v0.1.0-dev.2` Development Preview; public installability depends on the GitHub Pre-release and the five-platform release workflow.
+Updated 2026-10-04. This page tracks current delivery and unfinished boundaries. Requirements are in the [version-one specification](specification.en.md), historical verification records remain in Git history, and feature semantics are in the [architecture](../development/architecture.en.md). Historical test passes do not establish full acceptance of the current working tree. The project is entering the `v0.1.0-dev.2` Development Preview; public installability depends on the GitHub Pre-release and the five-platform release workflow.
 
 ## Five surfaces and the full optimization lifecycle · Stage acceptance failed
 
@@ -49,17 +49,7 @@ The missing local Codex native executable has been repaired using the desktop ap
 
 Current work prioritizes functionality at the user’s request. Performance testing is paused; resource targets remain unverified.
 
-## Delivered baseline
-
-| Area | Current delivery | Verification boundary |
-|---|---|---|
-| Sources and ledger | Independent Codex adapter, historical settings, deduplication, measurements and safe operations; heterogeneous source protocol tests | Codex is the only production source; not all historical formats are covered; [independent cases](../development/adapters.en.md) |
-| Cost | Official standard API equivalent pricing, decimal breakdowns, explicit catalog updates, original policies retained in old snapshots | Not subscription payments; unknown models and conditions are not zero-filled; [pricing reference](../reference/pricing.en.md) |
-| Fixed queries | Immutable v3 snapshots, shards and checksums, stable pagination and shares, current formats only | Synthetic failures, cancellation, conservation, and macOS installation verified; [snapshot decision](../decisions/implemented/architecture/2026-09-30-snapshot-storage.en.md) |
-| Modules and contracts | core/client/ui/web/cli, generated types and validation, public package boundaries, injected client | Historical build and cross-module evidence exists; future GUI is not delivered |
-| CLI / Web | Usage and conversations, drill-down, filters, themes, catalog, JSON queries | macOS arm64 / Node ≥26.4.0; browser and component coverage do not establish acceptance on other platforms |
-| Automatic synchronization | Append cursors, SQLite transactions, on-demand service, fresh/cached/watch, fixed versions, automatic updates | Basic flow and memory optimization verified; the full [live proposal](../decisions/proposed/architecture/2026-09-30-live-usage.en.md) remains proposed |
-| Bilingual support | Shared Chinese/English catalogs, CLI locale resolution, Web language button, paired docs and static checks | Source text and protocol values stay unchanged; Web preferences persist locally; [language contract](../i18n/product.en.md) |
+Delivered capabilities and limitations are maintained in the [architecture](../development/architecture.en.md). This page retains outstanding work and acceptance ownership only.
 
 ## Remaining work and acceptance responsibility
 
@@ -71,14 +61,4 @@ Current work prioritizes functionality at the user’s request. Performance test
 | Public release | The `v0.1.0-dev.2` Development Preview is prepared; self-contained GitHub Release archives, one-command installation, and in-product updates are implemented; the macOS arm64 development candidate passed, while the free five-platform hosted release gate and first Pre-release are in progress; no stable release exists |
 | Product outcomes | Record real user tasks separately; test counts do not establish usability, savings, or user value |
 
-Future candidates are in the [roadmap](roadmap.en.md). This page does not duplicate individual styling fixes, old test counts, or retired commands; historical evidence explains the corresponding builds.
-
-## First Web Delivery · 2026-10-01
-
-`ui/`, `web/`, and the HTTP client provide revised usage, conversation, turn, source, and price pages, started by the CLI. New grouping and matching-usage sorting use shared Rust contracts. Desktop still uses the selected Tauri 2; project registration, actual execution, and other-platform browser verification remain pending. See [frontend scope](../../ui/README.en.md) and [verification](progress.en.md).
-
-## Configuration measurement and manual reviews · 2026-10-02
-
-Overview, Tasks, Configuration and Optimize now connect shared usage details, all dates, full-content token/code-point/byte measurements, static Skill checks, object suggestions and the complete manual-review flow. Decisions persist independently, and language preferences survive service restarts. Web/CLI use the same generated contracts. See the [upgrade specification](config-upgrade.en.md) and [configuration contract](../development/contracts.en.md).
-
-That delivery did not include continuous-coverage inactivity, MCP faults, storage adapters, source execution or recovery. Current handoff and authorization boundaries are listed above; the full scope remains in progress. Loading precedence, explicit Skill/Hook invocation and MCP prompt adapters, historical content, persistent composite views, incremental evidence indexes, cooperative cancellation and Tauri remain undelivered. Browser and performance evidence is in [progress](progress.en.md).
+This page does not duplicate individual styling fixes, old test counts, or retired commands; historical evidence explains the corresponding builds.

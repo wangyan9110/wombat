@@ -20,4 +20,4 @@ Platform-specific npm optional dependencies reduce download size but require coo
 
 ## Impact and verification
 
-The package is larger; installation needs neither Rust nor a separate binary download script. Linux CI currently uses Ubuntu 24.04/glibc; Alpine/musl and Windows ARM64 are not claimed. Windows permissions and ConPTY still require testing on a Windows runner. Configuration, cross-target type checks, and macOS tests do not establish target-platform acceptance. See [progress](../../../project/progress.en.md) for evidence and [security policy](../../../../SECURITY.md) for remote controls.
+The package is larger; installation needs neither Rust nor a separate binary download script. Linux CI currently uses Ubuntu 24.04/glibc; Alpine/musl and Windows ARM64 are not claimed. Windows permissions and ConPTY still require testing on a Windows runner. Configuration, cross-target type checks, and macOS tests do not establish target-platform acceptance. See verification records retained in Git history for evidence and [security policy](../../../../SECURITY.md) for remote controls.

@@ -2,7 +2,7 @@
 
 中文 | [English](specification.en.md)
 
-本页维护首版需求与验收条件，基线日期为 2026-09-30。它不证明全部目标已验收；当前交付与缺口见[实施状态](status.md)，实际结果见[进度记录](progress.md)。迁移前代码盘点已退出当前规格，有长期价值的取舍见[独立计量决策](../decisions/implemented/architecture/2026-09-30-independent-accounting.md)和[快照决策](../decisions/implemented/architecture/2026-09-30-snapshot-storage.md)。
+本页维护首版需求与验收条件，基线日期为 2026-09-30。它不证明全部目标已验收；当前交付与缺口见[实施状态](status.md)，实际结果见 Git 历史中的验证记录。迁移前代码盘点已退出当前规格，有长期价值的取舍见[独立计量决策](../decisions/implemented/architecture/2026-09-30-independent-accounting.md)和[快照决策](../decisions/implemented/architecture/2026-09-30-snapshot-storage.md)。
 
 用量与任务通过共享 Rust 查询展示，完整范围先汇总再分页，匹配量和完整任务量分开。当前页面、配置测量及人工处理的追加需求见[升级规格](config-upgrade.md)。
 
@@ -18,7 +18,7 @@
 | 多入口 | Rust 业务经生成契约同时交付 Node CLI、JSON 和本机 Web；未来宿主复用同一受限接口 |
 | 平台与语言 | GitHub Release 归档内置 Node.js 26.4.0，源码工具≥26.4.0，先验收 macOS arm64；中英展示按[语言契约](../i18n/product.md)，其他平台须独立安装验收 |
 
-账户与Codex交接以[闭环升级](optimization-lifecycle.md)为准。基础用量入口不提供体检、自动配置写入/修复、证据包导出、阈值通知、对比、父子任务分析或 HTML 报告。只读配置、静态提醒和人工处理按升级规格交付，桌面宿主仍待后续。继承/分叉信息仅用于必要的事实归属与去重。完整当前边界见[支持矩阵](../reference/support-matrix.md)。
+账户与Codex交接以[闭环升级](optimization-lifecycle.md)为准。基础用量入口不提供体检、自动配置写入/修复、证据包导出、阈值通知、对比、父子任务分析或 HTML 报告。只读配置、静态提醒和人工处理按升级规格交付，桌面宿主仍待后续。继承/分叉信息仅用于必要的事实归属与去重。完整当前边界见[架构](../development/architecture.md)。
 
 ## 用户旅程
 
@@ -64,4 +64,4 @@
 | Web | 中英切换、长名称、窄屏、筛选、展开、返回、取消及宿主退出 |
 | 安全与安装 | 完整大行、尾行与截断、白名单正文隔离、无任意执行、干净构建/安装、执行权限与第三方通知、原始来源不写入 |
 
-按[开发流程](../development/workflow.md)选择验证：跨语言测试前 build，检查生成契约和模块边界；依赖变化同步许可证；发行检查包清单和干净安装。Web 与无交互接口合起来才算同一能力交付，构建通过不能替代浏览器验收。只有实际完成的证据进入[进度记录](progress.md)，其他平台和真人任务效果另行验收。
+按[开发流程](../development/workflow.md)选择验证：跨语言测试前 build，检查生成契约和模块边界；依赖变化同步许可证；发行检查包清单和干净安装。Web 与无交互接口合起来才算同一能力交付，构建通过不能替代浏览器验收。只在任务或 PR 中报告实际完成的验证，其他平台和真人任务效果另行验收。

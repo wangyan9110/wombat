@@ -2,16 +2,16 @@
   "version": 2,
   "sections": {
     "/development-and-delivery-rules": {
-      "zh": "44b7634eb38fd2f54d244a704b7aaea1c9a383505afc28ed8a0fbc4c7b4f33e6",
-      "en": "d41cdf1ccc37ea6c737539ff796f37946ce76417398eab5e55e273253aaf9340"
+      "zh": "f297e19145966b93ed650064f56affa1559bc2e736e3e3078c10b5931aeb5b6b",
+      "en": "11604834b15ee921b69b87cfb054d21a4b897100f5476462e43e10c3542a977f"
     },
     "/development-and-delivery-rules/implementation-boundaries": {
       "zh": "8599482cdcef17e7c71f2979869a8dd60c3f47105539259b1172e25954b7280e",
       "en": "fe80dd23ff3661c043dd285cad56c70708e4cf110e43f4e53fdf182b04484f39"
     },
     "/development-and-delivery-rules/verification": {
-      "zh": "df24dbefa44a5d0cfa65ef400a46fde657bda2c42008eb65ea81688a73293445",
-      "en": "db5022ff6059b386a468c7c1bd378e4633590b924527d2b0a6b4af105f5cebce"
+      "zh": "a72fe176338d0d08ef6afa78c3b58bc4dfa17400180644e1e09f271db068c98c",
+      "en": "815416df1c00842d9804f62b0133038bbc62a8d297c91ce98256ce5485cacf6f"
     },
     "/development-and-delivery-rules/web-first-migration": {
       "zh": "35094aa9c00a99b4159b5f4d02818b4e83efd78bdb43a53b84a3e179df05352f",

@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-Decision Notes preserve rationale that code and current guides cannot carry: the problem, the chosen approach, alternatives actually considered, costs, and verification evidence. They are not task lists or the sole authority on product state; source, contracts, and the [support matrix](../reference/support-matrix.en.md) still establish current behavior.
+Decision Notes preserve rationale that code and current guides cannot carry: the problem, the chosen approach, alternatives actually considered, costs, and verification evidence. They are not task lists or the sole authority on product state; source, contracts, and the [architecture](../development/architecture.en.md) still establish current behavior.
 
 ## Creation and status
 

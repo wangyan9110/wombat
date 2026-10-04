@@ -2,7 +2,7 @@
 
 中文 | [English](initialization.en.md)
 
-2026-10-04。本文定义首次运行、再次运行和运行中新增项目使用同一套读取流程。它补充[首版规格](specification.md)与[首次运行规则](startup-rules.md)；当前完成情况仍以[支持矩阵](../reference/support-matrix.md)和源码为准。
+2026-10-04。本文定义首次运行、再次运行和运行中新增项目使用同一套读取流程。它补充[首版规格](specification.md)与[首次运行规则](startup-rules.md)；当前完成情况仍以[架构](../development/architecture.md)和源码为准。
 
 ## 目标
 

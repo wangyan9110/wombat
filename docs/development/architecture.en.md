@@ -2,7 +2,7 @@
 
 [中文](architecture.md) | English
 
-Wombat uses a shared Rust core, generated contracts, and replaceable hosts. The direction is GUI, CLI, and CLI+Web; Tauri 2 is the selected desktop framework. Local Web pages are implemented against the revised page code. TUI product code has been removed; the desktop host remains unimplemented. See the [support matrix](../reference/support-matrix.en.md) and [progress](../project/progress.en.md) for actual support and verification.
+Wombat uses a shared Rust core, generated contracts, and replaceable hosts. The direction is GUI, CLI, and CLI+Web; Tauri 2 is the selected desktop framework. Local Web pages are implemented against the revised page code. TUI product code has been removed; the desktop host remains unimplemented. See module READMEs for interfaces and [implementation status](../project/status.en.md) for outstanding acceptance.
 
 ## Data Flow
 
@@ -76,7 +76,7 @@ Snapshots exclude message bodies, complete command arguments, and tool output; s
 
 Release archives bundle Node.js 26.4.0; source tools require that version or newer. Build the core, client, Web, and CLI before assembling platform archives. Frontend assets ship under `dist/web/`; Vite is not needed at runtime. React DOM renders the UI, and Tauri 2 remains the selected desktop host. Desktop transport and lifecycle require separate implementation; local HTTP checks do not validate Tauri.
 
-Protocol and host tests use synthetic clients. End-to-end tests start HTTP from the distribution entry and compare real Rust and CLI ground truth, fixed-version drill-down, authentication, and shutdown. Browser interaction, narrow layouts, failure/cancellation, installed assets, and other platforms require separate verification; only verified scope enters progress records. See the [workflow](workflow.en.md) and [local Web decision](../decisions/implemented/architecture/2026-10-01-local-web.en.md).
+Protocol and host tests use synthetic clients. End-to-end tests start HTTP from the distribution entry and compare real Rust and CLI ground truth, fixed-version drill-down, authentication, and shutdown. Browser interaction, narrow layouts, failure/cancellation, installed assets, and other platforms require separate verification; verification results belong in tasks, PRs, or CI. See the [workflow](workflow.en.md) and [local Web decision](../decisions/implemented/architecture/2026-10-01-local-web.en.md).
 
 `core/config` reads project scope and reuses usage facts; `config_dto` generates v1 contracts for Web/CLI. Local Web accepts only Rust-observed projects or host-added directories. See the [configuration contract](contracts.en.md) and [initialization](../project/initialization.en.md).
 

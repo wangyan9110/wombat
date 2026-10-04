@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/rust-core": {
-      "zh": "6d7667b2c81d68dc0a3a10c6b696dbadc94195e9c4de9d7499d0f29565b9d4e5",
-      "en": "076da45c169ee72e952115dca56ce7ae5e2a96b2084b89f2167d972399412115"
+      "zh": "1360f5c32bf4db05625e913920f492a569ca64a671351e3913188f74c8cb167b",
+      "en": "4e6842de3eb4c41a6892a9dca12aad37ce0c8a4dfdec89bdba92f05782a71021"
     },
     "/rust-core/entry-points-and-responsibilities": {
       "zh": "4c81c07132665e55f52ceb409af297e175cf7f486302dd4efa79c6cad020684d",

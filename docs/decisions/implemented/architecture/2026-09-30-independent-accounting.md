@@ -31,4 +31,4 @@ Status: implemented
 
 需要自行承担来源格式维护、历史兼容和官方价表更新成本。后续来源须通过能力差异、身份隔离和部分失败测试，不能仅添加菜单就宣称支持。
 
-A01–A12 的边界与真值见[来源验收](../../../development/adapters.md)，金额条件见[价格参考](../../../reference/pricing.md)。首版的 67 项测试、跨层及全分页守恒、独立构建与安装结果见[历史进度](../../../project/progress.md)和[查询证据](../../../benchmarks/usage-v1-query-2026-09-30.json)；这些结果限定于记录时构建与语料，不代表所有 Agent 或全部历史格式兼容。
+A01–A12 的边界与真值见[来源验收](../../../development/adapters.md)，金额条件见[价格参考](../../../reference/pricing.md)。首版的 67 项测试、跨层及全分页守恒、独立构建与安装结果见 Git 历史中的验证记录和[查询证据](../../../benchmarks/usage-v1-query-2026-09-30.json)；这些结果限定于记录时构建与语料，不代表所有 Agent 或全部历史格式兼容。

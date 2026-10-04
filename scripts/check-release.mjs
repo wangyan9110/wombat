@@ -19,8 +19,8 @@ const steps = [
   ['Generated contracts', 'corepack', ['pnpm', 'contracts:check']],
   ['Tests', 'corepack', ['pnpm', 'test']],
   ['Dependency licenses', 'corepack', ['pnpm', 'licenses:check']],
-  ['Repository rules', 'corepack', ['pnpm', 'repo:check']],
-  ['Public source and history', 'corepack', ['pnpm', 'public:check']],
+  // repo:check already includes public:check; keep this scan single-pass because it walks reachable history.
+  ['Repository and public-source rules', 'corepack', ['pnpm', 'repo:check']],
 ];
 for (const [label, program, args] of steps) {
   console.log(`\n=== ${label} ===`);
