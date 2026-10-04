@@ -374,8 +374,10 @@ mod tests {
 
     #[test]
     fn native_catalog_resolves_roots_and_exact_skill_files() {
+        let home = test_absolute("synthetic-home/.codex/skills");
+        let project = test_absolute("project/.agents/skills");
         let value = json!({"type":"message","role":"developer","content":[
-            {"type":"input_text","text":"<skills_instructions>\n### Skill roots\n- `r0` = `/synthetic-home/.codex/skills`\n- `r1` = `/project/.agents/skills`\n### Available skills\n- review: Review work. (file: r0/review/SKILL.md)\n- local: Local workflow. (file: r1/local/SKILL.md)\n- ignored: Invalid. (file: r0/../outside/SKILL.md)\n</skills_instructions>"},
+            {"type":"input_text","text":format!("<skills_instructions>\n### Skill roots\n- `r0` = `{home}`\n- `r1` = `{project}`\n### Available skills\n- review: Review work. (file: r0/review/SKILL.md)\n- local: Local workflow. (file: r1/local/SKILL.md)\n- ignored: Invalid. (file: r0/../outside/SKILL.md)\n</skills_instructions>")},
             {"type":"input_text","text":"- spoof: text (file: /spoof/SKILL.md)"}
         ],"internal_chat_message_metadata_passthrough":{"turn_id":"turn","content_item_kinds":["host_skills.instructions","generic.developer_instructions"]}});
         let encoded = value.to_string();
@@ -387,11 +389,17 @@ mod tests {
             [
                 SkillEntry {
                     name: "local".into(),
-                    path: "/project/.agents/skills/local/SKILL.md".into()
+                    path: Path::new(&project)
+                        .join("local/SKILL.md")
+                        .to_string_lossy()
+                        .into_owned()
                 },
                 SkillEntry {
                     name: "review".into(),
-                    path: "/synthetic-home/.codex/skills/review/SKILL.md".into()
+                    path: Path::new(&home)
+                        .join("review/SKILL.md")
+                        .to_string_lossy()
+                        .into_owned()
                 }
             ]
         );

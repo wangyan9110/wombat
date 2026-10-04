@@ -195,7 +195,7 @@ fn recursive_agents_exact_names_and_measurement_states() {
     assert_eq!(empty.measurement_status, "complete");
     let unicode = rows
         .iter()
-        .find(|i| i.path.ends_with("nested/AGENTS.md"))
+        .find(|i| Path::new(&i.path).ends_with(Path::new("nested").join("AGENTS.md")))
         .unwrap();
     assert_eq!(unicode.bytes, Some(8));
     assert_eq!(unicode.characters, Some(4));

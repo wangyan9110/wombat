@@ -103,11 +103,15 @@ fn registry_rejects_stale_future_unknown_version_duplicate_and_plugin_bindings()
 
 #[test]
 fn plugin_identity_requires_consistent_metadata_and_exact_package_relative_path() {
-    let (_dir, mut items, mut capture) = fixture();
+    let (dir, mut items, mut capture) = fixture();
     let hook = &mut capture.contexts[0].hooks[0];
     hook.source = "plugin".into();
     hook.plugin_id = Some("sample.tools@test".into());
-    hook.source_path = "/selected/plugin/hooks/声明.json".into();
+    hook.source_path = dir
+        .path()
+        .join("selected/plugin/hooks/声明.json")
+        .to_string_lossy()
+        .into_owned();
     hook.key = "sample.tools@test:hooks/声明.json:session_start:0:0".into();
     items
         .iter_mut()

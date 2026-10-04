@@ -10,12 +10,13 @@ fn output(call: &str, output: Value) -> Value {
 #[test]
 fn native_agents_metadata_records_load_without_retaining_or_trusting_user_text() {
     let dir = tempfile::tempdir().unwrap();
+    let project = test_absolute("synthetic/project");
     write(
         dir.path(),
         "sessions/instructions.jsonl",
         &[
             meta("t"),
-            json!({"type":"response_item","timestamp":"2026-09-29T00:00:00Z","payload":{"type":"message","id":"native","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions for /synthetic/project\n\n<INSTRUCTIONS>PRIVATE_RULE_BODY</INSTRUCTIONS>"}],"internal_chat_message_metadata_passthrough":{"turn_id":"u","content_item_kinds":["agents_md.instructions"]}}}),
+            json!({"type":"response_item","timestamp":"2026-09-29T00:00:00Z","payload":{"type":"message","id":"native","role":"user","content":[{"type":"input_text","text":format!("# AGENTS.md instructions for {project}\n\n<INSTRUCTIONS>PRIVATE_RULE_BODY</INSTRUCTIONS>")}],"internal_chat_message_metadata_passthrough":{"turn_id":"u","content_item_kinds":["agents_md.instructions"]}}}),
             json!({"type":"response_item","timestamp":"2026-09-29T00:00:01Z","payload":{"type":"message","id":"ordinary","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions for /spoofed"}],"internal_chat_message_metadata_passthrough":{"turn_id":"u","content_item_kinds":["user_prompt"]}}}),
         ],
     );
@@ -24,10 +25,11 @@ fn native_agents_metadata_records_load_without_retaining_or_trusting_user_text()
     let operation = &result.operations[0];
     assert_eq!(operation.kind.as_ref(), "instructionLoad");
     assert_eq!(operation.status.as_ref(), "completed");
-    assert_eq!(
-        operation.path.as_deref(),
-        Some("/synthetic/project/AGENTS.md")
-    );
+    let expected = Path::new(&project)
+        .join("AGENTS.md")
+        .to_string_lossy()
+        .into_owned();
+    assert_eq!(operation.path.as_deref(), Some(expected.as_str()));
     assert!(operation.turn_id.is_some());
     assert!(
         !serde_json::to_string(&result)
@@ -40,8 +42,14 @@ fn native_agents_metadata_records_load_without_retaining_or_trusting_user_text()
 #[test]
 fn native_skill_catalog_and_observed_use_keep_only_resolved_identity() {
     let dir = tempfile::tempdir().unwrap();
-    let skill = "/synthetic/project/.agents/skills/review/SKILL.md";
-    let catalog = "<skills_instructions>\n### Skill roots\n- `r0` = `/synthetic/project/.agents/skills`\n### Available skills\n- review: PRIVATE_DESCRIPTION (file: r0/review/SKILL.md)\n</skills_instructions>".to_string();
+    let root = test_absolute("synthetic/project/.agents/skills");
+    let skill = Path::new(&root)
+        .join("review/SKILL.md")
+        .to_string_lossy()
+        .into_owned();
+    let catalog = format!(
+        "<skills_instructions>\n### Skill roots\n- `r0` = `{root}`\n### Available skills\n- review: PRIVATE_DESCRIPTION (file: r0/review/SKILL.md)\n</skills_instructions>"
+    );
     let exec =
         format!("text(await tools.exec_command({{cmd:\"cat {skill}\",max_output_tokens:1000}}));");
     write(
@@ -71,7 +79,7 @@ fn native_skill_catalog_and_observed_use_keep_only_resolved_identity() {
             .iter()
             .find(|operation| operation.kind.as_ref() == kind)
             .unwrap();
-        assert_eq!(operation.path.as_deref(), Some(skill));
+        assert_eq!(operation.path.as_deref(), Some(skill.as_str()));
         assert_eq!(
             operation.turn_id.as_deref(),
             Some(result.turns[0].id.as_str())
