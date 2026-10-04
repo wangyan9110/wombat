@@ -7,7 +7,7 @@ Wombat analyzes local Agent usage and configuration through a shared Rust core, 
 - Code: read [architecture](docs/development/architecture.en.md), [code conventions](docs/development/workflow.en.md), scoped AGENTS.md, and the module README.
 - Product behavior: consult the owning module README or technical reference; unfinished requirements and acceptance belong in [proposed decisions](docs/decisions/proposed/). Retrieve historical evidence only when needed.
 - Documentation: follow [docs/AGENTS.md](docs/AGENTS.md); use [wombat-docs](.agents/skills/wombat-docs/SKILL.md) for restructuring. Maintain each fact once and link elsewhere.
-- Verification: use [wombat-verify](.agents/skills/wombat-verify/SKILL.md). Builds/releases: [wombat-release](.agents/skills/wombat-release/SKILL.md). Development scripts: [scripts/AGENTS.md](scripts/AGENTS.md).
+- Review: [wombat-review](.agents/skills/wombat-review/SKILL.md). Commit: [wombat-commit](.agents/skills/wombat-commit/SKILL.md). Verify: [wombat-verify](.agents/skills/wombat-verify/SKILL.md). Release: [wombat-release](.agents/skills/wombat-release/SKILL.md). Scripts: [scripts/AGENTS.md](scripts/AGENTS.md).
 
 ## Standing constraints
 
