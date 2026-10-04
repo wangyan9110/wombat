@@ -277,6 +277,7 @@ pub(super) fn check(
             .into_iter()
             .collect();
         result.findings.push(Finding {
+            identity: Default::default(),
             rule: "localReference".into(),
             status: "failed".into(),
             observed: Some(failures.len() as u64),

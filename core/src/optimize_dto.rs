@@ -83,8 +83,9 @@ pub enum Category {
     Space,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Finding {
+    pub identity: FindingIdentity,
     pub rule: String,
     pub status: String,
     pub observed: Option<u64>,
@@ -155,9 +156,113 @@ pub struct RuleDefinition {
     pub basis: String,
 }
 
+/// Problem identity is independent of revisions, thresholds and check timestamps.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FindingIdentity {
+    pub version: u32,
+    pub finding_id: Option<String>,
+    pub gap: Option<String>,
+}
+impl Default for FindingIdentity {
+    fn default() -> Self {
+        Self {
+            version: 1,
+            finding_id: None,
+            gap: Some("identityNotAssessed".into()),
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MethodVersion {
+    pub method: String,
+    pub version: u32,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AssessmentScope {
+    pub source_instance_id: Option<String>,
+    pub item_project: Option<String>,
+    pub global: bool,
+    pub project: Option<String>,
+    pub source_instances: Vec<String>,
+    pub authorized_projects: Vec<String>,
+    pub roots: Vec<String>,
+    pub project_roots: Vec<String>,
+    pub source_roots: Vec<String>,
+    pub complete: bool,
+}
+/// Values consumed by the rule, including successful measurements and thresholds.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum RuleMeasurement {
+    Existence {
+        configured_state: String,
+        measurement_status: String,
+        missing: bool,
+    },
+    Numeric {
+        basis: String,
+        observed: Option<u64>,
+        threshold: u64,
+        inclusive: bool,
+        standard_max: Option<u64>,
+        suppressed_by_standard: bool,
+    },
+    SkillMetadata {
+        status: Option<String>,
+        issues: Vec<String>,
+    },
+    Static {
+        complete: Option<bool>,
+        findings: usize,
+    },
+    Unsupported {
+        reason: String,
+    },
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AssessmentBasis {
+    pub version: u32,
+    pub dependency_revision: Option<String>,
+    pub scope: AssessmentScope,
+    pub cutoff: String,
+    pub applicability: String,
+    pub measurement: RuleMeasurement,
+    /// Absent revisions never act as equality wildcards.
+    pub gaps: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ComparisonStatus {
+    NotRequested,
+    Comparable,
+    Incomparable,
+    Unknown,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AssessmentComparison {
+    pub status: ComparisonStatus,
+    pub baseline_assessment_id: Option<String>,
+    pub reason: Option<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RuleAssessment {
+    pub assessment_id: Option<String>,
+    pub identity_gap: Option<String>,
+    pub rule_semantics_version: u32,
+    pub method_versions: Vec<MethodVersion>,
+    pub basis: AssessmentBasis,
+    pub comparison: AssessmentComparison,
     pub rule: String,
     pub rule_version: String,
     pub item_id: String,
@@ -229,8 +334,9 @@ pub struct DeclaredCopy {
     pub transform: String,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Suggestion {
+    pub review_format_version: u32,
     pub scope_project: Option<String>,
     pub id: String,
     pub item: Item,
@@ -245,10 +351,41 @@ pub struct Suggestion {
     pub rule_parameters: Option<RuleParameters>,
     pub recheck_rule_parameters: Option<RuleParameters>,
     /// Exact metadata before rechecking; source bodies are never retained.
-    pub review_baseline: Option<Item>,
+    pub review_baseline: Option<ReviewBaseline>,
     pub record_id: Option<String>,
     pub recorded_at: Option<String>,
     pub record_kind: Option<RecordKind>,
+}
+/// Captured before the first persisted observation; never replaced by later checks.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReviewBaseline {
+    pub version: u32,
+    pub item: Item,
+    pub scope: AssessmentScope,
+    pub assessments: Vec<RuleAssessment>,
+}
+/// Missing problem location permits only the exact complete suggestion/content version.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DecisionIdentityBasis {
+    StableProblems,
+    ExactSuggestionVersion,
+    Unavailable,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DecisionBinding {
+    pub identity_basis: DecisionIdentityBasis,
+    pub version: u32,
+    pub suggestion_id: String,
+    pub finding_ids: Vec<String>,
+    pub assessment_ids: Vec<String>,
+    pub content_version: String,
+    pub scope: AssessmentScope,
+    /// Includes relevant dependencies, methods and parameters, but no check cutoff or log revision.
+    pub applicability_id: Option<String>,
+    pub gap: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -274,6 +411,7 @@ pub enum DecisionReason {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UserDecision {
+    pub binding: DecisionBinding,
     pub kind: DecisionKind,
     pub reason: DecisionReason,
     pub recorded_at: String,

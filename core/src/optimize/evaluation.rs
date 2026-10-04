@@ -5,18 +5,23 @@ use crate::{config::View, config_dto::Item, optimize_dto::*};
 
 pub(super) struct Baseline<'a> {
     pub findings: &'a [Finding],
-    pub parameters: Option<&'a RuleParameters>,
-    pub rule_version: &'a str,
+    pub assessments: &'a [RuleAssessment],
+    pub scope: &'a AssessmentScope,
 }
 pub(super) struct Input<'a> {
     pub view: &'a View,
     pub item: &'a Item,
     pub parameters: &'a RuleParameters,
     pub project: Option<&'a str>,
+    pub source: Option<&'a str>,
     pub baseline: Option<Baseline<'a>>,
     pub current_available: bool,
 }
 impl<'a> Input<'a> {
+    pub(super) fn with_source(mut self, source: Option<&'a str>) -> Self {
+        self.source = source;
+        self
+    }
     pub(super) fn initial(
         view: &'a View,
         item: &'a Item,
@@ -28,6 +33,7 @@ impl<'a> Input<'a> {
             item,
             parameters,
             project,
+            source: None,
             baseline: None,
             current_available: true,
         }
@@ -63,20 +69,41 @@ fn evaluate_cached(
                 .is_none_or(|b| b.findings.iter().any(|f| f.rule == rule.id()))
         })
         .map(|rule| {
-            let (outcome, reason, findings) = match assess(rule, input, cache) {
-                Ok(Assessment::Hit(findings)) => (RuleOutcome::Hit, None, findings),
-                Ok(Assessment::Miss) => (RuleOutcome::Miss, None, vec![]),
-                Ok(Assessment::Insufficient(reason)) => {
-                    (RuleOutcome::Insufficient, Some(reason), vec![])
-                }
-                Ok(Assessment::Unsupported(reason)) => {
-                    (RuleOutcome::Unsupported, Some(reason), vec![])
-                }
-                Err(EvaluationError::InvalidAnalysisRange) => {
-                    (RuleOutcome::Error, Some("invalidAnalysisEvidence"), vec![])
-                }
-            };
-            RuleAssessment {
+            let prepared = prepare(rule, input);
+            let revision = super::inputs::key(rule, input, &prepared);
+            let basis = super::identity::basis(rule, input, &prepared, revision.clone());
+            let (outcome, reason, findings) =
+                match assess_fixed(rule, input, cache, prepared, revision) {
+                    Ok(Assessment::Hit(findings)) => (RuleOutcome::Hit, None, findings),
+                    Ok(Assessment::Miss) => (RuleOutcome::Miss, None, vec![]),
+                    Ok(Assessment::Insufficient(reason)) => {
+                        (RuleOutcome::Insufficient, Some(reason), vec![])
+                    }
+                    Ok(Assessment::Unsupported(reason)) => {
+                        (RuleOutcome::Unsupported, Some(reason), vec![])
+                    }
+                    Err(EvaluationError::InvalidAnalysisRange) => {
+                        (RuleOutcome::Error, Some("invalidAnalysisEvidence"), vec![])
+                    }
+                };
+            let findings: Vec<Finding> = findings
+                .into_iter()
+                .map(|mut f| {
+                    f.identity = super::identity::finding(input, &f);
+                    f
+                })
+                .collect();
+            let mut check = RuleAssessment {
+                assessment_id: None,
+                identity_gap: None,
+                rule_semantics_version: rule.dependencies().semantics_version,
+                method_versions: super::identity::methods(rule, input, &findings),
+                basis,
+                comparison: AssessmentComparison {
+                    status: ComparisonStatus::NotRequested,
+                    baseline_assessment_id: None,
+                    reason: None,
+                },
                 rule: rule.id().into(),
                 rule_version: input.parameters.version.clone(),
                 item_id: input.item.id.clone(),
@@ -85,17 +112,39 @@ fn evaluate_cached(
                 outcome,
                 reason: reason.map(str::to_owned),
                 findings,
-            }
+            };
+            super::identity::identify(&mut check);
+            check.comparison = super::identity::comparison(&check, input);
+            check
         })
         .collect()
 }
 
+#[cfg(test)]
 fn assess(
     rule: Rule,
     input: &Input<'_>,
     cache: &std::sync::Mutex<cache::JudgmentCache>,
 ) -> Result<Assessment, EvaluationError> {
+    let prepared = prepare(rule, input);
+    let key = super::inputs::key(rule, input, &prepared);
+    assess_fixed(rule, input, cache, prepared, key)
+}
+fn assess_fixed(
+    rule: Rule,
+    input: &Input<'_>,
+    cache: &std::sync::Mutex<cache::JudgmentCache>,
+    prepared: RuleInput<'_>,
+    key: Option<String>,
+) -> Result<Assessment, EvaluationError> {
     let item = input.item;
+    if !item.applies(input.source, input.project)
+        || input
+            .project
+            .is_some_and(|p| !input.view.projects.iter().any(|v| v == p))
+    {
+        return Ok(Assessment::Insufficient("checkScopeUnavailable"));
+    }
     if !input.current_available
         || !item.current
         || item.stale
@@ -109,8 +158,6 @@ fn assess(
     {
         return Ok(Assessment::Insufficient("checkEvidenceIncomplete"));
     }
-    let prepared = prepare(rule, input);
-    let key = super::inputs::key(rule, input, &prepared);
     let cached = key
         .as_deref()
         .and_then(|key| cache.lock().unwrap_or_else(|e| e.into_inner()).get(key));
@@ -127,44 +174,7 @@ fn assess(
             judgment
         }
     };
-    // Resolution requires the original rule/parameters and complete original scope.
-    // A current hit remains useful even when the original scope cannot be cleared.
-    if matches!(result, Assessment::Miss)
-        && let Some(baseline) = &input.baseline
-    {
-        if baseline.rule_version != input.parameters.version
-            || baseline
-                .parameters
-                .is_none_or(|p| !same_parameters(rule, p, input.parameters))
-        {
-            return Ok(Assessment::Insufficient("ruleParametersChanged"));
-        }
-        if baseline
-            .findings
-            .iter()
-            .filter(|f| f.rule == rule.id())
-            .any(|f| !input.view.analysis.complete_finding(&item.id, f))
-        {
-            return Ok(Assessment::Insufficient("checkEvidenceIncomplete"));
-        }
-    }
     Ok(result)
-}
-fn same_parameters(rule: Rule, left: &RuleParameters, right: &RuleParameters) -> bool {
-    left.version == right.version
-        && left.applicability == right.applicability
-        && match rule {
-            Rule::FileSize => agents_bytes(left) == agents_bytes(right),
-            Rule::DescriptionStandard => {
-                left.description_standard_max == right.description_standard_max
-            }
-            Rule::DescriptionSize => {
-                description_characters(left) == description_characters(right)
-                    && left.description_standard_max == right.description_standard_max
-            }
-            Rule::BodyTokens => left.body_tokens == right.body_tokens,
-            _ => true,
-        }
 }
 pub(super) fn agents_bytes(p: &RuleParameters) -> u64 {
     p.overrides.agents_bytes.unwrap_or(p.agents_bytes_default)
@@ -182,6 +192,7 @@ fn finding(
     codes: Vec<String>,
 ) -> Finding {
     Finding {
+        identity: Default::default(),
         rule: rule.id().into(),
         status: "failed".into(),
         observed,

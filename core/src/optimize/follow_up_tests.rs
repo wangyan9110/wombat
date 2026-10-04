@@ -92,6 +92,7 @@ fn single(object: &Item, operations: Vec<Operation>) -> View {
 }
 fn suggestion(object: &Item) -> Suggestion {
     Suggestion {
+        review_format_version: 1,
         scope_project: None,
         id: "suggestion".into(),
         item: object.clone(),

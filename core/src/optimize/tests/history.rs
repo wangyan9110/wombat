@@ -6,8 +6,9 @@ fn normalized_history_shares_evidence_and_only_decodes_the_requested_page() {
     let path = dir.path().join("reviews.sqlite3");
     let v = view();
     let mut s = detect(&v, &RuleParameters::default()).remove(0);
-    s.review_baseline = Some(s.item.clone());
+    crate::optimize::identity::capture(&mut s);
     s.decision = Some(UserDecision {
+        binding: crate::optimize::identity::binding(&s),
         kind: DecisionKind::Keep,
         reason: DecisionReason::Necessary,
         recorded_at: "2026-10-01T00:00:00Z".into(),
@@ -21,7 +22,7 @@ fn normalized_history_shares_evidence_and_only_decodes_the_requested_page() {
         tx.query_row("SELECT COUNT(*) FROM review_parts", [], |r| r
             .get::<_, i64>(0))
             .unwrap(),
-        3
+        4
     );
     let read = store::get(&tx, 100).unwrap();
     assert_eq!(
@@ -63,7 +64,7 @@ fn normalized_history_shares_evidence_and_only_decodes_the_requested_page() {
 
 #[test]
 fn unsupported_review_schema_keeps_existing_records() {
-    for version in [0, 1, 2, 99] {
+    for version in [0, 1, 2, 3, 99] {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("reviews.sqlite3");
         let db = rusqlite::Connection::open(&path).unwrap();

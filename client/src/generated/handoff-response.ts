@@ -30,6 +30,7 @@ export interface Target {
   findings: Finding[];
 }
 export interface Finding {
+  identity: FindingIdentity;
   rule: string;
   status: string;
   observed?: number | null;
@@ -40,6 +41,14 @@ export interface Finding {
    * Positions and relationships only; never retain source text or command arguments.
    */
   evidence?: StaticEvidence | null;
+}
+/**
+ * Problem identity is independent of revisions, thresholds and check timestamps.
+ */
+export interface FindingIdentity {
+  version: number;
+  findingId?: string | null;
+  gap?: string | null;
 }
 export interface StaticEvidence {
   method: string;

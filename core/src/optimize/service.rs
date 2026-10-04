@@ -51,7 +51,12 @@ fn execute_at_inner(
             "处理记录版本已变化，请刷新",
         ));
     }
-    let mut current = detect_for(view, &rules, r.project.as_deref());
+    let mut current = detect_for(
+        view,
+        &rules,
+        r.project.as_deref(),
+        r.source_instance_id.as_deref(),
+    );
     let accessible = |i: &crate::config_dto::Item| {
         i.applies(r.source_instance_id.as_deref(), r.project.as_deref())
     };
@@ -96,11 +101,21 @@ fn execute_at_inner(
     }
     revision = store::revision(&tx)?;
     let latest = store::states(&tx, r.project.as_deref())?;
-    current.retain(|s| {
-        latest
-            .get(&s.id)
-            .is_none_or(|r| !r.decided && r.status != "verified")
-    });
+    let mut pending_current = Vec::with_capacity(current.len());
+    for suggestion in current {
+        let suppressed = match latest.get(&suggestion.id) {
+            Some(state) if state.decided => {
+                let old = store::get(&tx, state.seq)?;
+                suppresses(&old, &suggestion)
+            }
+            Some(_) => false,
+            None => false,
+        };
+        if !suppressed {
+            pending_current.push(suggestion);
+        }
+    }
+    let mut current = pending_current;
     for state in latest
         .values()
         .filter(|s| !s.decided && s.status == "recheckUnavailable")
@@ -132,12 +147,10 @@ fn execute_at_inner(
             .skip(offset)
             .take(limit)
             .flat_map(|i| {
-                evaluation::evaluate(&evaluation::Input::initial(
-                    view,
-                    i,
-                    &rules,
-                    r.project.as_deref(),
-                ))
+                evaluation::evaluate(
+                    &evaluation::Input::initial(view, i, &rules, r.project.as_deref())
+                        .with_source(r.source_instance_id.as_deref()),
+                )
             })
             .collect();
         let total = items.len();
@@ -261,4 +274,13 @@ fn observed_capabilities(view: &View) -> Capabilities {
         hook_support,
         ..Capabilities::default()
     }
+}
+
+/// Current hits are hidden only by a still-applicable explicit user decision.
+/// A historical verified miss cannot suppress a recurrence.
+pub(super) fn suppresses(previous: &Suggestion, current: &Suggestion) -> bool {
+    previous
+        .decision
+        .as_ref()
+        .is_some_and(|decision| super::identity::decision_applies(decision, current))
 }

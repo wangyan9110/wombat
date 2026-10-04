@@ -27,6 +27,7 @@ fn clean_skill() -> View {
 }
 fn static_finding(rule: &str) -> Finding {
     Finding {
+        identity: Default::default(),
         rule: rule.into(),
         status: "failed".into(),
         observed: None,
@@ -160,13 +161,14 @@ fn cached_static_hits_survive_partial_coverage_but_empty_partial_analysis_cannot
         check(&v, &rules, "localReference").outcome,
         RuleOutcome::Miss
     );
+    let original = check(&v, &rules, "localReference");
     let baseline = [cached];
     let recheck = |v: &View| {
         evaluation::evaluate(&Input {
             baseline: Some(Baseline {
                 findings: &baseline,
-                parameters: Some(&rules),
-                rule_version: &rules.version,
+                assessments: std::slice::from_ref(&original),
+                scope: &original.basis.scope,
             }),
             ..Input::initial(v, &v.items[0], &rules, None)
         })
@@ -283,6 +285,7 @@ fn hook_initial_checks_and_rechecks_use_the_same_authorized_original_project_sco
         evaluation::evaluate(&Input::initial(&v, &v.items[0], &rules, Some("/project"))).remove(0);
     assert_eq!(initial.outcome, RuleOutcome::Hit);
     assert_eq!(initial.findings.len(), 1);
+    let original = initial.clone();
     let baseline = initial.findings;
     v.analysis
         .findings
@@ -291,8 +294,8 @@ fn hook_initial_checks_and_rechecks_use_the_same_authorized_original_project_sco
         evaluation::evaluate(&Input {
             baseline: Some(Baseline {
                 findings: &baseline,
-                parameters: Some(&rules),
-                rule_version: &rules.version,
+                assessments: std::slice::from_ref(&original),
+                scope: &original.basis.scope,
             }),
             ..Input::initial(v, &v.items[0], &rules, None)
         })
@@ -318,9 +321,19 @@ fn unchanged_inputs_are_deterministic_and_static_suggestion_order_identity_is_pr
         .findings
         .insert("object".into(), expected.clone());
     let first = detect(&v, &rules).remove(0);
-    assert_eq!(
-        serde_json::to_value(&first.findings).unwrap(),
-        serde_json::to_value(&expected).unwrap()
+    let strip_identity = |findings: &[Finding]| {
+        let mut value = serde_json::to_value(findings).unwrap();
+        for finding in value.as_array_mut().unwrap() {
+            finding.as_object_mut().unwrap().shift_remove("identity");
+        }
+        value
+    };
+    assert_eq!(strip_identity(&first.findings), strip_identity(&expected));
+    assert!(
+        first
+            .findings
+            .iter()
+            .all(|f| f.identity.gap.as_deref() == Some("problemLocationContextUnavailable"))
     );
     let expected_id = crate::hash(
         serde_json::to_vec(&(
@@ -331,7 +344,7 @@ fn unchanged_inputs_are_deterministic_and_static_suggestion_order_identity_is_pr
             rules.description_characters_default,
             rules.body_tokens,
             rules.description_standard_max,
-            &expected,
+            strip_identity(&expected),
         ))
         .unwrap(),
     );
@@ -357,6 +370,7 @@ fn parameter_or_rule_changes_are_new_checks_and_cannot_clear_the_original_baseli
     let old = RuleParameters::default();
     let first = check(&v, &old, "descriptionSize");
     assert_eq!(first.outcome, RuleOutcome::Hit);
+    let original = first.clone();
     let baseline = first.findings;
     let mut new = old.clone();
     new.overrides.description_characters = Some(1000);
@@ -374,14 +388,18 @@ fn parameter_or_rule_changes_are_new_checks_and_cannot_clear_the_original_baseli
         let recheck = evaluation::evaluate(&Input {
             baseline: Some(Baseline {
                 findings: &baseline,
-                parameters: Some(&old),
-                rule_version: &old.version,
+                assessments: std::slice::from_ref(&original),
+                scope: &original.basis.scope,
             }),
             ..Input::initial(&v, &v.items[0], rules, None)
         })
         .remove(0);
-        assert_eq!(recheck.outcome, RuleOutcome::Insufficient);
-        assert_eq!(recheck.reason.as_deref(), Some("ruleParametersChanged"));
+        assert_eq!(recheck.outcome, RuleOutcome::Miss);
+        assert_eq!(recheck.comparison.status, ComparisonStatus::Incomparable);
+        assert_eq!(
+            recheck.comparison.reason.as_deref(),
+            Some("ruleParametersOrMethodChanged")
+        );
     }
 }
 

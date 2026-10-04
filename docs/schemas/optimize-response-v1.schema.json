@@ -203,6 +203,11 @@
     "Suggestion": {
       "type": "object",
       "properties": {
+        "reviewFormatVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
         "scopeProject": {
           "type": [
             "string",
@@ -274,7 +279,7 @@
           "description": "Exact metadata before rechecking; source bodies are never retained.",
           "anyOf": [
             {
-              "$ref": "#/definitions/Item"
+              "$ref": "#/definitions/ReviewBaseline"
             },
             {
               "type": "null"
@@ -304,7 +309,9 @@
           ]
         }
       },
+      "additionalProperties": false,
       "required": [
+        "reviewFormatVersion",
         "id",
         "item",
         "category",
@@ -1005,6 +1012,9 @@
     "UserDecision": {
       "type": "object",
       "properties": {
+        "binding": {
+          "$ref": "#/definitions/DecisionBinding"
+        },
         "kind": {
           "$ref": "#/definitions/DecisionKind"
         },
@@ -1017,9 +1027,145 @@
       },
       "additionalProperties": false,
       "required": [
+        "binding",
         "kind",
         "reason",
         "recordedAt"
+      ]
+    },
+    "DecisionBinding": {
+      "type": "object",
+      "properties": {
+        "identityBasis": {
+          "$ref": "#/definitions/DecisionIdentityBasis"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "suggestionId": {
+          "type": "string"
+        },
+        "findingIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assessmentIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contentVersion": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/definitions/AssessmentScope"
+        },
+        "applicabilityId": {
+          "description": "Includes relevant dependencies, methods and parameters, but no check cutoff or log revision.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gap": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "identityBasis",
+        "version",
+        "suggestionId",
+        "findingIds",
+        "assessmentIds",
+        "contentVersion",
+        "scope"
+      ]
+    },
+    "DecisionIdentityBasis": {
+      "description": "Missing problem location permits only the exact complete suggestion/content version.",
+      "type": "string",
+      "enum": [
+        "stable_problems",
+        "exact_suggestion_version",
+        "unavailable"
+      ]
+    },
+    "AssessmentScope": {
+      "type": "object",
+      "properties": {
+        "sourceInstanceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "itemProject": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "global": {
+          "type": "boolean"
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceInstances": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "authorizedProjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "projectRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "global",
+        "sourceInstances",
+        "authorizedProjects",
+        "roots",
+        "projectRoots",
+        "sourceRoots",
+        "complete"
       ]
     },
     "DecisionKind": {
@@ -1040,6 +1186,35 @@
     "RuleAssessment": {
       "type": "object",
       "properties": {
+        "assessmentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "identityGap": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ruleSemanticsVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "methodVersions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MethodVersion"
+          }
+        },
+        "basis": {
+          "$ref": "#/definitions/AssessmentBasis"
+        },
+        "comparison": {
+          "$ref": "#/definitions/AssessmentComparison"
+        },
         "rule": {
           "type": "string"
         },
@@ -1071,7 +1246,12 @@
           }
         }
       },
+      "additionalProperties": false,
       "required": [
+        "ruleSemanticsVersion",
+        "methodVersions",
+        "basis",
+        "comparison",
         "rule",
         "ruleVersion",
         "itemId",
@@ -1079,6 +1259,246 @@
         "checkedAt",
         "outcome",
         "findings"
+      ]
+    },
+    "MethodVersion": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "version"
+      ]
+    },
+    "AssessmentBasis": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "dependencyRevision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "$ref": "#/definitions/AssessmentScope"
+        },
+        "cutoff": {
+          "type": "string"
+        },
+        "applicability": {
+          "type": "string"
+        },
+        "measurement": {
+          "$ref": "#/definitions/RuleMeasurement"
+        },
+        "gaps": {
+          "description": "Absent revisions never act as equality wildcards.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "scope",
+        "cutoff",
+        "applicability",
+        "measurement",
+        "gaps"
+      ]
+    },
+    "RuleMeasurement": {
+      "description": "Values consumed by the rule, including successful measurements and thresholds.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "configuredState": {
+              "type": "string"
+            },
+            "measurementStatus": {
+              "type": "string"
+            },
+            "missing": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "existence"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "configuredState",
+            "measurementStatus",
+            "missing"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "basis": {
+              "type": "string"
+            },
+            "observed": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "threshold": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "inclusive": {
+              "type": "boolean"
+            },
+            "standardMax": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "suppressedByStandard": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "numeric"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "basis",
+            "threshold",
+            "inclusive",
+            "suppressedByStandard"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "skill_metadata"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "issues"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "complete": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "findings": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "kind": {
+              "type": "string",
+              "const": "static"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "findings"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unsupported"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "AssessmentComparison": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/ComparisonStatus"
+        },
+        "baselineAssessmentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ]
+    },
+    "ComparisonStatus": {
+      "type": "string",
+      "enum": [
+        "not_requested",
+        "comparable",
+        "incomparable",
+        "unknown"
       ]
     },
     "RuleOutcome": {
@@ -1094,6 +1514,9 @@
     "Finding": {
       "type": "object",
       "properties": {
+        "identity": {
+          "$ref": "#/definitions/FindingIdentity"
+        },
         "rule": {
           "type": "string"
         },
@@ -1140,10 +1563,39 @@
           ]
         }
       },
+      "additionalProperties": false,
       "required": [
+        "identity",
         "rule",
         "status",
         "evidenceCodes"
+      ]
+    },
+    "FindingIdentity": {
+      "description": "Problem identity is independent of revisions, thresholds and check timestamps.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "findingId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gap": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version"
       ]
     },
     "StaticEvidence": {
@@ -1480,6 +1932,36 @@
         }
       },
       "additionalProperties": false
+    },
+    "ReviewBaseline": {
+      "description": "Captured before the first persisted observation; never replaced by later checks.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "item": {
+          "$ref": "#/definitions/Item"
+        },
+        "scope": {
+          "$ref": "#/definitions/AssessmentScope"
+        },
+        "assessments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RuleAssessment"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "item",
+        "scope",
+        "assessments"
+      ]
     },
     "RecordKind": {
       "type": "string",

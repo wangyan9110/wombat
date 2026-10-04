@@ -3,6 +3,7 @@ use crate::optimize_dto::Finding;
 
 fn entry(key: &str, bytes: usize) -> Entry {
     let mut judgment = Assessment::Hit(vec![Finding {
+        identity: Default::default(),
         rule: "synthetic".into(),
         status: "failed".into(),
         observed: None,
@@ -23,20 +24,20 @@ fn entry(key: &str, bytes: usize) -> Entry {
 fn lru_replacement_and_clones_preserve_entry_ownership() {
     let mut cache = JudgmentCache::default();
     for id in 0..MAX_ENTRIES {
-        cache.insert(entry(&id.to_string(), 200));
+        cache.insert(entry(&id.to_string(), 400));
     }
     let mut clone = cache.get("0").unwrap();
     if let Assessment::Hit(findings) = &mut clone {
         findings[0].rule = "modified".into();
     }
-    cache.insert(entry("next", 200));
+    cache.insert(entry("next", 400));
     assert!(cache.get("1").is_none());
     assert!(
         matches!(cache.get("0"), Some(Assessment::Hit(findings)) if findings[0].rule == "synthetic")
     );
-    cache.insert(entry("0", 300));
+    cache.insert(entry("0", 500));
     assert_eq!(cache.stats().0, MAX_ENTRIES);
-    assert_eq!(cache.stats().1, MAX_ENTRIES * 200 + 100);
+    assert_eq!(cache.stats().1, MAX_ENTRIES * 400 + 100);
 }
 #[test]
 fn encoded_byte_cap_evicts_even_below_entry_count_and_accepts_exact_boundary() {

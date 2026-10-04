@@ -221,6 +221,7 @@ pub(super) fn key(rule: Rule, input: &Input<'_>, prepared: &RuleInput<'_>) -> Op
                 set(&view.project_roots),
                 set(&view.projects),
                 input.project,
+                input.source,
             ),
             (measurement, prepared),
             matches!(dependencies.evidence, Evidence::HostTargets).then_some((

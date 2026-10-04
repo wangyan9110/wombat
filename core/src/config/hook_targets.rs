@@ -107,6 +107,7 @@ pub(super) fn analyze(
                 continue;
             }
             let finding = Finding {
+                identity: Default::default(),
                 rule: "hookTarget".into(),
                 status: "failed".into(),
                 observed: None,

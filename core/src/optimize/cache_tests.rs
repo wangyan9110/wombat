@@ -83,6 +83,9 @@ fn cold_and_warm_results_use_current_metadata_and_ignore_unrelated_updates() {
         .into_iter()
         .map(|mut assessment| {
             assessment.checked_at = view.checked.clone();
+            assessment.basis.cutoff = view.checked.clone();
+            assessment.assessment_id = None;
+            super::super::identity::identify(&mut assessment);
             assessment
         })
         .collect();
@@ -121,69 +124,58 @@ fn cached_miss_rechecks_baseline_version_parameters_and_availability() {
     let cache = Mutex::default();
     let rules = RuleParameters::default();
     let mut view = view();
+    view.items[0].bytes = Some(20000);
+    let original = evaluate_cached(&Input::initial(&view, &view.items[0], &rules, None), &cache)
+        .into_iter()
+        .find(|c| c.rule == "fileSize")
+        .unwrap();
+    let findings = original.findings.clone();
+    let scope = original.basis.scope.clone();
+    view.items[0].bytes = Some(0);
     cached(Rule::FileSize, &view, &rules, &cache);
-    let findings = vec![finding("fileSize")];
-    let mut input = Input::initial(&view, &view.items[0], &rules, None);
-    input.baseline = Some(Baseline {
-        findings: &findings,
-        parameters: Some(&rules),
-        rule_version: "older",
-    });
-    assert!(matches!(
-        assess(Rule::FileSize, &input, &cache).unwrap(),
-        Assessment::Insufficient("ruleParametersChanged")
-    ));
-    let mut old_rules = rules.clone();
-    old_rules.overrides.agents_bytes = Some(1);
-    input.baseline = Some(Baseline {
-        findings: &findings,
-        parameters: Some(&old_rules),
-        rule_version: &rules.version,
-    });
-    assert!(matches!(
-        assess(Rule::FileSize, &input, &cache).unwrap(),
-        Assessment::Insufficient("ruleParametersChanged")
-    ));
-    assert_eq!(hits(&cache), 2);
-    let mut scoped = findings.clone();
-    scoped[0].evidence = Some(StaticEvidence {
-        method: "prior-v1".into(),
-        applicability: "same-scope".into(),
-        declaration_hash: None,
-        relation_id: None,
-        direction: None,
-        transform: None,
-        versions: vec![FileVersion {
-            item_id: "unavailable-peer".into(),
-            path: "/safe/peer".into(),
-            content_hash: "prior".into(),
-        }],
-        positions: vec![],
-        relation: None,
-        references: vec![],
-        hook: None,
-    });
-    input.baseline = Some(Baseline {
-        findings: &scoped,
-        parameters: Some(&rules),
-        rule_version: &rules.version,
-    });
-    assert!(matches!(
-        assess(Rule::FileSize, &input, &cache).unwrap(),
-        Assessment::Insufficient("checkEvidenceIncomplete")
-    ));
-    assert_eq!(hits(&cache), 3);
-    input.current_available = false;
-    assert!(matches!(
-        assess(Rule::FileSize, &input, &cache).unwrap(),
-        Assessment::Insufficient("currentVersionUnavailable")
-    ));
-    assert_eq!(hits(&cache), 3);
+    let check = |baseline: &RuleAssessment| {
+        evaluate_cached(
+            &Input {
+                baseline: Some(Baseline {
+                    findings: &findings,
+                    assessments: std::slice::from_ref(baseline),
+                    scope: &scope,
+                }),
+                ..Input::initial(&view, &view.items[0], &rules, None)
+            },
+            &cache,
+        )
+        .remove(0)
+    };
+    let before = hits(&cache);
+    let comparable = check(&original);
+    assert_eq!(comparable.outcome, RuleOutcome::Miss);
+    assert_eq!(comparable.comparison.status, ComparisonStatus::Comparable);
+    let mut old = original.clone();
+    old.rule_version = "older".into();
+    assert_eq!(
+        check(&old).comparison.status,
+        ComparisonStatus::Incomparable
+    );
+    old = original.clone();
+    if let RuleMeasurement::Numeric { threshold, .. } = &mut old.basis.measurement {
+        *threshold = 1;
+    }
+    assert_eq!(
+        check(&old).comparison.status,
+        ComparisonStatus::Incomparable
+    );
+    old = original;
+    old.assessment_id = None;
+    old.identity_gap = Some("budget".into());
+    assert_eq!(check(&old).comparison.status, ComparisonStatus::Unknown);
+    assert_eq!(hits(&cache), before + 4);
     view.items[0].stale = true;
     assert!(matches!(
         cached(Rule::FileSize, &view, &rules, &cache),
         Assessment::Insufficient("currentVersionUnavailable")
     ));
+    assert_eq!(hits(&cache), before + 4);
 }
 #[test]
 fn description_suppression_binds_its_measurement_and_both_thresholds() {

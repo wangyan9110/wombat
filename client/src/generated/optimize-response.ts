@@ -6,8 +6,46 @@ export type HookSupportStatus = "no_verified_adapter" | "registry_observed" | "r
 export type Kind = "rule" | "skill" | "mcp" | "hook";
 export type Observation = "used" | "loaded_only" | "unknown";
 export type Category = "repair" | "trim" | "organize" | "space";
+/**
+ * Missing problem location permits only the exact complete suggestion/content version.
+ */
+export type DecisionIdentityBasis = "stable_problems" | "exact_suggestion_version" | "unavailable";
 export type DecisionKind = "keep" | "not_applicable";
 export type DecisionReason = "necessary" | "object_changed" | "incorrect_evidence";
+/**
+ * Values consumed by the rule, including successful measurements and thresholds.
+ */
+export type RuleMeasurement =
+  | {
+      configuredState: string;
+      measurementStatus: string;
+      missing: boolean;
+      kind: "existence";
+    }
+  | {
+      basis: string;
+      observed?: number | null;
+      threshold: number;
+      inclusive: boolean;
+      standardMax?: number | null;
+      suppressedByStandard: boolean;
+      kind: "numeric";
+    }
+  | {
+      status?: string | null;
+      issues: string[];
+      kind: "skill_metadata";
+    }
+  | {
+      complete?: boolean | null;
+      findings: number;
+      kind: "static";
+    }
+  | {
+      reason: string;
+      kind: "unsupported";
+    };
+export type ComparisonStatus = "not_requested" | "comparable" | "incomparable" | "unknown";
 export type RuleOutcome = "hit" | "miss" | "insufficient" | "unsupported" | "error";
 export type RelationKind = "chain" | "copy";
 export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
@@ -56,6 +94,7 @@ export interface HookSupport {
   status: HookSupportStatus;
 }
 export interface Suggestion {
+  reviewFormatVersion: number;
   scopeProject?: string | null;
   id: string;
   item: Item;
@@ -74,7 +113,7 @@ export interface Suggestion {
   /**
    * Exact metadata before rechecking; source bodies are never retained.
    */
-  reviewBaseline?: Item | null;
+  reviewBaseline?: ReviewBaseline | null;
   recordId?: string | null;
   recordedAt?: string | null;
   recordKind?: RecordKind | null;
@@ -231,11 +270,44 @@ export interface PriceBasis {
   requestScoped: boolean;
 }
 export interface UserDecision {
+  binding: DecisionBinding;
   kind: DecisionKind;
   reason: DecisionReason;
   recordedAt: string;
 }
+export interface DecisionBinding {
+  identityBasis: DecisionIdentityBasis;
+  version: number;
+  suggestionId: string;
+  findingIds: string[];
+  assessmentIds: string[];
+  contentVersion: string;
+  scope: AssessmentScope;
+  /**
+   * Includes relevant dependencies, methods and parameters, but no check cutoff or log revision.
+   */
+  applicabilityId?: string | null;
+  gap?: string | null;
+}
+export interface AssessmentScope {
+  sourceInstanceId?: string | null;
+  itemProject?: string | null;
+  global: boolean;
+  project?: string | null;
+  sourceInstances: string[];
+  authorizedProjects: string[];
+  roots: string[];
+  projectRoots: string[];
+  sourceRoots: string[];
+  complete: boolean;
+}
 export interface RuleAssessment {
+  assessmentId?: string | null;
+  identityGap?: string | null;
+  ruleSemanticsVersion: number;
+  methodVersions: MethodVersion[];
+  basis: AssessmentBasis;
+  comparison: AssessmentComparison;
   rule: string;
   ruleVersion: string;
   itemId: string;
@@ -245,7 +317,29 @@ export interface RuleAssessment {
   reason?: string | null;
   findings: Finding[];
 }
+export interface MethodVersion {
+  method: string;
+  version: number;
+}
+export interface AssessmentBasis {
+  version: number;
+  dependencyRevision?: string | null;
+  scope: AssessmentScope;
+  cutoff: string;
+  applicability: string;
+  measurement: RuleMeasurement;
+  /**
+   * Absent revisions never act as equality wildcards.
+   */
+  gaps: string[];
+}
+export interface AssessmentComparison {
+  status: ComparisonStatus;
+  baselineAssessmentId?: string | null;
+  reason?: string | null;
+}
 export interface Finding {
+  identity: FindingIdentity;
   rule: string;
   status: string;
   observed?: number | null;
@@ -256,6 +350,14 @@ export interface Finding {
    * Positions and relationships only; never retain source text or command arguments.
    */
   evidence?: StaticEvidence | null;
+}
+/**
+ * Problem identity is independent of revisions, thresholds and check timestamps.
+ */
+export interface FindingIdentity {
+  version: number;
+  findingId?: string | null;
+  gap?: string | null;
 }
 export interface StaticEvidence {
   method: string;
@@ -325,6 +427,15 @@ export interface RuleParameters {
 export interface RuleOverrides {
   agentsBytes?: number | null;
   descriptionCharacters?: number | null;
+}
+/**
+ * Captured before the first persisted observation; never replaced by later checks.
+ */
+export interface ReviewBaseline {
+  version: number;
+  item: Item;
+  scope: AssessmentScope;
+  assessments: RuleAssessment[];
 }
 export interface Page {
   offset: number;

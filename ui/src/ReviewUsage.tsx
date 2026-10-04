@@ -31,7 +31,7 @@ function comparableTokens(before:ConfigItem,after:ConfigItem,body:boolean) {
  return [a.tokens,b.tokens] as const;
 }
 export function textChanges(s:OptimizeSuggestion) {
- const a=s.reviewBaseline,b=s.item;
+ const a=s.reviewBaseline?.item,b=s.item;
  if(!s.recheckRuleParameters||s.status==='recheckUnavailable'||!a||a.id!==b.id||a.stale||b.stale||!b.current||a.measurementStatus!=='complete'||b.measurementStatus!=='complete'||!a.contentHash||!b.contentHash)return [];
  const rows:{label:string;before:number;after:number}[]=[];
  if(a.bytes!=null&&b.bytes!=null)rows.push({label:t('config.size')+' · B',before:a.bytes,after:b.bytes});

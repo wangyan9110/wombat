@@ -17,20 +17,21 @@ pub(crate) fn parameters(overrides: Option<RuleOverrides>) -> Result<RuleParamet
 }
 #[cfg(test)]
 pub(crate) fn detect(view: &View, rules: &RuleParameters) -> Vec<Suggestion> {
-    detect_for(view, rules, None)
+    detect_for(view, rules, None, None)
 }
 pub(crate) fn detect_for(
     view: &View,
     rules: &RuleParameters,
     project: Option<&str>,
+    source: Option<&str>,
 ) -> Vec<Suggestion> {
     let mut suggestions: Vec<_> = view
         .items
         .iter()
         .filter_map(|item| {
-            let checks = super::evaluation::evaluate(&super::evaluation::Input::initial(
-                view, item, rules, project,
-            ));
+            let input =
+                super::evaluation::Input::initial(view, item, rules, project).with_source(source);
+            let checks = super::evaluation::evaluate(&input);
             let mut findings: Vec<_> = checks
                 .iter()
                 .filter(|c| c.outcome == RuleOutcome::Hit)
@@ -64,7 +65,9 @@ pub(crate) fn detect_for(
                                 .is_none_or(|h| h.project == p)
                         })
                 }) {
-                    findings.push(finding.clone());
+                    let mut finding = finding.clone();
+                    finding.identity = super::identity::finding(&input, &finding);
+                    findings.push(finding);
                 }
             }
             if findings.is_empty() {
@@ -99,11 +102,12 @@ pub(crate) fn detect_for(
                         .unwrap_or(rules.description_characters_default),
                     rules.body_tokens,
                     rules.description_standard_max,
-                    &findings,
+                    group_findings(&findings),
                 ))
                 .ok()?,
             );
-            Some(Suggestion {
+            let mut suggestion = Suggestion {
+                review_format_version: 1,
                 scope_project: None,
                 id,
                 item: item.clone(),
@@ -120,7 +124,9 @@ pub(crate) fn detect_for(
                 record_id: None,
                 recorded_at: None,
                 record_kind: None,
-            })
+            };
+            super::identity::capture(&mut suggestion);
+            Some(suggestion)
         })
         .collect();
     suggestions.sort_by(|a, b| {
@@ -157,4 +163,31 @@ pub(crate) fn detect_for(
             .then_with(|| a.id.cmp(&b.id))
     });
     suggestions
+}
+
+// Group/version keys do not depend on the new problem identity representation.
+fn group_findings(findings: &[Finding]) -> Vec<GroupFinding<'_>> {
+    findings
+        .iter()
+        .map(|f| GroupFinding {
+            rule: &f.rule,
+            status: &f.status,
+            observed: f.observed,
+            threshold: f.threshold,
+            evidence_codes: &f.evidence_codes,
+            basis: &f.basis,
+            evidence: &f.evidence,
+        })
+        .collect()
+}
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GroupFinding<'a> {
+    rule: &'a str,
+    status: &'a str,
+    observed: Option<u64>,
+    threshold: Option<u64>,
+    evidence_codes: &'a [String],
+    basis: &'a Option<String>,
+    evidence: &'a Option<StaticEvidence>,
 }
