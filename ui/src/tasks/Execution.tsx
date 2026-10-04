@@ -1,35 +1,29 @@
-import {useRef,useState} from 'react';
+import type {TimingLocalResult} from '@wombat/client';
 import {t} from '@wombat/client/locale';
 import './execution.css';
-/** Presentation input, not a transport DTO. Metrics and evidence are supplied by the caller. */
-export interface ExecutionView {
- observedWindow:boolean;
- status:'completed'|'running'|'unknown';
- duration:string|null;
- cutoff:string;
- windowLabel?:string;
- gaps?:{id:string;range:string;left:number;width:number}[];
- tracks:{id:string;label:string;range:string;left:number;width:number;evidence:string}[];
- distribution:string|null;
- uses:{id:string;name:string;count:number|null;records:{id:string;label:string}[]}[];
- shareText:string;
-}
-export function Execution({view,refresh}:{view:ExecutionView;refresh:()=>void}){
- const [selected,setSelected]=useState<string>(),[share,setShare]=useState(false),[copy,setCopy]=useState('');
- const opener=useRef<HTMLButtonElement|null>(null),dialog=useRef<HTMLDialogElement|null>(null);
- const evidence=view.tracks.find(track=>track.id===selected);
- const close=()=>{setSelected(undefined);opener.current?.focus();};
- return <section className={`execution ${view.observedWindow?'':'execution-no-window'}`} aria-label={t('execution.title')}>
-  <div className="section-head"><h3>{t('execution.title')}</h3><button className="link" onClick={()=>{setSelected(undefined);refresh();}}>{t('execution.refresh')}</button></div>
-  <div className="execution-summary"><div><span>{t('execution.duration')}</span><strong>{view.duration??t(view.status==='running'?'execution.running':'execution.missing')}</strong></div><p>{t(`execution.${view.status}`)}<br/><small>{t('execution.cutoff',{time:view.cutoff})}</small></p></div>
-  {!view.duration&&<p className="note">{t('execution.timeGap')}</p>}
-  {view.observedWindow&&view.windowLabel&&<p className="execution-axis">{t('execution.window',{range:view.windowLabel})}</p>}
-  <div className="execution-tracks">{view.tracks.map(track=><div className="execution-track" key={track.id}><span>{track.label}</span><div><button aria-label={`${track.label} ${track.range}`} style={{left:`${track.left}%`,width:`${track.width}%`}} onClick={event=>{opener.current=event.currentTarget;setSelected(track.id);}}/></div></div>)}{view.gaps?.map(gap=><div className="execution-track" key={gap.id}><span>{t('execution.unclassified')}</span><div><span className="execution-gap" style={{left:`${gap.left}%`,width:`${gap.width}%`}} aria-label={gap.range}/></div></div>)}</div>
-  <div className="execution-list">{view.tracks.map(track=><button className="link" key={track.id} onClick={event=>{opener.current=event.currentTarget;setSelected(track.id);}}>{track.range} · {track.label}</button>)}{view.gaps?.map(gap=><p key={gap.id}>{gap.range} · {t('execution.unclassified')}</p>)}</div>
-  {view.distribution&&<details><summary>{t('execution.distribution')}</summary><p>{view.distribution}</p></details>}
-  {evidence&&<aside className="execution-evidence"><strong>{t('execution.evidence')}</strong><p>{evidence.evidence}</p><button className="link" onClick={close}>{t('execution.closeEvidence')}</button></aside>}
-  <h3>{t('execution.uses')}</h3>{view.uses.map(use=><details key={use.id}><summary><strong>{use.name}</strong><span>{use.count===null?t('execution.missing'):t('execution.count',{count:use.count})}</span></summary><p>{t('execution.definition')}</p>{use.records.map(record=><p key={record.id}>{record.label}</p>)}</details>)}
-  <button onClick={()=>{setCopy('');setShare(true);dialog.current?.showModal();}}>{t('execution.share')}</button>
-  <dialog ref={dialog} onClose={()=>setShare(false)}><h3>{t('execution.sharePreview')}</h3>{share&&<pre>{view.shareText}</pre>}<button onClick={()=>{void navigator.clipboard.writeText(view.shareText).then(()=>setCopy(t('execution.copied')),()=>setCopy(t('execution.copyFailed')));}}>{t('execution.copy')}</button><button onClick={()=>dialog.current?.close()}>{t('execution.close')}</button><p role="status">{copy}</p></dialog>
+type Metric=TimingLocalResult['time']['nativeWallClockMs'];
+const metric=(value:Metric)=>value.value==null?t('execution.missing'):String(value.value);
+const milliseconds=(value:Metric)=>value.value==null?t('execution.missing'):`${value.value} ms`;
+export function Execution({summary,refresh,onEvidence,onShare,updating=false,blocked=false}:{summary:TimingLocalResult;refresh:()=>void;onEvidence:(refs:string[],intervalAlias?:string)=>void;onShare:()=>void;updating?:boolean;blocked?:boolean}){
+ const {time,context}=summary,window=time.observedWindowMs.value;
+ const timeline=time.timeline.presentation==='timeline'&&window!=null&&window>0;
+ const native=time.nativeWallClockMs.value!=null;
+ const duration=native?time.nativeWallClockMs:time.derivedWallClockMs;
+ const durationText=time.state==='running'?t('execution.running'):duration.value==null?t('execution.missing'):`${duration.value} ms`;
+ const evidence=(value:Metric)=><button className="link" disabled={blocked||!summary.evidence.available} onClick={()=>onEvidence(value.evidenceRefs)}>{t('execution.evidence')}</button>;
+ return <section className={`execution ${timeline?'':'execution-no-window'}`} aria-label={t('execution.title')} aria-busy={updating}>
+  <div className="section-head"><h3>{t('execution.title')}</h3><button className="link" onClick={refresh}>{t('execution.refresh')}</button>{updating&&<span role="status">{t('execution.updating')}</span>}</div>
+  <div className="execution-summary"><div><span>{t(native?'execution.nativeDuration':'execution.derivedDuration')}</span><strong>{durationText}</strong>{evidence(duration)}</div><p>{t(`execution.${time.state}`)}<br/><small>{t('execution.cutoff',{time:summary.freshness.checkedAt??t('execution.missing')})}</small></p></div>
+  {(summary.quality.partial||summary.quality.running||summary.quality.censored)&&<p className="note">{t('execution.timeGap')}</p>}
+  {timeline&&<p className="execution-axis">{t('execution.window',{range:`0–${window} ms`})}</p>}
+  {!timeline&&<p className="note">{t('execution.listFallback')}</p>}
+  <div className="execution-tracks">{timeline&&(['command','compaction','reasoning'] as const).filter(category=>time.timeline.tracks.some(track=>track.category===category)).map(category=><details className="execution-track-group" key={category} open={time.timeline.tracks.length<=12}><summary>{t(`execution.category.${category}`)}</summary>{time.timeline.tracks.filter(track=>track.category===category).map(track=><div className="execution-track" key={track.intervalAlias}><span>{t(`execution.category.${track.category}`)}</span><div><button aria-label={`${t(`execution.category.${track.category}`)} ${track.startMs}–${track.endMs} ms`} disabled={blocked} style={{left:`${track.startMs/window!*100}%`,width:`${(track.endMs-track.startMs)/window!*100}%`}} onClick={()=>onEvidence([...track.evidenceRefs],track.intervalAlias)}/></div></div>)}</details>)}{timeline&&time.timeline.unclassifiedGaps.map((gap,index)=><div className="execution-track" key={`gap-${index}`}><span>{t('execution.unclassified')}</span><div><span className="execution-gap" style={{left:`${gap.startMs/window!*100}%`,width:`${(gap.endMs-gap.startMs)/window!*100}%`}} aria-label={`${gap.startMs}–${gap.endMs} ms`}/></div></div>)}</div>
+  <div className="execution-list">{time.timeline.tracks.map(track=><button className="link" key={track.intervalAlias} disabled={blocked} onClick={()=>onEvidence([...track.evidenceRefs],track.intervalAlias)}>{track.startMs}–{track.endMs} ms · {t(`execution.category.${track.category}`)}</button>)}{time.timeline.unclassifiedGaps.map((gap,index)=><p key={index}>{gap.startMs}–{gap.endMs} ms · {t('execution.unclassified')}</p>)}</div>
+  <p className="compact-note">{t('execution.detailCounts',{shown:metric(time.timeline.entryCount),total:metric(time.timeline.identifiedIntervalCount),missing:metric(time.timeline.unlocatedIntervalCount)})}</p>
+  <details><summary>{t('execution.distribution')}</summary><p>{t('execution.concurrent')}</p><dl className="facts">{(['command','compaction','reasoning'] as const).map(category=><div key={category}><dt>{t(`execution.category.${category}`)}</dt><dd>{t('execution.unionSum',{union:milliseconds(time[category].unionMs),sum:milliseconds(time[category].sumMs)})}</dd></div>)}<dt>{t('execution.covered')}</dt><dd>{milliseconds(time.coveredMs)}</dd><dt>{t('execution.unclassified')}</dt><dd>{milliseconds(time.unclassifiedMs)}</dd></dl></details>
+  <h3>{t('execution.uses')}</h3><p className="note">{t('execution.usesUnavailable')}</p>
+  <details><summary>{t('execution.moreMetrics')}</summary><dl className="facts"><dt>{t('execution.nativeTtft')}</dt><dd>{milliseconds(time.nativeTtftMs)} {evidence(time.nativeTtftMs)}</dd><dt>{t('execution.firstContent')}</dt><dd>{milliseconds(time.firstContentRecordDelayMs)} {evidence(time.firstContentRecordDelayMs)}</dd><dt>{t('execution.input')}</dt><dd>{metric(context.input.median)} / {metric(context.input.p90)}</dd><dt>{t('execution.ratio')}</dt><dd>{metric(context.ratio.median)} / {metric(context.ratio.p90)}</dd><dt>{t('execution.samples')}</dt><dd>{metric(context.input.samples)}</dd><dt>{t('execution.compactions')}</dt><dd>{metric(context.compactionRecords)} / {milliseconds(context.compactionTimeMs)}</dd></dl><p>{t('execution.ratioNote')}</p></details>
+  <details><summary>{t('execution.basis')}</summary><p>{t('execution.wholeTurn')}</p><p>{summary.quality.reasonCodes.join(', ')}</p><p>{summary.methodVersion} · {summary.coverage.sourceStatus}</p><p>{duration.status} · {duration.basis}</p><p>{time.timeline.detail.support} · {time.timeline.detail.reason}</p><code>{summary.readView.snapshotId}</code></details>
+  <button disabled={blocked||updating} onClick={onShare}>{t('execution.share')}</button>
  </section>;
 }

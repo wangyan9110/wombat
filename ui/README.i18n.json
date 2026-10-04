@@ -10,24 +10,24 @@
       "en": "6c9d331f16add1b95e0bb16ed55516d1dd5842dddd036e48716ab1ba21cbc31b"
     },
     "/web-frontend/pages-and-implementation-boundaries": {
-      "zh": "1a170faf67a5f1355f1b2942e8e93cc70fffce42612ea10c641699b451a724bc",
-      "en": "f58d08d2211a8fc4090d1de789a6d184000e8cf0310027ef1567a1c99aaf913e"
+      "zh": "23d489ab5f7dfc4474b6fe58ff21a6c2370208bc9866bcd2b897cfab49cc3c5f",
+      "en": "e2b0bd677f6e34def5408677221dad231adfecb043ae2c2d944ec9bb7d7f7b04"
     },
     "/web-frontend/internal-responsibilities": {
       "zh": "4033b71d33dd878327c5332d322252b1cde1e524be406dabec3a9d3fd64b4dcc",
       "en": "edb18b9b340b1c451beb5c3f701522e5f1833a7f3b2e93df54ba4428c252af96"
     },
     "/web-frontend/state-and-queries": {
-      "zh": "9891eea536e0ab7eae8a86cb4386a7ad05ee08ad6fb6c8dc9ba6397fb34f5dd2",
-      "en": "0cf963794aa91a41176b013d6708158979539e4192c1aa7c9c91530b0500ac1c"
+      "zh": "4046e353cf0ee7d35579896b97dd76fa60180a8c728d69b96e4013d53216907c",
+      "en": "71af9d1cf345f70679cc029970224b90dd414b8e0f6ec11e68103ab5a0054b96"
     },
     "/web-frontend/development-and-verification": {
       "zh": "15ed8a337a273733558fe7aa2e91f25ca984175ec55b8df118d8f02ee73dae1a",
       "en": "0a14939dac6b1d72d9fa7fcff77e938f6a74e2dcd8f5bf15b05b58d878ee3a10"
     },
     "/web-frontend/shared-component-preview": {
-      "zh": "768e9d87b157f1d2f36f204106524ae9f63c1054c5c79a4099c1a7fab9bf056d",
-      "en": "0918de32c4cb7c02bd4e4660a81da52983efefdb432ae9c91fa0b7fe3e203b4a"
+      "zh": "e5c6953f8e699aac79f23170c3ab6b5525e7435214f23e6f08ec2074cd9447de",
+      "en": "877b522fa8319e72a9d6fa8ea76609ed9703e8f69de858158657967f0639ebc8"
     }
   }
 }

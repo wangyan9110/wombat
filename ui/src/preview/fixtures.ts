@@ -1,4 +1,5 @@
 import {t} from '@wombat/client/locale';
+import {previewTiming} from './timing.js';
 import {accountFixture} from './account.js';
 import {configFixture,createRuleFixture} from './configuration.js';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type UsageSummary, type QueryOptions } from '@wombat/client';
@@ -17,6 +18,7 @@ export function createPreviewClient(scenario:Scenario):UsageClient {
  const rules=createRuleFixture(scenario==='empty',scenario==='resolved'?'resolved':scenario==='rule-upgraded'?'incomparable':scenario==='evidence-gap'?'unknown':'unchanged');
  const ready=async(options?:QueryOptions)=>{if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');if(scenario==='error')throw new CoreError('SOURCE_UNREADABLE','Synthetic source error');if(scenario==='loading')await new Promise<void>((_,reject)=>options?.signal?.addEventListener('abort',()=>reject(new CoreError('CANCELLED','Cancelled')),{once:true}));};
  return {
+  timing:previewTiming(scenario),
   ...(scenario==='initial'?{async live(request:import('@wombat/client').LiveRequest){
    const result=usageFixture(request.query,'complete');
    const unknown:UsageSummary={measurementCount:0,tokens:{total:null},price:{...summary.price,cost:null,knownCost:'0',status:'unknown'}};
