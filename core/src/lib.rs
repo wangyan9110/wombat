@@ -21,6 +21,8 @@ mod query_cache;
 pub mod session_events;
 mod shared_text;
 pub mod storage;
+#[cfg(test)]
+mod timing;
 pub mod usage_app;
 pub mod usage_app_dto;
 pub mod usage_store;
