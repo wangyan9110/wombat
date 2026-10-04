@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-npm-installation-of-platform-specific-prebuilt-cores": {
+      "zh": "da4e31d0d7c75ff5b07cf1f229d971a6e93c071ad2473c9a341ef18d52ac4262",
+      "en": "bd4aff45e533f4b044d45e6c74f78970c0c1d4d31948d2a9b1de93df29090d2d"
+    },
+    "/decision-npm-installation-of-platform-specific-prebuilt-cores/problem": {
+      "zh": "64aeb306c7129aa3ad5f76e6b4f34177ff4e83819a7ad1e4767f92aae74048bf",
+      "en": "84fadd1dacf1a3bbd514f2ee3a1cbf2c9beb6aa4b3bc622e155a3b4f8d4ad281"
+    },
+    "/decision-npm-installation-of-platform-specific-prebuilt-cores/decision": {
+      "zh": "39c687d3fe0ab67c978343c9be421b4252bb63a3ae469e73c58981622da2fc66",
+      "en": "384f4a6ba8176cfbf1f691dd8b60a815591a34c740982b70cd85d37f11ef27b0"
+    },
+    "/decision-npm-installation-of-platform-specific-prebuilt-cores/alternatives-considered": {
+      "zh": "276d3c6ab71a5fdedf8670515d21bce089d2687ba70f658093fb668f2b9ffa50",
+      "en": "1181044678a4da09eaebfaaea056e91f432b3a9718bd2358a1af22e17a3da54e"
+    },
+    "/decision-npm-installation-of-platform-specific-prebuilt-cores/consequences-and-verification": {
+      "zh": "e4d0362fa6762010321e0495005df919b7bbde12db995293ccc4cb181deaa2be",
+      "en": "7fe79e064bc20ebee9643410071d43e0d1694d46d5b27d3cef624193a339a55b"
+    }
+  }
+}

@@ -54,19 +54,19 @@ The 576K tokens are the total usage of the linked turns, including other actions
 
 ```sh
 npm install -g @wangyan9110/wombat
-wombat web
+wombat web --open
 ```
 
-Open the full URL printed in your terminal.
+The browser opens automatically. If it cannot open, use the full URL printed in your terminal.
 
-Requires Node.js **26.4.0+**. Past tasks and usage require local Codex records; static configuration checks work without usage history.
+Requires Node.js **22+**. npm installs the prebuilt core for your platform; Rust, pnpm and a compiler are unnecessary for the published package. Past tasks and usage require local Codex records; static configuration checks work without usage history.
 
 See the [CLI guide](docs/guides/cli.en.md) for project selection and custom log directories, and the [support matrix](docs/reference/support-matrix.en.md) for platform support.
 
 <details>
 <summary>Run from source or use the CLI</summary>
 
-Before the npm release, clone this repository and prepare Corepack, pnpm, and the Rust version specified in `rust-toolchain.toml`.
+Before the npm release, clone this repository and prepare Node.js 26.4.0+, Corepack, pnpm, and the Rust version specified in `rust-toolchain.toml`.
 
 Run from the repository directory:
 
@@ -104,7 +104,7 @@ The local usage index does not store user messages, model replies, full command 
 If a model's price is missing, Wombat may download official pricing documents. These requests do not include your logs. To disable automatic pricing downloads:
 
 ```sh
-WOMBAT_AUTO_PRICES=0 wombat web
+WOMBAT_AUTO_PRICES=0 wombat web --open
 ```
 
 Read the [privacy policy](docs/reference/privacy.en.md) and [pricing details](docs/reference/pricing.en.md).

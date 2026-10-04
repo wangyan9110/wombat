@@ -58,7 +58,7 @@ try {
   }
   const install = path.join(scratch, 'install');
   mkdirSync(install);
-  run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--fetch-retries=0',
+  run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--fetch-retries=0',
     '--fetch-timeout=15000', '--cache', path.join(scratch, 'npm-cache'), '--prefix', install, archive], {
     timeout: 180_000,
   });

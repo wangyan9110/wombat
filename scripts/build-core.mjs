@@ -1,3 +1,4 @@
+import {checkWindowsImports} from './native-binary.ts';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, copyFileSync, chmodSync, renameSync, rmSync } from 'node:fs';
 import os from 'node:os';
@@ -12,11 +13,13 @@ const test = process.argv.includes('--test');
 const check = process.argv.includes('--check');
 const buildEnv = { ...process.env };
 if (!test && !check) {
+  if (process.platform === 'darwin') buildEnv.MACOSX_DEPLOYMENT_TARGET = '11.0';
   // Keep developer home/check-out paths out of distributed panic/source metadata.
   // Encoded flags preserve paths containing spaces and retain caller-supplied flags.
   const flags = buildEnv.CARGO_ENCODED_RUSTFLAGS !== undefined
     ? buildEnv.CARGO_ENCODED_RUSTFLAGS.split('\x1f').filter(Boolean)
     : (buildEnv.RUSTFLAGS || '').trim().split(/\s+/).filter(Boolean);
+  if (process.platform === 'win32') flags.push('-C', 'target-feature=+crt-static');
   flags.push(`--remap-path-prefix=${os.homedir()}=/build-home`);
   if (buildEnv.CARGO_HOME) flags.push(`--remap-path-prefix=${buildEnv.CARGO_HOME}=/cargo-home`);
   flags.push(`--remap-path-prefix=${root}=/wombat`);
@@ -33,6 +36,7 @@ if (!test && !check) {
   const staged = `${target}.${process.pid}.tmp`;
   try {
     copyFileSync(path.join(root, 'core', 'target', 'release', binary), staged);
+    if (process.platform === 'win32') checkWindowsImports(staged);
     chmodSync(staged, 0o755);
     renameSync(staged, target);
   } finally { rmSync(staged, { force: true }); }

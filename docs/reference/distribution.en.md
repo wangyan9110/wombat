@@ -4,7 +4,19 @@
 
 ## Current status
 
-The root workspace remains `private: true`; no public npm release has passed acceptance. The planned package is `@wangyan9110/wombat`, its command is `wombat`, and it requires Node.js 26.4.0 or newer. README installation instructions remain explicitly planned for after publication. See the [support matrix](support-matrix.en.md) for platform acceptance.
+The root workspace remains `private: true`; no public npm release has passed acceptance. The planned package is `@wangyan9110/wombat`, its command is `wombat`, and npm runtime requires Node.js 22 or newer; source tools require 26.4.0 or newer. README installation instructions remain explicitly planned for after publication. See the [support matrix](support-matrix.en.md) for platform acceptance.
+
+## npm installation and release structure
+
+After publication, run `npm install -g @wangyan9110/wombat`, then `wombat web --open` or a CLI query. Users need only Node/npm, without Rust, pnpm, compilers or post-install download scripts. The main package bundles CLI dependencies and Web assets, without a Node runtime.
+
+The main package contains no native core. Five platforms use exact `optionalDependencies`aliases to platform versions under the same package name: for example,`@wangyan9110/wombat-darwin-arm64` points to`npm:@wangyan9110/wombat@0.3.0-darwin-arm64`. npm os/cpu/libc filtering downloads only the local component; core resolution checks version, target and source commit. Omitted optional dependencies yield CORE_UNAVAILABLE and an`--include=optional`recovery command, without falling back to development binaries; unsupported targets fail explicitly. See the [decision](../decisions/implemented/architecture/2026-10-03-npm-platform-distribution.en.md) for version rules.
+
+`npm:pack -- --name @wangyan9110/wombat --native-dir native-artifacts`creates one main package, five platform versions and release-set.json with SHA-256 hashes. Native artifacts must share version/commit; cores and platform notices are checked. Windows checks the static CRT and compiler DLL imports.`--current-platform`creates local candidates only. `--reuse-build`still validates source/output fingerprints and runs actual installation; stale builds cannot be reused.
+
+Candidates use a temporary loopback registry for real npm global installation, asserting only main/local tarballs are downloaded. Live, append, fixed-snapshot and Web queries run with empty PATH, and missing optional dependencies are checked. Sources and data are synthetic and temporary. CI collects five platforms at one revision and installs the same final set on each target. Node 22 verifies the runtime minimum, with additional 24/26 coverage on macOS arm64. Configured CI does not establish target-machine acceptance.
+
+Follow the [release Skill](../../.agents/skills/wombat-release/SKILL.md): publish five platform versions with explicit non-latest tags first, verify exact remote versions/integrity, then publish the main version last. No public release exists, and no prior-release migration is promised. See [progress](../project/progress.en.md) for passed local installation and unverified platforms.
 
 ## GitHub description candidates
 
@@ -26,4 +38,4 @@ Root READMEs keep relative image, language and documentation links. Each languag
 
 npm packaging calls `scripts/npm-readme.ts` only on staged copies to pin relative image, logo, language and documentation links to a public reference. Before publication, verify that a real public tag or commit contains the corresponding READMEs, images and documentation, then check unauthenticated access and npm rendering. Unauthenticated access and npm rendering have not been verified for these new materials. Committing and pushing source does not replace public-reference acceptance. Converter unit tests verify rewriting, not remote availability.
 
-This round applies copy, assets and the public file list only. It does not assemble a universal npm candidate, run an installation, update remote descriptions or publish. Follow the [release Skill](../../.agents/skills/wombat-release/SKILL.md) for later platform-artifact, installation and public-reference checks; preparing a candidate is not publication authorization. Actual checks are recorded in [progress](../project/progress.en.md).
+Actual checks are recorded in [progress](../project/progress.en.md). Preparing candidates does not update GitHub descriptions or authorize publication.

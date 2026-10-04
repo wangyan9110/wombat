@@ -59,7 +59,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   npm-candidate:
-    name: Assemble universal npm candidate
+    name: Assemble npm release set
     needs: verify
     runs-on: macos-15
     timeout-minutes: 30
@@ -76,7 +76,7 @@ jobs:
           pattern: native-*
           path: native-artifacts
           merge-multiple: true
-      - name: Build and verify universal archive
+      - name: Build and verify the main and five platform packages
         run: |
           npm install --global corepack@0.33.0
           corepack pnpm install --frozen-lockfile
@@ -87,7 +87,9 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: npm-candidate
-          path: dist/npm/**/*.tgz
+          path: |
+            dist/npm/**/*.tgz
+            dist/npm/**/release-set.json
           if-no-files-found: error
           retention-days: 14
   dependency-audit:
@@ -108,14 +110,21 @@ jobs:
           cargo install --locked cargo-audit --version 0.22.2
           cargo audit --file core/Cargo.lock
   install-candidate:
-    name: Install final npm package (${{ matrix.runner }})
+    name: Install final npm packages (${{ matrix.runner }}, Node ${{ matrix.runtime }})
     needs: npm-candidate
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        runner: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm, windows-2025]
+        include:
+          - { runner: macos-15, runtime: '22.0.0' }
+          - { runner: macos-15-intel, runtime: '22.0.0' }
+          - { runner: ubuntu-24.04, runtime: '22.0.0' }
+          - { runner: ubuntu-24.04-arm, runtime: '22.0.0' }
+          - { runner: windows-2025, runtime: '22.0.0' }
+          - { runner: macos-15, runtime: '24' }
+          - { runner: macos-15, runtime: '26.4.0' }
     defaults:
       run:
         shell: bash
@@ -125,6 +134,11 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
+          node-version: ${{ matrix.runtime }}
+      - name: Preserve the product runtime path
+        run: node -e 'console.log("WOMBAT_INSTALL_RUNTIME=" + process.execPath)' >> "$GITHUB_ENV"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
           node-version: '26.4.0'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -132,5 +146,5 @@ jobs:
           path: candidate
       - name: Install and exercise the exact assembled package
         run: |
-          archive=$(find candidate -name '*.tgz' -type f)
-          node scripts/verify-npm-install.ts --archive "$archive"
+          release_set=$(find candidate -name 'release-set.json' -type f)
+          node scripts/verify-npm-install.ts --set "$release_set" --runtime "$WOMBAT_INSTALL_RUNTIME"

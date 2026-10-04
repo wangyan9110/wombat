@@ -14,7 +14,7 @@ Follow the [version-one specification](../project/specification.en.md) and [arch
 - Date ranges include since and exclude until. Use timezone calendar days, Monday week boundaries, and each measurement's date for conversations and turns spanning days.
 - Preserve existing user work before changes. Removing old code must not remove user data directories, identity registrations, or recovery materials.
 - Follow [independent module boundaries](architecture.en.md): peer root modules `core/`, `client/`, `ui/`, `web/`, and `cli/`. Each declares dependencies, builds, and tests and uses only public exports or protocols. UI accesses business operations through an injected `UsageClient`. Typechecking includes import-boundary checks.
-- Product runtime is Node.js 26.4.0 or newer. The default CLI prints usage; Web is started explicitly. No terminal rendering or FFI startup is required.
+- npm runtime requires Node.js 22+; source tools require 26.4.0+. See [distribution](../reference/distribution.en.md) for release structure. The default CLI prints usage; Web is started explicitly. No terminal rendering or FFI startup is required.
 
 ## Verification
 

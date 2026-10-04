@@ -1,3 +1,4 @@
+import {checkWindowsImports} from './native-binary.ts';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
@@ -18,7 +19,8 @@ export function currentNativeTarget(): NativeTarget {
   return target as NativeTarget;
 }
 export function sha256(file: string): string { return createHash('sha256').update(readFileSync(file)).digest('hex'); }
-export interface NativeManifest { target: NativeTarget; version: string; source: string; sha256: string; }
+export const nativeNotices = ['node-dependencies.txt', 'rust-dependencies.txt', 'inventory.json'] as const;
+export interface NativeManifest { target: NativeTarget; version: string; source: string; sha256: string; notices: Record<string,string>; }
 export function inspectNative(directory: string, target: NativeTarget, version: string, source: string): NativeManifest {
   const folder = path.join(directory, target);
   const manifest: NativeManifest = JSON.parse(readFileSync(path.join(folder, 'manifest.json'), 'utf8'));
@@ -26,5 +28,8 @@ export function inspectNative(directory: string, target: NativeTarget, version: 
   if (manifest.target !== target || manifest.version !== version || manifest.source !== source || manifest.sha256 !== sha256(binary))
     throw new Error('Native artifact identity/hash mismatch: ' + target);
   if (!statSync(binary).isFile()) throw new Error('Native artifact is not a file: ' + target);
+  for (const file of nativeNotices) if (manifest.notices?.[file] !== sha256(path.join(folder,'licenses',file)))
+    throw new Error('Native artifact notice hash mismatch: ' + target + '/' + file);
+  if (target === 'win32-x64') checkWindowsImports(binary);
   return manifest;
 }

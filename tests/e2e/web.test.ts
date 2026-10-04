@@ -15,6 +15,7 @@ async function stop(child?: ChildProcess) {
   try { await closed; } finally { clearTimeout(timer); }
 }
 const entry = path.resolve(process.env.WOMBAT_WEB_TEST_ENTRY ?? 'dist/wombat.js');
+const runtime = process.env.WOMBAT_WEB_TEST_NODE ?? process.execPath;
 test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecycle', { timeout: 40_000 }, async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'wombat-web-e2e-'));
   const root = path.join(dir, "source with ' quote"), data = path.join(dir, 'data');
@@ -31,7 +32,7 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
   delete (env as NodeJS.ProcessEnv).WOMBAT_CORE_BIN;
   const binary = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
   const native = path.join(path.dirname(entry), 'native');
-  const core = existsSync(native) ? path.join(native, process.platform+'-'+process.arch, binary) : path.join(path.dirname(entry), binary);
+  const core = process.env.WOMBAT_WEB_TEST_CORE ?? (existsSync(native) ? path.join(native, process.platform+'-'+process.arch, binary) : path.join(path.dirname(entry), binary));
   let service: ChildProcess | undefined, child: ChildProcess | undefined;
   let stderr = '';
   try {
@@ -39,7 +40,7 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
     service = spawn(core, ['--serve-usage'], { env, stdio: 'ignore' });
     await once(service, 'spawn');
     await new Promise(resolve => setTimeout(resolve, 150));
-    child = spawn(process.execPath, [entry, 'web', '--root', root, '--project-root', root, '--json'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child = spawn(runtime, [entry, 'web', '--root', root, '--project-root', root, '--json'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stderr!.on('data', chunk => { stderr += chunk; });
     const url = await new Promise<string>((resolve, reject) => {
       let buffer = '';
@@ -77,7 +78,7 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
     assert.equal((await fetch(origin + asset)).status, 200);
     const live = await call('live', { query: { action: 'usage', group: 'day', presentation: 'distribution' }, mode: 'fresh' });
     assert.equal(live.result.summary.tokens.total, 120000);
-    const cli = spawnSync(process.execPath, [entry, 'usage', '--root', root, '--fresh', '--json'], { env, encoding: 'utf8', timeout: 10000 });
+    const cli = spawnSync(runtime, [entry, 'usage', '--root', root, '--fresh', '--json'], { env, encoding: 'utf8', timeout: 10000 });
     assert.equal(cli.status, 0, cli.stderr);
     assert.deepEqual(live.result.summary, JSON.parse(cli.stdout).summary);
     const snapshotId = live.result.snapshotRef.snapshotId;
@@ -107,10 +108,10 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
 });
 
 test('web help and invalid arguments do not start a listener', () => {
-  const help = spawnSync(process.execPath, [entry, 'web', '--help', '--lang', 'en'], { encoding: 'utf8' });
+  const help = spawnSync(runtime, [entry, 'web', '--open', '--help', '--lang', 'en'], { encoding: 'utf8' });
   assert.equal(help.status, 0); assert.match(help.stdout, /--port/);
-  for (const args of [['--port', '-1'], ['--port', '65536'], ['--host', '0.0.0.0'], ['--json=true']]) {
-    const result = spawnSync(process.execPath, [entry, 'web', ...args, '--json'], { encoding: 'utf8' });
+  for (const args of [['--open=true'], ['--open', '--open'], ['--port', '-1'], ['--port', '65536'], ['--host', '0.0.0.0'], ['--json=true']]) {
+    const result = spawnSync(runtime, [entry, 'web', ...args, '--json'], { encoding: 'utf8' });
     assert.equal(result.status, 1); assert.equal(JSON.parse(result.stdout).error.code, 'INVALID_ARGUMENT');
   }
 });

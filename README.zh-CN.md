@@ -54,19 +54,19 @@ Skills 和 MCP 也可以统一盘点；文件读取记录与 MCP 调用尝试分
 
 ```sh
 npm install -g @wangyan9110/wombat
-wombat web
+wombat web --open
 ```
 
-然后打开终端输出的完整链接。
+浏览器会自动打开；如未打开，使用终端输出的完整链接。
 
-需要 Node.js **26.4.0+**。历史任务与用量依赖本机 Codex 记录；配置静态检查无需用量历史。
+需要 Node.js **22+**。npm 按平台安装预编译内核；使用已发布包无需 Rust、pnpm 或编译器。历史任务与用量依赖本机 Codex 记录；配置静态检查无需用量历史。
 
 指定项目和自定义日志目录的方法见 [CLI 指南](docs/guides/cli.md)，平台支持情况见[支持矩阵](docs/reference/support-matrix.md)。
 
 <details>
 <summary>从源码运行，或使用 CLI</summary>
 
-npm 发布前，可以克隆本仓库，准备 Corepack、pnpm，以及 `rust-toolchain.toml` 指定的 Rust 版本。
+npm 发布前，可以克隆本仓库，准备 Node.js 26.4.0+、Corepack、pnpm，以及 `rust-toolchain.toml` 指定的 Rust 版本。
 
 在仓库目录中执行：
 
@@ -104,7 +104,7 @@ Wombat 读取本地 Codex 日志与已授权的配置，分析和存储都在本
 缺少模型单价时，Wombat 可能下载官方价格文档，请求不发送本机日志。如需关闭自动价表下载，使用：
 
 ```sh
-WOMBAT_AUTO_PRICES=0 wombat web
+WOMBAT_AUTO_PRICES=0 wombat web --open
 ```
 
 更多信息见[隐私说明](docs/reference/privacy.md)与[价格说明](docs/reference/pricing.md)。
