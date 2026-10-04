@@ -1,0 +1,234 @@
+use super::*;
+
+fn fixture(key: &str, revision: &str) -> Arc<Snapshot> {
+    let root = tempfile::tempdir().unwrap();
+    Arc::new(
+        crate::usage_store::memory(
+            Default::default(),
+            format!("live:{key}:{revision}"),
+            crate::pricing_sync::current_at(root.path()).unwrap(),
+            None,
+        )
+        .unwrap(),
+    )
+}
+fn shared(key: &str, roots: Vec<String>, snapshot: Arc<Snapshot>) -> Shared {
+    let mut entry = Entry::new(roots);
+    entry.views.push_back((Instant::now(), snapshot));
+    Arc::new((
+        Mutex::new(BTreeMap::from([(key.into(), entry)])),
+        Condvar::new(),
+    ))
+}
+fn code(error: anyhow::Error) -> &'static str {
+    error
+        .downcast_ref::<crate::dto::OperationError>()
+        .unwrap()
+        .code
+}
+
+#[test]
+fn selection_policy_is_business_independent_and_keeps_wait_limits() {
+    let root = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    for (mode, refresh, expected) in [
+        (Mode::Auto, false, WaitPolicy::Auto),
+        (Mode::Auto, true, WaitPolicy::Fresh),
+        (Mode::Fresh, false, WaitPolicy::Fresh),
+        (Mode::Cached, false, WaitPolicy::None),
+    ] {
+        let selected = ReadViewSelector::new(roots.clone(), None, mode, false, refresh).unwrap();
+        assert_eq!(selected.wait, expected);
+    }
+    assert_eq!(WaitPolicy::Auto.timeout(), Duration::from_secs(2));
+    assert_eq!(WaitPolicy::Fresh.timeout(), Duration::from_secs(10));
+    assert_eq!(WaitPolicy::None.timeout(), Duration::ZERO);
+    assert_eq!(
+        code(
+            ReadViewSelector::new(vec![], None, Mode::Cached, true, false)
+                .err()
+                .unwrap()
+        ),
+        "INVALID_ARGUMENT"
+    );
+    assert_eq!(
+        code(
+            ReadViewSelector::new(vec![], None, Mode::Cached, false, true)
+                .err()
+                .unwrap()
+        ),
+        "INVALID_ARGUMENT"
+    );
+}
+
+#[test]
+fn fixed_selector_binds_explicit_roots_and_never_queues_or_advances() {
+    let root = tempfile::tempdir().unwrap();
+    let other = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let old = fixture(&key, "old");
+    let state = shared(&key, roots.clone(), Arc::clone(&old));
+    state
+        .0
+        .lock()
+        .unwrap()
+        .get_mut(&key)
+        .unwrap()
+        .views
+        .push_back((Instant::now(), fixture(&key, "latest")));
+    let (jobs, receiver) = mpsc::sync_channel(1);
+    let cancelled = AtomicBool::new(false);
+    for mode in [Mode::Auto, Mode::Fresh, Mode::Cached] {
+        for selected_roots in [roots.clone(), vec![]] {
+            let request = ReadViewSelector::new(
+                selected_roots,
+                Some(old.manifest.snapshot_ref.snapshot_id.clone()),
+                mode.clone(),
+                false,
+                false,
+            )
+            .unwrap();
+            assert_eq!(request.wait, WaitPolicy::None);
+            let (actual, freshness) = select_view(&request, &state, &jobs, &cancelled).unwrap();
+            assert!(Arc::ptr_eq(&actual, &old));
+            assert_eq!(freshness.status, "fixed");
+            assert!(receiver.try_recv().is_err());
+        }
+    }
+    let mismatch = ReadViewSelector::new(
+        vec![other.path().to_string_lossy().into_owned()],
+        Some(old.manifest.snapshot_ref.snapshot_id.clone()),
+        Mode::Cached,
+        false,
+        false,
+    )
+    .err()
+    .unwrap();
+    assert_eq!(code(mismatch), "INVALID_ARGUMENT");
+    for identity in ["saved", "live::id", "live:scope:", "live:scope:id:extra"] {
+        assert_eq!(
+            code(
+                ReadViewSelector::new(vec![], Some(identity.into()), Mode::Cached, false, false)
+                    .err()
+                    .unwrap()
+            ),
+            "INVALID_ARGUMENT"
+        );
+    }
+    let expired = ReadViewSelector::new(
+        vec![],
+        Some(format!("live:{key}:expired")),
+        Mode::Auto,
+        false,
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        code(
+            select_view(&expired, &state, &jobs, &cancelled)
+                .err()
+                .unwrap()
+        ),
+        "VIEW_EXPIRED"
+    );
+    assert!(receiver.try_recv().is_err());
+}
+
+#[test]
+fn cached_ready_selection_preserves_view_without_scan_work() {
+    let root = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let snapshot = fixture(&key, "cached");
+    let state = shared(&key, roots.clone(), Arc::clone(&snapshot));
+    let (jobs, receiver) = mpsc::sync_channel(1);
+    let cancelled = AtomicBool::new(false);
+    let request = ReadViewSelector::new(roots, None, Mode::Cached, false, false).unwrap();
+    let (actual, _) = select_view(&request, &state, &jobs, &cancelled).unwrap();
+    assert!(Arc::ptr_eq(&actual, &snapshot));
+    assert!(receiver.try_recv().is_err());
+    assert_eq!(state.0.lock().unwrap()[&key].requested, 0);
+}
+
+#[test]
+fn cancelling_reader_preserves_shared_pending_work_and_other_readers() {
+    let root = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let snapshot = fixture(&key, "committed");
+    let state = shared(&key, roots.clone(), snapshot);
+    let (jobs, receiver) = mpsc::sync_channel(1);
+    let cancelled = AtomicBool::new(false);
+    let request = ReadViewSelector::new(roots, None, Mode::Fresh, false, false).unwrap();
+    std::thread::scope(|scope| {
+        let reader = scope.spawn(|| select_view(&request, &state, &jobs, &cancelled));
+        let job = receiver.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert_eq!(job.key, key);
+        cancelled.store(true, Ordering::Relaxed);
+        state.1.notify_all();
+        assert_eq!(code(reader.join().unwrap().err().unwrap()), "CANCELLED");
+    });
+    let mut entries = state.0.lock().unwrap();
+    assert!(entries[&key].pending.is_some());
+    assert!(entries[&key].syncing);
+    let work = scheduling::begin(entries.get_mut(&key).unwrap(), true).unwrap();
+    scheduling::finish(entries.get_mut(&key).unwrap(), work);
+    drop(entries);
+    cancelled.store(false, Ordering::Relaxed);
+    let fixed = ReadViewSelector::new(
+        vec![],
+        Some(format!("live:{key}:committed")),
+        Mode::Cached,
+        false,
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        select_view(&fixed, &state, &jobs, &cancelled)
+            .unwrap()
+            .1
+            .status,
+        "fixed"
+    );
+}
+
+#[test]
+fn unknown_fixed_read_cannot_seed_default_roots_for_later_live_sync() {
+    let root = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let state: Shared = Arc::new((Mutex::new(BTreeMap::new()), Condvar::new()));
+    let (jobs, receiver) = mpsc::sync_channel(1);
+    let cancelled = AtomicBool::new(false);
+    let fixed = ReadViewSelector::new(
+        vec![],
+        Some(format!("live:{key}:unknown")),
+        Mode::Cached,
+        false,
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        code(
+            select_view(&fixed, &state, &jobs, &cancelled)
+                .err()
+                .unwrap()
+        ),
+        "VIEW_EXPIRED"
+    );
+    assert!(state.0.lock().unwrap().is_empty());
+    assert!(receiver.try_recv().is_err());
+    let live = ReadViewSelector::new(roots.clone(), None, Mode::Fresh, false, false).unwrap();
+    std::thread::scope(|scope| {
+        let reader = scope.spawn(|| select_view(&live, &state, &jobs, &cancelled));
+        assert_eq!(
+            receiver.recv_timeout(Duration::from_secs(2)).unwrap().key,
+            key
+        );
+        assert_eq!(state.0.lock().unwrap()[&key].roots, roots);
+        cancelled.store(true, Ordering::Relaxed);
+        state.1.notify_all();
+        assert_eq!(code(reader.join().unwrap().err().unwrap()), "CANCELLED");
+    });
+}

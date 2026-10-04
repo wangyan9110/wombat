@@ -6,28 +6,22 @@ pub(super) fn query(
     jobs: &mpsc::SyncSender<Job>,
     configs: &Mutex<crate::config::Store>,
 ) -> Result<Response> {
-    let (snapshot, freshness) = select_view(&request, shared, jobs).or_else(|error| {
-        if error
-            .downcast_ref::<crate::dto::OperationError>()
-            .is_some_and(|e| e.code == "VIEW_EXPIRED")
-            && let Some(id) = &request.query.snapshot_id
-            && let Some((snapshot, checked_at)) = configs.lock().unwrap().snapshot(id)
-        {
-            let initial_scan = preview::is_initial(&snapshot);
-            return Ok((
-                snapshot,
-                Freshness {
-                    initial_scan,
-                    status: "fixed".into(),
-                    checked_at: Some(checked_at),
-                    revision: id.clone(),
-                    error: None,
-                    error_code: None,
-                },
-            ));
-        }
-        Err(error)
-    })?;
+    let mut validation = request.query.clone();
+    validation.roots = None;
+    crate::usage_app::validate(&validation)?;
+    let refresh = request.query.action == usage_app_dto::Action::Refresh;
+    if request.verify && !refresh {
+        return Err(operation_error("INVALID_ARGUMENT", "实时验证仅适用于更新"));
+    }
+    let selector = selection::ReadViewSelector::new(
+        request.query.roots.clone().unwrap_or_default(),
+        request.query.snapshot_id.clone(),
+        request.mode.clone(),
+        request.verify,
+        refresh,
+    )?;
+    let cancelled = std::sync::atomic::AtomicBool::new(false);
+    let (snapshot, freshness) = select_with_retained(&selector, shared, jobs, configs, &cancelled)?;
     let mut query = request.query;
     query.roots = None;
     query.snapshot_id = None;
@@ -54,6 +48,37 @@ pub(super) fn query(
         freshness,
     })
 }
+fn select_with_retained(
+    selector: &selection::ReadViewSelector,
+    shared: &Shared,
+    jobs: &mpsc::SyncSender<Job>,
+    configs: &Mutex<crate::config::Store>,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(Arc<Snapshot>, Freshness)> {
+    select_view(selector, shared, jobs, cancelled).or_else(|error| {
+        if error
+            .downcast_ref::<crate::dto::OperationError>()
+            .is_some_and(|e| e.code == "VIEW_EXPIRED")
+            && let Some(id) = selector.identity()
+            && let Some((snapshot, checked_at)) = configs.lock().unwrap().snapshot(id)
+        {
+            let initial_scan = preview::is_initial(&snapshot);
+            return Ok((
+                snapshot,
+                Freshness {
+                    initial_scan,
+                    status: "fixed".into(),
+                    checked_at: Some(checked_at),
+                    revision: id.clone(),
+                    error: None,
+                    error_code: None,
+                },
+            ));
+        }
+        Err(error)
+    })
+}
+
 pub(super) fn config_query(
     request: crate::config_dto::Request,
     native: Option<&crate::config::hooks::Capture>,
@@ -74,18 +99,15 @@ pub(super) fn config_query(
         }
         (id.clone(), view)
     } else {
-        let query = serde_json::from_value(
-            json!({"action":"usage","roots":request.roots,"snapshotId":request.snapshot_id}),
+        let selector = selection::ReadViewSelector::new(
+            request.roots.clone().unwrap_or_default(),
+            request.snapshot_id.clone(),
+            Mode::Auto,
+            false,
+            false,
         )?;
-        let selected = select_view(
-            &Request {
-                query,
-                mode: Mode::Auto,
-                verify: false,
-            },
-            shared,
-            jobs,
-        );
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        let selected = select_view(&selector, shared, jobs, &cancelled);
         let (snapshot, status) = match selected {
             Ok((snapshot, freshness)) => (Some(snapshot), freshness.status),
             Err(error) if request.snapshot_id.is_some() => return Err(error),
@@ -103,3 +125,6 @@ pub(super) fn config_query(
     };
     crate::config::execute(request, id, &view)
 }
+
+#[cfg(test)]
+mod tests;
