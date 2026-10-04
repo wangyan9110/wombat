@@ -29,6 +29,8 @@ Default refresh reads source logs without changing them and writes only to the p
 
 ## Storage and service lifecycle
 
+Configuration views separately pin internal content revisions for configuration measurements, static analysis, and host observations, including the relevant collection completeness and authorization scope. Observation times remain separate; repeating an observation of identical content does not change its content revision solely because time has passed. Default date ranges use the selected view's cutoff. Post-review Skill/MCP observations share use-operation identities and counting semantics within `(review time, view cutoff]`; missing identity, time, dispatch, or target evidence leaves counts unknown. Durable restoration of a unified EvidenceView, per-rule dependency caching, and public per-object coverage fields remain undelivered.
+
 Default data directories are `~/Library/Application Support/Wombat` on macOS, `%LOCALAPPDATA%/Wombat` on Windows, and `XDG_DATA_HOME/wombat` or `~/.local/share/wombat` on Linux; `WOMBAT_DATA_HOME` overrides them. Snapshots live in `usage-v4/`, indexes in `live-v2/`; the old `latest.json` is not replaced.
 
 Refresh holds a process file lock, writes a private generation, shards, and hashes, then commits the manifest and atomically updates latest. Cancellation never publishes a partial snapshot. Source failures retain separate receipts; total failure preserves the previous latest. Source reads use the captured length and make no cross-file atomicity claim. Only current formats are supported; unknown versions are rejected without automatic migration or deletion.

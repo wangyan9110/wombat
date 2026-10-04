@@ -165,3 +165,32 @@ fn missing_times_only_block_date_windows_while_target_gaps_always_block_counts()
     projection.coverage.target_gaps += 1;
     assert_eq!(projection.count(false), None);
 }
+
+#[test]
+fn reliable_operation_identity_requires_canonical_owner_and_native_call_or_item() {
+    let base = operation("canonical", "skillRead");
+    assert_eq!(operation_identity(&base), Some(("thread", "canonical")));
+    let mut native_item = base.clone();
+    native_item.call_id = None;
+    native_item.item_id = Some("native-item".into());
+    assert_eq!(
+        operation_identity(&native_item),
+        Some(("thread", "canonical"))
+    );
+    for gap in ["owner", "canonical", "native"] {
+        let mut incomplete = base.clone();
+        match gap {
+            "owner" => incomplete.thread_id = "".into(),
+            "canonical" => incomplete.id.clear(),
+            _ => {
+                incomplete.call_id = Some(String::new());
+                incomplete.item_id = Some(String::new());
+            }
+        }
+        assert_eq!(operation_identity(&incomplete), None, "{gap}");
+        let mut projection = Projection::default();
+        projection.observe(&incomplete);
+        assert_eq!(projection.count(true), None, "{gap}");
+        assert_eq!(projection.coverage.identity_gaps, 1);
+    }
+}

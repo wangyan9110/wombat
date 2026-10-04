@@ -3,7 +3,7 @@ use super::*;
 use crate::usage_observations::{self, Projection, TimeBasis};
 pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
     validate(&r)?;
-    let (scope, tz) = normalize(&r.scope)?;
+    let (scope, tz) = normalize_at(&r.scope, &view.checked)?;
     let mut result = capabilities();
     result.hook_registry = view.hook_registry.clone();
     result

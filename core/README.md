@@ -29,6 +29,8 @@
 
 ## 存储与服务生命周期
 
+配置读取版本分别固定配置测量、静态分析和宿主观察的内部内容修订，采集完整性与授权范围参与对应修订；观察时刻单独保留，重复观察相同内容不会仅因时间变化而改写内容修订。默认日期范围按所选视图的截止时间解析。复查后的 Skill/MCP 观察复用使用操作的身份与计数口径，时间范围为 `(复查时间, 视图截止时间]`；缺身份、时间、派发或目标证据时次数未知。统一 EvidenceView 的持久恢复、逐规则依赖缓存及逐对象公开覆盖字段仍未交付。
+
 默认数据目录为 macOS `~/Library/Application Support/Wombat`、Windows `%LOCALAPPDATA%/Wombat`、Linux `XDG_DATA_HOME/wombat` 或 `~/.local/share/wombat`；`WOMBAT_DATA_HOME` 可覆盖。快照位于 `usage-v4/`，索引位于 `live-v2/`；不替换旧 `latest.json`。
 
 刷新持有进程文件锁，先写私有 generation、分片与哈希，再提交 manifest 并原子更新 latest；取消不发布半份快照。单源失败保留独立回执，全部失败保留旧 latest。源日志按本次长度读取，多文件不声称原子一致。只支持当前格式，未知版本拒绝，不自动迁移或清空。

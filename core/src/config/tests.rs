@@ -1,6 +1,8 @@
 use super::*;
 fn view() -> View {
     View {
+        observation_versions: Default::default(),
+        config_collection: Default::default(),
         hook_registry: HookRegistry::default(),
         snapshot: None,
         items: vec![],
@@ -9,7 +11,7 @@ fn view() -> View {
         roots: vec![],
         project_roots: vec![],
         revision: "one".into(),
-        checked: "now".into(),
+        checked: "2026-10-01T00:00:00Z".into(),
         history_status: "unavailable".into(),
         analysis: Default::default(),
     }

@@ -3,6 +3,8 @@ mod analysis;
 mod hook_targets;
 pub(crate) mod hooks;
 mod identity;
+mod observations;
+pub(crate) use observations::{ConfigCollection, ObservationVersions};
 pub(crate) mod measure;
 mod references;
 mod scan;
@@ -18,7 +20,7 @@ use chrono_tz::Tz;
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
     time::{Duration, Instant},
 };
 
@@ -34,6 +36,8 @@ pub(crate) struct View {
     pub history_status: String,
     pub analysis: analysis::Analysis,
     pub hook_registry: HookRegistry,
+    pub config_collection: ConfigCollection,
+    pub observation_versions: OnceLock<ObservationVersions>,
 }
 #[derive(Default)]
 pub(crate) struct Store {
@@ -79,8 +83,10 @@ mod scope;
 mod tests;
 pub(crate) use inventory::prepare_observed;
 pub(crate) use query::execute;
+#[cfg(test)]
+use scope::normalize;
 pub(crate) use scope::validate;
-use scope::{applicable, in_time, matches_row, normalize, usage};
+use scope::{applicable, in_time, matches_row, normalize_at, usage};
 pub(crate) fn capabilities() -> Response {
     Response {
         hook_registry: HookRegistry::default(),

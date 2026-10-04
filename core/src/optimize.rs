@@ -2,6 +2,9 @@
 mod detection;
 mod evaluation;
 mod follow_up;
+#[cfg(test)]
+#[path = "optimize/follow_up_tests.rs"]
+mod follow_up_tests;
 mod registry;
 mod repository;
 mod reviews;

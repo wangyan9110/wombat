@@ -103,8 +103,8 @@ fn follow_up_observes_only_canonical_associations_after_recheck_in_the_authorize
     s.scope_project = Some(a.to_string_lossy().into());
     let result = observe(&[s.clone()], &v, None);
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].status, FollowUpStatus::VersionUnknown);
-    assert_eq!(result[0].observed_records, Some(3));
+    assert_eq!(result[0].status, FollowUpStatus::Unavailable);
+    assert_eq!(result[0].observed_records, None);
     assert_eq!(
         result[0].last_record_at.as_deref(),
         Some("2026-10-01T01:00:00.500+00:00")
@@ -203,7 +203,10 @@ fn mcp_follow_up_requires_unambiguous_ownership_across_the_whole_inventory() {
     assert_eq!(known[0].status, FollowUpStatus::VersionUnknown);
     assert_eq!(known[0].observed_records, Some(1));
     s.scope_project = None;
-    assert_eq!(observe(&[s.clone()], &v, None)[0].observed_records, Some(1));
+    let unscoped = observe(&[s.clone()], &v, None);
+    assert_eq!(unscoped[0].status, FollowUpStatus::Unavailable);
+    assert_eq!(unscoped[0].observed_records, None);
+    s.scope_project = Some(projects[1].to_string_lossy().into());
     // Distinct historical cutoffs for one physical object do not create ownership ambiguity.
     let mut earlier = s.clone();
     earlier.record_id = Some("earlier-record".into());

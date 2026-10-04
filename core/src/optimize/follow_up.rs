@@ -1,8 +1,78 @@
-//! Post-check associations are observations, never proof of adoption or savings.
-use crate::{config::View, config_dto::Kind, optimize_dto::*};
-use chrono::{DateTime, Utc};
-use std::{collections::BTreeMap, path::PathBuf};
+//! Post-check operation associations, never proof of adoption, content versions or savings.
+use crate::{
+    adapters::contract::{Operation, Thread},
+    config::View,
+    config_dto::{Item, Kind},
+    optimize_dto::*,
+    usage_observations::{self, Projection, UseKind},
+};
+use chrono::{DateTime, FixedOffset, Utc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::PathBuf,
+};
 
+type Time = DateTime<FixedOffset>;
+struct Context<'a> {
+    after: Option<Time>,
+    project: Option<&'a str>,
+    item: Option<&'a Item>,
+    available: bool,
+}
+impl Context<'_> {
+    fn contains(
+        &self,
+        thread: &Thread,
+        at: Option<Time>,
+        cutoff: Option<Time>,
+        source: Option<&str>,
+    ) -> bool {
+        self.available
+            && source.is_none_or(|source| source == thread.source_instance_id)
+            && self.item.is_some_and(|item| {
+                item.in_source(&thread.source_instance_id)
+                    && (item.kind != Kind::Mcp || mcp_project_matches(item, thread))
+            })
+            && self
+                .project
+                .is_none_or(|project| thread.project.as_deref() == Some(project))
+            && at.is_none_or(|at| {
+                self.after
+                    .zip(cutoff)
+                    .is_some_and(|(after, cutoff)| at > after && at <= cutoff)
+            })
+    }
+}
+fn mcp_project_matches(item: &Item, thread: &Thread) -> bool {
+    item.project
+        .as_deref()
+        .is_none_or(|project| thread.project.as_deref() == Some(project))
+}
+fn read_path(operation: &Operation, thread: &Thread) -> Option<String> {
+    let path = PathBuf::from(operation.path.as_deref()?);
+    let path = if path.is_absolute() {
+        path
+    } else {
+        PathBuf::from(thread.project.as_deref()?).join(path)
+    };
+    crate::absolute(path)
+        .ok()
+        .map(|path| path.to_string_lossy().into_owned())
+}
+fn actual_for(item: &Item, use_kind: Option<UseKind>, file_read: bool) -> bool {
+    match item.kind {
+        Kind::Skill => use_kind == Some(UseKind::SkillRead),
+        Kind::Mcp => matches!(use_kind, Some(UseKind::McpTool | UseKind::McpResource)),
+        // Reading a rule file remains a distinct observation, not Skill/MCP use.
+        Kind::Rule => file_read,
+        Kind::Hook => false,
+    }
+}
+
+/// Each fixed view uses (recheck time, view.checked], never the current clock.
+/// Per-record projections retain identity/time/target/dispatch gaps. The existing
+/// DTO represents a count gap as Unavailable/None; it cannot yet expose individual
+/// gap dimensions or a known lower-bound count alongside that gap.
 pub(super) fn observe(
     suggestions: &[Suggestion],
     view: &View,
@@ -12,8 +82,11 @@ pub(super) fn observe(
     let mut files = BTreeMap::<(String, String), Vec<usize>>::new();
     let mut servers = BTreeMap::<(String, String), Vec<usize>>::new();
     let mut contexts = vec![];
-    let now = DateTime::parse_from_rfc3339(&view.checked).ok();
-    for suggestion in suggestions.iter().filter(|s| s.status == "verified") {
+    let cutoff = DateTime::parse_from_rfc3339(&view.checked).ok();
+    for suggestion in suggestions
+        .iter()
+        .filter(|suggestion| suggestion.status == "verified")
+    {
         let Some(record) = &suggestion.record_id else {
             continue;
         };
@@ -21,10 +94,15 @@ pub(super) fn observe(
         let item = view
             .items
             .iter()
-            .find(|i| i.id == suggestion.item.id && i.current && !i.stale);
-        let available = after.zip(now).is_some_and(|(a, n)| a <= n)
-            && item.is_some_and(|i| i.kind != Kind::Hook)
-            && view.snapshot.as_ref().is_some_and(|s| s.is_live())
+            .find(|item| item.id == suggestion.item.id && item.current && !item.stale);
+        let available = after
+            .zip(cutoff)
+            .is_some_and(|(after, cutoff)| after <= cutoff)
+            && item.is_some_and(|item| item.kind != Kind::Hook)
+            && view
+                .snapshot
+                .as_ref()
+                .is_some_and(|snapshot| snapshot.is_live())
             && matches!(
                 view.history_status.as_str(),
                 "current" | "fixed" | "partial"
@@ -45,19 +123,19 @@ pub(super) fn observe(
             usage_revision: view
                 .snapshot
                 .as_ref()
-                .map(|s| s.manifest.snapshot_ref.snapshot_id.clone()),
+                .map(|snapshot| snapshot.manifest.snapshot_ref.snapshot_id.clone()),
             absence_observable: false,
         });
-        contexts.push((
+        contexts.push(Context {
             after,
-            suggestion.scope_project.as_deref(),
-            item.map(|i| (i.id.as_str(), i.project.as_deref())),
-        ));
+            project: suggestion.scope_project.as_deref(),
+            item,
+            available,
+        });
         if !available {
             continue;
         }
         let item = item.unwrap();
-        // Unsupported runtime events cannot be inferred from names or file reads.
         let entries = match item.kind {
             Kind::Rule | Kind::Skill => &mut files,
             Kind::Mcp => &mut servers,
@@ -65,7 +143,7 @@ pub(super) fn observe(
         };
         for source_id in item
             .source_ids()
-            .filter(|id| source.is_none_or(|s| s == *id))
+            .filter(|id| source.is_none_or(|source| source == *id))
         {
             let key = if item.kind == Kind::Mcp {
                 item.native_key.as_deref().unwrap_or("")
@@ -84,123 +162,149 @@ pub(super) fn observe(
     if files.is_empty() && servers.is_empty() {
         return out;
     }
-    // Ownership must include declarations outside this history page.
-    let mut mcp_items = BTreeMap::<(String, String), Vec<&crate::config_dto::Item>>::new();
-    for item in view
-        .items
-        .iter()
-        .filter(|i| i.kind == Kind::Mcp && i.current && !i.stale)
-    {
-        for source in item.source_ids() {
-            let key = (
-                source.to_owned(),
-                item.native_key.clone().unwrap_or_default(),
-            );
-            if servers.contains_key(&key) {
-                mcp_items.entry(key).or_default().push(item);
+    // Current declarations outside the suggestion page also constrain ownership.
+    let mut file_items = BTreeMap::<(String, String), Vec<&Item>>::new();
+    let mut mcp_items = BTreeMap::<(String, String), Vec<&Item>>::new();
+    for item in view.items.iter().filter(|item| item.current && !item.stale) {
+        let (tracked, owners, key) = match item.kind {
+            Kind::Mcp => (
+                &servers,
+                &mut mcp_items,
+                item.native_key.as_deref().unwrap_or(""),
+            ),
+            Kind::Rule | Kind::Skill => (&files, &mut file_items, item.path.as_str()),
+            Kind::Hook => continue,
+        };
+        for source_id in item.source_ids() {
+            let key = (source_id.to_owned(), key.to_owned());
+            if tracked.contains_key(&key) {
+                owners.entry(key).or_default().push(item);
             }
         }
     }
-    let mut latest = vec![None; out.len()];
     let threads: BTreeMap<_, _> = snapshot
         .manifest
         .threads
         .iter()
-        .map(|t| (t.thread.id.as_str(), &t.thread))
+        .map(|thread| (thread.thread.id.as_str(), &thread.thread))
         .collect();
-    // Each canonical operation is visited once; only the requested page has counters.
-    for op in snapshot.operation_facts() {
-        let Some(thread) = threads.get(op.thread_id.as_ref()) else {
+    let mut projections = (0..out.len())
+        .map(|_| Projection::default())
+        .collect::<Vec<_>>();
+    let mut latest = vec![None; out.len()];
+    let mut seen = BTreeSet::new();
+    for operation in snapshot.operation_facts() {
+        let Some(thread) = threads.get(operation.thread_id.as_ref()) else {
             continue;
         };
-        let Some(at) = op
+        let at = operation
             .timestamp
             .as_deref()
-            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-        else {
-            continue;
-        };
-        if now.is_none_or(|now| at > now) {
+            .and_then(|time| DateTime::parse_from_rfc3339(time).ok());
+        let use_kind = usage_observations::use_kind(operation);
+        let candidate_read = usage_observations::is_skill_read_candidate(operation);
+        let file_read = operation.name.as_ref() == "read_file"
+            && matches!(operation.kind.as_ref(), "tool" | "skillRead");
+        let unknown_mcp = matches!(operation.kind.as_ref(), "mcpConflict" | "mcpUnclassified");
+        if use_kind.is_none() && !candidate_read && !file_read && !unknown_mcp {
             continue;
         }
-        let candidates = if op.name.as_ref() == "read_file"
-            && matches!(op.kind.as_ref(), "tool" | "skillRead")
-        {
-            op.path.as_ref().and_then(|p| {
-                let path = PathBuf::from(p);
-                let path = if path.is_absolute() {
-                    Some(path)
-                } else {
-                    thread
-                        .project
-                        .as_ref()
-                        .map(|base| PathBuf::from(base).join(path))
-                }?;
-                let path = crate::absolute(path).ok()?;
-                files.get(&(
-                    thread.source_instance_id.clone(),
-                    path.to_string_lossy().into_owned(),
-                ))
-            })
-        } else if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource") {
-            op.server.as_ref().and_then(|server| {
-                servers.get(&(thread.source_instance_id.clone(), server.to_string()))
-            })
+        let mcp = matches!(use_kind, Some(UseKind::McpTool | UseKind::McpResource)) || unknown_mcp;
+        let key = if mcp {
+            operation.server.as_deref().map(str::to_owned)
         } else {
-            None
+            read_path(operation, thread)
         };
-        let candidates = candidates.into_iter().flatten().copied().filter(|&index| {
-            contexts[index].0.is_some_and(|after| at > after)
-                && contexts[index]
-                    .1
-                    .is_none_or(|p| thread.project.as_deref() == Some(p))
-                && (!matches!(op.kind.as_ref(), "mcpTool" | "mcpResource")
-                    || contexts[index].2.is_some_and(|(_, project)| {
-                        project.is_none_or(|p| thread.project.as_deref() == Some(p))
-                    }))
+        let candidates = key.as_ref().and_then(|key| {
+            let map = if mcp { &servers } else { &files };
+            map.get(&(thread.source_instance_id.clone(), key.clone()))
         });
-        let mut owner = None;
-        let mut ambiguous = false;
-        for index in candidates.clone() {
-            let id = contexts[index].2.unwrap().0;
-            if owner.is_some_and(|old| old != id) {
-                ambiguous = true;
-                break;
-            }
-            owner = Some(id);
-        }
-        if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource")
-            && let Some(items) = op.server.as_ref().and_then(|server| {
-                mcp_items.get(&(thread.source_instance_id.clone(), server.to_string()))
+        let relevant = |context: &Context<'_>| {
+            context.item.is_some_and(|item| match item.kind {
+                Kind::Skill => use_kind == Some(UseKind::SkillRead) || candidate_read,
+                Kind::Rule => file_read,
+                Kind::Mcp => mcp,
+                Kind::Hook => false,
             })
-        {
-            for item in items.iter().filter(|i| {
-                i.project
-                    .as_deref()
-                    .is_none_or(|p| thread.project.as_deref() == Some(p))
-            }) {
-                if owner.is_some_and(|old| old != item.id) {
-                    ambiguous = true;
-                    break;
-                }
-                owner = Some(item.id.as_str());
-            }
-        }
-        if ambiguous {
-            for index in candidates {
-                if out[index].observed_records.is_none() {
-                    out[index].status = FollowUpStatus::Unavailable;
-                }
-            }
+        };
+        let indices: Vec<_> = match candidates {
+            Some(candidates) => candidates
+                .iter()
+                .copied()
+                .filter(|index| {
+                    contexts[*index].contains(thread, at, cutoff, source)
+                        && relevant(&contexts[*index])
+                })
+                .collect(),
+            None if key.is_none() => contexts
+                .iter()
+                .enumerate()
+                .filter(|(_, context)| {
+                    context.contains(thread, at, cutoff, source) && relevant(context)
+                })
+                .map(|(index, _)| index)
+                .collect(),
+            None => vec![],
+        };
+        if indices.is_empty() {
             continue;
         }
-        for index in candidates {
-            let observation = &mut out[index];
-            observation.status = FollowUpStatus::VersionUnknown;
-            observation.observed_records = Some(observation.observed_records.unwrap_or(0) + 1);
+        if let Some(identity) = usage_observations::operation_identity(operation)
+            && !seen.insert(identity)
+        {
+            continue;
+        }
+        let owners = key.as_ref().and_then(|key| {
+            let owners = if mcp { &mcp_items } else { &file_items };
+            owners.get(&(thread.source_instance_id.clone(), key.clone()))
+        });
+        let owner = contexts[indices[0]].item.unwrap().id.as_str();
+        let ambiguous = indices
+            .iter()
+            .any(|index| contexts[*index].item.unwrap().id != owner)
+            || owners.is_some_and(|owners| {
+                owners
+                    .iter()
+                    .any(|item| (!mcp || mcp_project_matches(item, thread)) && item.id != owner)
+            });
+        for index in indices {
+            let projection = &mut projections[index];
+            if key.is_none() || ambiguous || unknown_mcp {
+                projection.coverage.target_gaps += 1;
+                if at.is_none() {
+                    projection.coverage.time_gaps += 1;
+                }
+                continue;
+            }
+            let item = contexts[index].item.unwrap();
+            if candidate_read && item.kind == Kind::Skill {
+                projection.coverage.dispatch_gaps += 1;
+                if at.is_none() {
+                    projection.coverage.time_gaps += 1;
+                }
+                continue;
+            }
+            if !actual_for(item, use_kind, file_read) {
+                continue;
+            }
+            let Some(at) = at else {
+                projection.coverage.time_gaps += 1;
+                continue;
+            };
+            projection.observe(operation);
             if latest[index].is_none_or(|last| at > last) {
                 latest[index] = Some(at);
-                observation.last_record_at = Some(at.with_timezone(&Utc).to_rfc3339());
+                out[index].last_record_at = Some(at.with_timezone(&Utc).to_rfc3339());
+            }
+        }
+    }
+    for (index, projection) in projections.iter().enumerate() {
+        match projection.count(true) {
+            None => out[index].status = FollowUpStatus::Unavailable,
+            Some(0) => {}
+            Some(count) => {
+                out[index].status = FollowUpStatus::VersionUnknown;
+                out[index].observed_records = Some(count);
             }
         }
     }

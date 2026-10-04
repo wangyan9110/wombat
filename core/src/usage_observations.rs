@@ -74,6 +74,18 @@ pub(crate) struct Coverage {
     pub turn_gaps: usize,
 }
 
+/// Business identity has already been reconciled by the adapter. A physical
+/// record hash alone cannot establish a distinct dispatch, read or retry.
+pub(crate) fn operation_identity(operation: &Operation) -> Option<(&str, &str)> {
+    (!operation.thread_id.is_empty()
+        && !operation.id.is_empty()
+        && [operation.call_id.as_deref(), operation.item_id.as_deref()]
+            .into_iter()
+            .flatten()
+            .any(|identity| !identity.is_empty()))
+    .then_some((operation.thread_id.as_ref(), operation.id.as_str()))
+}
+
 /// A projection belongs to one resolved object; the object is implicitly part
 /// of every key. Space is O(observed operations + related turns/tasks).
 #[derive(Debug, Default)]
@@ -88,14 +100,8 @@ impl Projection {
     /// Outcomes never subtract dispatched uses. Reliable source identities are
     /// already canonicalized; independent retries retain independent IDs.
     pub(crate) fn observe(&mut self, operation: &Operation) {
-        if !operation.id.is_empty()
-            && [operation.call_id.as_deref(), operation.item_id.as_deref()]
-                .into_iter()
-                .flatten()
-                .any(|identity| !identity.is_empty())
-        {
-            self.operations
-                .insert((operation.thread_id.to_string(), operation.id.clone()));
+        if let Some((thread, id)) = operation_identity(operation) {
+            self.operations.insert((thread.to_owned(), id.to_owned()));
         } else {
             self.coverage.identity_gaps += 1;
         }

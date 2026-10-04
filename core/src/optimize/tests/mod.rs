@@ -24,6 +24,8 @@ fn body_estimate(tokens: u64) -> crate::config_dto::ContentEstimate {
 }
 fn view() -> View {
     View {
+        observation_versions: Default::default(),
+        config_collection: Default::default(),
         hook_registry: Default::default(),
         snapshot: None,
         items: vec![Item {
