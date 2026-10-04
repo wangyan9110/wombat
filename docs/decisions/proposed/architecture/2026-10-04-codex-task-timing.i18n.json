@@ -1,0 +1,113 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-codex-task-timing-research-and-technical-design": {
+      "zh": "13fe001d3411bf57d300f34bd23c8345521b13ed3cf558921d74d53503cfe67e",
+      "en": "02b5f07226e55f062d940d027114b1a1419a4ff7fe1e87c1982439912823c92e"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/problem": {
+      "zh": "d5344ac87c88651e89a56c6de0ab2705f4867c4da6170fad16b8be2d20645748",
+      "en": "7d0aedf665074960d49dd7769b12a4a920dce68b88c8bb42bf9a21572a53ad7e"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/problem/current-capability-audit": {
+      "zh": "939e56c43f9cc5c2eab1486b346a3ea14c6984c445a46eea8e753f5664787a42",
+      "en": "a9f3c28a2a112ce972bf2189d8780ee2c3092c77d5b028120e3d392974a9db9c"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/problem/what-current-logs-can-establish": {
+      "zh": "1a452044e6d7c079c91415b825d09d9849838a1df624e53f906dc6720cde3141",
+      "en": "7463e48b3f4fa3c94b4b862e7b6c15eb8c8283a81d0a82ba04427bf58775e329"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal": {
+      "zh": "ca258a5d37ffa6a0ba7c117647724fda51cdfe6385c17e4b18e9127ab0445f72",
+      "en": "986dd8097aac4d3d9e25cf3e2cef01c77daedde5ce18afa375f7c433f9d8bc72"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/1-data-availability-and-collection-decisions": {
+      "zh": "7983468f53396cec8a5e0364be8286140ed46c4e8655f7c17f1f8c36b8d9d213",
+      "en": "08dc8c19adf433f871b5ccfa68a79bd747abf79091f092779f769677fac1ba74"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/2-turn-and-task-timing-definitions": {
+      "zh": "1e699d0aeb2e2fde7c2ee511d945f2b5977219ee06ac7def5ed9a8e314e3ba12",
+      "en": "8785a135e3155199f2050529bb41f958cb4cc32014cd37f94d0a038f04804869"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/3-overlap-and-coverage-algorithm": {
+      "zh": "5eb391588f2353c3059148898179c38d5851d71103a086670b27ce87d6be1df5",
+      "en": "99f52a65adc2b571d358f849006470a76ba2c227e5b3d91fc781f33912d15df9"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/4-what-response-waiting-can-explain": {
+      "zh": "63bef61ea71f685ef2b1f91f49eaeebde7371c2ef57e78e504ca109f63917dd7",
+      "en": "c46dcd729bea0b5b0cdd69075ff20862ed5fe85e8dbbbe1de8283c7ef87cb975"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/5-context-pressure": {
+      "zh": "b73ea9c67771166d8564312c2c9281215070a4d1d5ba02f83e8804517591943b",
+      "en": "55f25a16bec7b9bbeefcc4fc17c2e2e90c3e2b464be792b0ddd37b968e53e047"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/6-failures-validation-changes-and-rework-signals": {
+      "zh": "f316ade54e9a09b15140fb21d180015c6d7a2a8454e88c22708b05ba0397ca10",
+      "en": "e2db753ffdf0866452c058e7da5f961d1acf359d4e162dbab644cf879807a67d"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/7-minimum-cli-and-json-contract": {
+      "zh": "171cd46139f103d703db1ebd33821ba22ebc53881821800c6ed79925809a445a",
+      "en": "5c2e94d4c1803f5706eeb89f9fe76bc8592a2ed8e738ee27abed31c7690f7ee2"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/8-historical-compare-and-on-demand-watch": {
+      "zh": "843f224877608eb6dc9f9f9f0a44308593c7ab99684613dd179a07c6e250a64c",
+      "en": "0365612f081c5b76dd05911c2eb36b0c60738ef0fc341636fbce4f0cf48bdf4c"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/9-privacy-and-shareable-artifacts": {
+      "zh": "372546c6e379c492fa1ff592aecf233d7e0eb5fca759907d5c51335c4aa48106",
+      "en": "8458ec5414552c3a0108535c3a45fd0606682962ffe269ddacb2529a4a96ff7b"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/10-implementation-impact-and-versions": {
+      "zh": "a617f1c59fb18432594243fa4fae417f3c42d8d06d82494fc885115a25cf0536",
+      "en": "ca109ba26920f01ec35a61d6eba700ebb405bfa72ce68777ada44bf84100505a"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/11-phased-priority-and-risks": {
+      "zh": "2757b332b07db92ad5bcf30ff79dd60304bf9a1b3710e78bd260cf47ce032311",
+      "en": "74bd9709e9313e074115bca2ec4dd13f6d0b06b32ba77587c9916763278ba32f"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/12-technical-architecture-and-call-chain": {
+      "zh": "0bd44a7b563a9dd81b4d7a49fa12b9c95f220233fb2eb02b4e17add2d35f2695",
+      "en": "3f2e0dd7a340c4fe37524eca8de94949ed2accf34b4dc41041dae96aa111d9b7"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/13-internal-safe-facts-and-identities": {
+      "zh": "7bad983c9edeb58d737e9e76eb379ffcbdaad5482b0e6a2724e9eade9db1e399",
+      "en": "aa1351d1d18c88848dc8d9d32178a404cfce17907ff3de673249806654db053d"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/14-index-snapshots-and-version-migration": {
+      "zh": "43c26404cabcf26a271bdf661652edd35ca2901546d47eaff256222f22b9fe10",
+      "en": "fcf15fc3e0ec656b4013c122b1e00e73e499bbe2007132ca4e7018c44a82abd9"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/15-restricted-interfaces-and-host-integration": {
+      "zh": "7e2be096e61a56b0af486ebde158ae5f3d0fb9ebb64ece5bbf9ef82a7a2d99c0",
+      "en": "4c6cbd6d45bb00b274b412f8e920ffeae6dd63d6c285b6bc9ea54e420d3b903f"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/16-web-presentation-and-resource-boundaries": {
+      "zh": "763d4bf7b21310ea2971b35d387cee8bbcc78f9abd8ad106d4c56baa7f13ad17",
+      "en": "f7ae1362208387deffb0e074871ff3a8f71e48f8fb49d6ba632b1a36ae0e1d38"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/proposal/17-implementation-units-and-gates": {
+      "zh": "3400ffb4ed0469ae555eb2539457324b5c19a2f139977ba69096f6d226368c82",
+      "en": "50e0e078f7a00e810a5a53103c1044ab2c469ed293078f3a4ab6f44b78477587"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/alternatives-considered": {
+      "zh": "6633b07f2eae0905c75bdcbdb5b7a5b0ed46584fa63a65eedee03d8a4ba2b86b",
+      "en": "be9a89d7d3306908658174c116ee51d2aa833cf88ed9c305b24338af06e96828"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria": {
+      "zh": "1c7a9e56d0fd24fc2214dc0a69fb3cfe5fde6939ba1902df4fde470ee5a2e01c",
+      "en": "26911898ffeba8bead0ae6853d0820117e7c96c4f4c1bca98297d533c9a4e0bc"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/synthetic-test-plan": {
+      "zh": "ec37bea0464625f4cc764d5d92c65c95867f1a0055ba42a6275465d3ed95174f",
+      "en": "60e1c9f2d2f3b909f4b32127936ad0b8c37732c0e55595ebd74bd6db9eeac318"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/verification-in-this-research-and-remaining-limits": {
+      "zh": "45fb6e0a9c0d54ecca79376260d7fbd00b5f08705c67897da80784c1d1a74b83",
+      "en": "e0925d39c95dabb9ba07d238e2484f36afb72f20f5c9b3ee8848c81d88cde6f0"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/unsupported-conclusions": {
+      "zh": "145c542b1a27a7e4c7a65c67d096988f692b82f626249f6fe7fad18b9af25a46",
+      "en": "de9947ec08523184ca1dc64c67f79d04d6c5be9eeaafafb8ae8092c721fc5711"
+    }
+  }
+}

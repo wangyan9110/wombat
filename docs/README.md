@@ -25,6 +25,7 @@
 - [契约](development/contracts.md)：Rust 源头、生成类型、版本与格式。
 - [来源适配验收](development/adapters.md)：独立真值、归属及故障用例。
 - [四入口 Web 与配置分析提案](decisions/proposed/architecture/2026-10-01-config-analysis-web.md)：共享 Rust 契约、配置证据、版本与分期验收；部分交付，剩余阶段仍待验收。
+- [Codex 任务耗时数据调研与技术方案](decisions/proposed/architecture/2026-10-04-codex-task-timing.md)：客观事实、区间重叠、上下文代理、能力缺口与隐私边界；尚未实施。
 - [贡献说明](../CONTRIBUTING.zh-CN.md)提供仓库操作入口。
 
 ## 项目状态 · project

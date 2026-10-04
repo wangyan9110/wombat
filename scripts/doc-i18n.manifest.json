@@ -289,6 +289,11 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.md",
       "en": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-10-04-codex-task-timing.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-04-codex-task-timing.i18n.json"
     }
   ],
   "legacyUnpaired": [],

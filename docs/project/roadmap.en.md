@@ -9,6 +9,7 @@ This page lists future directions without release-date commitments. Independent 
 3. Continue checking source versions, correctness, and end-to-end resource use with fixed fixtures. Record real user tasks separately and confirm performance targets through measurement.
 4. Resolve the npm name, permissions, and target platforms for public release, then verify clean installation, licenses, and public materials per platform.
 5. Add another Agent or desktop host when real requirements justify it; reuse the shared adapter protocol and narrow client before extending product entry points.
+6. Evaluate a narrow extension under [Codex task timing research and technical design](../decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md): native timing, overlap, and context evidence first, with explicit gaps. Unimplemented; it neither restores legacy diagnostic/compare semantics nor promises causal conclusions.
 
 Chinese and English CLI/Web are delivered; source text and unknown core diagnostics retain their original language. Accounts and local Codex handoff are added under the [lifecycle specification](optimization-lifecycle.en.md). Historical environment management, diagnostics, automatic application/restoration and reports do not establish current support or a commitment to restore them.
 

@@ -27,6 +27,7 @@ Put status after the title and language switcher. A proposal contains Problem, P
 | implemented | [Product localization boundaries](implemented/architecture/2026-09-30-localization.en.md) |
 | implemented | [Daily, weekly, and monthly defaults](implemented/product/2026-09-30-report-ranges.en.md) |
 | implemented | [Repository rules and bilingual confirmation](implemented/process/2026-09-30-repository-guidance.en.md) |
+| proposed | [Codex task timing research and technical design](proposed/architecture/2026-10-04-codex-task-timing.en.md) |
 | proposed | [Full live usage plan (partially delivered)](proposed/architecture/2026-09-30-live-usage.en.md) |
 | proposed | [GUI and CLI and CLI+Web technical routes](proposed/architecture/2026-10-01-gui-technical-routes.en.md) |
 | implemented | [Official price checks for missing rates](implemented/architecture/2026-09-30-automatic-prices.en.md) |
