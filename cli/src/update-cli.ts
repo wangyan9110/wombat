@@ -19,6 +19,7 @@ export interface UpdateResult {
   action: 'update';
   currentVersion: string;
   availableVersion: string;
+  updateAvailable: boolean;
   updated: boolean;
   checked: boolean;
   target: string;
@@ -155,9 +156,10 @@ export async function updateInstalled(options: {version?: string; check?: boolea
   const asset = set.assets.find(item => item.target === platform);
   if (!asset || asset.archive !== `wombat-${platform}.tar.gz` || !/^[0-9a-f]{64}$/.test(asset.sha256)
     || !Number.isSafeInteger(asset.bytes) || asset.bytes <= 0 || asset.bytes > maximumArchiveBytes) throw new Error(t('cli.update.invalidMetadata'));
-  const current = installed.release.version === set.version && installed.release.source === set.source;
+  const current = installed.release.version === set.version && installed.release.source === set.source
+    && installed.release.sourceSha256 === set.sourceSha256;
   const result: UpdateResult = {outputVersion: 1, action: 'update', currentVersion: installed.release.version,
-    availableVersion: set.version, updated: false, checked: Boolean(options.check), target: platform};
+    availableVersion: set.version, updateAvailable: !current, updated: false, checked: Boolean(options.check), target: platform};
   if (current || options.check) return result;
 
   const checksums = await downloadText(`${base}/SHA256SUMS`);
@@ -203,7 +205,7 @@ export async function runUpdateCli(argv: string[]): Promise<number> {
   const result = await updateInstalled({version: invocation.version, check: invocation.check});
   if (invocation.json) process.stdout.write(JSON.stringify(result) + '\n');
   else if (result.updated) process.stdout.write(t('cli.update.updated', {from: result.currentVersion, to: result.availableVersion}) + '\n');
-  else if (result.currentVersion === result.availableVersion) process.stdout.write(t('cli.update.current', {version: result.currentVersion}) + '\n');
+  else if (!result.updateAvailable) process.stdout.write(t('cli.update.current', {version: result.currentVersion}) + '\n');
   else process.stdout.write(t('cli.update.available', {current: result.currentVersion, available: result.availableVersion}) + '\n');
   return 0;
 }

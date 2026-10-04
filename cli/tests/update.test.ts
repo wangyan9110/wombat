@@ -16,11 +16,11 @@ test('update arguments are narrow and deterministic', () => {
 test('managed installation verifies and atomically selects a downloaded release', async () => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'wombat-update-test-'));
   try {
-    const source = 'b'.repeat(40), sourceSha256 = 'c'.repeat(64), oldSource = 'a'.repeat(40), oldSha256 = 'd'.repeat(64), target = `${process.platform}-${process.arch}`;
-    const install = path.join(root, 'install'), versions = path.join(install, 'versions'), oldId = `0.2.0-${oldSource.slice(0, 12)}-${oldSha256.slice(0, 12)}`;
+    const source = 'b'.repeat(40), sourceSha256 = 'c'.repeat(64), oldSha256 = 'd'.repeat(64), target = `${process.platform}-${process.arch}`;
+    const install = path.join(root, 'install'), versions = path.join(install, 'versions'), oldId = `0.3.0-${source.slice(0, 12)}-${oldSha256.slice(0, 12)}`;
     const old = path.join(versions, oldId), entry = path.join(old, 'lib', 'wombat.js'); mkdirSync(path.dirname(entry), {recursive: true});
     writeFileSync(entry, 'old');
-    writeFileSync(path.join(old, 'release.json'), JSON.stringify({format: 1, version: '0.2.0', source: oldSource, sourceSha256: oldSha256, target, runtime: {name: 'node', version: process.versions.node}}));
+    writeFileSync(path.join(old, 'release.json'), JSON.stringify({format: 1, version: '0.3.0', source, sourceSha256: oldSha256, target, runtime: {name: 'node', version: process.versions.node}}));
     writeFileSync(path.join(install, 'current.txt'), oldId + '\n');
 
     const stage = path.join(root, 'stage', 'wombat');
@@ -37,7 +37,8 @@ test('managed installation verifies and atomically selects a downloaded release'
     const baseUrl = pathToFileURL(releases).href.replace(/\/$/, '');
 
     const checked = await updateInstalled({baseUrl, entryFile: entry, check: true});
-    assert.equal(checked.updated, false); assert.equal(readFileSync(path.join(install, 'current.txt'), 'utf8').trim(), oldId);
+    assert.equal(checked.updated, false); assert.equal(checked.updateAvailable, true);
+    assert.equal(readFileSync(path.join(install, 'current.txt'), 'utf8').trim(), oldId);
     const wrong = 'e'.repeat(64);
     writeFileSync(path.join(releases, 'release-set.json'), JSON.stringify({format: 1, version: '0.3.0', source, sourceSha256, assets: [{target, archive: archiveName, sha256: wrong, bytes}]}));
     writeFileSync(path.join(releases, 'SHA256SUMS'), `${wrong}  ${archiveName}\n`);
@@ -49,5 +50,7 @@ test('managed installation verifies and atomically selects a downloaded release'
     const nextId = `0.3.0-${source.slice(0, 12)}-${sourceSha256.slice(0, 12)}`;
     assert.equal(updated.updated, true); assert.equal(readFileSync(path.join(install, 'current.txt'), 'utf8').trim(), nextId);
     assert.equal(readFileSync(path.join(versions, nextId, 'lib', 'wombat.js'), 'utf8'), 'new');
+    const current = await updateInstalled({baseUrl, entryFile: path.join(versions, nextId, 'lib', 'wombat.js'), check: true});
+    assert.equal(current.updateAvailable, false);
   } finally { rmSync(root, {recursive: true, force: true}); }
 });
