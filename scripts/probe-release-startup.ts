@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,16 +8,45 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temporary = mkdtempSync(path.join(os.tmpdir(), 'wombat-release-probe-'));
+const env: NodeJS.ProcessEnv = {
+  ...process.env,
+  WOMBAT_AUTO_PRICES: '0',
+  WOMBAT_DATA_HOME: path.join(temporary, 'data'),
+  CODEX_HOME: path.join(temporary, 'missing-source-must-not-be-scanned'),
+};
+let service: ChildProcess | undefined;
+let diagnostics = '';
+
+async function stop(child: ChildProcess): Promise<void> {
+  const stopped = () => child.exitCode !== null || child.signalCode !== null;
+  const waitForExit = (milliseconds: number) => new Promise<void>(resolve => {
+    const finished = () => { clearTimeout(timer); resolve(); };
+    const timer = setTimeout(() => { child.off('exit', finished); resolve(); }, milliseconds);
+    child.once('exit', finished);
+  });
+  if (stopped()) return;
+  const exited = waitForExit(2_000);
+  child.kill('SIGKILL');
+  await exited;
+  assert.equal(stopped(), true, 'shared service did not stop after the probe');
+}
 
 try {
+  const core = path.join(root, 'dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
+  service = spawn(core, ['--serve-usage'], { env, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+  service.stderr?.on('data', chunk => { diagnostics = (diagnostics + String(chunk)).slice(-8_000); });
+  await new Promise<void>((resolve, reject) => {
+    const ready = () => { service!.off('error', failed); resolve(); };
+    const failed = (error: Error) => { service!.off('spawn', ready); reject(error); };
+    service!.once('spawn', ready);
+    service!.once('error', failed);
+  });
+  await delay(100);
+  assert.equal(service.exitCode, null, diagnostics || 'shared service exited before the probe');
+  assert.equal(service.signalCode, null, diagnostics || 'shared service exited before the probe');
   const result = spawnSync(process.execPath, [path.join(root, 'dist', 'wombat.js'), 'optimize', 'capabilities', '--json'], {
     cwd: temporary,
-    env: {
-      ...process.env,
-      WOMBAT_AUTO_PRICES: '0',
-      WOMBAT_DATA_HOME: path.join(temporary, 'data'),
-      CODEX_HOME: path.join(temporary, 'missing-source-must-not-be-scanned'),
-    },
+    env,
     encoding: 'utf8',
     input: '',
     timeout: 15_000,
@@ -31,10 +60,10 @@ try {
   assert.equal(value.action, 'capabilities');
   assert.equal(value.resultStatus, 'complete');
   assert.equal(value.readView, null);
+  assert.equal(service.exitCode, null, diagnostics || 'shared service exited during the probe');
+  assert.equal(service.signalCode, null, diagnostics || 'shared service exited during the probe');
   console.log(`Shared-service startup probe passed on ${process.platform}/${process.arch} without scanning sources.`);
 } finally {
-  // Windows retains the named-pipe service directory until the bounded idle
-  // shutdown completes. Its recursive-delete retries do not span that window.
-  if (process.platform === 'win32') await delay(17_000);
+  if (service) await stop(service);
   rmSync(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 }
