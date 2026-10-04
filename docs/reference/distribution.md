@@ -53,14 +53,14 @@ corepack pnpm github:pack -- --current-platform --reuse-build --runtime-license 
 
 完整五平台候选使用 `--native-dir <artifacts>`。`--reuse-build` 仍校验源码与构建产物指纹，不能复用过期构建。平台边界和实际验收见[支持矩阵](support-matrix.md)，发行步骤见[发行 Skill](../../.agents/skills/wombat-release/SKILL.md)。
 
-## GitHub 简介候选
+## GitHub 简介
 
-以下内容待仓库公开时应用，不代表 About 或 Topics 已更新：
+About 描述已应用到 GitHub；仓库仍为私有。Topics 是公开前待应用的候选，当前 GitHub Topics 尚未同步：
 
 ```json
 {
-  "about": "Review Codex tasks and token usage locally. Estimate API costs, check AGENTS.md and Skills, and view MCP entries and call attempts. Web app + CLI.",
-  "topics": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
+  "about": "Review Codex token usage and task timing locally. Estimate API costs, inspect AGENTS.md, Skills, MCP, and Hooks, and send evidence-backed recommendations to Codex.",
+  "topicsCandidate": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
   "summaryZh": "在本机回看 Codex 任务、追踪 Token 用量与 API 估算金额，检查 AGENTS.md 和 Skill 文件，盘点 MCP 配置及调用尝试记录。"
 }
 ```

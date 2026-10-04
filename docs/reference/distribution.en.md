@@ -53,14 +53,14 @@ corepack pnpm github:pack -- --current-platform --reuse-build --runtime-license 
 
 Use `--native-dir <artifacts>` for a full five-platform set. `--reuse-build` still checks source and output fingerprints and cannot reuse a stale build. See the [support matrix](support-matrix.en.md) for platform boundaries and the [release Skill](../../.agents/skills/wombat-release/SKILL.md) for operating steps.
 
-## GitHub description candidates
+## GitHub description
 
-These values are ready to apply when the repository becomes public; they do not mean About or Topics have changed:
+The About description is applied on GitHub, while the repository remains private. Topics are candidates for the public repository and have not been synchronized yet:
 
 ```json
 {
-  "about": "Review Codex tasks and token usage locally. Estimate API costs, check AGENTS.md and Skills, and view MCP entries and call attempts. Web app + CLI.",
-  "topics": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
+  "about": "Review Codex token usage and task timing locally. Estimate API costs, inspect AGENTS.md, Skills, MCP, and Hooks, and send evidence-backed recommendations to Codex.",
+  "topicsCandidate": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
   "summaryZh": "在本机回看 Codex 任务、追踪 Token 用量与 API 估算金额，检查 AGENTS.md 和 Skill 文件，盘点 MCP 配置及调用尝试记录。"
 }
 ```
