@@ -21,12 +21,12 @@ Keep business rules in Rust. Adapters normalize source facts; pricing and querie
 
 Never commit real messages, tool output, credentials or unaudited raw fields. Preserve user changes and user-owned data. Read-only collection must not mutate source files. No arbitrary execution capabilities belong in rendering interfaces.
 
-Dependency changes require license review and `licenses:generate` / `licenses:check`. Before packaging run `public:check --package`; this is a guard, not a publication or complete security audit. Record actual tested platforms and limits, not planned capabilities. See [third-party notices](THIRD_PARTY_NOTICES.md).
+Dependency changes require license review and `licenses:generate` / `licenses:check`. Before packaging run `public:check`; this is a guard, not a publication or complete security audit. Record actual tested platforms and limits, not planned capabilities. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Review and automation
 
 Provide a minimal synthetic reproduction, version, platform, expected and observed behavior for bug reports. Explain changes and actual validation in pull requests; never attach private logs. Suspected vulnerabilities follow [Security](SECURITY.md).
 
-CI builds and checks five native targets, exercises scoped npm candidates, and assembles one main package and five platform-version packages only when all native artifacts match. The final set is installed on all five targets with Node 22; macOS arm64 also checks Node 24/26. Source tools use Node 26.4.0+. Each target exports its own dependency license inventory; the checked-in inventory is the macOS arm64 baseline. Other targets regenerate their inventory in CI before checking and retain it in the native artifact. CLI and local Web require separate acceptance. No workflow publishes packages or changes repository visibility.
+CI builds and checks five native targets, exports the core and bundled Node.js runtime, and assembles five self-contained GitHub Release archives only when all native artifacts match. The final archive is exercised on every target without relying on a system Node runtime. Source tools use Node 26.4.0+. Each target exports its own dependency license inventory and Node runtime license; the checked-in dependency inventory is the macOS arm64 baseline. Other targets regenerate their inventory in CI before checking. CLI and local Web require separate acceptance. Tag workflows publish only after the full matrix passes; ordinary CI never publishes or changes repository visibility.
 
 Run `corepack pnpm audit --audit-level moderate` after dependency updates. The current pnpm audit may identify the local workspace directory `cli` as the unrelated npm package of that name; verify the lockfile path before treating that low-severity entry as a shipped dependency. This does not suppress actual advisories. Rust advisories are checked with cargo-audit 0.22.2 against `core/Cargo.lock`.

@@ -34,7 +34,7 @@ flowchart LR
 | `ui/` | React / TypeScript / Vite frontend; `App` receives `UsageClient`, implements five surfaces and details, and wires HTTP; no Node/Tauri dependency |
 | `cli/` | Arguments, JSON/text, exit codes, and explicit Web startup/shutdown; the default command prints usage text |
 
-Dependencies point from `cli → web + client/node`, `web → client`, `ui → client + client/http + client/locale`. The core has no presentation dependencies. Modules use only public package entries or versioned protocols, never each other's internal source; static boundary checks cover all TS/TSX modules. This remains a modular monolith; npm installs the core for the selected platform.
+Dependencies point from `cli → web + client/node`, `web → client`, `ui → client + client/http + client/locale`. The core has no presentation dependencies. Modules use only public package entries or versioned protocols, never each other's internal source; static boundary checks cover all TS/TSX modules. This remains a modular monolith; GitHub Releases provide one self-contained archive per target.
 
 Business rules stay in Rust: adapters own source semantics and identity; `pricing.rs` / `pricing_sync.rs` own amounts and catalog eligibility; `live.rs` / `live_index.rs` own incremental indexes and versions; `usage_store.rs` owns immutable snapshots; `usage_app.rs` / `usage_app_dto.rs` own operations, filters, sorting, full-scope totals, and pagination. Lists never recompute totals, shares, or pricing from the current page.
 
@@ -74,7 +74,7 @@ Snapshots exclude message bodies, complete command arguments, and tool output; s
 
 ## Build and Verification
 
-npm runtime requires Node.js 22+; source tools require 26.4.0+. Build order is core, client, Web frontend and host, CLI, then distribution assembly. Static frontend assets ship under `dist/web/`; Vite is not needed at runtime. React DOM renders the browser UI; Tauri 2 remains the selected desktop host. Desktop transport and lifecycle require separate implementation; local HTTP checks do not validate Tauri.
+Release archives bundle Node.js 26.4.0; source tools require that version or newer. Build the core, client, Web, and CLI before assembling platform archives. Frontend assets ship under `dist/web/`; Vite is not needed at runtime. React DOM renders the UI, and Tauri 2 remains the selected desktop host. Desktop transport and lifecycle require separate implementation; local HTTP checks do not validate Tauri.
 
 Protocol and host tests use synthetic clients. End-to-end tests start HTTP from the distribution entry and compare real Rust and CLI ground truth, fixed-version drill-down, authentication, and shutdown. Browser interaction, narrow layouts, failure/cancellation, installed assets, and other platforms require separate verification; only verified scope enters progress records. See the [workflow](workflow.en.md) and [local Web decision](../decisions/implemented/architecture/2026-10-01-local-web.en.md).
 

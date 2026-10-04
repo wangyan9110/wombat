@@ -20,8 +20,7 @@ const steps = [
   ['Tests', 'corepack', ['pnpm', 'test']],
   ['Dependency licenses', 'corepack', ['pnpm', 'licenses:check']],
   ['Repository rules', 'corepack', ['pnpm', 'repo:check']],
-  ['Public package contents', 'corepack', ['pnpm', 'public:check', '--package']],
-  ['Installed package', 'corepack', ['pnpm', 'package:check']],
+  ['Public source and history', 'corepack', ['pnpm', 'public:check']],
 ];
 for (const [label, program, args] of steps) {
   console.log(`\n=== ${label} ===`);
@@ -31,4 +30,4 @@ for (const [label, program, args] of steps) {
     process.exit(result.status || 1);
   }
 }
-console.log(`\nRelease checks passed on ${process.platform}/${process.arch}. No publication performed.`);
+console.log(`\nRelease checks passed on ${process.platform}/${process.arch}. Run github:pack to assemble and verify release archives. No publication performed.`);

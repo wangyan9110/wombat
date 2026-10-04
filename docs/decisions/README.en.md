@@ -42,6 +42,7 @@ Put status after the title and language switcher. A proposal contains Problem, P
 | implemented | [Startup and bounded static rules](implemented/architecture/2026-10-02-startup-static-rules.en.md) |
 | implemented | [Physical configuration identity and complete rechecks](implemented/architecture/2026-10-02-rule-review-integrity.en.md) |
 | implemented | [npm platform-specific prebuilt cores](implemented/architecture/2026-10-03-npm-platform-distribution.en.md) |
+| implemented | [Self-contained GitHub Release archives and atomic updates](implemented/architecture/2026-10-04-github-release-distribution.en.md) |
 | implemented | [Current formats before the first release](implemented/architecture/2026-10-03-current-format-only.en.md) |
 | implemented | [Simple native Codex handoff and independent accounts](implemented/architecture/2026-10-03-native-codex-handoff.en.md) |
 | implemented | [Provisional tasks during the first scan](implemented/architecture/2026-10-04-initial-task-preview.en.md) |

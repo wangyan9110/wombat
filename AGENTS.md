@@ -45,7 +45,7 @@ Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、
 
 - 文档/开发约定：检查引用文件、实现/目标状态与阶段一致性，执行 `git diff --check`。
 - Rust 算法/存储/契约：运行对应准确性或故障样本，`cargo fmt --manifest-path core/Cargo.toml -- --check`、`cargo clippy --locked --manifest-path core/Cargo.toml --all-targets -- -D warnings`。cargo 不在 PATH 时使用 `~/.cargo/bin/cargo` 或已配置位置。
-- CLI/跨语言接口：先 `corepack pnpm build` 再运行对应 TS/集成/端到端测试；这些测试调用 dist 内核，仅跑 cargo test 不会更新 release 二进制。用 `corepack pnpm typecheck` 检查 TS 和模块导入边界；源码工具使用 Node.js 26.4.0 或更新版本；npm 产品运行要求见分发说明。
+- CLI/跨语言接口：先 `corepack pnpm build` 再运行对应 TS/集成/端到端测试；这些测试调用 dist 内核，仅跑 cargo test 不会更新 release 二进制。用 `corepack pnpm typecheck` 检查 TS 和模块导入边界；源码工具使用 Node.js 26.4.0 或更新版本；GitHub Release 内置运行时要求见分发说明。
 - 完整链路改动：`corepack pnpm build` 后执行 `corepack pnpm test`，按风险补当前工作空间或合成目录自测。计量变更需独立真值与分层守恒；上游对比只可作为可选研发调查，不是测试依赖。
 - 性能变更：release 构建、固定语料、明确缓存/范围，分别报告耗时、峰值内存和结果一致性。大行映射驻留页仍占内存；纯解析结果不能宣传为整条扫描的加速。
 - 发行变更：检查对应平台二进制、执行权限和干净目录安装。未验证的平台/来源和浏览器交互如实记录，不以构建通过替代。
@@ -58,4 +58,4 @@ Wombat 是本地 Agent 用量与对话查看工具，采用共享 Rust 内核、
 
 公开源码的构建、测试和贡献不依赖私有资料。商业计划、内部研究、完整原型及详细过程档案独立维护；需要进入公开研发的需求先整理成公开规格。公开文档不链接私有文件，发行包采用明确文档清单；`.gitignore` 不清理已提交历史，文档迁移不代表完成开源发布审查。
 
-依赖变化后审查并执行 `corepack pnpm licenses:generate` 与 `corepack pnpm licenses:check`，保留第三方出处和授权文本。公开前执行 `corepack pnpm repo:check` 与 `corepack pnpm public:check --package`，检查仓库约定、当前资料、可达历史和发行清单。检查不能代替实际提交审查、凭据轮换或目标平台验收；真实源自测输出必须显式指定仓库外位置。
+依赖变化后审查并执行 `corepack pnpm licenses:generate` 与 `corepack pnpm licenses:check`，保留第三方出处和授权文本。公开前执行 `corepack pnpm repo:check`、`corepack pnpm public:check` 与 `corepack pnpm github:pack`，检查仓库约定、当前资料、可达历史和发行归档。检查不能代替实际提交审查、凭据轮换或目标平台验收；真实源自测输出必须显式指定仓库外位置。

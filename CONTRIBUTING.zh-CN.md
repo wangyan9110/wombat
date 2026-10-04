@@ -21,12 +21,12 @@ corepack pnpm test
 
 不要提交真实消息、工具输出、凭据或未经审查的 raw 字段。保留用户改动和用户拥有的数据。只读采集不得修改来源文件。渲染接口不得拥有任意执行能力。
 
-依赖变化需检查许可证，并执行 `licenses:generate` / `licenses:check`。打包前运行 `public:check --package`；它是防护检查，不代表发布或完整安全审计。记录实际验证的平台和限制，不把计划能力写成现状。详见[第三方声明](THIRD_PARTY_NOTICES.md)。
+依赖变化需检查许可证，并执行 `licenses:generate` / `licenses:check`。打包前运行 `public:check`；它是防护检查，不代表发布或完整安全审计。记录实际验证的平台和限制，不把计划能力写成现状。详见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ## 评审与自动化
 
 问题报告提供最小合成复现、版本、平台、预期与实际行为。Pull Request 说明改动和实际验证，不附私人日志。疑似漏洞按[安全说明](SECURITY.zh-CN.md)处理。
 
-CI 构建并检查五个原生目标，验证带 scope 的 npm 候选；仅在全部原生产物一致时汇总为一个主包和五个平台版本包。最终候选在五个平台以Node22安装，macOS arm64额外检查Node24/26；源码工具使用Node26.4.0+。每个平台导出自身依赖许可库存；仓库内库存是 macOS arm64 基线，其他平台先在 CI 重新生成库存再检查，并保留到原生产物中。CLI 与本机 Web 分别验收。工作流不发布包，也不改变仓库公开状态。
+CI 构建并检查五个原生目标，导出内核与内置 Node.js 运行时；仅在全部原生产物一致时汇总五份独立 GitHub Release 归档。最终归档在五个平台运行，不依赖系统 Node；源码工具使用Node26.4.0+。每个平台导出自身依赖许可库存和 Node 运行时许可；仓库内依赖库存是 macOS arm64 基线，其他平台先在 CI 重新生成再检查。CLI 与本机 Web 分别验收。标签工作流仅在完整矩阵通过后发布，普通 CI 不发布，也不改变仓库公开状态。
 
 依赖变化后执行 `corepack pnpm audit --audit-level moderate`。当前 pnpm audit 可能把本地工作区目录 `cli` 识别为同名的无关 npm 包；将该低危条目视为发行依赖前，先核实锁文件路径。这不屏蔽真实漏洞。Rust 使用 cargo-audit 0.22.2 检查 `core/Cargo.lock`。

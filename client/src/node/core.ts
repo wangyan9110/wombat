@@ -3,7 +3,6 @@ import { accessSync, constants, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CoreError } from '../errors.js';
-import {packagedCore} from './packaged-core.js';
 import type { QueryOptions } from '../client.js';
 import type { Request } from '../generated/usage-request.js';
 import type { PricingRequest,PreferencesRequest,DirectoriesRequest } from '../client.js';
@@ -18,10 +17,6 @@ export function binaryPath(configuredPath?: string): string {
   const dir = path.dirname(fileURLToPath(import.meta.url));
   const name = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
   const override = configuredPath ?? process.env.WOMBAT_CORE_BIN;
-  if (!override) {
-    const packaged = packagedCore(dir);
-    if (packaged) return packaged;
-  }
   if (!override && existsSync(path.join(dir, 'native')) && !existsSync(path.join(dir, 'native', `${process.platform}-${process.arch}`, name)))
     throw new CoreError('UNSUPPORTED_PLATFORM', `此安装包不包含 ${process.platform}/${process.arch} 内核`);
   const candidates = override ? [path.resolve(override)]

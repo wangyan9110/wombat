@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-self-contained-github-release-archives-and-atomic-updates": {
+      "zh": "ecc72fd91f06b2c66126659492f39e7108f4f7f3fe2a8c6dd04f9121a5915f60",
+      "en": "de3cfd9fde1dff766dbe1dfa3583426ee7fae4e3493d775706ea630cba0790d7"
+    },
+    "/decision-self-contained-github-release-archives-and-atomic-updates/problem": {
+      "zh": "1a19ec8e62c09d5fa85795dcdc5247df1a86de06f7ad17f16fbedd03b177c9a5",
+      "en": "ed18bba26bb6bc65665d649e3f6ab87c4ce1df034bb2c61b5bfd2ddb6b1bbc62"
+    },
+    "/decision-self-contained-github-release-archives-and-atomic-updates/decision": {
+      "zh": "7c88381d5b2b5cd70ce027e68d24ffc44cce6d2eb794c2e1e9d17e78117dbc02",
+      "en": "3fe7b87fd55d5b8b147b38b9f6502f26c86a2a786d5bdf2ad2fb49e01c871412"
+    },
+    "/decision-self-contained-github-release-archives-and-atomic-updates/alternatives-considered": {
+      "zh": "0da14a13970cab2b7d9dbdd90de506235c1d07bad2c0c621e9e7ad52ebff78fd",
+      "en": "6033605bfe577dec375005ad4ea47859a0b2a8afa0defc358c1783f7dd082bea"
+    },
+    "/decision-self-contained-github-release-archives-and-atomic-updates/consequences-and-verification": {
+      "zh": "5b3f3e85d752fdc36f4d6693817a1e3394389de4e440ae05552440e5c3c5f460",
+      "en": "d3965fbc8f1acbf9e0e269604b558dc78636d5372262b7937af8aed5d90f1b04"
+    }
+  }
+}

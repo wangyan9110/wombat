@@ -5,6 +5,7 @@ Wombat's original code is licensed under [MIT](LICENSE). Third-party components 
 - Node dependency notices: [license texts](licenses/node-dependencies.txt).
 - Rust dependency notices: [license texts](licenses/rust-dependencies.txt).
 - Versions, declared licenses, selected alternatives and notice hashes: [inventory](docs/dependency-licenses.json).
+- GitHub Release archives also include the exact Node.js 26.4.0 distribution license as `lib/licenses/node-runtime.txt`; each platform export hashes that file together with the bundled runtime binary.
 
 The inventory covers 115 installed Node packages (9 runtime) and 175 locked Rust packages other than Wombat. Enabled normal/build/dev dependencies are identified separately; optional lock entries not activated by current features are not compiled into this build, but their upstream license notices are still preserved. Node optional platform packages not installed here are recorded as unverified; their presence is not a platform support claim. Development dependencies are included conservatively.
 

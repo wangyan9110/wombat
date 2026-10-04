@@ -241,6 +241,11 @@
       "record": "docs/decisions/implemented/architecture/2026-10-03-npm-platform-distribution.i18n.json"
     },
     {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.i18n.json"
+    },
+    {
       "zh": "docs/project/optimization-lifecycle.md",
       "en": "docs/project/optimization-lifecycle.en.md",
       "record": "docs/project/optimization-lifecycle.i18n.json"

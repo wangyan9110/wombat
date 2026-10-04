@@ -6,7 +6,7 @@ import packageMetadata from '../package.json' with { type: 'json' };
 import { CoreError, type UsageRequest, type UsageResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { renderUsageResult } from './format.js';
-export function usageHelp(): string { return t("cli.usage-app-cli.help"); }
+export function usageHelp(): string { return t("cli.usage-app-cli.help").replace('  wombat optimize', `${t('cli.update.summary')}\n  wombat optimize`); }
 export interface Invocation {
   request: UsageRequest;
   json: boolean;
@@ -177,13 +177,14 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
     if (argv[0] === 'prices') return await runPricingCli(argv.slice(1));
     if (argv[0] === 'optimize') return await (await import('./config-cli.js')).runConfigCli(argv.slice(1));
     if (argv[0] === 'web') return await (await import('./web-cli.js')).runWebCli(argv.slice(1));
+    if (argv[0] === 'update') return await (await import('./update-cli.js')).runUpdateCli(argv.slice(1));
     const invocation = parseUsageArgs(argv);
     if (invocation.version) {
       process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', version: packageMetadata.version }) + '\n' : 'Wombat ' + packageMetadata.version + '\n');
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     const client = createNodeClient();
@@ -216,7 +217,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
     const code = error instanceof CoreError ? error.code : error instanceof Error && ['ExitPromptError', 'AbortPromptError'].includes(error.name) ? 'CANCELLED' : 'INTERNAL_ERROR';
     const message = (error instanceof Error ? error.message : String(error));
     if (json)
-      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize', 'account'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
+      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize', 'account', 'update'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
     else
       process.stderr.write(`Wombat · ${message}\n`);
     return code === 'CANCELLED' ? 130 : 1;

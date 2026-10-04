@@ -4,6 +4,8 @@
 
 Status: implemented
 
+Current product distribution is superseded by the [self-contained GitHub Release decision](2026-10-04-github-release-distribution.en.md). This record retains the previously implemented design and the still-applicable target-identity and notice-verification rationale.
+
 ## Problem
 
 Shipping five cores in one package downloads foreign binaries on every machine. The source-tool Node 26.4 requirement was also imposed on users. Users requested one-command npm installation patterned after Codex CLI, avoiding compiler dependencies and excess disk usage. No public release exists, so prior-release migration is unnecessary.

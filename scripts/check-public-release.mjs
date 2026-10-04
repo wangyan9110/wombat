@@ -4,7 +4,6 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const issues = [];
@@ -74,22 +73,7 @@ for (const [oid, file] of blobs) {
   const content = git(['cat-file', 'blob', oid]);
   if (!content.includes('\0')) inspect(file, content, 'reachable history');
 }
-let packagedFiles = null;
-if (process.argv.includes('--package')) {
-  const packed = JSON.parse(run('npm', ['pack', '--dry-run', '--ignore-scripts', '--json', '--cache', path.join(os.tmpdir(), 'wombat-public-check-npm-cache')]));
-  packagedFiles = packed[0].files.map(item => item.path);
-  for (const file of packagedFiles) if (privatePath.test(file)) issues.push(`package: private path ${file}`);
-  const binary = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
-  for (const file of ['LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'README.zh-CN.md', 'dist/wombat.js', `dist/${binary}`, 'dist/licenses/wombat-MIT.txt', 'dist/licenses/node-dependencies.txt', 'dist/licenses/rust-dependencies.txt']) {
-    if (!packagedFiles.includes(file)) issues.push(`package: required file missing ${file}`);
-  }
-  for (const file of packagedFiles.filter(file => !files.includes(file))) {
-    const content = readFileSync(path.join(root, file));
-    // Native binaries can also leak build-home paths through panic/debug strings.
-    inspect(file, content.toString('utf8'), 'package');
-  }
-}
 if (issues.length) {
   console.error([...new Set(issues)].join('\n'));
   process.exitCode = 1;
-} else console.log(`Public guards passed: ${files.length} files, ${checkedLinks} local links, ${commits.length} reachable commits${packagedFiles ? `, ${packagedFiles.length} package files` : ''}. No publication performed.`);
+} else console.log(`Public guards passed: ${files.length} files, ${checkedLinks} local links, ${commits.length} reachable commits. Release archives are checked by github:pack. No publication performed.`);
