@@ -1,10 +1,10 @@
 import type { OptimizeRequest, OptimizeResult, OptimizeSuggestion, UsageClient } from '@wombat/client';
-import { reviewFindingLabel, reviewPresentation, t } from '@wombat/client/locale';
+import { reviewPresentation, t } from '@wombat/client/locale';
 import { useEffect, useState } from 'react';
 import { Modal, Token, timestamp } from '../components.js';
 import { QueryError } from '../Feedback.js';
 import { ReviewUsage, TextChanges } from '../ReviewUsage.js';
-import { RuleChecks } from '../RuleChecks.js';
+import { ReviewFacts } from './Assessments.js';
 import { returnRoute, linkedReturn, type Route } from '../state.js';
 import { FindingMethods, Findings } from './Findings.js';
 import { findingLabel, reviewStateLabel } from './presentation.js';
@@ -28,7 +28,7 @@ export function SuggestionDetail({ selected, result, client, route, busy, error,
     <section className="review-history"><h3>{t('optimize.handlingRecord')}</h3>
       <TextChanges suggestion={selected} />
       {followUp && <FollowUp observation={followUp} timezone={route.timezone} />}
-      {route.optimizeGroup === 'history' ? <details className="provenance"><summary>{t('optimize.checks')}</summary>{selected.checks.map(check => <article key={check.rule}><strong>{reviewFindingLabel(check.rule)}</strong><p>{t(`optimize.check.${check.outcome}`)} · {timestamp(check.checkedAt, route.timezone)}</p>{check.reason && <p>{t('optimize.evidenceIncomplete')}</p>}</article>)}</details> : <RuleChecks client={client} route={route} readView={result.readView!} itemId={selected.item.id} />}
+      <ReviewFacts suggestion={selected} timezone={route.timezone} />
       {error && <QueryError error={error.message} code={error.code} retry={refresh} />}{busy && <p role="status">{t('webui.loading')}</p>}
       <div className="review-actions">
       <button disabled={busy} onClick={() => void run('recheck', selected.id)}>{t('optimize.recheck')}</button>
@@ -42,7 +42,6 @@ export function SuggestionDetail({ selected, result, client, route, busy, error,
         <button disabled={busy} onClick={() => void run('not_applicable', selected.id, reason)}>{t('optimize.notApplicable')}</button>
       </>}
       {selected.decision && <>
-        <p>{t(selected.decision.kind === 'keep' ? 'optimize.kept' : 'optimize.inapplicable')} · {timestamp(selected.decision.recordedAt, route.timezone)}</p>
         <button disabled={busy} onClick={() => void run('redisplay', selected.id)}>{t('optimize.redisplay')}</button>
       </>}
       </div>

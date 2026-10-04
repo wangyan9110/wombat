@@ -26,7 +26,7 @@ function EvidenceDetails({ evidence }: { evidence: Evidence }) {
   </>;
 }
 
-function formatIssueReason(code: string) {
+export function formatIssueReason(code: string) {
   switch (code) {
     case 'frontMatterMissing': return t('optimize.formatIssue.frontMatterMissing');
     case 'frontMatterUnclosed': return t('optimize.formatIssue.frontMatterUnclosed');
@@ -60,7 +60,7 @@ function FormatDiagnostics({ suggestion }: { suggestion: OptimizeSuggestion }) {
 export function Findings({ suggestion }: { suggestion: OptimizeSuggestion }) {
   return <ul className="finding-list">{suggestion.findings.map((finding, index) => {
     const count = reviewFindingCount(finding);
-    return <li key={finding.rule + index}>
+    return <li key={finding.identity.findingId ?? finding.rule + index}>
       <strong>{reviewFindingLabel(finding.rule)}</strong>
       <p>{reviewFindingNote(finding.rule, suggestion.item.project ? directoryName(suggestion.item.project) : undefined)}</p>
       {count ? <p>{count}</p> : finding.observed != null && <dl className="finding-measurements"><div><dt>{t('optimize.currentValue')}</dt><dd>{finding.observed.toLocaleString()}</dd></div>{finding.threshold != null && <><div><dt>{t('optimize.comparisonValue')}</dt><dd>{finding.threshold.toLocaleString()}</dd></div><div><dt>{t('optimize.difference')}</dt><dd>{Math.max(0, finding.observed - finding.threshold).toLocaleString()}</dd></div></>}</dl>}

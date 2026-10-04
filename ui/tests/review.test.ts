@@ -31,19 +31,19 @@ test('format findings expose location, reason, current content and valid format 
   assert.match(method,/static-config-v7/);assert.match(method,/fieldFormat/);
  }}finally{locale.setLocale(saved);}
 });
-test('text comparison retains original metadata and rejects mixed or missing token methods',()=>{
- const changed={...suggestion,item:{...item,bytes:6000,characters:5000,bodyTokenEstimate:{...estimate,tokens:2000,contentHash:'body-b'}}};
- assert.deepEqual(textChanges(changed).map(r=>[r.before,r.after]),[[11000,6000],[10000,5000],[5000,2000]]);
- assert.equal(textChanges({...changed,item:{...changed.item,bodyTokenEstimate:{...estimate,method:'different'}}}).length,2);
+test('text comparison consumes core comparison identities and measured basis rather than item fields',()=>{
+ const changed={...suggestion,item:{...item,bytes:6000,characters:5000,bodyTokenEstimate:{...estimate,tokens:2000,contentHash:'body-b'}},checks:checks.map(c=>({...c,basis:{...c.basis,measurement:c.basis.measurement.kind==='numeric'?{...c.basis.measurement,observed:2000}:c.basis.measurement},comparison:{status:'comparable' as const,baselineAssessmentId:c.assessmentId}}))};
+ assert.deepEqual(textChanges(changed).map(r=>[r.before,r.after]),[[5000,2000],[1025,2000]]);
+ assert.deepEqual(textChanges({...changed,checks:changed.checks.map(c=>({...c,comparison:{status:'incomparable'}}))}),[]);
  assert.deepEqual(textChanges({...changed,reviewBaseline:null}),[]);
- assert.deepEqual(textChanges({...changed,item:{...changed.item,measurementStatus:'unreadable'}}),[]);
- assert.deepEqual(textChanges({...changed,item:{...changed.item,current:false}}),[]);
- assert.deepEqual(textChanges({...changed,status:'recheckUnavailable'}),[]);
+ assert.deepEqual(textChanges({...changed,checks:changed.checks.map(c=>({...c,comparison:{status:'unknown'}}))}),[]);
+ assert.deepEqual(textChanges({...changed,checks:changed.checks.map(c=>({...c,comparison:{status:'comparable',baselineAssessmentId:'foreign'}}))}),[]);
+ assert.deepEqual(textChanges(suggestion),[]);
 });
-test('related usage shows records and deduplicated turn usage together; missing history stays unknown',()=>{
- const result={items:[{...item,counts:{fileReads:2,toolCalls:0,succeeded:2,failed:0,outcomeUnknown:0},relatedTurns:1,usage:{tokens:{total:110},price:{status:'priced',cost:'0.000265',knownCost:'0.000265'}}}],coverage:{status:'partial',historyStatus:'current'},evidence:[{id:'e1',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'completed'},{id:'e2',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'failed'}],usageRevision:'live:one',page:{total:2,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
+test('related usage shows records and core turn usage with every operation record; missing history stays unknown',()=>{
+ const result={items:[{...item,usageCount:2,counts:{fileReads:2,toolCalls:0,succeeded:2,failed:0,outcomeUnknown:0},relatedTurns:1,usage:{tokens:{total:110},price:{status:'priced',cost:'0.000265',knownCost:'0.000265'}}}],coverage:{status:'partial',historyStatus:'current'},evidence:[{id:'e1',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'completed'},{id:'e2',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'failed'}],usageRevision:'live:one',page:{total:2,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
  const props={result,route:parseRoute('?page=optimize&suggestion=s'),navigate:()=>{},onPage:()=>{}};
- const html=renderToStaticMarkup(createElement(RelatedUsageContent,props));assert.match(html,/110/);assert.match(html,/\$0.0003/);assert.equal((html.match(/synthetic/g)??[]).length,1);assert.match(html,/2 条|2 records/);
+ const html=renderToStaticMarkup(createElement(RelatedUsageContent,props));assert.match(html,/110/);assert.match(html,/\$0.0003/);assert.equal((html.match(/<strong>synthetic<\/strong>/g)??[]).length,2);assert.match(html,/2 条|2 records/);
  const unknown=renderToStaticMarkup(createElement(RelatedUsageContent,{...props,result:{...result,items:[{...result.items[0],usage:null}],coverage:{...result.coverage,historyStatus:'unavailable'},evidence:[]}}));assert.doesNotMatch(unknown,/\$0\.0000/);assert.match(unknown,/不可用|unavailable/);
  const resource=renderToStaticMarkup(createElement(RelatedUsageContent,{...props,result:{...result,items:[{...result.items[0],kind:'mcp',usageCount:1,counts:{fileReads:0,toolCalls:0,resourceReads:1,succeeded:1,failed:0,outcomeUnknown:0}}]}}));assert.match(resource,/1 次使用|1 use/);assert.doesNotMatch(resource,/未找到关联|No associated/);
 });
