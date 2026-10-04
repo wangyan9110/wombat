@@ -56,14 +56,14 @@ impl Facts {
             ..Self::default()
         }
     }
-    pub(super) fn thread(
+    pub(super) fn project_thread(
         &mut self,
-        source: &SourceInstance,
+        source_id: &str,
         upstream: &str,
         timestamp: Option<&str>,
         cwd: Option<&str>,
     ) -> String {
-        let id = stable_id(&["codex", &source.id, "thread", upstream]);
+        let id = stable_id(&["codex", source_id, "thread", upstream]);
         if let Some(cwd) = cwd {
             self.projects
                 .entry(id.clone())
@@ -73,7 +73,7 @@ impl Facts {
         let thread = self.threads.entry(id.clone()).or_insert_with(|| Thread {
             id: id.clone(),
             agent_kind: "codex".into(),
-            source_instance_id: source.id.clone(),
+            source_instance_id: source_id.into(),
             upstream_id: upstream.into(),
             title: None,
             project: cwd.map(safe_text),
@@ -97,7 +97,7 @@ impl Facts {
         }
         id
     }
-    pub(super) fn turn(
+    pub(super) fn project_turn(
         &mut self,
         thread: &str,
         upstream: &str,

@@ -2,6 +2,7 @@
 use super::*;
 
 pub(in crate::adapters::codex) struct Context {
+    pub(super) evidence: EvidenceRef,
     position: Position,
     time: Time,
     gaps: Vec<Gap>,
@@ -13,6 +14,7 @@ impl Context {
         timestamp: Option<&str>,
         kind: &str,
         subtype: Option<&str>,
+        evidence: &EvidenceRef,
     ) -> Self {
         let (time, gap) = Time::from_source(timestamp);
         let event = if kind == "event_msg" || kind == "response_item" {
@@ -31,6 +33,7 @@ impl Context {
             _ => Phase::Unknown,
         };
         Self {
+            evidence: evidence.clone(),
             position,
             time,
             gaps: gap.into_iter().collect(),

@@ -215,6 +215,7 @@ pub(super) fn read_file_from(
             record.timestamp,
             record.kind,
             payload.kind.as_deref(),
+            &evidence,
         ));
         process(
             record.kind,

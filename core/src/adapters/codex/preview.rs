@@ -153,8 +153,8 @@ fn header(path: &Path, source: &SourceInstance, report: &mut SourceReport, facts
         .or(payload.session_id.as_deref())
         .filter(|id| !id.is_empty())
     {
-        facts.thread(
-            source,
+        facts.project_thread(
+            &source.id,
             id,
             timestamp(envelope.timestamp).as_deref(),
             payload.cwd.as_deref(),

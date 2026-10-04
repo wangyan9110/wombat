@@ -151,7 +151,13 @@ fn payload_scope_cannot_be_rebound_to_another_turn() {
         Some("turn".into()),
         Time::from_source(None).0,
         vec![],
-        Payload::Turn { value: fact },
+        Payload::Turn {
+            value: fact,
+            evidence: EvidenceRef {
+                file: "synthetic".into(),
+                line: 1,
+            },
+        },
     )
     .unwrap();
     let mut json = serde_json::to_value(original).unwrap();

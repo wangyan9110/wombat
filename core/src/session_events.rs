@@ -167,9 +167,12 @@ pub enum Payload {
     },
     Thread {
         value: Thread,
+        project_path: Option<String>,
+        evidence: EvidenceRef,
     },
     Turn {
         value: Turn,
+        evidence: EvidenceRef,
     },
     /// Preserve source accounting inputs before cross-file deduplication and reconciliation.
     Measurement {
@@ -291,13 +294,13 @@ impl TryFrom<StoredEvent> for Event {
                 !parent_id.is_empty() && thread.is_some() && turn.is_none(),
                 "invalid ancestry identity"
             ),
-            Payload::Thread { value: fact } => ensure!(
+            Payload::Thread { value: fact, .. } => ensure!(
                 thread == Some(fact.id.as_str())
                     && turn.is_none()
                     && fact.source_instance_id == value.position.source_instance_id,
                 "thread event scope mismatch"
             ),
-            Payload::Turn { value: fact } => ensure!(
+            Payload::Turn { value: fact, .. } => ensure!(
                 thread == Some(fact.thread_id.as_str()) && turn == Some(fact.id.as_str()),
                 "turn event scope mismatch"
             ),

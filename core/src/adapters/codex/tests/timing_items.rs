@@ -69,7 +69,7 @@ fn operation_events_keep_both_observations_while_the_projection_merges_one_call(
             .map(|e| e.id())
             .collect::<BTreeSet<_>>()
             .len(),
-        4
+        facts.events.len()
     );
     let serialized = serde_json::to_string(&facts.events).unwrap();
     assert!(!serialized.contains("PRIVATE_SYNTHETIC"));
@@ -150,10 +150,14 @@ fn malformed_and_reversed_native_endpoints_are_retained_as_gaps() {
         &[meta("t"), malformed, reversed],
     );
     let facts = collect(root.path());
-    assert_eq!(facts.events.len(), 2);
+    let items: Vec<_> = facts
+        .events
+        .iter()
+        .filter(|e| matches!(e.payload(), SafePayload::Item { .. }))
+        .collect();
+    assert_eq!(items.len(), 2);
     assert!(
-        facts
-            .events
+        items
             .iter()
             .all(|e| e.gaps().contains(&Gap::InvalidNativeField))
     );

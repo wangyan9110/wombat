@@ -23,7 +23,7 @@ pub(super) fn process(
         if let Some(upstream) = p.id.as_deref().or(p.session_id.as_deref()) {
             state.break_context();
             state.uncertain_counter = false;
-            let thread = facts.thread(source, upstream, time.as_deref(), p.cwd.as_deref());
+            let thread = facts.thread(source, upstream, time.as_deref(), p.cwd.as_deref(), report);
             if let Some(parent) = p.forked_from_id.as_deref() {
                 let parent = stable_id(&["codex", &source.id, "thread", parent]);
                 timing::ancestry(facts, &thread, parent, report, &evidence);
@@ -40,20 +40,20 @@ pub(super) fn process(
     let owner = p
         .thread_id
         .as_deref()
-        .map(|upstream| facts.thread(source, upstream, time.as_deref(), None))
+        .map(|upstream| facts.thread(source, upstream, time.as_deref(), None, report))
         .or_else(|| state.thread.clone());
     if let Some(thread) = &owner
-        && let Some(t) = facts.threads.get_mut(thread)
-        && time
-            .as_ref()
-            .is_some_and(|new| t.last_activity_at.as_ref().is_none_or(|old| new > old))
+        && let Some(t) = facts.threads.get(thread)
+        && p.thread_id.is_none()
+        && time.is_some()
     {
-        t.last_activity_at = time.clone();
+        let upstream = t.upstream_id.clone();
+        facts.thread_activity(source, &upstream, time.as_deref(), report);
     }
     let explicit_turn = owner
         .as_ref()
         .zip(p.turn_id.as_deref().filter(|id| !id.is_empty()))
-        .map(|(thread, turn)| facts.turn(thread, turn, time.as_deref(), None));
+        .map(|(thread, turn)| facts.turn(thread, turn, time.as_deref(), None, report));
     let decoded_item = match p.item {
         Some(raw) => match serde_json::from_str::<Payload>(raw.get()) {
             Ok(item) => Some(item),
@@ -92,7 +92,7 @@ pub(super) fn process(
             .turn_id
             .as_deref()
             .filter(|id| !id.is_empty())
-            .map(|id| facts.turn(thread, id, time.as_deref(), None))
+            .map(|id| facts.turn(thread, id, time.as_deref(), None, report))
             .or(explicit_turn.clone());
         for path in loads.paths {
             let identity = stable_id(&[
@@ -124,7 +124,7 @@ pub(super) fn process(
             .turn_id
             .as_deref()
             .filter(|id| !id.is_empty())
-            .map(|id| facts.turn(thread, id, time.as_deref(), None))
+            .map(|id| facts.turn(thread, id, time.as_deref(), None, report))
             .or(explicit_turn.clone());
         let catalog_identity =
             stable_id(&[p.id.as_deref().unwrap_or(&fingerprint), "skillCatalog"]);
@@ -197,7 +197,7 @@ pub(super) fn process(
             .and_then(|id| facts.threads.get(id))
             .map(|t| t.upstream_id.clone())
         {
-            facts.thread(source, &upstream, time.as_deref(), p.cwd.as_deref());
+            facts.thread(source, &upstream, time.as_deref(), p.cwd.as_deref(), report);
         }
         if owner != state.thread {
             state.break_context();
@@ -234,7 +234,7 @@ pub(super) fn process(
             _ => "interrupted",
         };
         if let (Some(thread), Some(upstream)) = (&owner, p.turn_id.as_deref()) {
-            let new_turn = facts.turn(thread, upstream, time.as_deref(), Some(status));
+            let new_turn = facts.turn(thread, upstream, time.as_deref(), Some(status), report);
             if event == "task_started" && state.turn.as_deref() != Some(&new_turn) {
                 state.model = state.thread_model.clone();
                 state.effort = state.thread_effort.clone();
@@ -321,12 +321,12 @@ pub(super) fn process(
             let latest_owner = latest
                 .thread_id
                 .as_deref()
-                .map(|id| facts.thread(source, id, time.as_deref(), None))
+                .map(|id| facts.thread(source, id, time.as_deref(), None, report))
                 .or(owner.clone());
             let latest_turn = latest_owner
                 .as_ref()
                 .zip(latest.turn_id.as_deref())
-                .map(|(t, id)| facts.turn(t, id, time.as_deref(), None));
+                .map(|(t, id)| facts.turn(t, id, time.as_deref(), None, report));
             direct_measurement(
                 &latest,
                 latest_owner,

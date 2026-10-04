@@ -21,7 +21,13 @@ fn lifecycle_retains_native_zero_precision_context_changes_and_safe_metadata() {
         "sessions/timing.jsonl",
         &[meta("t"), start, window, end],
     );
-    let facts = collect(root.path());
+    let mut facts = collect(root.path());
+    facts.events.retain(|e| {
+        !matches!(
+            e.payload(),
+            SafePayload::Thread { .. } | SafePayload::Turn { .. }
+        )
+    });
     assert_eq!(facts.events.len(), 5);
     assert_eq!(facts.measurements.len(), 1);
     let values = facts
@@ -71,7 +77,13 @@ fn malformed_native_timing_preserves_lifecycle_and_reports_unknowns() {
     end["payload"]["duration_ms"] = json!(-1);
     end["payload"]["time_to_first_token_ms"] = json!("bad");
     write(root.path(), "sessions/timing.jsonl", &[meta("t"), end]);
-    let facts = collect(root.path());
+    let mut facts = collect(root.path());
+    facts.events.retain(|e| {
+        !matches!(
+            e.payload(),
+            SafePayload::Thread { .. } | SafePayload::Turn { .. }
+        )
+    });
     assert_eq!(facts.events.len(), 1);
     let observation = &facts.events[0];
     assert!(matches!(
@@ -113,7 +125,13 @@ fn append_restart_verify_truncation_and_replacement_obey_event_generations() {
     file.write_all((event("task_complete", "a").to_string() + "\n").as_bytes())
         .unwrap();
     let appended = sync(false).events;
-    assert_eq!(appended.len(), 2);
+    assert_eq!(first.len(), 5);
+    assert_eq!(appended.len(), 9);
+    assert!(
+        first
+            .iter()
+            .all(|original| appended.iter().any(|e| e.id() == original.id()))
+    );
     assert!(appended.iter().any(|e| e.id() == first[0].id()));
     assert!(
         appended
@@ -128,7 +146,7 @@ fn append_restart_verify_truncation_and_replacement_obey_event_generations() {
     // Same session prefix after truncation must not reuse the earlier generation.
     write(root.path(), "sessions/timing.jsonl", &rows);
     let truncated = sync(false).events;
-    assert_eq!(truncated.len(), 1);
+    assert_eq!(truncated.len(), first.len());
     assert_ne!(truncated[0].id(), first[0].id());
     let replacement = write(root.path(), "replacement.jsonl", &rows);
     fs::rename(replacement, &path).unwrap();
@@ -155,7 +173,13 @@ fn unidentified_start_does_not_inherit_the_previous_turn() {
         "sessions/timing.jsonl",
         &[meta("t"), context("old", "gpt-5.4", "high"), unknown],
     );
-    let facts = collect(root.path());
+    let mut facts = collect(root.path());
+    facts.events.retain(|e| {
+        !matches!(
+            e.payload(),
+            SafePayload::Thread { .. } | SafePayload::Turn { .. }
+        )
+    });
     assert_eq!(facts.events.len(), 1);
     assert!(facts.events[0].thread_id().is_some());
     assert!(facts.events[0].turn_id().is_none());
@@ -187,14 +211,17 @@ fn partial_tail_and_rollback_never_publish_half_an_event_generation() {
     file.write_all(row.as_bytes()).unwrap();
     let tx = db.transaction().unwrap();
     let partial = incremental::sync(&tx, &source, false).unwrap().unwrap();
-    assert_eq!(partial.events.len(), 1);
+    assert_eq!(
+        serde_json::to_value(&partial.events).unwrap(),
+        serde_json::to_value(&first.events).unwrap()
+    );
     assert_eq!(partial.events[0].id(), first.events[0].id());
     assert!(partial.issues.iter().any(|i| i.code == "incompleteTail"));
     tx.commit().unwrap();
     file.write_all(b"\n").unwrap();
     let tx = db.transaction().unwrap();
     let uncommitted = incremental::sync(&tx, &source, false).unwrap().unwrap();
-    assert_eq!(uncommitted.events.len(), 2);
+    assert_eq!(uncommitted.events.len(), first.events.len() + 4);
     tx.rollback().unwrap();
     let tx = db.transaction().unwrap();
     let retried = incremental::sync(&tx, &source, false).unwrap().unwrap();

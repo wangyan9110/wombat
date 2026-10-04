@@ -203,7 +203,7 @@ Observational history cannot establish stable model speed multipliers, quality r
 
 ### Task batches and acceptance
 
-U01/U02 have [independent baseline evidence](../../../benchmarks/2026-10-04-event-upgrade-baseline.json) and frozen contracts. U03 shared-component previews still need production-interface wiring and duplicate removal. U04/U05 have partial safe-event mapping and accounting/operation projections, but metadata replay and complete mapping remain open. U06–U20 have not passed acceptance. Historical commits and test output do not replace individual completion gates.
+U01/U02 have [independent baseline evidence](../../../benchmarks/2026-10-04-event-upgrade-baseline.json) and frozen contracts. U03 shared-component previews still need production-interface wiring and duplicate removal. U04/U05 have partial safe-event mapping and accounting/operation projections, but external metadata and complete mapping remain open. U06–U20 have not passed acceptance. Historical commits and test output do not replace individual completion gates.
 
 #### Scope and delivery principles
 
@@ -300,4 +300,4 @@ On closure, record scope, commit/PR, actual verification commands/results, corpu
 
 #### Remaining implementation boundaries
 
-U03 follows U14/U16/U17 to wire production interfaces and migrate every page and state, then remove the corresponding standalone prototypes after verification. U04/U05 still require thread/turn metadata replay and complete source mapping; external metadata such as titles must not be assumed to be covered by events. U06/U08 must cover middle-of-file rewrites in large logs, rebuilding loaded indexes from events, per-source watermarks, event shards, and query budgets; first/last boundary probes or whole-event-file reads do not satisfy acceptance. The live protocol still needs to move from protocol1 to protocol2. User-decision preservation, full-path checks, and performance acceptance remain in the final stage.
+U03 follows U14/U16/U17 to wire production interfaces and migrate every page and state, then remove the corresponding standalone prototypes after verification. U04/U05 still require complete source mapping. Replay fixtures cover log-derived thread/turn, accounting, and operation facts; external metadata such as titles must not be assumed to be covered by events. U06/U08 must cover middle-of-file rewrites in large logs, rebuilding loaded indexes from events, per-source watermarks, event shards, and query budgets; first/last boundary probes or whole-event-file reads do not satisfy acceptance. The live protocol still needs to move from protocol1 to protocol2. User-decision preservation, full-path checks, and performance acceptance remain in the final stage.
