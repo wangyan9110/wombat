@@ -11,6 +11,7 @@ const temporary = mkdtempSync(path.join(os.tmpdir(), 'wombat-release-probe-'));
 const env: NodeJS.ProcessEnv = {
   ...process.env,
   WOMBAT_AUTO_PRICES: '0',
+  WOMBAT_SERVICE_TRACE: '1',
   WOMBAT_DATA_HOME: path.join(temporary, 'data'),
   CODEX_HOME: path.join(temporary, 'missing-source-must-not-be-scanned'),
 };
@@ -61,7 +62,7 @@ try {
     maxBuffer: 8 * 1024 * 1024,
   });
   assert.ifError(result.error);
-  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(result.status, 0, result.stdout + result.stderr + diagnostics);
   assert.equal(result.stderr, '');
   assert.equal(result.stdout.trim().split('\n').length, 1, 'startup probe must print one JSON object');
   const value = JSON.parse(result.stdout);

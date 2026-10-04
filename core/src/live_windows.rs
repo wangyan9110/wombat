@@ -13,6 +13,12 @@ use std::{
 use widestring::u16cstr;
 use windows_sys::Win32::{Foundation::ERROR_BROKEN_PIPE, System::Pipes::PeekNamedPipe};
 
+fn trace(message: impl AsRef<str>) {
+    if std::env::var_os("WOMBAT_SERVICE_TRACE").as_deref() == Some(std::ffi::OsStr::new("1")) {
+        eprintln!("[wombat-service] {}", message.as_ref());
+    }
+}
+
 pub struct Listener(PipeListener<Bytes, Bytes>);
 pub struct Stream {
     pipe: DuplexPipeStream<Bytes>,
@@ -30,6 +36,7 @@ impl Listener {
             .nonblocking(true)
             .security_descriptor(Some(sd))
             .create_duplex::<Bytes>()?;
+        trace("listener bound");
         Ok(Self(listener))
     }
     pub fn set_nonblocking(&self, value: bool) -> io::Result<()> {
@@ -37,6 +44,7 @@ impl Listener {
     }
     pub fn accept(&self) -> io::Result<(Stream, ())> {
         let pipe = self.0.accept()?;
+        trace("client accepted");
         pipe.set_nonblocking(true)?;
         let deadline = Instant::now() + Duration::from_secs(12);
         Ok((
@@ -114,18 +122,23 @@ impl Read for &Stream {
             if available == 0 {
                 return Err(io::ErrorKind::WouldBlock.into());
             }
-            (&self.pipe).read(output)
+            trace(format!("reading {available} available byte(s)"));
+            let result = (&self.pipe).read(output);
+            trace(format!("read result: {result:?}"));
+            result
         })
     }
 }
 impl Write for Stream {
     fn write(&mut self, input: &[u8]) -> io::Result<usize> {
+        trace(format!("writing {} byte(s)", input.len()));
         let count = bounded(self.write_deadline.get(), || {
             match (&self.pipe).write(input) {
                 Ok(0) if !input.is_empty() => Err(io::ErrorKind::WouldBlock.into()),
                 result => result,
             }
         })?;
+        trace(format!("wrote {count} byte(s)"));
         self.sent |= count > 0;
         Ok(count)
     }
@@ -141,13 +154,14 @@ impl Drop for Stream {
             // that acknowledgement with the same write deadline, then close even if the
             // client stalls; interprocess's unbounded background flush is not used.
             self.read_deadline.set(self.write_deadline.get());
-            let _ = bounded(self.write_deadline.get(), || {
+            let acknowledgement = bounded(self.write_deadline.get(), || {
                 match (&*self).read(&mut [0; 1]) {
                     Ok(0) => Ok(()),
                     Ok(_) => Err(io::ErrorKind::WouldBlock.into()),
                     Err(error) => Err(error),
                 }
             });
+            trace(format!("client close acknowledgement: {acknowledgement:?}"));
         }
         self.pipe.assume_flushed();
     }
