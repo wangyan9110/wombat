@@ -335,7 +335,9 @@ fn safe_events_survive_memory_and_fixed_snapshot_without_turn_duplication() {
             .contains(event.id())
     );
     fs::write(
-        restored.directory.join(&restored.manifest.events.file),
+        restored
+            .directory
+            .join(&restored.manifest.events.partitions[0].chunks[0].file.file),
         "[]",
     )
     .unwrap();

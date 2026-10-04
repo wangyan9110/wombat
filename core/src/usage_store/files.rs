@@ -90,8 +90,7 @@ pub(super) fn save_with_prices(
     // Reject unusable totals before publishing any new latest pointer.
     crate::usage_app::summarize(&records.iter().collect::<Vec<_>>())?;
     let ledger = save_json(directory, "ledger.json", &records)?;
-    super::events::validate(&collected.events)?;
-    let events = save_json(directory, "events.json", &collected.events)?;
+    let events = super::events::save_events(directory, collected.events)?;
     let mut by_thread: BTreeMap<String, BTreeMap<String, TurnData>> = BTreeMap::new();
     for row in &records {
         if let Some(thread) = &row.fact.thread_id {
@@ -263,8 +262,10 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     if raw["schemaVersion"] != 4 {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
     }
+    super::events::check_index_version(raw["events"]["version"].as_u64())?;
     let manifest: Manifest =
         serde_json::from_value(raw).map_err(|e| corrupt(format!("快照索引无效：{e}")))?;
+    super::events::validate_index(&manifest.events)?;
     if manifest.snapshot_ref.snapshot_id != id {
         return Err(corrupt("快照身份不匹配"));
     }

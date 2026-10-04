@@ -107,6 +107,8 @@ flowchart LR
 
 当前基线为适配器 codex-rollout-5、live-v1/index.sqlite 的数据库版本 3、usage-v3 的快照 schema 3、实时传输 protocolVersion 1。D2 在没有其他并行升版时采用下一版本：适配器 codex-rollout-6、live-v2 的数据库版本 4、usage-v4/schema 4、实时传输版本 2；实施时在一个版本表统一核对。新版本使用独立目录及服务端点，只读取当前格式。旧目录保留，不转换、不清空、不与新投影混读；既有独立用户决定存储不随索引目录改变。显式指定旧快照或未知格式报 UNSUPPORTED_VERSION；新位置没有已提交索引时 cached 返回 NO_SNAPSHOT，并提示先同步。
 
+本次升级尚未发布，开发中间态统一收敛到上述目标版本，不承诺不同中间提交生成的快照互读。例如，开发期 schema 4 的单文件事件引用由分区索引替换后，旧临时结构不属于当前 schema 4，按结构损坏拒绝并保留文件；未知 schema 或事件索引版本仍报 UNSUPPORTED_VERSION。不得为临时结构添加兼容读取、迁移或自动清空；验收使用当前格式重新采集。
+
 复用 SQLite buckets/entries 事务布局，在新索引中从已授权原始日志完整重采集；不导入旧游标或旧投影。事实、游标、投影及恢复元数据一并提交；同一当前格式内，单源失败保留此前已提交贡献并标记 partial。初次采集失败没有旧贡献可用时明确不可用。恢复入口必须检查适配器、事实和投影版本，不能只改变 parser 命名空间而让 projection:{key} 继续返回旧结构。
 
 固定快照沿用不可变 generation、目标轮次 Slice 和哈希。新 generation 保存按任务/轮次分片的规范事件；TurnData 的 timingFacts 信封引用本 generation 内的事件范围，并保存事实版本、能力与缺口元数据，不再复制完整时间载荷。引用分片也纳入哈希；无可计时字段写出明确的 unavailable。信封缺失属于损坏，不等同于来源未记录字段；未知信封版本拒绝读取。新文件与信封在同一 pending generation 中写完并校验，manifest 最后提交；旧 generation 不补写，取消不发布半份结果。源文件仍按各自读取边界观察，不宣称全目录原子一致。

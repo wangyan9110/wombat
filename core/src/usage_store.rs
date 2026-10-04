@@ -21,7 +21,7 @@ pub struct PricedMeasurement {
     pub price: Arc<PriceResult>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FileRef {
     pub file: String,
     pub sha256: String,
@@ -56,7 +56,7 @@ pub struct Manifest {
     pub sources: Vec<SourceReport>,
     pub issues: Vec<Issue>,
     pub ledger: FileRef,
-    pub events: FileRef,
+    pub events: EventIndex,
     pub threads: Vec<ThreadEntry>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -73,13 +73,19 @@ struct MemoryTurn {
 pub struct Snapshot {
     pub(crate) query_cache: Mutex<crate::query_cache::QueryCache>,
     live_rows: Option<Vec<Arc<PricedMeasurement>>>,
-    live_events: Option<Vec<Arc<crate::session_events::Event>>>,
+    live_events: Option<BTreeMap<EventTarget, Vec<Arc<crate::session_events::Event>>>>,
     memory_turns: Option<BTreeMap<(String, String), MemoryTurn>>,
     pub manifest: Manifest,
     directory: PathBuf,
 }
 
 mod events;
+pub use events::{
+    EventChunk, EventCursor, EventIndex, EventPage, EventPartition, EventReadBudget, EventTarget,
+    MAX_EVENT_PAGE_ROWS, MAX_TARGET_EVENTS,
+};
+#[cfg(test)]
+mod event_tests;
 mod files;
 mod memory;
 mod price_pool;
