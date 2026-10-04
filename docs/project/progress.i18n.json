@@ -5,6 +5,18 @@
       "zh": "1f98a88c05b81b506c2bb4d3d0f5b7a83c8d4795f240ab58490d083988b38ad5",
       "en": "edd89bcf7286878fa899e4b308692bc8ed3e35051b49c65a089209281885902f"
     },
+    "/wombat-progress-and-verification-records/automatic-initial-evidence-completion-on-configuration-pages-2026-10-04": {
+      "zh": "214a3e15fbc4654bd554f961151d5cf1386fb1133e482101d9ab1daa4516b1fe",
+      "en": "2606325cafe6170a5c0ba4016ad6f325d5ea58f82891be53afa82669ae740338"
+    },
+    "/wombat-progress-and-verification-records/first-initialization-crash-fix-2026-10-04": {
+      "zh": "3b83552e96446c3a608bd0d04716aa9d49c763049ad076b2784433d222edee15",
+      "en": "ef37cb85a2d11c4f072faeddf4583403b0df19f118ef55999d7c3f86c0a5d75a"
+    },
+    "/wombat-progress-and-verification-records/sync-request-coalescing-fix-2026-10-04": {
+      "zh": "7c02aeae09f6ae6c5b9f6cc4f559b2622aacf34fe2fb9251da30044e040aae56",
+      "en": "e2b39e545df2337aca5cac0409d0afca29f5ca0459128ddfbc508bb258580e6c"
+    },
     "/wombat-progress-and-verification-records/skill-availability-and-observed-use-2026-10-04": {
       "zh": "b176f8fc2fea8790ee8605a14dbfc7164747cfa619cabe1a7faaafbe8b6c67be",
       "en": "c3b3604bd09afb9e6a02368eae6e034c8a0fdfb89e75007dce1f06ee314d74e1"

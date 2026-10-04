@@ -510,6 +510,7 @@ export const zh = {
   "config.threadFilter": "仅显示此任务的关联配置",
   "config.clearThread": "查看全部配置",
   "config.readVersion": "读取版本：{version}",
+  "config.historyPreparing": "历史仍在整理，加载和使用记录会自动补齐。",
   "config.refresh": "重新读取配置与用量",
   "config.optimizeTitle": "配置核查",
   "config.optimizeNote": "先核查配置体量和使用证据。当前不会推断闲置、计算节省或修改配置。",

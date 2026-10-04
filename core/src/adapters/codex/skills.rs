@@ -255,7 +255,7 @@ pub(super) fn exec_reads(payload: &Payload<'_>) -> Vec<String> {
     let mut offset = 0;
     while let Some(found) = code[offset..].find("tools.exec_command(") {
         let start = offset + found + "tools.exec_command(".len();
-        let end = (start + 2048).min(code.len());
+        let end = code.floor_char_boundary((start + 2048).min(code.len()));
         if let Some(command) = command_literal(&code[start..end]) {
             reads.extend(command_skill_reads(&command));
         }
@@ -437,5 +437,22 @@ mod tests {
             exec_reads(&payload),
             ["/one/SKILL.md", "/two path/SKILL.md"]
         );
+    }
+
+    #[test]
+    fn exec_window_handles_every_multibyte_boundary_and_later_commands() {
+        for character in ["机", "é", "🦫"] {
+            for offset in 1..character.len() {
+                let prefix = "{cmd:\"cat /one/SKILL.md\",note:\"";
+                let padding = "a".repeat(2048 - prefix.len() - offset);
+                let code = format!(
+                    "tools.exec_command({prefix}{padding}{character}\"}}); tools.exec_command({{cmd:\"cat /two/SKILL.md\"}})"
+                );
+                let value = json!({"type":"custom_tool_call","name":"exec","input":code});
+                let encoded = value.to_string();
+                let payload: Payload<'_> = serde_json::from_str(&encoded).unwrap();
+                assert_eq!(exec_reads(&payload), ["/one/SKILL.md", "/two/SKILL.md"]);
+            }
+        }
     }
 }

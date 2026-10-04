@@ -510,6 +510,7 @@ export const en = {
   "config.threadFilter": "Showing configuration linked to this task",
   "config.clearThread": "Show all configuration",
   "config.readVersion": "Read version: {version}",
+  "config.historyPreparing": "History is still being prepared. Load and usage records will update automatically.",
   "config.refresh": "Reload configuration and usage",
   "config.optimizeTitle": "Configuration review",
   "config.optimizeNote": "Review configuration size and usage evidence. This version does not infer inactivity, estimate savings or change configuration.",
