@@ -51,8 +51,9 @@ fn native_skill_catalog_and_observed_use_keep_only_resolved_identity() {
     let catalog = format!(
         "<skills_instructions>\n### Skill roots\n- `r0` = `{root}`\n### Available skills\n- review: PRIVATE_DESCRIPTION (file: r0/review/SKILL.md)\n</skills_instructions>"
     );
-    let exec =
-        format!("text(await tools.exec_command({{cmd:\"cat {skill}\",max_output_tokens:1000}}));");
+    let exec = format!(
+        "text(await tools.exec_command({{cmd:\"cat '{skill}'\",max_output_tokens:1000}}));"
+    );
     write(
         dir.path(),
         "sessions/skills.jsonl",

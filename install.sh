@@ -11,7 +11,7 @@ while [ "$#" -gt 0 ]; do
     --version) version=${2:?missing version}; shift 2 ;;
     --prefix) prefix=${2:?missing prefix}; shift 2 ;;
     --base-url) base_url=${2:?missing base URL}; shift 2 ;;
-    -h|--help) echo "Usage: install.sh [--version v0.1.0-dev.1|latest] [--prefix PATH] [--base-url URL]"; exit 0 ;;
+    -h|--help) echo "Usage: install.sh [--version v0.1.0-dev.2|latest] [--prefix PATH] [--base-url URL]"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done

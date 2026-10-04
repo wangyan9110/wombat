@@ -17,19 +17,19 @@ This page describes the product direction. See the [support matrix](docs/referen
 
 ## Get started
 
-**Development Preview: `v0.1.0-dev.1`.** This first public preview is intended for evaluation and feedback. Features, data formats, and commands may still change. The versioned installation URL below becomes available after the release workflow completes.
+**Development Preview: `v0.1.0-dev.2`.** This first public preview is intended for evaluation and feedback. Features, data formats, and commands may still change. The versioned installation URL below becomes available after the release workflow completes.
 
 On macOS or Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.2
 ~/.local/bin/wombat web --open
 ```
 
 On Windows PowerShell:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.2
 & "$HOME\.local\bin\wombat.cmd" web --open
 ```
 
@@ -37,7 +37,7 @@ The default installation prefix is `~/.local`. After adding its `bin` directory 
 
 ```sh
 wombat web --open
-wombat update --check --version 0.1.0-dev.1
+wombat update --check --version 0.1.0-dev.2
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 

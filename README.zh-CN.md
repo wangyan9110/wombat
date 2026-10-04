@@ -17,19 +17,19 @@ Wombat 帮你看清 Codex 的 Token 用量和任务耗时，发现指令、扩�
 
 ## 开始使用
 
-**开发者预览版：`v0.1.0-dev.1`。** 这是首个公开预览版本，适合试用和反馈；功能、数据格式和命令仍可能调整。发行工作流完成前，下面的版本化安装地址暂不可用。
+**开发者预览版：`v0.1.0-dev.2`。** 这是首个公开预览版本，适合试用和反馈；功能、数据格式和命令仍可能调整。发行工作流完成前，下面的版本化安装地址暂不可用。
 
 macOS 或 Linux：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.2
 ~/.local/bin/wombat web --open
 ```
 
 Windows PowerShell：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.2
 & "$HOME\.local\bin\wombat.cmd" web --open
 ```
 
@@ -37,7 +37,7 @@ Windows PowerShell：
 
 ```sh
 wombat web --open
-wombat update --check --version 0.1.0-dev.1
+wombat update --check --version 0.1.0-dev.2
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 
