@@ -4,6 +4,10 @@
 
 Updated 2026-10-04. This page tracks current delivery and unfinished boundaries. Requirements are in the [version-one specification](specification.en.md), dated verification is in [progress](progress.en.md), and feature semantics are in the [support matrix](../reference/support-matrix.en.md). Historical test passes do not establish full acceptance of the current working tree. The project has not been publicly released.
 
+## Unified event, timing, and rule upgrade · Pending implementation
+
+The [task list](event-upgrade.en.md) defines 6 batches, 20 tasks, and 5 acceptance milestones. Design is documented; prototypes, product implementation, and upgrade acceptance remain unfinished, with all tasks not started. Track this upgrade separately from the existing gaps below without overriding previous acceptance conclusions.
+
 ## Five surfaces and the full optimization lifecycle · Stage acceptance failed
 
 Every work package in the [current specification](optimization-lifecycle.en.md) remains in the confirmed scope. On 2026-10-04 the user requested an end to implementation and handover for product acceptance. Product review permits a bounded local macOS trial but fails full acceptance: 10 of 48 scenarios satisfied, 12 unsatisfied and 26 insufficiently evidenced, plus three P2 product findings. The 32 passing product tests are focused tests, not a full regression. Twelve unsatisfied cases are not twelve new bugs; insufficient evidence does not directly establish missing implementation or failure. Feedback has been checked and [archived](../benchmarks/2026-10-04-product-acceptance-feedback.json). The user subsequently explicitly requested development fixes. F01–F03 are implemented and passed focused local verification, pending product recheck. The earlier failed full-acceptance result and existing requirement gaps remain.

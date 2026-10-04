@@ -1,6 +1,11 @@
 {
   "pairs": [
     {
+      "zh": "docs/project/event-upgrade.md",
+      "en": "docs/project/event-upgrade.en.md",
+      "record": "docs/project/event-upgrade.i18n.json"
+    },
+    {
       "zh": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.md",
       "en": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.en.md",
       "record": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.i18n.json"
