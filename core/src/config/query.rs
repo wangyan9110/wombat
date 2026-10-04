@@ -1,5 +1,6 @@
 //! Inventory lists, usage summaries, evidence and related scopes from one pinned view.
 use super::*;
+use crate::usage_observations::{self, Projection, TimeBasis};
 pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
     validate(&r)?;
     let (scope, tz) = normalize(&r.scope)?;
@@ -62,7 +63,23 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
         .filter(|i| applicable(i, &scope))
         .cloned()
         .collect::<Vec<_>>();
+    // Cached inventory metadata cannot carry a prior query's historical use state.
+    for item in &mut items {
+        item.usage_count = None;
+        item.counts = Counts::default();
+        item.observation = Observation::Unknown;
+        item.last_record_at = None;
+        item.related_turns = 0;
+        item.related_tasks = 0;
+        item.usage = None;
+        for context in &mut item.source_contexts {
+            context.counts = Counts::default();
+            context.observation = Observation::Unknown;
+            context.last_record_at = None;
+        }
+    }
     let mut evidence = vec![];
+    let mut uncertain_items = BTreeSet::new();
     let mut related = BTreeMap::<Option<String>, (usize, BTreeSet<usize>)>::new();
     if let Some(snapshot) = &view.snapshot {
         let threads = snapshot
@@ -173,11 +190,14 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
         let mut item_rows = vec![BTreeSet::<usize>::new(); items.len()];
         let mut item_turns = vec![BTreeSet::<String>::new(); items.len()];
         let mut item_tasks = vec![BTreeSet::<String>::new(); items.len()];
-        let mut item_skill_uses = vec![BTreeSet::<String>::new(); items.len()];
-        let mut item_skill_tasks = vec![BTreeSet::<String>::new(); items.len()];
+        let mut item_uses = (0..items.len())
+            .map(|_| Projection::default())
+            .collect::<Vec<_>>();
+        let mut unassigned_sources = BTreeSet::<String>::new();
+        let mut unassigned_skill_sources = BTreeSet::<String>::new();
         let mut seen = BTreeSet::new();
         for op in snapshot.operation_facts() {
-            if !seen.insert(op.id.as_str()) {
+            if !seen.insert((op.thread_id.as_ref(), op.id.as_str())) {
                 continue;
             }
             let Some(thread) = threads.get(op.thread_id.as_ref()) else {
@@ -187,19 +207,31 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 .source_instance_id
                 .as_ref()
                 .is_some_and(|id| id != &thread.source_instance_id)
-                || !in_time(op.timestamp.as_deref(), &scope, tz)
                 || scope.thread_id.as_ref().is_some_and(|t| t != &thread.id)
             {
                 continue;
             }
             let instruction_load = op.kind.as_ref() == "instructionLoad";
             let skill_available = op.kind.as_ref() == "skillAvailable";
-            let skill_use = op.kind.as_ref() == "skillUse";
+            let use_kind = usage_observations::use_kind(op);
+            let candidate_read = usage_observations::is_skill_read_candidate(op);
             let file_read = instruction_load
                 || op.kind.as_ref() == "skillRead"
                 || (op.name.as_ref() == "read_file"
                     && matches!(op.kind.as_ref(), "tool" | "skillRead"));
-            let candidates = if file_read || skill_use || skill_available {
+            if matches!(op.kind.as_ref(), "mcpConflict" | "mcpUnclassified") {
+                if scope
+                    .project
+                    .as_ref()
+                    .is_none_or(|p| thread.project.as_ref() == Some(p))
+                    && (in_time(op.timestamp.as_deref(), &scope, tz)
+                        || usage_observations::time_basis(op) == TimeBasis::Unknown)
+                {
+                    unassigned_sources.insert(thread.source_instance_id.clone());
+                }
+                continue;
+            }
+            let candidates = if file_read || skill_available {
                 normalized_operation_path(op.path.as_deref(), thread.project.as_deref())
                     .and_then(|path| paths.get(&(thread.source_instance_id.clone(), path)))
             } else if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource") {
@@ -210,6 +242,28 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 None
             };
             let Some(candidates) = candidates else {
+                if (use_kind.is_some() || candidate_read)
+                    && (in_time(op.timestamp.as_deref(), &scope, tz)
+                        || usage_observations::time_basis(op) == TimeBasis::Unknown)
+                    && scope
+                        .project
+                        .as_ref()
+                        .is_none_or(|p| thread.project.as_ref() == Some(p))
+                {
+                    if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource") && op.server.is_none()
+                    {
+                        unassigned_sources.insert(thread.source_instance_id.clone());
+                    } else if file_read
+                        && normalized_operation_path(op.path.as_deref(), thread.project.as_deref())
+                            .is_none()
+                    {
+                        unassigned_skill_sources.insert(thread.source_instance_id.clone());
+                    }
+                    result.coverage.issues.push(Issue {
+                        code: "usageOperationTargetUnknown".into(),
+                        path: None,
+                    });
+                }
                 continue;
             };
             let candidates = candidates
@@ -217,7 +271,6 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 .copied()
                 .filter(|n| {
                     file_read
-                        || skill_use
                         || skill_available
                         || items[*n]
                             .project
@@ -226,10 +279,63 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 })
                 .collect::<Vec<_>>();
             if candidates.len() != 1 {
+                if (use_kind.is_some() || candidate_read)
+                    && scope
+                        .project
+                        .as_ref()
+                        .is_none_or(|p| thread.project.as_ref() == Some(p))
+                    && (in_time(op.timestamp.as_deref(), &scope, tz)
+                        || usage_observations::time_basis(op) == TimeBasis::Unknown)
+                {
+                    for index in candidates {
+                        item_uses[index].coverage.target_gaps += 1;
+                    }
+                }
                 continue;
             }
             let n = candidates[0];
+            if !in_time(op.timestamp.as_deref(), &scope, tz) {
+                if (use_kind.is_some() || candidate_read)
+                    && usage_observations::time_basis(op) == TimeBasis::Unknown
+                    && scope
+                        .project
+                        .as_ref()
+                        .is_none_or(|p| thread.project.as_ref() == Some(p))
+                {
+                    item_uses[n].coverage.time_gaps += 1;
+                }
+                continue;
+            }
             let item = &mut items[n];
+            if candidate_read {
+                if scope
+                    .project
+                    .as_ref()
+                    .is_none_or(|p| thread.project.as_ref() == Some(p))
+                {
+                    item_uses[n].coverage.dispatch_gaps += 1;
+                    if usage_observations::time_basis(op) == TimeBasis::Unknown {
+                        item_uses[n].coverage.time_gaps += 1;
+                    }
+                    if r.item_id.as_ref() == Some(&item.id) {
+                        evidence.push(Evidence {
+                            id: op.id.clone(),
+                            source_instance_id: Some(thread.source_instance_id.clone()),
+                            item_id: item.id.clone(),
+                            thread_id: thread.id.clone(),
+                            turn_id: op.turn_id.as_deref().map(str::to_owned),
+                            title: thread.title.clone(),
+                            project: thread.project.clone(),
+                            timestamp: op.timestamp.clone(),
+                            event_type: "skill_read_candidate".into(),
+                            outcome: "unknown".into(),
+                            association: "operationDispatchUnknown".into(),
+                            usage: None,
+                        });
+                    }
+                }
+                continue;
+            }
             if skill_available {
                 if r.item_id.as_ref() == Some(&item.id) {
                     evidence.push(Evidence {
@@ -249,10 +355,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 }
                 continue;
             }
-            let observed_skill_use = item.kind == Kind::Skill
-                && (skill_use
-                    || (file_read
-                        && !matches!(op.status.as_ref(), "failed" | "interrupted" | "running")));
+            let observed_use = use_kind.is_some() && matches!(item.kind, Kind::Skill | Kind::Mcp);
             let full_scope = Scope {
                 project: None,
                 ..scope.clone()
@@ -287,7 +390,6 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 } else {
                     item.counts.tool_calls += 1;
                 }
-                item.usage_count = Some(item.counts.tool_calls + item.counts.resource_reads);
                 item.observation = Observation::Used;
                 if op.kind.as_ref() == "mcpResource" {
                     "resource_read"
@@ -298,10 +400,10 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 if file_read {
                     item.counts.file_reads += 1;
                 }
-                if observed_skill_use {
+                if observed_use {
                     item.observation = Observation::Used;
                 }
-                if skill_use { "skill_use" } else { "file_read" }
+                "file_read"
             } else {
                 item.counts.file_reads += 1;
                 if op.status.as_ref() == "completed" {
@@ -313,13 +415,11 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                     "file_read"
                 }
             };
-            if !skill_use {
-                match op.status.as_ref() {
-                    "completed" => item.counts.succeeded += 1,
-                    "failed" => item.counts.failed += 1,
-                    _ => item.counts.outcome_unknown += 1,
-                };
-            }
+            match op.status.as_ref() {
+                "completed" => item.counts.succeeded += 1,
+                "failed" => item.counts.failed += 1,
+                _ => item.counts.outcome_unknown += 1,
+            };
             if let Some(context) = item
                 .source_contexts
                 .iter_mut()
@@ -339,7 +439,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                     if file_read {
                         context.counts.file_reads += 1;
                     }
-                    if observed_skill_use {
+                    if observed_use {
                         context.observation = Observation::Used;
                     }
                 } else {
@@ -348,22 +448,19 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                         context.observation = Observation::LoadedOnly;
                     }
                 }
-                if !skill_use {
-                    match op.status.as_ref() {
-                        "completed" => context.counts.succeeded += 1,
-                        "failed" => context.counts.failed += 1,
-                        _ => context.counts.outcome_unknown += 1,
-                    }
+                match op.status.as_ref() {
+                    "completed" => context.counts.succeeded += 1,
+                    "failed" => context.counts.failed += 1,
+                    _ => context.counts.outcome_unknown += 1,
                 }
             }
             item_rows[n].extend(&indices);
             item_tasks[n].insert(thread.id.clone());
+            if observed_use {
+                item_uses[n].observe(op);
+            }
             if let Some(u) = &op.turn_id {
                 item_turns[n].insert(format!("{}:{u}", thread.id));
-                if observed_skill_use {
-                    item_skill_uses[n].insert(format!("{}:{u}", thread.id));
-                    item_skill_tasks[n].insert(thread.id.clone());
-                }
             }
             if r.item_id.as_ref() == Some(&item.id) {
                 evidence.push(Evidence {
@@ -386,9 +483,45 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
         for (n, item) in items.iter_mut().enumerate() {
             item.related_turns = item_turns[n].len();
             item.related_tasks = item_tasks[n].len();
-            if item.kind == Kind::Skill && !item_skill_uses[n].is_empty() {
-                item.usage_count = Some(item_skill_uses[n].len() as u64);
-                item.related_tasks = item_skill_tasks[n].len();
+            if matches!(item.kind, Kind::Skill | Kind::Mcp) {
+                let projection = &mut item_uses[n];
+                if item.kind == Kind::Mcp
+                    && item
+                        .source_ids()
+                        .any(|source| unassigned_sources.contains(source))
+                {
+                    projection.coverage.target_gaps += 1;
+                }
+                if item.kind == Kind::Skill
+                    && item
+                        .source_ids()
+                        .any(|source| unassigned_skill_sources.contains(source))
+                {
+                    projection.coverage.target_gaps += 1;
+                }
+                item.usage_count = projection
+                    .count(scope.all_time != Some(true))
+                    .filter(|count| *count > 0);
+                item.related_turns = projection.related_turns();
+                item.related_tasks = projection.related_tasks();
+                for (gap, code) in [
+                    (projection.coverage.dispatch_gaps, "DispatchUnknown"),
+                    (projection.coverage.identity_gaps, "IdentityUnknown"),
+                    (projection.coverage.target_gaps, "TargetUnknown"),
+                    (projection.coverage.time_gaps, "TimeUnknown"),
+                    (projection.coverage.turn_gaps, "TurnUnknown"),
+                ] {
+                    if gap > 0 {
+                        uncertain_items.insert(item.id.clone());
+                        result.coverage.issues.push(Issue {
+                            code: format!(
+                                "usageCountV{}{code}",
+                                usage_observations::METHOD_VERSION
+                            ),
+                            path: Some(item.path.clone()),
+                        });
+                    }
+                }
             }
             item.usage = usage(&item_rows[n].iter().map(|i| ledger[*i]).collect::<Vec<_>>())?;
             union.extend(item_rows[n].iter().copied());
@@ -409,6 +542,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
         items.retain(|i| {
             i.counts.file_reads + i.counts.tool_calls + i.counts.resource_reads > 0
                 || i.usage_count.unwrap_or(0) > 0
+                || uncertain_items.contains(&i.id)
         });
     }
     result.summary.current_items = items

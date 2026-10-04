@@ -25,6 +25,7 @@ pub mod storage;
 mod timing;
 pub mod usage_app;
 pub mod usage_app_dto;
+pub(crate) mod usage_observations;
 pub mod usage_store;
 use anyhow::Result;
 use serde_json::Value;
