@@ -95,21 +95,22 @@ async function downloadFile(url: string, destination: string): Promise<{sha256: 
   return {sha256: digest.digest('hex'), bytes};
 }
 
-function runTar(args: string[]): string {
-  const result = spawnSync('tar', args, {encoding: 'utf8', timeout: 120_000, maxBuffer: 16 * 1024 * 1024});
+function runTar(args: string[], cwd?: string): string {
+  const result = spawnSync('tar', args, {cwd, encoding: 'utf8', timeout: 120_000, maxBuffer: 16 * 1024 * 1024});
   if (result.error || result.status !== 0) throw new Error(t('cli.update.extractFailed', {value: result.error?.message ?? result.stderr.trim()}));
   return result.stdout;
 }
 
 function validateArchive(archive: string): void {
-  const names = runTar(['-tzf', archive]).split(/\r?\n/).filter(Boolean);
+  const directory = path.dirname(archive), filename = path.basename(archive);
+  const names = runTar(['-tzf', filename], directory).split(/\r?\n/).filter(Boolean);
   if (!names.length || names.length > 10_000) throw new Error(t('cli.update.invalidArchive'));
   for (const name of names) {
     const normalized = name.replace(/\/$/, '');
     if (!normalized || normalized.includes('\\') || normalized.startsWith('/') || (normalized !== 'wombat' && !normalized.startsWith('wombat/'))
       || normalized.split('/').some(part => part === '..' || part === '.')) throw new Error(t('cli.update.invalidArchive'));
   }
-  const rows = runTar(['-tvzf', archive]).split(/\r?\n/).filter(Boolean);
+  const rows = runTar(['-tvzf', filename], directory).split(/\r?\n/).filter(Boolean);
   if (rows.length !== names.length || rows.some(row => !['-', 'd'].includes(row[0]))) throw new Error(t('cli.update.invalidArchive'));
 }
 
@@ -173,7 +174,7 @@ export async function updateInstalled(options: {version?: string; check?: boolea
     if (downloaded.sha256 !== asset.sha256 || downloaded.bytes !== asset.bytes) throw new Error(t('cli.update.invalidChecksum'));
     validateArchive(archive);
     const extracted = path.join(scratch, 'extracted'); mkdirSync(extracted);
-    runTar(['-xzf', archive, '-C', extracted]);
+    runTar(['-xzf', asset.archive, '-C', 'extracted'], scratch);
     const payload = path.join(extracted, 'wombat'); validateTree(payload);
     const release = readJson<ReleaseMetadata>(path.join(payload, 'release.json'));
     if (release.format !== 1 || release.version !== set.version || release.source !== set.source || release.sourceSha256 !== set.sourceSha256 || release.target !== platform
