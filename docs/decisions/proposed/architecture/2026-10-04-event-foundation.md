@@ -117,9 +117,9 @@ flowchart LR
 
 ### 18. 统一会话事件事实与多种计算结果
 
-2026-10-04 核对 DeepSeek Harness 的公开 master：它的 SessionEvent 具有 seq/time/type/data，事件包含轮次、模型调用步骤、消息、工具调用/结果及请求头；模型历史从事件派生。带时间的模型流还保存在 assistant/message 或 assistant/attempt 中。来源见 [Session 类型](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/session/src/types.ts)。这些是上游受控运行时的记录保证，不是 Codex 日志的保证；本次未固定上游提交，实施时须固定版本。
+2026-10-05 复核并固定 DeepSeek Harness 提交 `5badb15009ae1756c3afe0ae0cef1faafc290ccc`：它的 SessionEvent 具有 seq/time/type/data，事件包含轮次、模型调用步骤、消息、工具调用/结果及请求头；模型历史从事件派生。带时间的模型流还保存在 assistant/message 或 assistant/attempt 中。来源见 [Session 类型](https://github.com/deepseek-ai/deepseek-harness/blob/5badb15009ae1756c3afe0ae0cef1faafc290ccc/packages/core/session/src/types.ts)。这些是上游受控运行时的记录保证，不是 Codex 日志的保证。
 
-其 [projection](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/session/session-projection/README.md) 用统一事件驱动多个结果，并提供共同的 asOfSeq；[统计实现](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/session/session-stats/src/projection.ts) 从步骤和工具配对计算时长。借鉴事件与投影分离，不照搬字段口径：其中 toolMs 是配对时长求和，Wombat 的墙钟覆盖仍按并集计算；上游有连续流，不代表 Codex 可重建逐请求首 Token 或解码速度。
+其 [projection](https://github.com/deepseek-ai/deepseek-harness/blob/5badb15009ae1756c3afe0ae0cef1faafc290ccc/packages/session/session-projection/README.md) 用统一事件驱动多个结果，并提供共同的 asOfSeq；[统计实现](https://github.com/deepseek-ai/deepseek-harness/blob/5badb15009ae1756c3afe0ae0cef1faafc290ccc/packages/session/session-stats/src/projection.ts) 从步骤和工具配对计算时长。借鉴事件与投影分离，不照搬字段口径：其中 toolMs 是配对时长求和，Wombat 的墙钟覆盖仍按并集计算；上游有连续流，不代表 Codex 可重建逐请求首 Token 或解码速度。
 
 可以将会话、配置扫描、宿主观察及价表纳入同一逻辑证据日志，按来源和作用域形成不同子流，再由一个固定 EvidenceView 引用各子流版本。统一计算入口不要求只有一种原始来源；采集层负责读取外部证据，计算层只消费固定事实。用户决定仍由独立持久存储负责，视图通过版本引用关联，不能随可重建日志清除。
 
@@ -133,7 +133,7 @@ Wombat 拟增加安全、可重建的 SessionEvent 事实层。含义是“已�
 | MCP | 明确 server/tool/call 身份、调用尝试、原生结果、资源发现/读取 | 历史调用不等于完整服务目录或当前连接可用；工具暴露清单必须另有明确目录证据 |
 | 配置/账户/用户决定 | 可以关联已固定的外部观察版本 | 当前配置、Hook 注册、账户额度、处理决定不是原始会话事件，不能回填成历史事实 |
 
-[DeepSeek Skill](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/skill/tool-skill/README.md) 自己记录目录替换和加载结果；[MCP 桥接](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/mcp/mcp-client/README.md) 将服务说明纳入系统提示词。Wombat 对 Codex 的观察只能按原生日志证据映射，不能把相似文本包装成同等可靠的注入事件。当前 Skill 采用声明仍是近似观察；新使用次数明确排除声明，不将其升级成实际调用或内容遵循。
+[DeepSeek Skill](https://github.com/deepseek-ai/deepseek-harness/blob/5badb15009ae1756c3afe0ae0cef1faafc290ccc/packages/skill/tool-skill/README.md) 自己记录目录替换和加载结果；[MCP 桥接](https://github.com/deepseek-ai/deepseek-harness/blob/5badb15009ae1756c3afe0ae0cef1faafc290ccc/packages/mcp/mcp-client/README.md) 将服务说明纳入系统提示词。Wombat 对 Codex 的观察只能按原生日志证据映射，不能把相似文本包装成同等可靠的注入事件。当前 Skill 采用声明仍是近似观察；新使用次数明确排除声明，不将其升级成实际调用或内容遵循。
 
 统一事件至少包含 eventId、sourceInstanceId、threadId、可空 turnId、来源文件代次与记录位置、事件类型、可空发生时间/精度、独立采集时间、call/item/response 关联、白名单载荷、依据方法及版本。事件身份与业务调用身份分开：一条原始记录可投影多个关联事件；重复文件或分叉副本保留来源引用，账本按明确业务身份去重。缺少发生时间不使用采集时间代替，不创建猜测的 step、请求或 turn 身份。
 

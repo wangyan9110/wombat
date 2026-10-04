@@ -1,8 +1,8 @@
 //! Bounded facts for one explicit turn. This is a storage API, not a transport DTO.
 //! Existing manifests remain resident; this reader bounds additional facts, encodings
 //! and metadata inspections. It never traverses the ledger or unrelated event blocks.
-//! CLI/Web and production timing queries are not connected yet. All three budgets
-//! apply simultaneously: reaching fewer than 100,000 facts can exhaust metadata.
+//! Production timing queries use this reader. All three budgets apply simultaneously:
+//! reaching fewer than 100,000 facts can exhaust metadata.
 //! Bytes include full touched encodings, facts include skipped operations and every
 //! event in touched blocks; these limits do not claim a process-wide RAM bound.
 use super::*;
