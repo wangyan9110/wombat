@@ -23,6 +23,7 @@ export type Basis =
   | "unsupported_method"
   | "missing_identity"
   | "missing_time"
+  | "running_turn"
   | "boundary_conflict"
   | "source_partial"
   | "resource_limit"
@@ -31,6 +32,9 @@ export type Basis =
   | "missing_batch_cycle"
   | "missing_repository_baseline";
 export type MetricStatus = "observed" | "derived" | "proxy" | "unavailable";
+export type TimelinePresentation = "timeline" | "list";
+export type TrackCategory = "command" | "compaction" | "reasoning";
+export type FragmentEvidence = "event_records" | "turn_collection" | "unavailable";
 export type TurnState = "running" | "completed" | "failed" | "cancelled" | "unknown";
 export type FindingKind = "fact" | "proxy" | "user_annotation";
 export type CollectionKind = "turn_events" | "canonical_measurements" | "source_controls" | "native_boundary_index";
@@ -103,6 +107,7 @@ export interface TimingMetricInt64 {
   evidenceRefs: string[];
 }
 export interface Time {
+  timeline: Timeline;
   state: TurnState;
   nativeWallClockMs: TimingMetricUint64;
   derivedWallClockMs: TimingMetricUint64;
@@ -124,10 +129,55 @@ export interface Time {
   strictResponseGapMs: TimingMetricUint64;
   exploratoryGapMs: TimingMetricUint64;
 }
+export interface Timeline {
+  presentation: TimelinePresentation;
+  detail: Capability;
+  entryCount: TimingMetricUint64;
+  trackCount: TimingMetricUint64;
+  /**
+   * Majority/list denominator: unique identified lifecycle intervals, including
+   * excluded conflicts; records without identity are counted only in coverage.
+   */
+  identifiedIntervalCount: TimingMetricUint64;
+  unclassifiedGapCount: TimingMetricUint64;
+  /**
+   * Unique identified intervals that cannot be placed; missing-identity records
+   * remain in coverage and are not guessed to be separate intervals.
+   */
+  unlocatedIntervalCount: TimingMetricUint64;
+  outsideWindowIntervalCount: TimingMetricUint64;
+  detailLimit: number;
+  /**
+   * @maxItems 200
+   */
+  tracks: TimelineTrack[];
+  /**
+   * @maxItems 200
+   */
+  unclassifiedGaps: TimelineGap[];
+}
 export interface TimingMetricUint64 {
   value: number | null;
   status: MetricStatus;
   basis: Basis;
+  evidenceRefs: string[];
+}
+export interface TimelineTrack {
+  intervalAlias: string;
+  category: TrackCategory;
+  startMs: number;
+  endMs: number;
+  clipped: boolean;
+  evidenceScope: FragmentEvidence;
+  /**
+   * @maxItems 3
+   */
+  evidenceRefs: [] | [string] | [string, string] | [string, string, string];
+}
+export interface TimelineGap {
+  startMs: number;
+  endMs: number;
+  evidenceScope: FragmentEvidence;
   evidenceRefs: string[];
 }
 export interface Category {

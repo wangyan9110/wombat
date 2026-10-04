@@ -127,6 +127,7 @@ pub enum Basis {
     UnsupportedMethod,
     MissingIdentity,
     MissingTime,
+    RunningTurn,
     BoundaryConflict,
     SourcePartial,
     ResourceLimit,
@@ -198,9 +199,76 @@ pub struct Category {
     pub union_ms: Count,
     pub sum_ms: Count,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TimelinePresentation {
+    Timeline,
+    List,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TrackCategory {
+    Command,
+    Compaction,
+    Reasoning,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FragmentEvidence {
+    EventRecords,
+    TurnCollection,
+    Unavailable,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TimelineTrack {
+    pub interval_alias: String,
+    pub category: TrackCategory,
+    #[schemars(range(min = 0, max = 9007199254740991u64))]
+    pub start_ms: u64,
+    #[schemars(range(min = 0, max = 9007199254740991u64))]
+    pub end_ms: u64,
+    pub clipped: bool,
+    pub evidence_scope: FragmentEvidence,
+    #[schemars(length(max = 3))]
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TimelineGap {
+    #[schemars(range(min = 0, max = 9007199254740991u64))]
+    pub start_ms: u64,
+    #[schemars(range(min = 0, max = 9007199254740991u64))]
+    pub end_ms: u64,
+    pub evidence_scope: FragmentEvidence,
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Timeline {
+    pub presentation: TimelinePresentation,
+    pub detail: Capability,
+    pub entry_count: Count,
+    pub track_count: Count,
+    /// Majority/list denominator: unique identified lifecycle intervals, including
+    /// excluded conflicts; records without identity are counted only in coverage.
+    pub identified_interval_count: Count,
+    pub unclassified_gap_count: Count,
+    /// Unique identified intervals that cannot be placed; missing-identity records
+    /// remain in coverage and are not guessed to be separate intervals.
+    pub unlocated_interval_count: Count,
+    pub outside_window_interval_count: Count,
+    #[schemars(range(min = 200, max = 200))]
+    pub detail_limit: usize,
+    #[schemars(length(max = 200))]
+    pub tracks: Vec<TimelineTrack>,
+    #[schemars(length(max = 200))]
+    pub unclassified_gaps: Vec<TimelineGap>,
+}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Time {
+    pub timeline: Timeline,
     pub state: TurnState,
     pub native_wall_clock_ms: Count,
     pub derived_wall_clock_ms: Count,

@@ -1316,3 +1316,48 @@ fn cancellable_analysis_never_returns_partial_success() {
         "CANCELLED"
     );
 }
+
+#[test]
+fn timeline_proof_uses_selected_same_domain_endpoints_and_terminal_records() {
+    let started = item(
+        1,
+        Some("command"),
+        ItemKind::Command,
+        Phase::Started,
+        None,
+        None,
+        Some(10),
+    );
+    let terminal = item(
+        2,
+        Some("command"),
+        ItemKind::Command,
+        Phase::Completed,
+        None,
+        None,
+        Some(30),
+    );
+    let native = item(
+        3,
+        Some("reasoning"),
+        ItemKind::Reasoning,
+        Phase::Completed,
+        Some(20),
+        Some(40),
+        Some(90),
+    );
+    let result = analyze_events(&[
+        boundary(0, Some(0), Phase::Started, None, None),
+        started.clone(),
+        terminal.clone(),
+        native.clone(),
+        boundary(10, Some(100), Phase::Completed, Some(200), None),
+    ]);
+    let tracks = &result.intervals.timeline.tracks;
+    assert_eq!(tracks.len(), 2);
+    assert_eq!(tracks[0].evidence_ids, [started.id(), terminal.id()]);
+    assert_eq!((tracks[0].start_ms, tracks[0].end_ms), (10, 30));
+    assert_eq!(tracks[1].evidence_ids, [native.id()]);
+    assert_eq!((tracks[1].start_ms, tracks[1].end_ms), (20, 40));
+    assert_eq!(result.intervals.timeline.gaps, [(0, 10), (40, 100)]);
+}

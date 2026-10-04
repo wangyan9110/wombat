@@ -10,6 +10,7 @@ fn interval(item: &str, category: Category, start: i64, end: i64) -> LifecycleIn
         category,
         start_ms: Some(start),
         end_ms: Some(end),
+        evidence_ids: vec![],
     }
 }
 fn window(start_ms: i64, end_ms: i64) -> Window {
@@ -180,4 +181,83 @@ fn reversed_window_retains_complete_interval_quality() {
 fn full_integer_domain_does_not_overflow() {
     let result = analyze(Some(window(i64::MIN, i64::MAX)), &[], &[], 0);
     assert_eq!(result.mask_ms[0], u64::MAX);
+}
+
+#[test]
+fn timeline_relative_tracks_zero_clipping_and_merged_unknown_gaps() {
+    let result = analyze(
+        Some(window(100, 200)),
+        &[
+            interval("clipped", Category::Command, 90, 140),
+            interval("point", Category::Reasoning, 150, 150),
+            interval("outside", Category::Compaction, 201, 210),
+        ],
+        &[window(145, 160), window(180, 190)],
+        5,
+    );
+    assert_eq!(result.timeline.track_count, 2);
+    assert_eq!(result.timeline.outside_count, 1);
+    assert_eq!(result.timeline.gap_count, 1);
+    assert_eq!(result.timeline.gaps, [(40, 100)]);
+    assert_eq!(
+        (
+            result.timeline.tracks[0].start_ms,
+            result.timeline.tracks[0].end_ms
+        ),
+        (0, 40)
+    );
+    assert!(result.timeline.tracks[0].clipped);
+    assert_eq!(
+        (
+            result.timeline.tracks[1].start_ms,
+            result.timeline.tracks[1].end_ms
+        ),
+        (50, 50)
+    );
+    assert_eq!(result.unclassified_ms, Some(60));
+    assert_eq!(result.category_sum_ms, [40, 0, 0]);
+}
+
+#[test]
+fn timeline_combined_limit_omits_whole_detail_but_retains_complete_totals() {
+    let inputs: Vec<_> = (0..200)
+        .map(|n| interval(&format!("i{n:03}"), Category::Command, n, n + 1))
+        .collect();
+    let exact = analyze(Some(window(0, 200)), &inputs, &[], 200);
+    assert_eq!(exact.timeline.tracks.len(), 200);
+    assert!(!exact.timeline.limited);
+    let over = analyze(Some(window(0, 201)), &inputs, &[], 200);
+    assert!(over.timeline.limited);
+    assert!(over.timeline.tracks.is_empty() && over.timeline.gaps.is_empty());
+    assert_eq!(
+        (over.timeline.track_count, over.timeline.gap_count),
+        (200, 1)
+    );
+    assert_eq!(over.category_sum_ms, [200, 0, 0]);
+    assert_eq!(over.category_union_ms, [200, 0, 0]);
+    assert_eq!(over.unclassified_ms, Some(1));
+    assert!(!over.partial);
+    let alternating: Vec<_> = (0..150)
+        .map(|n| interval(&format!("i{n:03}"), Category::Command, n * 2 + 1, n * 2 + 2))
+        .collect();
+    let mixed = analyze(Some(window(0, 301)), &alternating, &[], 150);
+    assert!(mixed.timeline.limited);
+    assert_eq!(
+        (mixed.timeline.track_count, mixed.timeline.gap_count),
+        (150, 151)
+    );
+    assert!(mixed.timeline.tracks.is_empty() && mixed.timeline.gaps.is_empty());
+    assert_eq!(mixed.unclassified_ms, Some(151));
+}
+
+#[test]
+fn timeline_duplicate_proof_ids_do_not_create_interval_conflicts() {
+    let mut first = interval("same", Category::Command, 1, 9);
+    first.evidence_ids = vec!["one".into()];
+    let mut duplicate = first.clone();
+    duplicate.evidence_ids = vec!["two".into()];
+    let result = analyze(Some(window(0, 10)), &[first, duplicate], &[], 2);
+    assert_eq!(result.timeline.track_count, 1);
+    assert_eq!(result.timeline.tracks[0].evidence_ids, ["one"]);
+    assert!(result.issues.is_empty());
 }

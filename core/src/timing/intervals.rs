@@ -39,6 +39,54 @@ pub struct LifecycleInterval {
     pub category: Category,
     pub start_ms: Option<i64>,
     pub end_ms: Option<i64>,
+    /// Endpoint and terminal records selected by the identity-bound mapper.
+    pub evidence_ids: Vec<String>,
+}
+
+pub const DETAIL_LIMIT: usize = 200;
+
+#[derive(Debug, PartialEq)]
+pub struct Track {
+    pub alias: String,
+    pub category: Category,
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub clipped: bool,
+    pub evidence_ids: Vec<String>,
+}
+#[derive(Debug, Default, PartialEq)]
+pub struct Timeline {
+    pub track_count: usize,
+    pub gap_count: usize,
+    pub unlocated_count: usize,
+    pub outside_count: usize,
+    pub limited: bool,
+    pub tracks: Vec<Track>,
+    pub gaps: Vec<(u64, u64)>,
+}
+impl Timeline {
+    fn reserve_detail(&mut self) -> bool {
+        if self.limited {
+            return false;
+        }
+        if self.tracks.len() + self.gaps.len() == DETAIL_LIMIT {
+            self.limited = true;
+            self.tracks.clear();
+            self.gaps.clear();
+            return false;
+        }
+        true
+    }
+    fn gap(&mut self, gap: Window, window: Window) {
+        self.gap_count += 1;
+        if self.reserve_detail() {
+            self.gaps
+                .push((offset(gap.start_ms, window), offset(gap.end_ms, window)));
+        }
+    }
+}
+fn offset(time: i64, window: Window) -> u64 {
+    (i128::from(time) - i128::from(window.start_ms)) as u64
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -69,6 +117,7 @@ pub struct IntervalMetrics {
     pub complete_intervals: [usize; 3],
     pub partial: bool,
     pub issues: Vec<Issue>,
+    pub timeline: Timeline,
 }
 
 fn length(window: Window) -> u64 {
@@ -116,6 +165,7 @@ pub(super) fn analyze_cancellable(
         complete_intervals: [0; 3],
         partial: false,
         issues: Vec::new(),
+        timeline: Timeline::default(),
     };
     let usable_window = window.filter(|window| window.end_ms >= window.start_ms);
     if window.is_some() && usable_window.is_none() {
@@ -138,7 +188,11 @@ pub(super) fn analyze_cancellable(
         unique
             .entry(&interval.identity)
             .and_modify(|previous| {
-                if previous.is_some_and(|value| value != interval) {
+                if previous.is_some_and(|value| {
+                    value.category != interval.category
+                        || value.start_ms != interval.start_ms
+                        || value.end_ms != interval.end_ms
+                }) {
                     *previous = None;
                 }
             })
@@ -149,26 +203,45 @@ pub(super) fn analyze_cancellable(
         endpoints.entry(window.start_ms).or_default();
         endpoints.entry(window.end_ms).or_default();
     }
-    for (identity, interval) in unique {
+    for (ordinal, (identity, interval)) in unique.into_iter().enumerate() {
         check(cancelled)?;
         let Some(interval) = interval else {
             result.issues.push(Issue::Conflict(identity.clone()));
+            result.timeline.unlocated_count += 1;
             continue;
         };
         let (Some(start_ms), Some(end_ms)) = (interval.start_ms, interval.end_ms) else {
             result.issues.push(Issue::Open(identity.clone()));
+            result.timeline.unlocated_count += 1;
             continue;
         };
         if end_ms < start_ms {
             result.issues.push(Issue::Reversed(identity.clone()));
+            result.timeline.unlocated_count += 1;
             continue;
         }
         let category = interval.category.index();
         result.complete_intervals[category] += 1;
         let Some(window) = usable_window else {
+            result.timeline.unlocated_count += 1;
             continue;
         };
         let raw = Window { start_ms, end_ms };
+        if end_ms < window.start_ms || start_ms > window.end_ms {
+            result.timeline.outside_count += 1;
+        } else {
+            result.timeline.track_count += 1;
+            if result.timeline.reserve_detail() {
+                result.timeline.tracks.push(Track {
+                    alias: format!("interval:{}", ordinal + 1),
+                    category: interval.category,
+                    start_ms: offset(start_ms.max(window.start_ms), window),
+                    end_ms: offset(end_ms.min(window.end_ms), window),
+                    clipped: start_ms < window.start_ms || end_ms > window.end_ms,
+                    evidence_ids: interval.evidence_ids.iter().take(3).cloned().collect(),
+                });
+            }
+        }
         if start_ms < window.start_ms || end_ms > window.end_ms {
             result.issues.push(Issue::Clipped(identity.clone()));
         }
@@ -192,6 +265,7 @@ pub(super) fn analyze_cancellable(
     };
     let mut active = [0_i64; 4];
     let mut previous = window.start_ms;
+    let mut pending_gap: Option<Window> = None;
     for (time, changes) in endpoints {
         check(cancelled)?;
         let duration = length(Window {
@@ -205,6 +279,20 @@ pub(super) fn analyze_cancellable(
                 result.category_union_ms[index] += duration;
             }
         }
+        if duration > 0 {
+            if mask == 0 {
+                if let Some(gap) = pending_gap.as_mut() {
+                    gap.end_ms = time;
+                } else {
+                    pending_gap = Some(Window {
+                        start_ms: previous,
+                        end_ms: time,
+                    });
+                }
+            } else if let Some(gap) = pending_gap.take() {
+                result.timeline.gap(gap, window);
+            }
+        }
         result.mask_ms[mask] += duration;
         if active[3] > 0 {
             result.gap_union_ms += duration;
@@ -214,6 +302,9 @@ pub(super) fn analyze_cancellable(
             *count += change;
         }
         previous = time;
+    }
+    if let Some(gap) = pending_gap {
+        result.timeline.gap(gap, window);
     }
     let observed = length(window);
     let covered = observed - result.mask_ms[0];

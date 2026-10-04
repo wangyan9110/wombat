@@ -82,6 +82,11 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
                 .into_generator()
                 .into_root_schema_for::<timing_dto::LocalResponse>(),
         )?),
+        "schema_timing_error_output" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<timing_dto::TimingErrorOutput>(),
+        )?),
         "schema_timing_share_response" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()
                 .into_generator()

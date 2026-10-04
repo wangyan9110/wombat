@@ -369,6 +369,15 @@ fn native_fallback_reduces_complete_partition_including_final_conflict() {
     assert_eq!(l.time.native_wall_clock_ms.basis, Basis::BoundaryConflict);
     assert_eq!(l.time.native_ttft_ms.value, Some(5));
     assert_eq!(l.time.derived_wall_clock_ms.basis, Basis::ResourceLimit);
+    assert_eq!(l.time.timeline.presentation, TimelinePresentation::List);
+    assert_eq!(l.time.timeline.entry_count.value, None);
+    assert_eq!(l.time.timeline.entry_count.basis, Basis::ResourceLimit);
+    assert_eq!(l.time.timeline.identified_interval_count.value, None);
+    assert_eq!(
+        l.time.timeline.unlocated_interval_count.basis,
+        Basis::ResourceLimit
+    );
+    assert!(l.time.timeline.tracks.is_empty());
     assert_eq!(l.context.input.samples.value, None);
     assert!(l.quality.partial);
     assert!(l.quality.reason_codes.contains(&Basis::BoundaryConflict));
@@ -668,4 +677,186 @@ fn cancellation_cannot_publish_a_cache_entry() {
         .unwrap_err();
     assert_eq!(error_code(error), "CANCELLED");
     assert!(cache.get("cancelled").is_none());
+}
+
+fn timed_item(offset: u64, id: &str, start: Option<i64>, end: Option<i64>) -> Arc<Event> {
+    event(
+        offset,
+        None,
+        Payload::Item {
+            item_kind: crate::session_events::ItemKind::Command,
+            native_id: Some(id.into()),
+            phase: Phase::Completed,
+            started_at_ms: start,
+            completed_at_ms: end,
+            duration: None,
+        },
+    )
+}
+#[test]
+fn timeline_is_rust_relative_projection_with_fragment_proof_and_private_share_aliases() {
+    let operation = timed_item(2, "item-private", Some(1010), Some(1060));
+    let snapshot = make_snapshot(vec![
+        boundary(0, Some(1000), Phase::Started, None, None),
+        operation.clone(),
+        boundary(3, Some(1100), Phase::Completed, Some(200), None),
+    ]);
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let t = &result.time.timeline;
+    assert_eq!(t.presentation, TimelinePresentation::Timeline);
+    assert_eq!(t.detail.support, Support::Supported);
+    assert_eq!(t.entry_count.value, Some(3));
+    assert_eq!(t.identified_interval_count.value, Some(1));
+    assert_eq!((t.tracks[0].start_ms, t.tracks[0].end_ms), (10, 60));
+    assert_eq!(
+        t.tracks[0].evidence_refs,
+        [format!("event:{}", operation.id())]
+    );
+    assert_eq!(t.tracks[0].evidence_scope, FragmentEvidence::EventRecords);
+    assert_eq!(
+        t.unclassified_gaps
+            .iter()
+            .map(|g| (g.start_ms, g.end_ms))
+            .collect::<Vec<_>>(),
+        [(0, 10), (60, 100)]
+    );
+    assert_eq!(
+        t.unclassified_gaps[0].evidence_scope,
+        FragmentEvidence::TurnCollection
+    );
+    assert_eq!(result.time.native_wall_clock_ms.value, Some(200));
+    assert_eq!(result.time.derived_wall_clock_ms.value, Some(100));
+    let first = super::super::share::project(&result);
+    let second = super::super::share::project(&result);
+    assert_ne!(
+        first.time.timeline.tracks[0].interval_alias,
+        second.time.timeline.tracks[0].interval_alias
+    );
+    assert_ne!(
+        first.time.timeline.tracks[0].evidence_refs,
+        second.time.timeline.tracks[0].evidence_refs
+    );
+    assert_eq!(
+        (
+            first.time.timeline.tracks[0].start_ms,
+            first.time.timeline.tracks[0].end_ms
+        ),
+        (10, 60)
+    );
+    let encoded = serde_json::to_string(&first).unwrap();
+    for private in [
+        operation.id(),
+        "item-private",
+        "file-private",
+        "generation-private",
+        "thread-private",
+        "source-private",
+    ] {
+        assert!(!encoded.contains(private));
+    }
+}
+#[test]
+fn timeline_list_for_running_missing_anchors_and_majority_unlocated() {
+    let running = make_snapshot(vec![
+        boundary(0, Some(1000), Phase::Started, None, None),
+        timed_item(1, "located", Some(1010), Some(1020)),
+    ]);
+    let t = local(query(&running, &request(PrivacyProfile::Local)))
+        .time
+        .timeline;
+    assert_eq!(t.presentation, TimelinePresentation::List);
+    assert_eq!(t.detail.reason, Basis::RunningTurn);
+    assert_eq!(t.entry_count.value, None);
+    assert_eq!(t.entry_count.basis, Basis::RunningTurn);
+    assert!(t.tracks.is_empty());
+    let missing = make_snapshot(vec![timed_item(1, "located", Some(10), Some(20))]);
+    let t = local(query(&missing, &request(PrivacyProfile::Local)))
+        .time
+        .timeline;
+    assert_eq!(t.presentation, TimelinePresentation::List);
+    assert_eq!(t.detail.reason, Basis::MissingTime);
+    assert_eq!(t.entry_count.value, None);
+    let partial = make_snapshot(vec![
+        boundary(0, Some(1000), Phase::Started, None, None),
+        timed_item(1, "located", Some(1010), Some(1020)),
+        timed_item(2, "open-one", Some(1030), None),
+        timed_item(3, "open-two", Some(1040), None),
+        boundary(4, Some(1100), Phase::Completed, None, None),
+    ]);
+    let t = local(query(&partial, &request(PrivacyProfile::Local)))
+        .time
+        .timeline;
+    assert_eq!(t.presentation, TimelinePresentation::List);
+    assert_eq!(t.identified_interval_count.value, Some(3));
+    assert_eq!(t.unlocated_interval_count.value, Some(2));
+    assert_eq!(t.detail.support, Support::Partial);
+    assert_eq!(t.tracks.len(), 1);
+}
+#[test]
+fn timeline_detail_resource_limit_preserves_full_aggregates_and_exact_counts() {
+    let mut events = vec![boundary(0, Some(1000), Phase::Started, None, None)];
+    events.extend((0..200).map(|n| {
+        timed_item(
+            n + 1,
+            &format!("i{n:03}"),
+            Some(1000 + n as i64),
+            Some(1001 + n as i64),
+        )
+    }));
+    events.push(boundary(201, Some(1201), Phase::Completed, Some(250), None));
+    let snapshot = make_snapshot(events);
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let t = result.time.timeline;
+    assert_eq!(t.presentation, TimelinePresentation::List);
+    assert_eq!(t.detail.reason, Basis::ResourceLimit);
+    assert_eq!(t.entry_count.value, Some(201));
+    assert_eq!(t.track_count.value, Some(200));
+    assert_eq!(t.unclassified_gap_count.value, Some(1));
+    assert!(t.tracks.is_empty() && t.unclassified_gaps.is_empty());
+    assert_eq!(result.time.command.union_ms.value, Some(200));
+    assert_eq!(result.time.command.sum_ms.value, Some(200));
+    assert_eq!(result.time.unclassified_ms.value, Some(1));
+    assert_eq!(result.time.native_wall_clock_ms.value, Some(250));
+    assert!(result.quality.reason_codes.contains(&Basis::ResourceLimit));
+}
+
+#[test]
+fn timeline_numeric_range_drops_detail_without_unsafe_coordinates_or_false_zero() {
+    let mut a = analysis::analyze(analysis::AnalyzeInput {
+        source: "source",
+        thread: "thread",
+        turn: "turn",
+        events: &[],
+        measurements: &[],
+        budget: analysis::Budget {
+            events: 0,
+            measurements: 0,
+            lifecycle_records: 0,
+        },
+    });
+    a.state = analysis::State::Completed;
+    a.intervals = super::super::intervals::analyze(
+        Some(super::super::intervals::Window {
+            start_ms: i64::MIN,
+            end_ms: i64::MAX,
+        }),
+        &[],
+        &[],
+        0,
+    );
+    let t = m::time(&a, &[], None, None).timeline;
+    assert_eq!(t.presentation, TimelinePresentation::List);
+    assert_eq!(t.detail.reason, Basis::NumericRange);
+    assert_eq!(t.unclassified_gap_count.value, Some(1));
+    assert_eq!(t.entry_count.value, Some(1));
+    assert!(t.tracks.is_empty() && t.unclassified_gaps.is_empty());
+    let schema = crate::dispatch("schema_timing_local_response", &serde_json::json!({})).unwrap();
+    assert_eq!(
+        schema["definitions"]["TimelineTrack"]["properties"]["startMs"]["maximum"],
+        MAX_SAFE_INTEGER
+    );
+    assert_eq!(
+        schema["definitions"]["Timeline"]["properties"]["tracks"]["maxItems"],
+        200
+    );
 }

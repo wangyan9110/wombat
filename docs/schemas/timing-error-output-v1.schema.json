@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TimingErrorOutput",
+  "description": "CLI error output; core/socket transports retain their standard failure envelope.",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "error": {
+      "$ref": "#/definitions/TimingError"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "outputVersion",
+    "error"
+  ],
+  "definitions": {
+    "TimingError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ]
+    }
+  }
+}

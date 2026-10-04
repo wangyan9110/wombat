@@ -216,6 +216,7 @@ pub(super) fn time(
     let complete =
         fallback.is_none() && a.intervals.observed_window_ms.is_some() && !a.intervals.partial;
     Time {
+        timeline: timeline(a, refs, fallback, missing),
         state: match a.state {
             State::Running => TurnState::Running,
             State::Completed => TurnState::Completed,
@@ -328,6 +329,133 @@ pub(super) fn time(
         exploratory_gap_ms: unavailable(Basis::UnsupportedMethod),
     }
 }
+fn timeline(a: &Analysis, refs: &[String], fallback: Option<Basis>, missing: Basis) -> Timeline {
+    let t = &a.intervals.timeline;
+    let anchored = a.intervals.observed_window_ms.is_some() && a.state != State::Running;
+    let resource = fallback.is_some()
+        || t.limited
+        || a.intervals
+            .issues
+            .contains(&super::intervals::Issue::ResourceLimit)
+        || t.tracks
+            .iter()
+            .any(|track| track.evidence_ids.iter().any(|id| id.len() > 4096));
+    let numeric = anchored
+        && a.intervals
+            .observed_window_ms
+            .is_some_and(|n| n > MAX_SAFE_INTEGER);
+    let unlocated = t.unlocated_count + a.coverage.conflicting_lifecycles;
+    let identified = t.track_count + t.outside_count + unlocated;
+    let majority_unlocated = unlocated > identified / 2;
+    let reason = if resource {
+        fallback.unwrap_or(Basis::ResourceLimit)
+    } else if numeric {
+        Basis::NumericRange
+    } else if a.state == State::Running {
+        Basis::RunningTurn
+    } else if !anchored || majority_unlocated {
+        missing
+    } else if a.coverage.partial || unlocated > 0 {
+        Basis::SourcePartial
+    } else {
+        Basis::LifecycleUnion
+    };
+    let available = anchored && !resource && !numeric;
+    let known = fallback.is_none()
+        && !a
+            .intervals
+            .issues
+            .contains(&super::intervals::Issue::ResourceLimit);
+    let count_missing = if !known {
+        fallback.unwrap_or(Basis::ResourceLimit)
+    } else if a.state == State::Running {
+        Basis::RunningTurn
+    } else {
+        missing
+    };
+    let n = |value| {
+        if known && anchored {
+            count(Some(value as u128), Basis::LifecycleUnion, refs)
+        } else {
+            unavailable(count_missing)
+        }
+    };
+    let identity_n = |value| {
+        if known {
+            count(Some(value as u128), Basis::LifecycleUnion, refs)
+        } else {
+            unavailable(count_missing)
+        }
+    };
+    Timeline {
+        presentation: if available && !majority_unlocated {
+            TimelinePresentation::Timeline
+        } else {
+            TimelinePresentation::List
+        },
+        detail: capability(
+            if available {
+                if reason == Basis::LifecycleUnion {
+                    Support::Supported
+                } else {
+                    Support::Partial
+                }
+            } else {
+                Support::Unavailable
+            },
+            reason,
+        ),
+        entry_count: n(t.track_count + t.gap_count),
+        track_count: n(t.track_count),
+        identified_interval_count: identity_n(identified),
+        unclassified_gap_count: n(t.gap_count),
+        unlocated_interval_count: identity_n(unlocated),
+        outside_window_interval_count: n(t.outside_count),
+        detail_limit: super::intervals::DETAIL_LIMIT,
+        tracks: if available {
+            t.tracks
+                .iter()
+                .map(|track| TimelineTrack {
+                    interval_alias: track.alias.clone(),
+                    category: match track.category {
+                        super::intervals::Category::Command => TrackCategory::Command,
+                        super::intervals::Category::Compaction => TrackCategory::Compaction,
+                        super::intervals::Category::Reasoning => TrackCategory::Reasoning,
+                    },
+                    start_ms: track.start_ms,
+                    end_ms: track.end_ms,
+                    clipped: track.clipped,
+                    evidence_scope: if track.evidence_ids.is_empty() {
+                        FragmentEvidence::Unavailable
+                    } else {
+                        FragmentEvidence::EventRecords
+                    },
+                    evidence_refs: track
+                        .evidence_ids
+                        .iter()
+                        .map(|id| format!("event:{id}"))
+                        .collect(),
+                })
+                .collect()
+        } else {
+            vec![]
+        },
+        unclassified_gaps: if available {
+            t.gaps
+                .iter()
+                .map(|(start, end)| TimelineGap {
+                    start_ms: *start,
+                    end_ms: *end,
+                    evidence_scope: FragmentEvidence::TurnCollection,
+                    evidence_refs: refs.to_vec(),
+                })
+                .collect()
+        } else {
+            vec![]
+        },
+    }
+}
+
 fn distribution(
     d: Option<&super::context::Distribution>,
     ratio: bool,

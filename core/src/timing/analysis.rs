@@ -322,6 +322,11 @@ struct ItemDomain {
     native_starts: BTreeSet<i64>,
     native_ends: BTreeSet<i64>,
     closed: bool,
+    start_ref: Option<String>,
+    end_ref: Option<String>,
+    native_start_ref: Option<String>,
+    native_end_ref: Option<String>,
+    terminal_ref: Option<String>,
 }
 
 fn category(kind: &ItemKind) -> Option<(usize, intervals::Category)> {
@@ -606,11 +611,22 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             ))
             .or_default();
         domain.closed |= terminal(phase);
+        if terminal(phase) {
+            domain
+                .terminal_ref
+                .get_or_insert_with(|| event.id().to_owned());
+        }
         if let Some(time) = native_start {
             domain.native_starts.insert(time);
+            domain
+                .native_start_ref
+                .get_or_insert_with(|| event.id().to_owned());
         }
         if let Some(time) = native_end {
             domain.native_ends.insert(time);
+            domain
+                .native_end_ref
+                .get_or_insert_with(|| event.id().to_owned());
         }
         let start = (*phase == Phase::Started)
             .then(|| timestamp(event))
@@ -618,9 +634,13 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         let end = terminal(phase).then(|| timestamp(event)).flatten();
         if let Some(time) = start {
             domain.starts.insert(time);
+            domain
+                .start_ref
+                .get_or_insert_with(|| event.id().to_owned());
         }
         if let Some(time) = end {
             domain.ends.insert(time);
+            domain.end_ref.get_or_insert_with(|| event.id().to_owned());
         }
         if start.is_none() && end.is_none() && native_start.is_none() && native_end.is_none() {
             result
@@ -746,11 +766,51 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         {
             result.coverage.linked_lifecycles[index] += 1;
         }
+        // Select proof from the same already validated clock domain, not by matching
+        // timestamps across files. Unique values above make its first witnesses sufficient.
+        let mut evidence_ids = Vec::new();
+        if let Some(pair) = singleton(&pairs) {
+            for domain in item.domains.values() {
+                check(cancelled)?;
+                let start = if prefer_native_start {
+                    &domain.native_starts
+                } else {
+                    &domain.starts
+                };
+                let end = if prefer_native_end {
+                    &domain.native_ends
+                } else {
+                    &domain.ends
+                };
+                if domain.closed && singleton(start).zip(singleton(end)) == Some(pair) {
+                    let start_ref = if prefer_native_start {
+                        &domain.native_start_ref
+                    } else {
+                        &domain.start_ref
+                    };
+                    let end_ref = if prefer_native_end {
+                        &domain.native_end_ref
+                    } else {
+                        &domain.end_ref
+                    };
+                    for id in [start_ref, end_ref, &domain.terminal_ref]
+                        .into_iter()
+                        .flatten()
+                    {
+                        if !evidence_ids.contains(id) {
+                            evidence_ids.push(id.clone());
+                        }
+                    }
+                    break;
+                }
+            }
+        }
         mapped.push(intervals::LifecycleInterval {
             identity,
             category,
             start_ms,
             end_ms,
+            evidence_ids,
         });
     }
     result.intervals = intervals::analyze_cancellable(

@@ -278,6 +278,7 @@
         "unsupported_method",
         "missing_identity",
         "missing_time",
+        "running_turn",
         "boundary_conflict",
         "source_partial",
         "resource_limit",
@@ -347,6 +348,9 @@
     "Time": {
       "type": "object",
       "properties": {
+        "timeline": {
+          "$ref": "#/definitions/Timeline"
+        },
         "state": {
           "$ref": "#/definitions/TurnState"
         },
@@ -405,6 +409,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "timeline",
         "state",
         "nativeWallClockMs",
         "derivedWallClockMs",
@@ -424,14 +429,83 @@
         "exploratoryGapMs"
       ]
     },
-    "TurnState": {
+    "Timeline": {
+      "type": "object",
+      "properties": {
+        "presentation": {
+          "$ref": "#/definitions/TimelinePresentation"
+        },
+        "detail": {
+          "$ref": "#/definitions/Capability"
+        },
+        "entryCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "trackCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "identifiedIntervalCount": {
+          "description": "Majority/list denominator: unique identified lifecycle intervals, including\nexcluded conflicts; records without identity are counted only in coverage.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "unclassifiedGapCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unlocatedIntervalCount": {
+          "description": "Unique identified intervals that cannot be placed; missing-identity records\nremain in coverage and are not guessed to be separate intervals.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "outsideWindowIntervalCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "detailLimit": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 200
+        },
+        "tracks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TimelineTrack"
+          },
+          "maxItems": 200
+        },
+        "unclassifiedGaps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TimelineGap"
+          },
+          "maxItems": 200
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "presentation",
+        "detail",
+        "entryCount",
+        "trackCount",
+        "identifiedIntervalCount",
+        "unclassifiedGapCount",
+        "unlocatedIntervalCount",
+        "outsideWindowIntervalCount",
+        "detailLimit",
+        "tracks",
+        "unclassifiedGaps"
+      ]
+    },
+    "TimelinePresentation": {
       "type": "string",
       "enum": [
-        "running",
-        "completed",
-        "failed",
-        "cancelled",
-        "unknown"
+        "timeline",
+        "list"
       ]
     },
     "TimingMetric_uint64": {
@@ -464,6 +538,107 @@
         "status",
         "basis",
         "evidenceRefs"
+      ]
+    },
+    "TimelineTrack": {
+      "type": "object",
+      "properties": {
+        "intervalAlias": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/definitions/TrackCategory"
+        },
+        "startMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "clipped": {
+          "type": "boolean"
+        },
+        "evidenceScope": {
+          "$ref": "#/definitions/FragmentEvidence"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "intervalAlias",
+        "category",
+        "startMs",
+        "endMs",
+        "clipped",
+        "evidenceScope",
+        "evidenceRefs"
+      ]
+    },
+    "TrackCategory": {
+      "type": "string",
+      "enum": [
+        "command",
+        "compaction",
+        "reasoning"
+      ]
+    },
+    "FragmentEvidence": {
+      "type": "string",
+      "enum": [
+        "event_records",
+        "turn_collection",
+        "unavailable"
+      ]
+    },
+    "TimelineGap": {
+      "type": "object",
+      "properties": {
+        "startMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidenceScope": {
+          "$ref": "#/definitions/FragmentEvidence"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "startMs",
+        "endMs",
+        "evidenceScope",
+        "evidenceRefs"
+      ]
+    },
+    "TurnState": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "unknown"
       ]
     },
     "Category": {

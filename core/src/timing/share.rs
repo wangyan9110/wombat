@@ -23,6 +23,8 @@ impl Aliases {
                     "{}:E-{}-{n}",
                     if value.starts_with("collection:") {
                         "collection"
+                    } else if value.starts_with("interval:") {
+                        "interval"
                     } else if value.starts_with("measurement:") {
                         "measurement"
                     } else {
@@ -80,6 +82,46 @@ pub(super) fn project(local: &LocalResponse) -> ShareResponse {
     let mut a = Aliases::new();
     let time = &local.time;
     let time = Time {
+        timeline: Timeline {
+            presentation: time.timeline.presentation,
+            detail: time.timeline.detail.clone(),
+            entry_count: a.metric(&time.timeline.entry_count),
+            track_count: a.metric(&time.timeline.track_count),
+            identified_interval_count: a.metric(&time.timeline.identified_interval_count),
+            unclassified_gap_count: a.metric(&time.timeline.unclassified_gap_count),
+            unlocated_interval_count: a.metric(&time.timeline.unlocated_interval_count),
+            outside_window_interval_count: a.metric(&time.timeline.outside_window_interval_count),
+            detail_limit: super::intervals::DETAIL_LIMIT,
+            tracks: time
+                .timeline
+                .tracks
+                .iter()
+                .map(|track| TimelineTrack {
+                    interval_alias: a.evidence(&track.interval_alias),
+                    category: track.category,
+                    start_ms: track.start_ms,
+                    end_ms: track.end_ms,
+                    clipped: track.clipped,
+                    evidence_scope: track.evidence_scope,
+                    evidence_refs: track
+                        .evidence_refs
+                        .iter()
+                        .map(|id| a.evidence(id))
+                        .collect(),
+                })
+                .collect(),
+            unclassified_gaps: time
+                .timeline
+                .unclassified_gaps
+                .iter()
+                .map(|gap| TimelineGap {
+                    start_ms: gap.start_ms,
+                    end_ms: gap.end_ms,
+                    evidence_scope: gap.evidence_scope,
+                    evidence_refs: gap.evidence_refs.iter().map(|id| a.evidence(id)).collect(),
+                })
+                .collect(),
+        },
         state: time.state.clone(),
         native_wall_clock_ms: a.metric(&time.native_wall_clock_ms),
         derived_wall_clock_ms: a.metric(&time.derived_wall_clock_ms),

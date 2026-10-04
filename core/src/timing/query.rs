@@ -499,7 +499,10 @@ fn query_impl(
         }
     }
     let context = m::context(&a, &context_refs, fallback);
-    if context.detail.reason == Basis::ResourceLimit {
+    let mut time = m::time(&a, &turn_refs, fallback, native);
+    if context.detail.reason == Basis::ResourceLimit
+        || time.timeline.detail.reason == Basis::ResourceLimit
+    {
         quality.partial = true;
         if !quality.reason_codes.contains(&Basis::ResourceLimit) {
             quality.reason_codes.push(Basis::ResourceLimit);
@@ -526,7 +529,6 @@ fn query_impl(
             evidence_refs: Vec::new(),
         })
         .collect();
-    let mut time = m::time(&a, &turn_refs, fallback, native);
     if native.is_some() {
         time.native_wall_clock_ms.evidence_refs = vec!["collection:native_boundary_index".into()];
         time.native_ttft_ms.evidence_refs = vec!["collection:native_boundary_index".into()];
