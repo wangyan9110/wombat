@@ -110,7 +110,7 @@ pub struct EventPage {
 }
 type EventBuckets = BTreeMap<EventTarget, Vec<Arc<Event>>>;
 
-fn position_order(a: &Position, b: &Position) -> Ordering {
+pub(super) fn position_order(a: &Position, b: &Position) -> Ordering {
     (
         &a.source_instance_id,
         &a.file_id,
@@ -450,7 +450,7 @@ impl EventCursor {
     }
 }
 impl Snapshot {
-    fn event_partition(&self, target: &EventTarget) -> Result<Option<&EventPartition>> {
+    pub(super) fn event_partition(&self, target: &EventTarget) -> Result<Option<&EventPartition>> {
         if !target.valid() {
             return Err(operation_error("INVALID_ARGUMENT", "非法事件目标"));
         }
@@ -550,7 +550,7 @@ impl Snapshot {
             next_cursor,
         })
     }
-    fn event_range(
+    pub(super) fn event_range(
         &self,
         partition: &EventPartition,
         offset: usize,

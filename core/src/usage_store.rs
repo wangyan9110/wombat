@@ -93,6 +93,8 @@ mod price_pool;
 mod query;
 #[cfg(test)]
 mod tests;
+pub mod timing_evidence;
+mod timing_measurements;
 #[cfg(test)]
 mod watermark_tests;
 pub use files::{RefreshLock, load, save};
