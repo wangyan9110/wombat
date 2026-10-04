@@ -2,20 +2,24 @@
   "version": 2,
   "sections": {
     "/wombat-decision-notes": {
-      "zh": "afbc35d988bd78243d698fe1262009e2f154b1bc1112d8a42f870c5ea28e2566",
-      "en": "d6e29055a4c603dc5e37c332bb85fa66d04aaede568716e084ed37755e8f8834"
+      "zh": "2b3ae5e4f9c30339c96a06c848ccd84cdac21c22553e3e1740529896dee6eef9",
+      "en": "3d3e1d228eebee2bf77c10e030f8cb66b9d5e76533b3b0a2d2a2767a6b0a8a5c"
     },
-    "/wombat-decision-notes/creation-and-status": {
-      "zh": "3563d7cfaff0aa491f953bc35fcdf650c77d2259eb5c14fcd92d39637d27daac",
-      "en": "c037d74ee30a7cf54ba1173d937c1b229152a99d26a9fbf2d8b8eabeb3af6fc3"
+    "/wombat-decision-notes/when-to-record": {
+      "zh": "daa77a074ebd4802416f2de652dc65c2b53b1fc2ffd1385c76121e4dc7c7eb4b",
+      "en": "bff4e4453eaa6f5ad2c85bd716cb76e27a048e9e834862bc6555b35bc49d195d"
+    },
+    "/wombat-decision-notes/status-and-discovery": {
+      "zh": "5fd6ee6aafca70f5c27b9b0080570741ecadbe61cd7aa7cb56ed44bf00d2ea85",
+      "en": "1f5a8d0b3e60d3935fb188764d2014fb4dee1c27e71afb641a037830a49b9d8a"
+    },
+    "/wombat-decision-notes/consolidation-and-deletion": {
+      "zh": "f4f79b343b8545c8a2b6ff75bf7c90ee31ac50412758652b4813bfe1169ed3f0",
+      "en": "ad1aceabdc5998692fca872ddc7d8c8bb6eceffa0c179e49f4b4ae7ba5ce68aa"
     },
     "/wombat-decision-notes/content-and-verification": {
-      "zh": "5c20d1c1ae6e0d3259222b2a8e5055c788293d42a00a1819dd1611546b594f49",
-      "en": "621b9739ac3cc7eb752c1e5b15a12c374353bff95fa3c7d291eaa393252c40b0"
-    },
-    "/wombat-decision-notes/record-index": {
-      "zh": "1813808374fa3b6fe18b6100433d6f50c19bd57c6c36d3325a93857384969ef6",
-      "en": "6bbbd5cc0bc6a0adf920acc2bf56a90f579ed17509cda127275ed0a38253dbe8"
+      "zh": "3fd3899f91f0691441e65890728434054b1b5a98099309461fd4ef7254e4c7b6",
+      "en": "57cc3f26970983d2a79d4b474fd44291d88772e815bb00e7561f67d511776956"
     }
   }
 }

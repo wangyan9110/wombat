@@ -1,15 +1,15 @@
 ---
 name: wombat-verify
-description: 为 Wombat 跨模块改动、回归修复或发行准备选择验证范围并报告证据；用于需要判断测试与验收覆盖的任务。
+description: Select verification scope and report evidence for Wombat cross-module changes, regressions, and release preparation; use when test and acceptance coverage needs judgment.
 ---
 
-# Wombat 改动验证
+# Wombat Change Verification
 
-此 Skill 只安排验证，不替代[根目录约定](../../../AGENTS.md)中的完成标准，也不定义产品行为。
+This Skill selects verification; it does not replace [root completion requirements](../../../AGENTS.md) or define product behavior.
 
-1. 从实际差异列出受影响的 Rust、生成契约、客户端、CLI、Web、数据/发行入口，标记用户可观察的变化及故障路径。读取这些目录的 `AGENTS.md` 和对应文档归属。
-2. 选择能验证变化的最小样本与命令，先区分源码检查与构建产物验收。仓库规则在未构建时执行 `repo:check`；修改检查条件时增加隔离的有效样本与违规反例，确认非零退出和诊断。Rust 算法使用独立合成真值；跨语言和 CLI 测试先构建更新 `dist`；Web 宿主、浏览器交互与安装包资产分别验证。
-3. 先运行聚焦检查，再按改动范围运行类型、契约、全链路、许可、公开包或性能检查。静态仓库约定运行 `corepack pnpm repo:check`。已通过且未受新改动影响的检查不重复运行。
-4. 对失败定位实际原因后修复并重跑受影响路径。报告每项已运行命令、结果、构建/语料/平台条件；未验证的来源、平台和视觉细节保持明确。
+1. Map the actual diff to Rust, generated contracts, client, CLI, Web, data, and release entries. Identify observable changes and failure paths. Read affected scoped instructions and documentation owners.
+2. Select the smallest meaningful fixtures and commands, distinguishing source checks from built-artifact acceptance. Run repo:check without dist for repository rules. Changed checks need isolated valid and violating fixtures, nonzero exits, and useful diagnostics. Rust algorithms use independent synthetic truth; cross-language and CLI tests first rebuild dist. Verify Web hosts, browser interactions, and installed assets separately.
+3. Review [code conventions](../../../docs/development/workflow.en.md): authorization/version enforcement at execution, publication after commit, cancellation/cleanup, and whole-output limits. Choose fault cases only for affected paths. Product behavior needs a real assembled entry, not manually composed mocks alone. Broaden to types, contracts, end-to-end behavior, licenses, public packages, or performance according to risk; use corepack pnpm repo:check for static rules without repeating unaffected passing checks.
+4. Diagnose failures, fix their cause, and rerun affected paths. Report commands actually run, results, and build/corpus/platform conditions. State unverified sources, platforms, and visual details explicitly.
 
-验证记录只写实际通过的状态。测试数量、旧快照、构建成功或脚本自身的绿色结果都不能独立证明完整产品旅程。
+Record only actual outcomes. Test counts, old snapshots, successful builds, or a green script alone do not establish a complete product journey.

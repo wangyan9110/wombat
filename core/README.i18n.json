@@ -16,6 +16,10 @@
     "/rust-core/limits-and-verification": {
       "zh": "9276092cfbc6b4c7ce51d2be0fca1ee8a0f908bd8f6a5bf629fe13597f2e7a94",
       "en": "76624f3c61442ba9de3a4ad1f30cd15b9f32f12383a6d513158c51f2d28c38fb"
+    },
+    "/rust-core/storage-and-service-lifecycle": {
+      "zh": "1d305b1d90b7519ff4c067d432a32665f4ec015185b3c7da8452c55ad2fb5dc0",
+      "en": "465db5698f0ff6e1a3f827f9ca1767a659d060fddb28c619a5066b56f1b91ec4"
     }
   }
 }

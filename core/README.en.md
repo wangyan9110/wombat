@@ -26,3 +26,13 @@ Only current public contracts and data formats are maintained; unknown formats a
 ## Limits and verification
 
 Default refresh reads source logs without changing them and writes only to the product data directory. Unpriced or missing values, partial source failures, and resource limits remain visible; the [architecture](../docs/development/architecture.en.md) and [core rules](AGENTS.md) describe ownership and failure boundaries. After algorithm or storage changes, run the relevant synthetic expectations, formatting, and clippy checks; rebuild the core before cross-language tests.
+
+## Storage and service lifecycle
+
+Default data directories are `~/Library/Application Support/Wombat` on macOS, `%LOCALAPPDATA%/Wombat` on Windows, and `XDG_DATA_HOME/wombat` or `~/.local/share/wombat` on Linux; `WOMBAT_DATA_HOME` overrides them. Snapshots live in `usage-v3/`, indexes in `live-v1/`; the old `latest.json` is not replaced.
+
+Refresh holds a process file lock, writes a private generation, shards, and hashes, then commits the manifest and atomically updates latest. Cancellation never publishes a partial snapshot. Source failures retain separate receipts; total failure preserves the previous latest. Source reads use the captured length and make no cross-file atomicity claim. Only current formats are supported; unknown versions are rejected without automatic migration or deletion.
+
+The live index commits facts, cursors and projections together using integer keys and JSONB. Equal projections and prices share storage; see the [index decision](../docs/decisions/implemented/architecture/2026-10-02-compact-live-index.en.md) for boundaries. Truncation/replacement rebuilds; disappearing files retain contributions and mark partial. Sources roll back independently, and all-source failure retains the prior view. Fixed queries and caches are isolated by revision/scope. Direct-response appends skip cumulative reconciliation, and turn queries borrow facts. Full traversal and rebuilding remain; persistent MVCC, database aggregation and long-term scale targets are undelivered.
+
+Snapshots exclude message bodies, complete command arguments, and tool output; source data is never an instruction. The on-demand core service still uses a private Unix socket or owner-only Windows named pipe and exits about 15 seconds after its last call when no valid configuration view remains. HTTP exists only in the explicitly started Web host. Permanent monitoring and HTML report export are unavailable.

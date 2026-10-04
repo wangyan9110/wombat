@@ -20,6 +20,10 @@
     "/decision-note-rust-live-queries-and-failure-isolation/impact-and-verification": {
       "zh": "bd999d43f5c95cc980fb5207fa26e0f90c4ca97bdc6aea3ce5dea0894777eec5",
       "en": "617d4a3aa6f4f91ad339f4d119c0f8aa9ca11fe8b3f704f84e9032e4ea6ee9ae"
+    },
+    "/decision-note-rust-live-queries-and-failure-isolation/local-transport-tradeoff": {
+      "zh": "a96ae895cc78848f31ba978fd4c3ab59b58438d10267e3d0af7893f96eb3dccf",
+      "en": "504b08cb3537fff2b42319f42d460b31cef2b6759106c798bbbebd950e1de0f4"
     }
   }
 }

@@ -1,11 +1,6 @@
 {
   "pairs": [
     {
-      "zh": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.md",
-      "en": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.en.md",
-      "record": "docs/decisions/proposed/architecture/2026-10-01-gui-technical-routes.i18n.json"
-    },
-    {
       "zh": "docs/decisions/proposed/architecture/2026-09-30-live-usage.md",
       "en": "docs/decisions/proposed/architecture/2026-09-30-live-usage.en.md",
       "record": "docs/decisions/proposed/architecture/2026-09-30-live-usage.i18n.json"
@@ -96,11 +91,6 @@
       "record": "docs/development/workflow.i18n.json"
     },
     {
-      "zh": "docs/project/status.md",
-      "en": "docs/project/status.en.md",
-      "record": "docs/project/status.i18n.json"
-    },
-    {
       "zh": "docs/reference/pricing.md",
       "en": "docs/reference/pricing.en.md",
       "record": "docs/reference/pricing.i18n.json"
@@ -109,16 +99,6 @@
       "zh": "docs/reference/privacy.md",
       "en": "docs/reference/privacy.en.md",
       "record": "docs/reference/privacy.i18n.json"
-    },
-    {
-      "zh": "docs/guides/terminal.md",
-      "en": "docs/guides/terminal.en.md",
-      "record": "docs/guides/terminal.i18n.json"
-    },
-    {
-      "zh": "docs/project/specification.md",
-      "en": "docs/project/specification.en.md",
-      "record": "docs/project/specification.i18n.json"
     },
     {
       "zh": "docs/decisions/implemented/architecture/2026-09-30-independent-accounting.md",
@@ -146,11 +126,6 @@
       "record": "SECURITY.i18n.json"
     },
     {
-      "zh": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.md",
-      "en": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.en.md",
-      "record": "docs/decisions/implemented/architecture/2026-09-30-portable-npm.i18n.json"
-    },
-    {
       "zh": "ui/README.md",
       "en": "ui/README.en.md",
       "record": "ui/README.i18n.json"
@@ -176,19 +151,9 @@
       "record": "docs/decisions/implemented/architecture/2026-10-01-rust-live-query.i18n.json"
     },
     {
-      "zh": "docs/decisions/proposed/architecture/2026-10-01-config-analysis-web.md",
-      "en": "docs/decisions/proposed/architecture/2026-10-01-config-analysis-web.en.md",
-      "record": "docs/decisions/proposed/architecture/2026-10-01-config-analysis-web.i18n.json"
-    },
-    {
       "zh": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.md",
       "en": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-01-config-inventory.i18n.json"
-    },
-    {
-      "zh": "docs/project/config-upgrade.md",
-      "en": "docs/project/config-upgrade.en.md",
-      "record": "docs/project/config-upgrade.i18n.json"
     },
     {
       "zh": "docs/decisions/implemented/architecture/2026-10-02-config-reviews.md",
@@ -199,11 +164,6 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-02-compact-live-index.md",
       "en": "docs/decisions/implemented/architecture/2026-10-02-compact-live-index.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-02-compact-live-index.i18n.json"
-    },
-    {
-      "zh": "docs/project/startup-rules.md",
-      "en": "docs/project/startup-rules.en.md",
-      "record": "docs/project/startup-rules.i18n.json"
     },
     {
       "zh": "docs/decisions/implemented/architecture/2026-10-02-startup-static-rules.md",
@@ -221,29 +181,14 @@
       "record": "docs/reference/distribution.i18n.json"
     },
     {
-      "zh": "docs/decisions/implemented/architecture/2026-10-03-npm-platform-distribution.md",
-      "en": "docs/decisions/implemented/architecture/2026-10-03-npm-platform-distribution.en.md",
-      "record": "docs/decisions/implemented/architecture/2026-10-03-npm-platform-distribution.i18n.json"
-    },
-    {
       "zh": "docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.md",
       "en": "docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.i18n.json"
     },
     {
-      "zh": "docs/project/optimization-lifecycle.md",
-      "en": "docs/project/optimization-lifecycle.en.md",
-      "record": "docs/project/optimization-lifecycle.i18n.json"
-    },
-    {
       "zh": "docs/decisions/implemented/architecture/2026-10-03-current-format-only.md",
       "en": "docs/decisions/implemented/architecture/2026-10-03-current-format-only.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-03-current-format-only.i18n.json"
-    },
-    {
-      "zh": "docs/project/codex-skill.md",
-      "en": "docs/project/codex-skill.en.md",
-      "record": "docs/project/codex-skill.i18n.json"
     },
     {
       "zh": "docs/decisions/implemented/architecture/2026-10-03-native-codex-handoff.md",
@@ -266,11 +211,6 @@
       "record": "docs/decisions/implemented/architecture/2026-10-04-mcp-runtime-evidence.i18n.json"
     },
     {
-      "zh": "docs/project/initialization.md",
-      "en": "docs/project/initialization.en.md",
-      "record": "docs/project/initialization.i18n.json"
-    },
-    {
       "zh": "docs/decisions/implemented/architecture/2026-10-04-observed-project-discovery.md",
       "en": "docs/decisions/implemented/architecture/2026-10-04-observed-project-discovery.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-04-observed-project-discovery.i18n.json"
@@ -279,6 +219,16 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.md",
       "en": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/product/2026-10-03-optimization-lifecycle.md",
+      "en": "docs/decisions/proposed/product/2026-10-03-optimization-lifecycle.en.md",
+      "record": "docs/decisions/proposed/product/2026-10-03-optimization-lifecycle.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/product/2026-10-02-progressive-initialization.md",
+      "en": "docs/decisions/proposed/product/2026-10-02-progressive-initialization.en.md",
+      "record": "docs/decisions/proposed/product/2026-10-02-progressive-initialization.i18n.json"
     }
   ],
   "legacyUnpaired": [],

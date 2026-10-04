@@ -2,50 +2,42 @@
 
 [中文](README.md) | English
 
-Decision Notes preserve rationale that code and current guides cannot carry: the problem, the chosen approach, alternatives actually considered, costs, and verification evidence. They are not task lists or the sole authority on product state; source, contracts, and the [architecture](../development/architecture.en.md) still establish current behavior.
+This directory owns decision rationale, alternatives actually considered, costs, and required verification. Current behavior belongs in module READMEs or technical references. Retain only facts needed to explain tradeoffs and link their owners; do not duplicate interfaces, default-value inventories, or acceptance ledgers.
 
-## Creation and status
+## When to record
 
-Project decisions belong in `docs/decisions/` for all maintainers to consult. Reusable agent workflows belong in `.agents/skills/`, and standing rules belong in the applicable directory's `AGENTS.md`.
+Add or update a note in the same change only when lasting decision rationale is not explained by code, tests, or existing documentation. Search for and update the existing owner; that satisfies the rule without another note. Mechanical or local edits, including local UI presentation and interaction changes, are exempt. Never invent alternatives to fill a template.
 
-- `proposed/<class>/YYYY-MM-DD-topic.md` records an unshipped decision with `Status: proposed`.
-- `implemented/<class>/YYYY-MM-DD-topic.md` records a shipped decision with `Status: implemented` and stays factually current with code.
-- `rejected/<class>/YYYY-MM-DD-topic.md` keeps a declined proposal while it prevents a plausible repeated mistake, with `Status: rejected`.
+A reversal requires a new cross-linked note; do not rewrite an old decision into its opposite. Each new note checks whether older notes are fully or partially superseded. For partial supersession, identify the replaced scope and rationale that remains applicable.
 
-Classes are limited to `architecture`, `product`, and `process`. Pair each Chinese source with sibling `.en.md` and `.i18n.json` files under the [bilingual workflow](../i18n/README.en.md). Create a note only when its rationale has lasting value; mechanical and local changes need none.
+Unfinished requirements, proposals, and acceptance criteria belong only in the owning proposed decision, without separate product specifications or implementation-status tables. Link module guides, technical references, and tests for delivered behavior. Keep run results in tasks, CI, or necessary evidence artifacts; after implementation, replace acceptance plans with actual consequences and verification rather than retaining planning checklists.
+
+## Status and discovery
+
+Paths are `<status>/<class>/YYYY-MM-DD-topic.md`. The date is the first proposal date; classes are architecture, product, and process. Directories are the status index; do not maintain a separate itemized catalog.
+
+- [proposed/](proposed/): uncompleted or partly implemented proposals. Partial delivery does not complete the whole proposal.
+- [implemented/](implemented/): shipped decisions. Update referenced paths and mechanisms with code, without appending a change diary.
+- `rejected/`: declined proposals with a brief reason on the status line. Retain only while they prevent a plausible repeated mistake.
+
+Move or delete Chinese, English, and `.i18n.json` files together and repair all references. Lifecycle moves update Status and the body structure together; see the [pairing workflow](../i18n/README.en.md).
+
+## Consolidation and deletion
+
+A fully superseded note may merge into the current owner. Before deletion, preserve unique motivations, alternatives, consequences, required verification, and named coverage gaps; Git history alone is not sufficient for rationale. Keep partially superseded notes cross-linked. Do not delete by length, age, or quota.
+
+Wombat does not add a frozen archive tree or archive manifest at this stage. Keep maintaining records that guide development, delete mechanical records without unique rationale, and evaluate others against the consolidation conditions above. Retrieve historical test output from tasks, CI, and Git instead of copying it into decisions.
 
 ## Content and verification
 
-Put status after the title and language switcher. A proposal contains Problem, Proposal, Alternatives considered, and Acceptance criteria; an implemented note contains Problem, Decision, Alternatives considered, and Consequences and verification; a rejected note retains its proposal body and gives a short rejection reason on the status line. Record only alternatives that were actually discussed. Run `corepack pnpm notes:check` for path, status, and structure; `corepack pnpm docs:i18n:check` checks the language pair.
+After the title and language switcher, write `Status: proposed`, `Status: implemented`, or `Status: rejected — reason`. Use the following sections by lifecycle:
 
-## Record index
-
-| Status | Decision |
+| Status | Required sections |
 |---|---|
-| implemented | [Independent accounting and source adapters](implemented/architecture/2026-09-30-independent-accounting.en.md) |
-| implemented | [Immutable snapshots](implemented/architecture/2026-09-30-snapshot-storage.en.md) |
-| implemented | [Product localization boundaries](implemented/architecture/2026-09-30-localization.en.md) |
-| implemented | [Daily, weekly, and monthly defaults](implemented/product/2026-09-30-report-ranges.en.md) |
-| implemented | [Repository rules and bilingual confirmation](implemented/process/2026-09-30-repository-guidance.en.md) |
-| proposed | [Full live usage plan (partially delivered)](proposed/architecture/2026-09-30-live-usage.en.md) |
-| proposed | [GUI and CLI and CLI+Web technical routes](proposed/architecture/2026-10-01-gui-technical-routes.en.md) |
-| implemented | [Official price checks for missing rates](implemented/architecture/2026-09-30-automatic-prices.en.md) |
-| implemented | [Report distribution and full-range queries](implemented/product/2026-09-30-report-distribution.en.md) |
-| implemented | [Portable npm and local transport](implemented/architecture/2026-09-30-portable-npm.en.md) |
-| implemented | [Local Web and shared frontend](implemented/architecture/2026-10-01-local-web.en.md) |
-| implemented | [Remove TUI product and tools](implemented/architecture/2026-10-01-remove-tui.en.md) |
-| implemented | [Rust live queries and failure isolation](implemented/architecture/2026-10-01-rust-live-query.en.md) |
-| proposed | [Four-entry Web and configuration usage analysis](proposed/architecture/2026-10-01-config-analysis-web.en.md) |
-| implemented | [Read-only configuration and composite views](implemented/architecture/2026-10-01-config-inventory.en.md) |
-| implemented | [Configuration measurement and manual review records](implemented/architecture/2026-10-02-config-reviews.en.md) |
-| implemented | [Compact live index and replacement algorithm](implemented/architecture/2026-10-02-compact-live-index.en.md) |
-| implemented | [Startup and bounded static rules](implemented/architecture/2026-10-02-startup-static-rules.en.md) |
-| implemented | [Physical configuration identity and complete rechecks](implemented/architecture/2026-10-02-rule-review-integrity.en.md) |
-| implemented | [npm platform-specific prebuilt cores](implemented/architecture/2026-10-03-npm-platform-distribution.en.md) |
-| implemented | [Self-contained GitHub Release archives and atomic updates](implemented/architecture/2026-10-04-github-release-distribution.en.md) |
-| implemented | [Current formats before the first release](implemented/architecture/2026-10-03-current-format-only.en.md) |
-| implemented | [Simple native Codex handoff and independent accounts](implemented/architecture/2026-10-03-native-codex-handoff.en.md) |
-| implemented | [Provisional tasks during the first scan](implemented/architecture/2026-10-04-initial-task-preview.en.md) |
-| implemented | [Project-bound native Hook registry observations](implemented/architecture/2026-10-04-hook-registry-observation.en.md) |
-| implemented | [MCP invocation identity and fork replay](implemented/architecture/2026-10-04-mcp-runtime-evidence.en.md) |
-| implemented | [Continuous project discovery from observed records](implemented/architecture/2026-10-04-observed-project-discovery.en.md) |
+| proposed | Problem, Proposal, Alternatives considered, Acceptance criteria |
+| implemented | Problem, Decision, Alternatives considered, Consequences and verification |
+| rejected | Problem, Proposal, Alternatives considered; retain the proposal body |
+
+Use present tense for the applicable decision in implemented notes; clearly identify superseded choices as historical. Paths, names, and mechanisms may change, but do not retrospectively rewrite motivations or tradeoffs. After implementation, replace plans with actual consequences rather than retaining implementation checklists.
+
+`corepack pnpm notes:check` validates paths, dates, status, and sections. `corepack pnpm docs:check` also checks structure, bilingual pairs, and references. Checks cannot establish whether alternatives were real or supersession is complete; review must confirm those.

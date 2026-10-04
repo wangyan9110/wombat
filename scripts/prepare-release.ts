@@ -21,14 +21,11 @@ export const releaseTextFiles = [
   'install.sh',
   'docs/reference/distribution.md',
   'docs/reference/distribution.en.md',
-  'docs/project/status.md',
-  'docs/project/status.en.md',
 ] as const;
 
 const translatedDocs = [
   'README.zh-CN.md',
   'docs/reference/distribution.md',
-  'docs/project/status.md',
 ] as const;
 
 const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/;

@@ -11,10 +11,9 @@ Maintain each fact in one place and link elsewhere. Update an existing owner bef
 | Standing Agent rules | Root or scoped AGENTS.md, in English |
 | Repeatable procedures | .agents/skills/; no separate product contracts |
 | Durable rationale and tradeoffs | [Decisions](decisions/README.en.md); no record for mechanical/local fixes |
-| Requirements and acceptance criteria | project/ specifications; never present targets as delivered |
+| Unfinished requirements and acceptance | Owning proposed decision; no parallel specification or status page |
 | Module relationships and data flow | [Architecture](development/architecture.en.md) |
 | Public entries, behavior, and limitations | Owning module README or technical reference; fields derive from source/generated contracts |
-| Outstanding work and acceptance | [Status](project/status.en.md); no duplicate feature catalog |
 | Verification evidence | Test output, CI/PR results, and scoped benchmarks/ artifacts; no rolling progress ledger |
 | Contributor workflow | [Development](development/workflow.en.md) |
 | User operations | guides/ and module READMEs |
@@ -23,7 +22,8 @@ Maintain each fact in one place and link elsewhere. Update an existing owner bef
 
 - Public prose follows the [bilingual workflow](i18n/README.en.md): update both languages and confirm only reviewed pairs. AGENTS.md files use English and are exempt from pairing.
 - Tutorials follow prerequisites, steps, observable results, and failure recovery. References describe current behavior by topic. Split substantial mixed content.
-- Update only affected owners and links. Change status only when acceptance changes. Do not recreate roadmap, support-matrix, or progress ledgers elsewhere.
+- Use one Markdown title and one physical line per prose paragraph; preserve code, tables, and quotes. docs:structure checks paired prose and budgeted instructions; leading HTML branding is allowed.
+- Update only affected owners and links. Update proposal status only when acceptance changes. Do not recreate roadmap, support-matrix, or progress ledgers elsewhere.
 - Verify commands, defaults, errors, and platform claims against current source/execution. State unverified limits; historical tests and screenshots do not validate today's checkout.
 - Generated schemas/types/validators derive from Rust DTOs. Do not hand-maintain field catalogs. Comments document non-obvious behavior, failure, timing, and ownership, not reasoning transcripts or tests.
 - Keep current promises in maintained prose, rationale in decisions, and historical evidence in Git/CI or scoped artifacts. Remove duplicate or obsolete instructions without discarding outstanding requirements.

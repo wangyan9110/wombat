@@ -2,24 +2,24 @@
   "version": 2,
   "sections": {
     "/decision-note-report-distribution-and-full-range-queries": {
-      "zh": "c2107049ad0614c3b02bd429901d65c727820738df9e5bde8845125a34d07029",
-      "en": "19bfa852cdc5b58f803b1b87306fb31fa3a774a9c9a97b6ac8c81098e6d52d74"
+      "zh": "7160dc6b0b2a2a78a1de05aac2b3b440d959d48b27d5e4ed0a1aadf153dd5e19",
+      "en": "9d8c1710215314b8b67f57b0ebee202feb0c83032f0587b44462dc668574567c"
     },
     "/decision-note-report-distribution-and-full-range-queries/problem": {
       "zh": "63ba1efb8ca518005d89ecd42cba73e16f6c4ed4c07efddc935330cdf88d4612",
       "en": "2bf15db36cd44247ec9ccbd3b91107325629ad00c0a0792d52068a539123db20"
     },
     "/decision-note-report-distribution-and-full-range-queries/decision": {
-      "zh": "1f8b724f0d8d588f808d0c637ec882c1a9404a26f65e5eaf90b3f7fb312f36d1",
-      "en": "71aa5d15fe9aeda3fdbc5b773a9ac94ad092c50774937969bb84705662bb0900"
+      "zh": "54bde58aacd64b091d616f36ae6df0c0a7383da4f4110bf175be027e293d5aad",
+      "en": "9a3c28d469e05eaefde006385e8ea77e957e7051b477dd17d033127932052f78"
     },
     "/decision-note-report-distribution-and-full-range-queries/alternatives-considered": {
-      "zh": "f75428ac7a1b900aad6248bb55578629f6c9ddeeed459575ba1766d1ac153855",
-      "en": "2410e82d861b8f2c49682b1f46c0a4fae108820655f6a6b972d31098601d45f5"
+      "zh": "4efc2fabcc1daa00f891168bc4ac80f16c547316e1977909d54454d8b7cd3b7f",
+      "en": "ad0bd646a9200d8d0990bffde95f586684912aecb7596db59ed1bd2da20349c2"
     },
     "/decision-note-report-distribution-and-full-range-queries/impact-and-verification": {
-      "zh": "297e0216a07bed70f0e9b70885d130a9771cdb39f3c61223c2cf6555e5051c8a",
-      "en": "0f99444e705462fe613a8d68769d220d982bae33e33f71c6a87101ca2f86b5e0"
+      "zh": "19acbc27d9d2fab7612bde332ca9e0b923376b495e91d1b2603fe55c8b4e8ab4",
+      "en": "923652851ad55acc3901e633e6566607214d64ac514e7985edc4ae7c4effe842"
     }
   }
 }

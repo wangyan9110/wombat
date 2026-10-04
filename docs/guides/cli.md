@@ -34,7 +34,7 @@ corepack pnpm skills:install
 
 默认安装到 `~/.agents/skills/wombat`，携带当前平台CLI、内核和Web资产，运行需要Node22+。安装工具需要Node26.4.0+。已有目录不覆盖；更新已安装版本用 `corepack pnpm skills:install -- --replace`。可用 `--skills-root /path/to/skills` 安装到其他目录；自定义同名Skill不会被replace覆盖。
 
-在Codex输入 `$wombat 查看今天的用量并定位主要消耗任务` 或 `$wombat 检查当前项目的指令和扩展`。Skill按任务串联查询，配置改写经过具体方案审阅；[产品方案](../project/codex-skill.md)说明与Web的差异和边界。Codex通常自动发现新Skill，未出现时重启。卸载只移除安装的wombat目录，保留独立产品数据。当前仅本机Skill安装，不是公开插件或MCP发行。
+在Codex输入 `$wombat 查看今天的用量并定位主要消耗任务` 或 `$wombat 检查当前项目的指令和扩展`。Skill按任务串联查询，用户授权后的改写与恢复由 Codex 管理，再回到 Wombat 复查；[优化闭环提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)说明与Web的差异和边界。Codex通常自动发现新Skill，未出现时重启。卸载只移除安装的wombat目录，保留独立产品数据。当前仅本机Skill安装，不是公开插件或MCP发行。
 
 ## 语言
 
@@ -118,7 +118,7 @@ wombat optimize capabilities --json
 
 续查保留原授权根与项目/来源范围，每次使用返回的新decisionRevision；冲突重新读取。detail/keep/not-applicable/redisplay必须带建议身份，keep/not-applicable另需原因。列表支持category、offset及limit 1..200，默认50。在Wombat外修改后直接recheck，--suggestion可限制单项。复查不写来源或撤销用户决定，redisplay不恢复文件。配置/处理结果使用v1，证据不足退出2、错误1、取消130；能力查询不扫描，索引重建保留产品记录。
 
-产品提醒值可用 `--agents-bytes 16384 --description-characters 500` 调整，后续操作保持相同参数。仅授权当前配置范围生效，记录保留参数。正文5,000参考线及description1,024规范上限不可修改；Web提醒值面板使用同一契约。全文/正文估算分别返回，见[规格](../project/config-upgrade.md)。
+产品提醒值可用 `--agents-bytes 16384 --description-characters 500` 调整，后续操作保持相同参数。仅授权当前配置范围生效，记录保留参数。正文5,000参考线及description1,024规范上限不可修改；Web提醒值面板使用同一契约。全文/正文估算分别返回，见[契约](../development/contracts.md)。
 
 Web优化列表显示建议、价值和关键指标，详情可展开处理步骤与依据，相关记录次数、轮次Token和API估算金额同屏。关联记录日期不改变当前静态检查；查看准确轮次后可返回原建议及原筛选。无关联保持未知，不能按次数分摊金额。CLI/Agent先从optimize结果取得item.id/readView，再用inventory --action evidence --item ID --read-view VERSION和日期/时区参数；由返回usageRevision/threadId/turnId定位turns。保留授权根，不混用读取版本。人工标记与复查结果通过reviewBaseline/item提供文本测量前后值；未知或不同方法不可比较，变化不代表节省。
 
