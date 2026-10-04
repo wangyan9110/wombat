@@ -16,7 +16,7 @@ Shared Rust queries present usage and tasks, aggregating complete ranges before 
 | Conversations | Cross-day/model lists, native titles, title/project search, consumption or recent-activity sorting |
 | Turns and records | In-place expansion, time/consumption sorting, accounting categories, safe operation metadata; no text replay |
 | Multiple entries | Rust operations reach Node CLI, JSON, and local Web through generated contracts; future hosts reuse the same narrow interface |
-| Platform and language | npm runtime Node.js ≥22, source tools ≥26.4.0, first accepted on macOS arm64; Chinese/English follow the [language contract](../i18n/product.en.md); other platforms need separate installation acceptance |
+| Platform and language | GitHub Release archives bundle Node.js 26.4.0, source tools require ≥26.4.0, and macOS arm64 is accepted first; Chinese/English follow the [language contract](../i18n/product.en.md); other platforms need separate installation acceptance |
 
 Accounts and Codex handoff follow the [lifecycle upgrade](optimization-lifecycle.en.md). The base usage entry provides no checkup, automatic configuration writes/repair, evidence-package export, threshold notifications, comparison, parent/child task analysis or HTML reports. Read-only configuration, static reminders and manual reviews follow the upgrade specification; desktop hosting remains future work. Inheritance/fork facts serve only necessary attribution and deduplication. See the [support matrix](../reference/support-matrix.en.md) for complete current boundaries.
 

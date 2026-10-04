@@ -14,7 +14,7 @@
 - 日期范围包含 since、不包含 until；时区自然日、周一起始、跨天对话与轮次均按每条计量归日。
 - 修改前保留现有用户工作；删除旧代码不删除用户数据目录、身份登记和恢复材料。
 - 采用[独立模块边界](architecture.md)：根目录并列 `core/`、`client/`、`ui/`、`web/`、`cli/`。各模块独立声明依赖、构建和测试，只使用公开导出或协议；UI 经注入的 `UsageClient` 访问业务。类型检查同时检查跨模块导入边界。
-- npm 产品运行要求 Node.js 22+，源码工具要求26.4.0+；发行结构见[分发说明](../reference/distribution.md)。CLI 默认输出用量，Web 显式启动；不需要终端渲染或 FFI 启动参数。
+- GitHub Release 归档内置 Node.js 26.4.0，用户无需另装运行时；源码工具要求26.4.0+。发行结构见[分发说明](../reference/distribution.md)。CLI 默认输出用量，Web 显式启动；不需要终端渲染或 FFI 启动参数。
 
 ## 验证
 
@@ -31,7 +31,7 @@ corepack pnpm test
 
 按改动选择对应测试，完整链路交付运行全部。跨语言测试调用 dist，必须先构建。独立真值覆盖 A01–A12；正确性不是“与旧输出一样”。Web 在浏览器验证交互、窄屏、取消与完整返回路径。性能须报告固定语料、release、冷暖查询、内核启动及峰值内存，不以局部解析代表整体。
 
-依赖变化审查并执行 `corepack pnpm licenses:generate`、`licenses:check`。发行验收执行 `corepack pnpm public:check --package` 与干净目录安装；其他平台未经实测不能宣称支持。只有实际通过的项目进入进度完成记录。
+依赖变化审查并执行 `corepack pnpm licenses:generate`、`licenses:check`。发行验收执行 `corepack pnpm public:check`、`corepack pnpm github:pack` 与干净目录安装；其他平台未经实测不能宣称支持。只有实际通过的项目进入进度完成记录。
 
 ## Web 优先迁移
 

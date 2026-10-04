@@ -25,7 +25,7 @@
 | 自动化 | refresh/usage/threads/turns/steps JSON v3；配置、优化、Codex交接/账户、目录与偏好 JSON v1 | 无 TTY；窄接口，无任意执行 |
 | 故障 | 来源同步独立回滚、保留旧贡献且健康来源继续更新；明确partial、重启恢复、快照哈希、刷新锁、取消 | 原日志多文件不是原子一致快照 |
 | 读取资源 | 完整大行、尾行等待；共享事实/依据、相同投影引用和有界计价复用、紧凑索引、有界版本查询缓存、分组汇总、增量更正/撤销 | 十万计量及十万操作固定语料已测；来源归并仍持有全量安全事实，非恒定内存；百万级/长期目标未验收 |
-| npm 分发 | 轻量主包通过精确版本可选依赖安装本机内核；macOS arm64/x64、Linux glibc arm64/x64、Windows x64；无需安装编译工具；Node.js 22+ | 本机验证 macOS arm64/Node22与26；其他目标等待托管CI。Linux基线Ubuntu24.04，不含musl/Windows ARM64；macOS编译最低11但旧系统未实测；未公开发布 |
+| GitHub Releases 分发 | 五个平台独立归档；内置 Node.js 26.4.0、CLI/Web 与本机内核；安装器校验 SHA-256；支持 `wombat update` | macOS arm64 开发候选已完成归档、隔离安装、空 PATH 实时查询和 Web 验证；其他目标等待托管 CI。Linux 基线 Ubuntu 24.04，不含 musl/Windows ARM64；macOS 编译最低 11 但旧系统未实测；未公开发布 |
 
 来源具体边界与独立验收用例见[适配器用例](../development/adapters.md)，价格规则见[计价文档](pricing.md)。
 

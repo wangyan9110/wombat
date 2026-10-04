@@ -50,23 +50,27 @@ Skills 和 MCP 也可以统一盘点；文件读取记录与 MCP 调用尝试分
 
 ## 开始使用
 
-**产品尚未发布，计划通过 npm 安装。** 发布后，安装并启动：
+**产品尚未发布。** 首个 GitHub Release 创建后，可一键安装独立发行包：
 
 ```sh
-npm install -g @wangyan9110/wombat
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
 wombat web --open
 ```
 
-浏览器会自动打开；如未打开，使用终端输出的完整链接。
+Windows PowerShell：
 
-需要 Node.js **22+**。npm 按平台安装预编译内核；使用已发布包无需 Rust、pnpm 或编译器。历史任务与用量依赖本机 Codex 记录；配置静态检查无需用量历史。
+```powershell
+irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
+```
+
+发行包内置 Node.js、预编译内核、CLI 与 Web 资源，用户无需安装 Node/npm、Rust、pnpm 或编译器。执行 `wombat update` 升级，或先用 `wombat update --check` 检查。浏览器会自动打开；如未打开，使用终端输出的完整链接。历史任务与用量依赖本机 Codex 记录；配置静态检查无需用量历史。
 
 指定项目和自定义日志目录的方法见 [CLI 指南](docs/guides/cli.md)，平台支持情况见[支持矩阵](docs/reference/support-matrix.md)。
 
 <details>
 <summary>从源码运行，或使用 CLI</summary>
 
-npm 发布前，可以克隆本仓库，准备 Node.js 26.4.0+、Corepack、pnpm，以及 `rust-toolchain.toml` 指定的 Rust 版本。
+首个 GitHub Release 前，可以克隆本仓库，准备 Node.js 26.4.0+、Corepack、pnpm，以及 `rust-toolchain.toml` 指定的 Rust 版本。
 
 在仓库目录中执行：
 

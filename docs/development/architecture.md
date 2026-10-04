@@ -34,7 +34,7 @@ flowchart LR
 | `ui/` | React / TypeScript / Vite 前端；`App` 接收 `UsageClient`，实现五入口及详情，装配 HTTP；不依赖 Node/Tauri |
 | `cli/` | 参数、JSON/文本、退出码与显式 Web 启停；默认命令输出用量文本 |
 
-依赖方向为 `cli → web + client/node`、`web → client`、`ui → client + client/http + client/locale`。`core` 不依赖展示模块。跨模块仅使用公开包入口或版本化协议，不引用内部源码；静态边界检查覆盖所有 TS/TSX 模块。仍为模块化单体，npm按平台安装内核。
+依赖方向为 `cli → web + client/node`、`web → client`、`ui → client + client/http + client/locale`。`core` 不依赖展示模块。跨模块仅使用公开包入口或版本化协议，不引用内部源码；静态边界检查覆盖所有 TS/TSX 模块。仍为模块化单体，GitHub Release 按平台提供独立归档。
 
 业务规则保留在 Rust：适配器拥有来源语义与身份；`pricing.rs` / `pricing_sync.rs` 拥有金额与价表资格；`live.rs` / `live_index.rs` 拥有增量索引与版本；`usage_store.rs` 拥有不可变快照；`usage_app.rs` / `usage_app_dto.rs` 拥有操作、筛选、排序、完整范围汇总和分页。列表不从当前页重算总量、占比或计价。
 
@@ -74,7 +74,7 @@ HTTP只开放生成的查询、同步、价表、配置、优化、授权、偏�
 
 ## 构建与验证
 
-npm运行要求Node.js 22+，源码工具26.4.0+；构建顺序为内核、客户端、Web 前端与宿主、CLI、发行组装。前端静态资产随 `dist/web/` 打包，运行时不需要 Vite。React DOM 渲染浏览器界面，Tauri 2 仍是已选桌面宿主；桌面传输和生命周期需独立实施，不能把本机 HTTP 验证当作 Tauri 验收。
+发行包内置Node.js 26.4.0；源码工具要求同版本以上。构建顺序为内核、客户端、Web与CLI，再组装平台归档。前端随`dist/web/`打包，运行时无需Vite。React DOM渲染界面，Tauri 2仍是已选桌面宿主；桌面传输和生命周期需独立实施，本机HTTP验证不等于Tauri验收。
 
 协议与宿主测试使用合成客户端；端到端测试从发行入口启动 HTTP，比较真实 Rust 和 CLI 的独立真值、固定版本下钻、认证及退出。浏览器交互、窄屏、失败/取消、安装包资产与跨平台需分别验证；通过范围只写入进度。详细流程见[开发约定](workflow.md)，Web 的取舍见[本地 Web 决策](../decisions/implemented/architecture/2026-10-01-local-web.md)。
 

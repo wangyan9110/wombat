@@ -14,7 +14,7 @@ Follow the [version-one specification](../project/specification.en.md) and [arch
 - Date ranges include since and exclude until. Use timezone calendar days, Monday week boundaries, and each measurement's date for conversations and turns spanning days.
 - Preserve existing user work before changes. Removing old code must not remove user data directories, identity registrations, or recovery materials.
 - Follow [independent module boundaries](architecture.en.md): peer root modules `core/`, `client/`, `ui/`, `web/`, and `cli/`. Each declares dependencies, builds, and tests and uses only public exports or protocols. UI accesses business operations through an injected `UsageClient`. Typechecking includes import-boundary checks.
-- npm runtime requires Node.js 22+; source tools require 26.4.0+. See [distribution](../reference/distribution.en.md) for release structure. The default CLI prints usage; Web is started explicitly. No terminal rendering or FFI startup is required.
+- GitHub Release archives bundle Node.js 26.4.0, so users install no runtime; source tools require 26.4.0+. See [distribution](../reference/distribution.en.md) for release structure. The default CLI prints usage; Web is started explicitly. No terminal rendering or FFI startup is required.
 
 ## Verification
 
@@ -31,7 +31,7 @@ After building, run synthetic development scripts: `node --import tsx scripts/be
 
 Choose tests by the actual change; run all for complete-chain delivery. Cross-language tests call dist and require a preceding build. Independent truth covers A01–A12; correctness is not equivalence to old output. Verify Web interaction, narrow screens, cancellation, and return paths in a browser. Performance reports specify fixed fixtures, release builds, cold/warm queries, core startup, and peak memory; parsing alone does not establish total performance.
 
-Review dependency changes and run `corepack pnpm licenses:generate` and `licenses:check`. Release acceptance uses `corepack pnpm public:check --package` and installation in a clean directory. Do not claim support for untested platforms. Only checks actually passed enter completion records.
+Review dependency changes and run `corepack pnpm licenses:generate` and `licenses:check`. Release acceptance uses `corepack pnpm public:check`, `corepack pnpm github:pack`, and installation in a clean directory. Do not claim support for untested platforms. Only checks actually passed enter completion records.
 
 ## Web-First Migration
 

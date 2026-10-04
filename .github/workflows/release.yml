@@ -1,17 +1,17 @@
-name: CI
+name: Release
 on:
   push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+    tags: ['v*']
 permissions:
-  contents: read
+  contents: write
+  id-token: write
+  attestations: write
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  verify:
-    name: Verify ${{ matrix.target }}
+  build:
+    name: Build ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
@@ -36,32 +36,29 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '26.4.0'
-      - name: Install locked tools and dependencies
+      - name: Validate tag and install locked tools
         run: |
-          echo "CODEX_HOME=$RUNNER_TEMP/wombat-source" >> "$GITHUB_ENV"
-          echo "WOMBAT_DATA_HOME=$RUNNER_TEMP/wombat-data" >> "$GITHUB_ENV"
+          node -e 'const p=require("./package.json");if(process.env.GITHUB_REF_NAME!==`v${p.version}`)throw new Error(`tag ${process.env.GITHUB_REF_NAME} does not match package ${p.version}`)'
           npm install --global corepack@0.33.0
           corepack pnpm install --frozen-lockfile
-          rustup show
           rustup component add rustfmt clippy
           cargo fetch --locked --manifest-path core/Cargo.toml
       - name: Inventory native dependencies on this target
         if: matrix.target != 'darwin-arm64'
         run: corepack pnpm licenses:generate
-      - name: Release gate
-        run: corepack pnpm release:check
-      - name: Export core, bundled runtime and notices
-        run: corepack pnpm native:export
+      - name: Run release gate and export platform payload
+        run: |
+          corepack pnpm release:check
+          corepack pnpm native:export
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-${{ matrix.target }}
           path: dist/native-artifacts/
           if-no-files-found: error
-          retention-days: 14
 
-  github-candidate:
-    name: Assemble GitHub Release candidate
-    needs: verify
+  assemble:
+    name: Assemble release archives
+    needs: build
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -77,7 +74,7 @@ jobs:
           pattern: native-*
           path: native-artifacts
           merge-multiple: true
-      - name: Assemble the five self-contained archives
+      - name: Assemble archives
         run: |
           npm install --global corepack@0.33.0
           corepack pnpm install --frozen-lockfile
@@ -85,14 +82,13 @@ jobs:
           corepack pnpm github:pack -- --native-dir native-artifacts --reuse-build
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: github-candidate
+          name: release-candidate
           path: dist/github/
           if-no-files-found: error
-          retention-days: 14
 
-  install-candidate:
-    name: Install archive on ${{ matrix.target }}
-    needs: github-candidate
+  verify:
+    name: Verify release on ${{ matrix.target }}
+    needs: assemble
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
     strategy:
@@ -116,25 +112,33 @@ jobs:
           node-version: '26.4.0'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: github-candidate
+          name: release-candidate
           path: candidate
-      - name: Exercise the exact self-contained archive
-        run: node scripts/verify-github-release.ts --set candidate/release-set.json
+      - run: node scripts/verify-github-release.ts --set candidate/release-set.json
 
-  dependency-audit:
-    name: Dependency advisories
+  publish:
+    name: Publish GitHub Release
+    needs: verify
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          node-version: '26.4.0'
-      - run: |
-          npm install --global corepack@0.33.0
-          corepack pnpm install --frozen-lockfile
-          corepack pnpm audit --audit-level moderate
-          cargo install --locked cargo-audit --version 0.22.2
-          cargo audit --file core/Cargo.lock
+          name: release-candidate
+          path: candidate
+      - name: Attest release archives
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: candidate/wombat-*.tar.gz
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          generate_release_notes: true
+          files: |
+            candidate/wombat-*.tar.gz
+            candidate/SHA256SUMS
+            candidate/release-set.json
+            install.sh
+            install.ps1

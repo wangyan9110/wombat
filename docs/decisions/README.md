@@ -42,6 +42,7 @@
 | implemented | [首次运行与有界静态规则](implemented/architecture/2026-10-02-startup-static-rules.md) |
 | implemented | [物理配置身份与完整复查](implemented/architecture/2026-10-02-rule-review-integrity.md) |
 | implemented | [npm按平台安装预编译内核](implemented/architecture/2026-10-03-npm-platform-distribution.md) |
+| implemented | [GitHub Release 独立归档与原子升级](implemented/architecture/2026-10-04-github-release-distribution.md) |
 | implemented | [未发布首版仅维护当前格式](implemented/architecture/2026-10-03-current-format-only.md) |
 | implemented | [简化本机Codex交接与独立账户](implemented/architecture/2026-10-03-native-codex-handoff.md) |
 | implemented | [首次扫描的临时任务视图](implemented/architecture/2026-10-04-initial-task-preview.md) |
