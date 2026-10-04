@@ -96,7 +96,7 @@ for (const target of targets) {
     writeFileSync(path.join(bundle, 'release.json'), JSON.stringify(release, null, 2) + '\n');
 
     const archive = releaseArchive(target);
-    run('tar', ['-czf', path.join(output, archive), '-C', stage, 'wombat']);
+    run('tar', ['-czf', archive, '-C', path.basename(stage), 'wombat'], output);
     set.assets.push({target, archive, sha256: sha256(path.join(output, archive)), bytes: statSync(path.join(output, archive)).size});
   } finally {
     rmSync(stage, {recursive: true, force: true});

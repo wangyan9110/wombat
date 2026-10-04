@@ -28,9 +28,9 @@ for (const item of set.assets) {
 
 const scratch = mkdtempSync(path.join(os.tmpdir(), 'wombat-github-release-'));
 try {
-  const archive = path.join(path.dirname(setFile), asset.archive);
+  const releaseDirectory = path.dirname(setFile);
   const unpackedAt = performance.now();
-  const unpack = spawnSync(...toolCommand('tar', ['-xzf', archive, '-C', scratch]), {encoding: 'utf8', timeout: 120_000});
+  const unpack = spawnSync(...toolCommand('tar', ['-xzf', asset.archive, '-C', scratch]), {cwd: releaseDirectory, encoding: 'utf8', timeout: 120_000});
   assert.ifError(unpack.error); assert.equal(unpack.status, 0, unpack.stderr);
   const installMs = Math.round(performance.now() - unpackedAt);
   const installed = path.join(scratch, 'wombat');
