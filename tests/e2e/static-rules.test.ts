@@ -9,9 +9,39 @@ import {createNodeClient} from '@wombat/client/node';
 import {createHttpClient} from '@wombat/client/http';
 import {startWebHost} from '@wombat/web';
 
-test('exact blocks, explicit copies, ignore fingerprints and unavailable rechecks share real CLI/HTTP results',{timeout:45_000},async()=>{
+test('local resource checks retain fixed evidence, expose independent outcomes and fail closed on unknown references',{timeout:45_000},async()=>{
+ const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-reference-checks-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),skill=path.join(project,'.agents/skills/resources/SKILL.md'),data=path.join(dir,'data');
+ await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.dirname(skill),{recursive:true});
+ await writeFile(path.join(root,'AGENTS.md'),'Synthetic source instruction.\n');await writeFile(path.join(project,'AGENTS.md'),'Synthetic project instruction.\n');
+ const body='---\nname: resources\ndescription: Synthetic resources\n---\n[Forms](references/forms.md#fields)\n';await writeFile(skill,body);
+ const saved={WOMBAT_DATA_HOME:process.env.WOMBAT_DATA_HOME,CODEX_HOME:process.env.CODEX_HOME,WOMBAT_AUTO_PRICES:process.env.WOMBAT_AUTO_PRICES};Object.assign(process.env,{WOMBAT_DATA_HOME:data,CODEX_HOME:root,WOMBAT_AUTO_PRICES:'0'});
+ const binary=path.resolve('dist',process.platform==='win32'?'wombat-core.exe':'wombat-core'),service=spawn(binary,['--serve-usage'],{stdio:'ignore'});await once(service,'spawn');
+ let host:Awaited<ReturnType<typeof startWebHost>>|undefined;
+ try{
+  host=await startWebHost({client:createNodeClient({binaryPath:binary,automaticPrices:false}),automaticPrices:false,assets:path.resolve('dist/web'),roots:[root],projectRoots:[project]});
+  const token=new URLSearchParams(new URL(host.url).hash.slice(1)).get('token')!,browser=createHttpClient({origin:host.origin,token,fetch:(url,init)=>fetch(url,{...init,headers:{...init?.headers,Origin:host!.origin}})});
+  const first=await browser.optimize!({action:'list'});assert.equal(first.pending,1);const suggestion=first.suggestions[0];assert.equal(suggestion.category,'repair');
+  const reference=suggestion.findings[0].evidence!.references![0];assert.equal(reference.target,'references/forms.md');assert.equal(reference.startLine,5);assert.equal(reference.status,'referenceTargetMissing');
+  const checks=await browser.optimize!({action:'checks',readView:first.readView,itemId:suggestion.item.id,limit:1});assert.equal(checks.page.total,1);assert.equal(checks.checks?.find(c=>c.rule==='localReference')?.outcome,'hit');assert.equal(checks.checks?.find(c=>c.rule==='skillFormat')?.outcome,'miss');assert.equal(checks.checks?.find(c=>c.rule==='skillInactivity')?.outcome,'unsupported');
+  const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','checks','--root',root,'--project-root',project,'--read-view',first.readView!,'--item',suggestion.item.id,'--json'],{env:process.env,encoding:'utf8',timeout:10_000});assert.equal(cli.status,2,cli.stderr+cli.stdout);assert.deepEqual(JSON.parse(cli.stdout).checks,checks.checks);
+  await browser.optimize!({action:'recheck',readView:first.readView,decisionRevision:first.decisionRevision,suggestionId:suggestion.id});
+  await mkdir(path.join(path.dirname(skill),'references'));await writeFile(path.join(path.dirname(skill),'references/forms.md'),'Synthetic reference.\n');
+  const fixed=await browser.optimize!({action:'recheck',group:'history'});assert.equal(fixed.pending,0);assert.equal(fixed.suggestions[0].status,'verified');
+  assert.equal((await browser.optimize!({action:'checks',readView:first.readView,itemId:suggestion.item.id})).checks?.find(c=>c.rule==='localReference')?.outcome,'hit','a fixed view retains its original target observation');
+  await rm(path.join(path.dirname(skill),'references/forms.md'));
+  const again=await browser.optimize!({action:'list'});
+  await browser.optimize!({action:'recheck',readView:again.readView,decisionRevision:again.decisionRevision,suggestionId:again.suggestions[0].id});
+  await writeFile(skill,body.replace('references/forms.md#fields','$RESOURCE/forms.md'));
+  const unknown=await browser.optimize!({action:'recheck',group:'history'});assert.equal(unknown.suggestions[0].status,'recheckUnavailable');assert.equal(unknown.pending,1,'unknown evidence retains the original recommendation without fabricating a new fault');
+  const unknownChecks=await browser.optimize!({action:'checks',readView:unknown.readView,itemId:suggestion.item.id});assert.equal(unknownChecks.checks?.find(c=>c.rule==='localReference')?.outcome,'insufficient');assert.equal(unknownChecks.checks?.find(c=>c.rule==='skillFormat')?.outcome,'miss');
+  await assert.rejects(browser.optimize!({action:'checks',readView:unknown.readView,itemId:'foreign'}),{code:'NOT_FOUND'});
+ }finally{await host?.close();if(service.exitCode===null&&service.signalCode===null){const ended=once(service,'exit');service.kill();await ended;}for(const[k,v]of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
+});
+
+test('exact blocks, explicit copies, decision fingerprints and unavailable rechecks share real CLI/HTTP results',{timeout:45_000},async()=>{
  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-static-rules-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.join(project,'copy'),{recursive:true});await mkdir(path.join(project,'.wombat'),{recursive:true});
+ await writeFile(path.join(root,'AGENTS.md'),'Synthetic source instruction.\n');
  const source=path.join(project,'AGENTS.md'),copy=path.join(project,'copy/AGENTS.md'),declaration=path.join(project,'.wombat/analysis.json');
  const text='完整中文指令，保留大小写 A。\r\n\r\n完整中文指令，保留大小写 A。\r\n\r\n'+'x '.repeat(9000)+'\n';
  await writeFile(source,text);await writeFile(copy,'当前副本不同。\n');
@@ -31,16 +61,16 @@ test('exact blocks, explicit copies, ignore fingerprints and unavailable recheck
   const original=await readFile(source);for(const p of block.positions){assert.equal(original.subarray(p.startByte,p.endByte).toString(),'完整中文指令，保留大小写 A。\r\n');}
   const drift=first.suggestions.find(s=>s.item.path===copy)!;assert.equal(drift.category,'repair');assert.equal(drift.findings[0].evidence?.versions.length,2);assert.equal(drift.findings[0].evidence?.direction,'sourceToCopy');
   const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','list','--root',root,'--project-root',project,'--read-view',first.readView!,'--json'],{env:process.env,encoding:'utf8',timeout:10_000});assert.equal(cli.status,2,cli.stderr);assert.deepEqual(JSON.parse(cli.stdout).suggestions,first.suggestions);
-  await browser.optimize!({action:'ignore',readView:first.readView,decisionRevision:first.decisionRevision,suggestionId:drift.id});
+  await browser.optimize!({action:'keep',decisionReason:'necessary',readView:first.readView,decisionRevision:first.decisionRevision,suggestionId:drift.id});
   assert.equal((await browser.optimize!({action:'list'})).suggestions.some(s=>s.id===drift.id),false);
   await writeFile(source,text+'原件新增约束。\n');
   const changed=await browser.optimize!({action:'list'}),newDrift=changed.suggestions.find(s=>s.item.path===copy)!;
   assert.notEqual(newDrift.id,drift.id,'unchanged copy must resurface when its declared source version changes');
-  await browser.optimize!({action:'mark_edited',readView:changed.readView,decisionRevision:changed.decisionRevision,suggestionId:newDrift.id});
+  await browser.optimize!({action:'recheck',readView:changed.readView,decisionRevision:changed.decisionRevision,suggestionId:newDrift.id});
   await rm(declaration);
   const missing=await browser.optimize!({action:'recheck',group:'history'});assert.equal(missing.suggestions.find(s=>s.id===newDrift.id)!.status,'recheckUnavailable','absence of a declaration cannot prove a relationship repaired');
   await writeFile(declaration,manifest);await writeFile(copy,await readFile(source));
-  const fixed=await browser.optimize!({action:'recheck',group:'history'});assert.equal(fixed.suggestions.find(s=>s.id===newDrift.id)!.status,'stillNeedsReview','the copy now matches but its own repeated blocks and size still need review');
+  const fixed=await browser.optimize!({action:'recheck',group:'history'});assert.equal(fixed.suggestions.find(s=>s.id===newDrift.id)!.status,'verified','the original copy-drift problem passes independently of new size and repetition problems');assert.ok(fixed.pending>0,'independent new findings remain pending');
   const shorter='一条完整合成指令。\n';await writeFile(source,shorter);await writeFile(copy,shorter);
   const verified=await browser.optimize!({action:'recheck',group:'history'});assert.equal(verified.suggestions.find(s=>s.id===newDrift.id)!.status,'verified');
   assert.equal(await readFile(declaration,'utf8'),manifest,'review operations never change declarations');
@@ -67,13 +97,13 @@ test('relation rechecks fail closed across heading changes and identical manifes
   const parent=await browser.config!({action:'list',scope:{allTime:true,project}});assert.ok(parent.items.some(i=>i.id===item.id));
   const first=await browser.optimize!({action:'list',project});const target=first.suggestions.find(s=>s.item.path===path.join(project,'AGENTS.md'))!;
   assert.equal(target.findings[0].evidence?.relation?.project,project);
-  await browser.optimize!({action:'mark_edited',project,suggestionId:target.id,readView:first.readView,decisionRevision:first.decisionRevision});
+  await browser.optimize!({action:'recheck',project,suggestionId:target.id,readView:first.readView,decisionRevision:first.decisionRevision});
   await writeFile(path.join(nested,'AGENTS.md'),'# Condition B\n\nExact synthetic instruction.\n');
-  const unknown=await browser.optimize!({action:'recheck',group:'history',project});assert.equal(unknown.suggestions[0].status,'recheckUnavailable');assert.ok(unknown.issues.some(i=>i.code==='blockApplicabilityUnknown'));
+  const unknown=await browser.optimize!({action:'recheck',group:'history',project,suggestionId:target.id});assert.equal(unknown.suggestions[0].status,'recheckUnavailable');assert.ok(unknown.issues.some(i=>i.code==='blockApplicabilityUnknown'));
   await writeFile(path.join(nested,'AGENTS.md'),'Independent replacement instruction.\n');await rm(path.join(project,'.wombat/analysis.json'));
-  const absent=await browser.optimize!({action:'recheck',group:'history',project});assert.equal(absent.suggestions[0].status,'recheckUnavailable');
+  const absent=await browser.optimize!({action:'recheck',group:'history',project,suggestionId:target.id});assert.equal(absent.suggestions[0].status,'recheckUnavailable');
   await writeFile(path.join(project,'.wombat/analysis.json'),manifest);
-  const fixed=await browser.optimize!({action:'recheck',group:'history',project});assert.equal(fixed.suggestions[0].status,'verified');assert.equal(fixed.history,4);
+  const fixed=await browser.optimize!({action:'recheck',group:'history',project,suggestionId:target.id});assert.equal(fixed.suggestions[0].status,'verified');assert.equal(fixed.history,4);
   const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','history','--root',root,...[project,other,nested].flatMap(p=>['--project-root',p]),'--project',project,'--limit','1','--read-view',fixed.readView!,'--json'],{env:process.env,encoding:'utf8',timeout:10_000});
   assert.equal(cli.status,2,cli.stderr+cli.stdout);const result=JSON.parse(cli.stdout);assert.equal(result.history,4);assert.deepEqual(result.suggestions,[fixed.suggestions[0]]);assert.equal(result.page.total,4);
  }finally{await host.close();if(service.exitCode===null&&service.signalCode===null){const ended=once(service,'exit');service.kill('SIGTERM');await ended;}for(const[k,v]of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
@@ -82,8 +112,10 @@ test('relation rechecks fail closed across heading changes and identical manifes
 test('two sources share one physical configuration and one review while keeping independent evidence and ledger identities',{timeout:45_000},async()=>{
  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-shared-object-'))),roots=[path.join(dir,'source-one'),path.join(dir,'source-two')],project=path.join(dir,'project'),skill=path.join(project,'.agents/skills/shared/SKILL.md');
  await mkdir(path.dirname(skill),{recursive:true});const body='---\nname: shared\ndescription: Synthetic description\n---\n\nComplete synthetic instruction.\n\nComplete synthetic instruction.\n';await writeFile(skill,body);
+ await writeFile(path.join(project,'AGENTS.md'),'Synthetic project instruction.\n');
  for(const[n,root]of roots.entries()){
   await mkdir(path.join(root,'sessions'),{recursive:true});
+  await writeFile(path.join(root,'AGENTS.md'),'Synthetic source instruction.\n');
   const event=(type:string,payload:object)=>({type,payload,timestamp:'2026-10-01T00:00:00Z'});
   const rows=[event('session_meta',{id:'same-upstream-id',cwd:project}),event('turn_context',{turn_id:'same-turn-id',model:'gpt-5.4',cwd:project}),event('event_msg',{type:'task_started',turn_id:'same-turn-id'}),event('event_msg',{type:'token_usage_record',response_id:'same-response-id',turn_id:'same-turn-id',usage:{input_tokens:100*(n+1),cached_input_tokens:20*(n+1),output_tokens:10*(n+1),total_tokens:110*(n+1)}}),...['read-one','read-two'].flatMap(call_id=>[event('response_item',{type:'function_call',call_id,name:'read_file',arguments:JSON.stringify({path:skill})}),event('response_item',{type:'function_call_output',call_id,output:'Synthetic content'})])];await writeFile(path.join(root,'sessions/log.jsonl'),rows.map(r=>JSON.stringify(r)).join('\n')+'\n');
  }
@@ -96,9 +128,9 @@ test('two sources share one physical configuration and one review while keeping 
   const evidence=await browser.config!({action:'evidence',readView:config.readView,itemId:item.id,scope:{allTime:true}});assert.equal(evidence.evidence.length,4);assert.equal(new Set(evidence.evidence.map(e=>e.sourceInstanceId)).size,2);assert.equal(new Set(evidence.evidence.map(e=>e.threadId)).size,2);
   const first=await browser.optimize!({action:'list'});assert.equal(first.pending,1);assert.equal(first.suggestions[0].item.id,item.id);assert.equal(first.suggestions[0].findings.length,1);assert.equal(first.suggestions[0].findings[0].evidence?.positions.length,2);
   for(const c of item.sourceContexts!){const filtered=await browser.config!({action:'list',readView:config.readView,scope:{allTime:true,sourceInstanceId:c.sourceInstanceId}});assert.equal(filtered.items.find(i=>i.id===item.id)!.counts.fileReads,2);assert.equal((await browser.optimize!({action:'list',readView:first.readView,sourceInstanceId:c.sourceInstanceId})).suggestions[0].id,first.suggestions[0].id);}
-  await browser.optimize!({action:'ignore',suggestionId:first.suggestions[0].id,readView:first.readView,decisionRevision:first.decisionRevision});for(const c of item.sourceContexts!)assert.equal((await browser.optimize!({action:'list',sourceInstanceId:c.sourceInstanceId})).pending,0);
-  const restored=await browser.optimize!({action:'restore',suggestionId:first.suggestions[0].id});assert.equal(restored.pending,1);assert.equal(restored.history,2);
-  await browser.optimize!({action:'mark_edited',suggestionId:first.suggestions[0].id});await writeFile(skill,'---\nname: shared\ndescription: Synthetic description\n---\n\nOne complete synthetic instruction.\n');const checked=await browser.optimize!({action:'recheck',group:'history'});assert.equal(checked.pending,0);assert.equal(checked.suggestions[0].status,'verified');assert.equal(checked.suggestions[0].reviewBaseline?.sourceContexts?.length,2);
+  await browser.optimize!({action:'keep',decisionReason:'necessary',suggestionId:first.suggestions[0].id,readView:first.readView,decisionRevision:first.decisionRevision});for(const c of item.sourceContexts!)assert.equal((await browser.optimize!({action:'list',sourceInstanceId:c.sourceInstanceId})).pending,0);
+  const restored=await browser.optimize!({action:'redisplay',suggestionId:first.suggestions[0].id});assert.equal(restored.pending,1);assert.equal(restored.history,2);
+  await browser.optimize!({action:'recheck',suggestionId:first.suggestions[0].id});await writeFile(skill,'---\nname: shared\ndescription: Synthetic description\n---\n\nOne complete synthetic instruction.\n');const checked=await browser.optimize!({action:'recheck',group:'history'});assert.equal(checked.pending,0);assert.equal(checked.suggestions[0].status,'verified');assert.equal(checked.suggestions[0].reviewBaseline?.sourceContexts?.length,2);
   const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','inventory',...roots.flatMap(p=>['--root',p]),'--project-root',project,'--all-time','--read-view',checked.readView!,'--json'],{env:process.env,encoding:'utf8',timeout:10_000});assert.equal(cli.status,2,cli.stderr+cli.stdout);assert.equal(JSON.parse(cli.stdout).items.filter((i:{path:string})=>i.path===skill).length,1);
  }finally{await host.close();if(service.exitCode===null&&service.signalCode===null){const ended=once(service,'exit');service.kill('SIGTERM');await ended;}for(const[k,v]of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
 });

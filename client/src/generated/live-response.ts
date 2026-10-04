@@ -30,6 +30,11 @@ export type Item =
       lastActivityAt?: string | null;
       models: string[];
       reasoningEfforts: string[];
+      /**
+       * Distinct turns with measurements in the current thread-list scope.
+       * None means the matched source records provide no turn association.
+       */
+      matchedTurnCount?: number | null;
       matchedUsage: UsageSummary;
       threadUsage: UsageSummary;
       kind: "thread";
@@ -40,6 +45,10 @@ export type Item =
       ordinal?: number | null;
       startedAt?: string | null;
       endedAt?: string | null;
+      /**
+       * Latest reliable source event time, independent of ordinal and metering.
+       */
+      lastActivityAt?: string | null;
       status: string;
       models: string[];
       reasoningEfforts: string[];
@@ -150,6 +159,10 @@ export interface Automatic {
 }
 export interface Freshness {
   status: string;
+  /**
+   * Ephemeral task headers; no completed ledger or coverage is available yet.
+   */
+  initialScan?: boolean;
   checkedAt?: string | null;
   revision: string;
   error?: string | null;
@@ -158,10 +171,6 @@ export interface Freshness {
 export interface SnapshotRef {
   snapshotId: string;
   createdAt: string;
-  /**
-   * Fixed selector for externally located legacy files; v3 uses snapshotId.
-   */
-  selector?: string | null;
 }
 export interface AvailableRange {
   since?: string | null;

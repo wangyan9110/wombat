@@ -210,20 +210,17 @@ fn aggregate_preserves_partial_unknown_and_exact_sub_cent_amounts() {
 }
 
 #[test]
-fn legacy_amount_never_becomes_official_or_mixes_policies() {
-    let old = legacy_price(Some("12.3400")).unwrap();
-    assert_eq!(old.cost.as_deref(), Some("12.34"));
-    assert_eq!(old.policy.as_ref(), "legacy_recorded");
-    assert_eq!(
-        sum_prices([&old, &old]).unwrap().cost.as_deref(),
-        Some("24.68")
-    );
-    let missing = legacy_price(None).unwrap();
-    assert_eq!(missing.status.as_ref(), "unknown");
-    let modern = price(&model("gpt-5.4"), &tokens(100, 0, 0, 1));
-    assert!(sum_prices([&old, &modern]).is_err());
-    assert!(legacy_price(Some("NaN")).is_err());
-    assert!(legacy_price(Some("-1")).is_err());
+fn unsupported_price_policy_is_rejected() {
+    let mut recorded = empty_price();
+    recorded.policy = "unsupported".into();
+    assert!(sum_prices([&recorded]).is_err());
+}
+fn exact_price(cost: &str) -> PriceResult {
+    let amount = parse_amount(cost).unwrap();
+    let mut result = empty_price();
+    result.cost = Some(decimal_string(amount));
+    result.known_cost = decimal_string(amount);
+    result
 }
 
 #[test]
@@ -231,21 +228,18 @@ fn invalid_counts_and_overflow_fail_without_fabricating_amounts() {
     let mut usage = tokens(100, 20, 0, 10);
     usage.total = Some(100);
     assert_eq!(price(&model("gpt-5.4"), &usage).status.as_ref(), "unknown");
-    let mut amount = legacy_price(Some("79228162514264337593543950335")).unwrap();
+    let mut amount = exact_price("79228162514264337593543950335");
     assert!(sum_prices([&amount, &amount]).is_err());
     amount.known_cost = "bad".into();
     assert!(sum_prices([&amount]).is_err());
 }
 
 #[test]
-fn exact_decimal_boundary_rejects_loss_and_reads_legacy_scientific_numbers() {
-    assert_eq!(
-        legacy_price(Some("1.75e-7")).unwrap().cost.as_deref(),
-        Some("0.000000175")
-    );
-    assert!(legacy_price(Some("0.00000000000000000000000000001")).is_err());
-    let large = legacy_price(Some("79228162514264337593543950335")).unwrap();
-    let tiny = legacy_price(Some("0.000000175")).unwrap();
+fn exact_decimal_boundary_rejects_loss_and_reads_scientific_numbers() {
+    assert_eq!(exact_price("1.75e-7").cost.as_deref(), Some("0.000000175"));
+    assert!(parse_amount("0.00000000000000000000000000001").is_err());
+    let large = exact_price("79228162514264337593543950335");
+    let tiny = exact_price("0.000000175");
     assert!(sum_prices([&large, &tiny]).is_err());
     let mut corrupt = tiny;
     corrupt.cost = None;
@@ -300,7 +294,7 @@ fn shared_price_metadata_keeps_exact_amounts_and_serialization() {
     let mut first = price(&model("gpt-5.4"), &tokens(100, 20, 0, 10));
     let mut second = price(&model("gpt-5.4"), &tokens(200, 30, 0, 20));
     let original = serde_json::to_value([&first, &second]).unwrap();
-    let mut strings = PriceStrings::default();
+    let mut strings = PriceParts::default();
     strings.compact(&mut first);
     strings.compact(&mut second);
     assert_eq!(serde_json::to_value([&first, &second]).unwrap(), original);
@@ -314,6 +308,82 @@ fn shared_price_metadata_keeps_exact_amounts_and_serialization() {
         first.basis[0].request_input_tokens,
         second.basis[0].request_input_tokens
     );
+}
+
+#[test]
+fn distinct_request_totals_share_only_equal_categories() {
+    let mut first = price(&model("gpt-5.4"), &tokens(100, 20, 0, 10));
+    let mut second = price(&model("gpt-5.4"), &tokens(200, 20, 0, 10));
+    let expected = serde_json::to_value([&first, &second]).unwrap();
+    let mut pool = PriceParts::default();
+    pool.compact(&mut first);
+    pool.compact(&mut second);
+    assert!(!Arc::ptr_eq(&first.components[0], &second.components[0]));
+    for index in 1..4 {
+        assert!(Arc::ptr_eq(
+            &first.components[index],
+            &second.components[index]
+        ));
+    }
+    assert_eq!(serde_json::to_value([&first, &second]).unwrap(), expected);
+    let mut other_rate = second.clone();
+    Arc::make_mut(&mut other_rate.components[1]).rate_per_million = None;
+    pool.compact(&mut other_rate);
+    assert!(!Arc::ptr_eq(
+        &first.components[1],
+        &other_rate.components[1]
+    ));
+    assert!(second.components[1].rate_per_million.is_some());
+}
+
+#[test]
+fn streaming_categories_match_independent_exact_totals_and_mixed_rates() {
+    let rows: Vec<_> = (1..=1000)
+        .map(|n| price(&model("gpt-5.4"), &tokens(n, 0, 0, 2)))
+        .collect();
+    let sum = sum_prices(&rows).unwrap();
+    // 500500 uncached input * $2.5/M + 2000 output * $15/M.
+    assert_eq!(sum.cost.as_deref(), Some("1.28125"));
+    assert_eq!(sum.components[0].cost.as_deref(), Some("1.25125"));
+    assert_eq!(sum.components[0].tokens, Some(500500));
+    assert_eq!(sum.components[3].tokens, Some(2000));
+    let partitions: Vec<_> = rows
+        .chunks(73)
+        .map(|part| sum_prices(part).unwrap())
+        .collect();
+    assert_eq!(sum_prices(&partitions).unwrap(), sum);
+    let mut missing_rate = rows[0].clone();
+    Arc::make_mut(&mut missing_rate.components[0]).rate_per_million = None;
+    for values in [
+        [&rows[0], &missing_rate, &rows[1]],
+        [&missing_rate, &rows[0], &rows[1]],
+    ] {
+        assert!(
+            sum_prices(values).unwrap().components[0]
+                .rate_per_million
+                .is_none()
+        );
+    }
+}
+
+#[test]
+fn damaged_component_amounts_and_statuses_cannot_hide_behind_valid_total() {
+    let row = price(&model("gpt-5.4"), &tokens(100, 20, 0, 10));
+    for (status, cost, known) in [
+        ("unexpected", Some("0"), "0"),
+        ("priced", Some("0.01"), "0.02"),
+        ("unknown", None, "0.01"),
+        ("partial", Some("0"), "0"),
+        ("priced", Some("-1"), "-1"),
+    ] {
+        let mut damaged = row.clone();
+        let component = Arc::make_mut(&mut damaged.components[0]);
+        component.status = status.into();
+        component.cost = cost.map(str::to_owned);
+        component.known_cost = known.into();
+        assert!(sum_prices([&damaged]).is_err());
+    }
+    assert!(sum_prices([&row]).is_ok());
 }
 
 #[test]

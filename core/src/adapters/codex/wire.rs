@@ -51,6 +51,11 @@ pub(super) struct Payload<'a> {
     #[serde(borrow)]
     pub item: Option<&'a RawValue>,
     pub name: Option<String>,
+    pub namespace: Option<String>,
+    #[serde(borrow)]
+    pub invocation: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub duration: Option<&'a RawValue>,
     #[serde(alias = "callId")]
     pub call_id: Option<String>,
     #[serde(alias = "itemId")]
@@ -71,6 +76,11 @@ pub(super) struct Payload<'a> {
     pub server: Option<String>,
     pub tool: Option<String>,
     pub path: Option<String>,
+    pub role: Option<String>,
+    #[serde(borrow)]
+    pub content: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub internal_chat_message_metadata_passthrough: Option<&'a RawValue>,
 }
 
 #[derive(Deserialize)]
@@ -287,9 +297,9 @@ pub(super) fn context_fields(p: &Payload<'_>) -> (ModelRef, Option<String>, bool
     let (api_provider, aconflict) = unique(&api_providers);
     (
         ModelRef {
-            raw: model,
-            provider,
-            api_provider,
+            raw: model.map(Into::into),
+            provider: provider.map(Into::into),
+            api_provider: api_provider.map(Into::into),
             pricing_model: None,
         },
         effort,
@@ -332,200 +342,4 @@ pub(super) fn measurement_context(
         model,
         explicit_effort.or_else(|| same_owner.then(|| current_effort.clone()).flatten()),
     )
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(super) fn empty_operation(
-    thread: &str,
-    turn: Option<String>,
-    time: Option<String>,
-    raw_time: Option<&str>,
-    evidence: &EvidenceRef,
-    kind: &str,
-    name: &str,
-    identity: &str,
-) -> Operation {
-    Operation {
-        id: stable_id(&[thread, "operation", identity]),
-        thread_id: thread.into(),
-        turn_id: turn,
-        item_id: None,
-        call_id: None,
-        response_id: None,
-        kind: kind.into(),
-        name: safe_text(name),
-        sequence: evidence.line,
-        timestamp: time,
-        time_precision: precision(raw_time),
-        status: "unknown".into(),
-        exit_code: None,
-        duration_ms: None,
-        path: None,
-        server: None,
-        tool: None,
-        evidence: vec![evidence.clone()],
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(super) fn operation(
-    p: &Payload<'_>,
-    event: &str,
-    thread: &str,
-    turn: Option<String>,
-    time: Option<String>,
-    raw_time: Option<&str>,
-    evidence: EvidenceRef,
-    fingerprint: &str,
-    facts: &mut Facts,
-    report: &mut SourceReport,
-) {
-    let parsed;
-    let item = if let Some(raw) = p.item {
-        match serde_json::from_str::<Payload>(raw.get()) {
-            Ok(value) => {
-                parsed = value;
-                &parsed
-            }
-            Err(_) => {
-                issue(
-                    report,
-                    "invalidOperation",
-                    "操作记录格式无效",
-                    Some(evidence),
-                );
-                return;
-            }
-        }
-    } else {
-        p
-    };
-    let kind = item.kind.as_deref().unwrap_or("");
-    let (operation_kind, name, completed) = match kind {
-        "function_call" | "custom_tool_call" => {
-            ("tool", item.name.as_deref().unwrap_or("tool"), false)
-        }
-        "function_call_output" | "custom_tool_call_output" => ("tool", "tool", true),
-        "commandExecution" | "command_execution" | "command" => {
-            ("command", "exec_command", event == "item_completed")
-        }
-        "fileChange" | "file_change" => ("file", "apply_patch", event == "item_completed"),
-        "mcpToolCall" | "mcp_tool_call" => (
-            "mcp",
-            item.tool.as_deref().unwrap_or("MCP"),
-            event == "item_completed",
-        ),
-        "webSearch" | "web_search" => ("search", "web_search", event == "item_completed"),
-        "imageGeneration" | "image_generation" => {
-            ("image", "image_generation", event == "item_completed")
-        }
-        "collabAgentToolCall" | "collab_agent_tool_call" => {
-            ("agent", "agent", event == "item_completed")
-        }
-        // Conversation bodies and hidden reasoning are intentionally not projection facts.
-        _ => return,
-    };
-    let call = item.call_id.as_deref().or(p.call_id.as_deref());
-    let item_id = item
-        .item_id
-        .as_deref()
-        .or(item.id.as_deref())
-        .or(p.item_id.as_deref());
-    let identity = call.or(item_id).unwrap_or(fingerprint);
-    let mut op = empty_operation(
-        thread,
-        turn,
-        time,
-        raw_time,
-        &evidence,
-        operation_kind,
-        name,
-        identity,
-    );
-    op.call_id = call.map(str::to_owned);
-    op.item_id = item_id.map(str::to_owned);
-    op.response_id = item
-        .response_id
-        .as_deref()
-        .or(p.response_id.as_deref())
-        .map(safe_text);
-    op.status = match item.status.as_deref() {
-        Some("failed" | "error") => "failed",
-        Some("interrupted" | "cancelled") => "interrupted",
-        Some("completed" | "success") => "completed",
-        _ if completed => "completed",
-        _ => "running",
-    }
-    .into();
-    op.exit_code = item.exit_code;
-    op.duration_ms = item.duration_ms.filter(|n| *n <= MAX_SAFE_INTEGER);
-    if op.exit_code.is_some_and(|code| code != 0) {
-        op.status = "failed".into();
-    }
-    op.path = item.path.as_deref().map(safe_text);
-    op.server = item.server.as_deref().map(safe_text);
-    op.tool = item.tool.as_deref().map(safe_text);
-    #[derive(Deserialize)]
-    struct Args {
-        path: Option<String>,
-        file_path: Option<String>,
-    }
-    let args = item.arguments.or(item.input);
-    if matches!(
-        name,
-        "read_file" | "view_image" | "write_file" | "edit_file"
-    ) && let Some(raw) = args
-    {
-        // Tool arguments may be JSON encoded as a string; parse only path fields.
-        let decoded;
-        let json = if raw.get().starts_with('"') {
-            decoded = serde_json::from_str::<String>(raw.get()).ok();
-            decoded.as_deref()
-        } else {
-            Some(raw.get())
-        };
-        if let Some(args) = json.and_then(|s| serde_json::from_str::<Args>(s).ok()) {
-            op.path = args.path.or(args.file_path).as_deref().map(safe_text);
-        }
-    }
-    if op
-        .path
-        .as_deref()
-        .is_some_and(|path| Path::new(path).file_name().is_some_and(|n| n == "SKILL.md"))
-    {
-        op.kind = "skillRead".into();
-    }
-    if name.starts_with("mcp__") {
-        let mut segments = name.splitn(3, "__");
-        segments.next();
-        op.server = segments.next().map(safe_text);
-        op.tool = segments.next().map(safe_text);
-        op.kind = "mcp".into();
-    }
-    #[derive(Deserialize)]
-    struct ResultMetadata {
-        #[serde(alias = "isError")]
-        is_error: Option<bool>,
-        exit_code: Option<i64>,
-        duration_ms: Option<u64>,
-    }
-    if let Some(metadata) = item
-        .result
-        .or(item.output)
-        .filter(|r| r.get().starts_with('{'))
-        .and_then(|r| serde_json::from_str::<ResultMetadata>(r.get()).ok())
-    {
-        if metadata.is_error == Some(true) {
-            op.status = "failed".into();
-        }
-        op.exit_code = metadata.exit_code.or(op.exit_code);
-        op.duration_ms = metadata
-            .duration_ms
-            .filter(|n| *n <= MAX_SAFE_INTEGER)
-            .or(op.duration_ms);
-        if op.exit_code.is_some_and(|code| code != 0) {
-            op.status = "failed".into();
-        }
-    }
-    facts.operation(op);
 }

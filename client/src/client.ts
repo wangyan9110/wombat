@@ -1,39 +1,43 @@
 import type { Request as LiveRequest } from './generated/live-request.js';
 import type { Response as LiveResult } from './generated/live-response.js';
-import { validate as validateLiveRequest } from './generated/validate-live-request.js';
-import { validate as validateLiveResult } from './generated/validate-live-response.js';
+import type {Request as AccountRequest} from './generated/account-request.js';
+import type {Response as AccountResult} from './generated/account-response.js';
+export type {Request as AccountRequest} from './generated/account-request.js';
+export type {Response as AccountResult} from './generated/account-response.js';
+export type AccountTransport=(request:AccountRequest,options:QueryOptions)=>Promise<unknown>;
+import type {Request as HandoffRequest} from './generated/handoff-request.js';
+import type {Response as HandoffResult} from './generated/handoff-response.js';
+export type {Request as HandoffRequest} from './generated/handoff-request.js';
+export type {Response as HandoffResult} from './generated/handoff-response.js';
+export type HandoffTransport=(request:HandoffRequest,options:QueryOptions)=>Promise<unknown>;
+export interface HostTransports { account?:AccountTransport;handoff?:HandoffTransport }
 export type { Request as LiveRequest } from './generated/live-request.js';
 export type { Response as LiveResult } from './generated/live-response.js';
 import { CoreError } from './errors.js';
+import type {Request as DirectoriesRequest} from './generated/directories-request.js';
+import type {Response as DirectoriesResult} from './generated/directories-response.js';
+export type {Request as DirectoriesRequest} from './generated/directories-request.js';
+export type {Response as DirectoriesResult} from './generated/directories-response.js';
+export type DirectoriesTransport=(request:DirectoriesRequest,options:QueryOptions)=>Promise<unknown>;
 import type { Request as PreferencesRequest } from './generated/preferences-request.js';
 import type { Response as PreferencesResult } from './generated/preferences-response.js';
-import { validate as validatePreferencesRequest } from './generated/validate-preferences-request.js';
-import { validate as validatePreferencesResult } from './generated/validate-preferences-response.js';
 export type { Request as PreferencesRequest } from './generated/preferences-request.js';
 export type { Response as PreferencesResult } from './generated/preferences-response.js';
 export type PreferencesTransport = (request: PreferencesRequest, options: QueryOptions) => Promise<unknown>;
 import type { Request as OptimizeRequest } from './generated/optimize-request.js';
 import type { Response as OptimizeResult } from './generated/optimize-response.js';
-import { validate as validateOptimizeRequest } from './generated/validate-optimize-request.js';
-import { validate as validateOptimizeResult } from './generated/validate-optimize-response.js';
 export type { Request as OptimizeRequest } from './generated/optimize-request.js';
 export type { Response as OptimizeResult, Suggestion as OptimizeSuggestion } from './generated/optimize-response.js';
 export type OptimizeTransport = (request: OptimizeRequest, options: QueryOptions) => Promise<unknown>;
 import type { Request as ConfigRequest } from './generated/config-request.js';
 import type { Response as ConfigResult } from './generated/config-response.js';
-import { validate as validateConfigRequest } from './generated/validate-config-request.js';
-import { validate as validateConfigResult } from './generated/validate-config-response.js';
 export type { Request as ConfigRequest } from './generated/config-request.js';
 export type { Response as ConfigResult, Item as ConfigItem } from './generated/config-response.js';
 export type ConfigTransport = (request: ConfigRequest, options: QueryOptions) => Promise<unknown>;
 import type { Request } from './generated/usage-request.js';
 import type { Response } from './generated/usage-app.js';
-import { validate as validateRequest } from './generated/validate-usage-request.js';
-import { validate as validateResponse } from './generated/validate-usage-app.js';
 import type { Request as PricingRequest } from './generated/pricing-request.js';
 import type { Response as PricingResult } from './generated/pricing-response.js';
-import { validate as validatePricingRequest } from './generated/validate-pricing-request.js';
-import { validate as validatePricingResult } from './generated/validate-pricing-response.js';
 export type { Request as PricingRequest } from './generated/pricing-request.js';
 export type { Response as PricingResult } from './generated/pricing-response.js';
 
@@ -52,6 +56,9 @@ export type PricingTransport = (request: PricingRequest, options: QueryOptions) 
 export type LiveTransport = (request: LiveRequest, options: QueryOptions) => Promise<unknown>;
 
 export interface UsageClient {
+  handoff?(request:HandoffRequest,options?:QueryOptions):Promise<HandoffResult>;
+  account?(request:AccountRequest,options?:QueryOptions):Promise<AccountResult>;
+  directories?(request:DirectoriesRequest,options?:QueryOptions):Promise<DirectoriesResult>;
   preferences?(request:PreferencesRequest, options?:QueryOptions):Promise<PreferencesResult>;
   optimize?(request: OptimizeRequest, options?: QueryOptions): Promise<OptimizeResult>;
   config?(request: ConfigRequest, options?: QueryOptions): Promise<ConfigResult>;
@@ -60,23 +67,49 @@ export interface UsageClient {
   prices(request: PricingRequest, options?: QueryOptions): Promise<PricingResult>;
 }
 
-export function createUsageClient(transport: UsageTransport, pricingTransport?: PricingTransport, liveTransport?: LiveTransport, configTransport?: ConfigTransport, optimizeTransport?: OptimizeTransport, preferencesTransport?: PreferencesTransport): UsageClient {
+export function createUsageClient(transport: UsageTransport, pricingTransport?: PricingTransport, liveTransport?: LiveTransport, configTransport?: ConfigTransport, optimizeTransport?: OptimizeTransport, preferencesTransport?: PreferencesTransport,directoriesTransport?:DirectoriesTransport,hosts:HostTransports={}): UsageClient {
   return {
-    ...(preferencesTransport ? { async preferences(request:PreferencesRequest,options:QueryOptions={}):Promise<PreferencesResult> {
+    ...(hosts.handoff?{async handoff(request:HandoffRequest,options:QueryOptions={}):Promise<HandoffResult>{
+      const [{validate:input},{validate:output}]=await Promise.all([import('./generated/validate-handoff-request.js'),import('./generated/validate-handoff-response.js')]);
+      if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+      if(!input(request))throw new CoreError('INVALID_ARGUMENT','Invalid handoff request');
+      const result=await hosts.handoff!(request,options);
+      if(!output(result)||result.outputVersion!==1||result.action!==(request.action??'preview'))throw new CoreError('PROTOCOL_ERROR','Invalid handoff response');
+      return result;
+    }}:{}),
+    ...(hosts.account?{async account(request:AccountRequest,options:QueryOptions={}):Promise<AccountResult>{
+      const [{validate:input},{validate:output}]=await Promise.all([import('./generated/validate-account-request.js'),import('./generated/validate-account-response.js')]);
+      if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+      if(!input(request))throw new CoreError('INVALID_ARGUMENT','Invalid account request');
+      const result=await hosts.account!(request,options);
+      if(!output(result)||result.outputVersion!==1||result.action!==(request.action??'read'))throw new CoreError('PROTOCOL_ERROR','Invalid account response');
+      return result;
+    }}:{}),
+    ...(directoriesTransport?{async directories(request:DirectoriesRequest,options:QueryOptions={} ):Promise<DirectoriesResult>{
+      const [{validate:validateDirectoriesRequest},{validate:validateDirectoriesResult}]=await Promise.all([import('./generated/validate-directories-request.js'),import('./generated/validate-directories-response.js')]);
+      if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+      if(!validateDirectoriesRequest(request))throw new CoreError('INVALID_ARGUMENT','Invalid directory request');
+      const result=await directoriesTransport(request,options);
+      if(!validateDirectoriesResult(result)||result.outputVersion!==1||result.action!==(request.action??'list'))throw new CoreError('PROTOCOL_ERROR','Invalid directory response');return result;
+    }}:{}),
+    ...(preferencesTransport ? { async preferences(request:PreferencesRequest,options:QueryOptions={} ):Promise<PreferencesResult> {
+      const [{validate:validatePreferencesRequest},{validate:validatePreferencesResult}]=await Promise.all([import('./generated/validate-preferences-request.js'),import('./generated/validate-preferences-response.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED','已取消');
       if (!validatePreferencesRequest(request)) throw new CoreError('INVALID_ARGUMENT','语言偏好参数无效');
       const result=await preferencesTransport(request,options);
       if (!validatePreferencesResult(result)||result.outputVersion!==1||result.action!==request.action) throw new CoreError('PROTOCOL_ERROR','语言偏好响应无效');
       return result;
     }}:{}),
-    ...(optimizeTransport ? { async optimize(request: OptimizeRequest, options: QueryOptions = {}): Promise<OptimizeResult> {
+    ...(optimizeTransport ? { async optimize(request: OptimizeRequest, options: QueryOptions ={} ): Promise<OptimizeResult> {
+      const [{validate:validateOptimizeRequest},{validate:validateOptimizeResult}]=await Promise.all([import('./generated/validate-optimize-request.js'),import('./generated/validate-optimize-response.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateOptimizeRequest(request)) throw new CoreError('INVALID_ARGUMENT', '优化参数不符合数据协议');
       const result = await optimizeTransport(request, options);
       if (!validateOptimizeResult(result) || result.outputVersion !== 1 || result.action !== (request.action ?? 'list')) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
       return result;
     } } : {}),
-    ...(configTransport ? { async config(request: ConfigRequest, options: QueryOptions = {}): Promise<ConfigResult> {
+    ...(configTransport ? { async config(request: ConfigRequest, options: QueryOptions ={} ): Promise<ConfigResult> {
+      const [{validate:validateConfigRequest},{validate:validateConfigResult}]=await Promise.all([import('./generated/validate-config-request.js'),import('./generated/validate-config-response.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateConfigRequest(request)) throw new CoreError('INVALID_ARGUMENT', '配置查询参数不符合数据协议');
       const result = await configTransport(request, options);
@@ -84,7 +117,8 @@ export function createUsageClient(transport: UsageTransport, pricingTransport?: 
         throw new CoreError('PROTOCOL_ERROR', '配置数据格式不正确');
       return result;
     } } : {}),
-    ...(liveTransport ? { async live(request: LiveRequest, options: QueryOptions = {}): Promise<LiveResult> {
+    ...(liveTransport ? { async live(request: LiveRequest, options: QueryOptions ={} ): Promise<LiveResult> {
+      const [{validate:validateLiveRequest},{validate:validateLiveResult}]=await Promise.all([import('./generated/validate-live-request.js'),import('./generated/validate-live-response.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateLiveRequest(request)) throw new CoreError('INVALID_ARGUMENT', '实时查询参数不符合数据协议');
       const result = await liveTransport(request, options);
@@ -92,7 +126,8 @@ export function createUsageClient(transport: UsageTransport, pricingTransport?: 
         throw new CoreError('PROTOCOL_ERROR', '实时用量数据格式不正确');
       return result;
     } } : {}),
-    async prices(request, options = {}) {
+    async prices(request, options ={} ) {
+      const [{validate:validatePricingRequest},{validate:validatePricingResult}]=await Promise.all([import('./generated/validate-pricing-request.js'),import('./generated/validate-pricing-response.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validatePricingRequest(request)) throw new CoreError('INVALID_ARGUMENT', '价表参数不符合数据协议');
       if (!pricingTransport) throw new CoreError('PRICING_UNAVAILABLE', '当前宿主未提供价表接口');
@@ -101,7 +136,8 @@ export function createUsageClient(transport: UsageTransport, pricingTransport?: 
         throw new CoreError('PROTOCOL_ERROR', '价表数据格式不正确');
       return result;
     },
-    async query(request, options = {}) {
+    async query(request, options ={} ) {
+      const [{validate:validateRequest},{validate:validateResponse}]=await Promise.all([import('./generated/validate-usage-request.js'),import('./generated/validate-usage-app.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateRequest(request)) throw new CoreError('INVALID_ARGUMENT', '查询参数不符合数据协议');
       const result = await transport(request, options);

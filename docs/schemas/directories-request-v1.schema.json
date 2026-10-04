@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Request",
+  "type": "object",
+  "properties": {
+    "action": {
+      "default": "list",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Action"
+        }
+      ]
+    },
+    "purpose": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Purpose"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "choiceToken": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "grantId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Action": {
+      "type": "string",
+      "enum": [
+        "list",
+        "choose",
+        "confirm",
+        "authorize",
+        "revoke"
+      ]
+    },
+    "Purpose": {
+      "type": "string",
+      "enum": [
+        "source",
+        "project"
+      ]
+    }
+  }
+}

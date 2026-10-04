@@ -2,7 +2,7 @@ import { createServer, type ServerResponse, type IncomingMessage } from 'node:ht
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
-import { CoreError, createUsageClient, type UsageClient, type UsageRequest } from '@wombat/client';
+import { CoreError, createUsageClient, type QueryOptions, type UsageClient, type UsageRequest } from '@wombat/client';
 import { backgroundPrices } from './automatic-prices.js';
 
 const BODY_LIMIT = 64 * 1024;
@@ -46,6 +46,47 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
   const snapshots = new Set<string>();
   const configViews = new Set<string>();
   const lifetime = new AbortController();
+  const startupRoots = options.roots ? [...options.roots] : undefined;
+  const startupProjects = [...(options.projectRoots ?? [])];
+  const observedProjects = new Set(startupProjects);
+  const observeProjects = (result: import('@wombat/client').UsageResult) => {
+    for (const project of result.facets?.directories ?? []) observedProjects.add(project);
+  };
+  let projectDiscovery: Promise<void> | undefined;
+  const discoverProject = async (project: string | null | undefined, query: QueryOptions) => {
+    if (!project || observedProjects.has(project)) return;
+    projectDiscovery ??= (async () => {
+      if (options.client.live) {
+        const result = await options.client.live({
+          query: { action: 'usage', roots: options.roots, scope: { allTime: true }, limit: 1 },
+          mode: 'fresh',
+        }, query);
+        observeProjects(result.result);
+      } else {
+        observeProjects(await options.client.query({
+          action: 'usage', roots: options.roots, scope: { allTime: true }, limit: 1,
+        }, query));
+      }
+    })().finally(() => { projectDiscovery = undefined; });
+    await projectDiscovery;
+    if (!observedProjects.has(project) && !(options.projectRoots ?? []).includes(project))
+      throw new CoreError('PROJECT_NOT_AUTHORIZED', 'Project is outside the current read scope');
+  };
+  const projectRoots = (project?: string | null) => [...new Set([
+    ...(options.projectRoots ?? []),
+    ...(project && observedProjects.has(project) ? [project] : []),
+  ])];
+  let grantFingerprint='';
+  const updateGrants=(result:import('@wombat/client').DirectoriesResult)=>{
+    const fingerprint=JSON.stringify(result.grants.map(g=>[g.id,g.directoryIdentity,g.path,g.purpose,g.status]));
+    if(fingerprint===grantFingerprint)return;
+    grantFingerprint=fingerprint;
+    const grants=result.grants.filter(g=>g.status==='authorized');
+    options.projectRoots=[...new Set([...startupProjects,...grants.filter(g=>g.purpose==='project').map(g=>g.path)])];
+    options.roots=startupRoots ? [...new Set([...startupRoots,...grants.filter(g=>g.purpose==='source').map(g=>g.path)])] : undefined;
+    configViews.clear();snapshots.clear();
+  };
+  if(options.client.directories){try{updateGrants(await options.client.directories({action:'list'}));}catch{/* Keep the startup scope; the directory panel reports the failed registry. */}}
   const prices = backgroundPrices(options.client, options.automaticPrices !== false, lifetime.signal);
   let origin = '', host = '', closing = false;
   const scope = (request: UsageRequest): UsageRequest => {
@@ -54,27 +95,55 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
     return { ...request, roots: request.snapshotId && !request.snapshotId.startsWith('live:') ? undefined : options.roots };
   };
   const client = createUsageClient(
-    (r, q) => options.client.query(scope(r), q),
+    async (r, q) => {
+      const result = await options.client.query(scope(r), q);
+      observeProjects(result);
+      return result;
+    },
     (r, q) => r.action==='auto_update' ? prices.update() : options.client.prices(r, q),
     async (r, q) => {
       if (!options.client.live) throw new CoreError('LIVE_UNAVAILABLE', 'Live queries unavailable');
-      return prices.observe(r, await options.client.live({ ...r, query: scope(r.query) }, q));
+      const result = prices.observe(r, await options.client.live({ ...r, query: scope(r.query) }, q));
+      observeProjects(result.result);
+      return result;
     },
     async (r, q) => {
       if (!options.client.config) throw new CoreError('CONFIG_UNAVAILABLE', 'Configuration queries unavailable');
       if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView)) || (r.snapshotId != null && !snapshots.has(r.snapshotId)))
         throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
-      const result=await options.client.config({ ...r, roots: options.roots, projectRoots: options.projectRoots }, q);
-      return {...result,authorizedSourceRoots:options.roots??result.authorizedSourceRoots,authorizedProjects:options.projectRoots??result.authorizedProjects,hostRestartCommand:options.restartCommand??null};
+      await discoverProject(r.scope?.project, q);
+      const projects=projectRoots(r.scope?.project);
+      const result=await options.client.config({ ...r, roots: options.roots, projectRoots: projects }, q);
+      return {...result,authorizedSourceRoots:options.roots??result.authorizedSourceRoots,authorizedProjects:projects,hostRestartCommand:options.restartCommand??null};
     },
-    (r, q) => {
+    async (r, q) => {
       if (!options.client.optimize) throw new CoreError('OPTIMIZE_UNAVAILABLE', 'Optimization queries unavailable');
       if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView))) throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
-      return options.client.optimize({ ...r, roots: options.roots, projectRoots: options.projectRoots }, q);
+      await discoverProject(r.project, q);
+      return options.client.optimize({ ...r, roots: options.roots, projectRoots: projectRoots(r.project) }, q);
     },
     (r,q)=> {
       if (!options.client.preferences) throw new CoreError('PREFERENCES_UNAVAILABLE','Preferences unavailable');
       return options.client.preferences(r,q);
+    },
+    async(r,q)=>{
+      if(!options.client.directories)throw new CoreError('DIRECTORY_PICKER_UNAVAILABLE','Directory authorization unavailable');
+      if(r.path!=null||r.action==='authorize')throw new CoreError('INVALID_ARGUMENT','Use the host directory selector');
+      const result=await options.client.directories(r,q);
+      if(r.action==='list'||r.action==='confirm'||r.action==='revoke')updateGrants(result);
+      return result;
+    },
+    {
+      account:(r,q)=>{
+        if(!options.client.account)throw new CoreError('ACCOUNT_UNAVAILABLE','Account unavailable');
+        return options.client.account(r,q);
+      },
+      handoff:async(r,q)=>{
+        if(!options.client.handoff)throw new CoreError('HANDOFF_UNAVAILABLE','Handoff unavailable');
+        if(r.roots!=null||r.projectRoots!=null||(r.readView!=null&&!configViews.has(r.readView)))throw new CoreError('INVALID_ARGUMENT','Web scope is fixed at startup');
+        await discoverProject(r.project,q);
+        return options.client.handoff({...r,roots:options.roots,projectRoots:projectRoots(r.project)},q);
+      },
     },
   );
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -88,7 +157,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       const supplied = Buffer.from(req.headers.authorization ?? '');
       if (supplied.length !== authorization.length || !timingSafeEqual(supplied, authorization) || req.headers.origin !== origin) return reject(403);
       if (req.method !== 'POST') return reject(405);
-      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences'].includes(req.url)) return reject(404);
+      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences','/api/directories','/api/account','/api/handoff'].includes(req.url)) return reject(404);
       if (req.headers['content-type'] !== 'application/json') return reject(415);
       if (Number(req.headers['content-length'] ?? 0) > BODY_LIMIT) return reject(413);
       if (active.size >= 8) return reject(429);
@@ -115,18 +184,23 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         catch { reject(400); return; }
         res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
         const query = { signal: controller.signal, onProgress: (stage: string) => send({ type: 'progress', stage }) };
+        // Revocation from another CLI/window is authoritative at the next request.
+        if(req.url!=='/api/directories'&&req.url!=='/api/account'&&options.client.directories)updateGrants(await options.client.directories({action:'list'},query));
         // createUsageClient validates each unknown payload before the typed transport runs.
         const value = req.url === '/api/query' ? await client.query(request as Parameters<UsageClient['query']>[0], query)
+          : req.url === '/api/account' ? await client.account!(request as Parameters<NonNullable<UsageClient['account']>>[0],query)
+          : req.url === '/api/handoff' ? await client.handoff!(request as Parameters<NonNullable<UsageClient['handoff']>>[0],query)
           : req.url === '/api/prices' ? await client.prices(request as Parameters<UsageClient['prices']>[0], query)
           : req.url === '/api/config' ? await client.config!(request as Parameters<NonNullable<UsageClient['config']>>[0], query)
           : req.url === '/api/optimize' ? await client.optimize!(request as Parameters<NonNullable<UsageClient['optimize']>>[0], query)
+          : req.url === '/api/directories' ? await client.directories!(request as Parameters<NonNullable<UsageClient['directories']>>[0],query)
           : req.url === '/api/preferences' ? await client.preferences!(request as Parameters<NonNullable<UsageClient['preferences']>>[0], query)
           : await client.live!(request as Parameters<NonNullable<UsageClient['live']>>[0], query);
         const result = 'result' in value ? value.result : 'snapshotRef' in value ? value : undefined;
         if ('readView' in value) {
           if (value.readView) configViews.add(value.readView);
           if (configViews.size > 128) configViews.delete(configViews.values().next().value!);
-          if (value.usageRevision) snapshots.add(value.usageRevision);
+          if ('usageRevision' in value && value.usageRevision) snapshots.add(value.usageRevision);
         }
         if (result) {
           snapshots.add(result.snapshotRef.snapshotId);

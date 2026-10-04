@@ -1,5 +1,6 @@
 pub mod codex;
 pub mod contract;
+pub(crate) mod shared_strings;
 
 use contract::*;
 use sha2::{Digest, Sha256};
@@ -76,8 +77,8 @@ mod tests {
             sink.push(Fact::Measurement(
                 Measurement {
                     id: stable_id(&[&source.agent_kind, &source.id, "same-upstream"]),
-                    agent_kind: source.agent_kind.clone(),
-                    source_instance_id: source.id.clone(),
+                    agent_kind: source.agent_kind.as_str().into(),
+                    source_instance_id: source.id.as_str().into(),
                     thread_id: None,
                     turn_id: None,
                     response_id: None,

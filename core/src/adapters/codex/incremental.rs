@@ -1,6 +1,7 @@
 //! Durable parser checkpoints contain allowlisted facts only, never event bodies.
 use super::*;
 use anyhow::Result;
+mod projection;
 use rusqlite::Connection;
 
 use std::time::UNIX_EPOCH;
@@ -60,6 +61,14 @@ struct ReusableFacts {
 }
 
 impl Cache {
+    pub(crate) fn projection<'a>(
+        &'a self,
+        db: &'a Connection,
+        source: &SourceInstance,
+        scope: &str,
+    ) -> Result<projection::Projection<'a>> {
+        projection::Projection::new(self, db, source, scope)
+    }
     pub(crate) fn needs_seed(&self) -> bool {
         self.facts.is_none() && self.seed.is_none()
     }
@@ -110,6 +119,10 @@ impl Cache {
     }
 }
 
+fn fact_scope(source: &SourceInstance) -> String {
+    format!("parser:{}:{VERSION}:1:facts", source.id)
+}
+
 #[cfg(test)]
 pub(crate) fn sync(
     db: &Connection,
@@ -143,7 +156,9 @@ fn load_facts(db: &Connection, scope: &str, reuse: Option<&ReusableFacts>) -> Re
                     candidate.measurement = Arc::clone(&rows[index]);
                 }
                 if Arc::strong_count(&candidate.measurement) == 1 {
-                    paths.compact(&mut Arc::make_mut(&mut candidate.measurement).evidence);
+                    let row = Arc::make_mut(&mut candidate.measurement);
+                    paths.compact(&mut row.evidence);
+                    facts.strings.measurement(row);
                 }
                 facts.measurements.insert(id.into(), candidate);
             }
@@ -156,7 +171,9 @@ fn load_facts(db: &Connection, scope: &str, reuse: Option<&ReusableFacts>) -> Re
                     operation = Arc::clone(&rows[index]);
                 }
                 if Arc::strong_count(&operation) == 1 {
-                    paths.compact(&mut Arc::make_mut(&mut operation).evidence);
+                    let row = Arc::make_mut(&mut operation);
+                    paths.compact(&mut row.evidence);
+                    facts.strings.operation(row);
                 }
                 facts.operations.insert(id.into(), operation);
             }
@@ -168,11 +185,6 @@ fn load_facts(db: &Connection, scope: &str, reuse: Option<&ReusableFacts>) -> Re
             "parents" => {
                 facts
                     .parents
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "migrated" => {
-                facts
-                    .migrated
                     .insert(id.into(), serde_json::from_str(payload)?);
             }
             "projects" => {
@@ -327,11 +339,9 @@ pub(crate) fn sync_cached(
         None => load_facts(db, &fact_scope, cache.seed.as_ref())?,
     };
     cache.seed = None;
-    let prior_migrations = facts.migrated.clone();
     facts.dirty_operations.clear();
     facts.dirty_measurements.clear();
     facts.dirty_aliases.clear();
-    facts.identities = identity::read_registry();
     if rebuild {
         // Cross-file ownership and late direct measurements require source-wide
         // reconciliation. Retain facts evidenced solely by now-missing files.
@@ -351,14 +361,20 @@ pub(crate) fn sync_cached(
             .filter_map(|c| c.measurement.thread_id.clone())
             .chain(facts.operations.values().map(|o| o.thread_id.clone()))
             .collect();
-        facts.threads.retain(|id, _| retained_threads.contains(id));
+        facts
+            .threads
+            .retain(|id, _| retained_threads.contains(id.as_str()));
         facts
             .turns
-            .retain(|_, t| retained_threads.contains(&t.thread_id));
-        facts.projects.retain(|id, _| retained_threads.contains(id));
+            .retain(|_, t| retained_threads.contains(t.thread_id.as_str()));
+        facts
+            .projects
+            .retain(|id, _| retained_threads.contains(id.as_str()));
         facts.aliases.clear();
         facts.measurement_conflicts.clear();
-        facts.parents.retain(|id, _| retained_threads.contains(id));
+        facts
+            .parents
+            .retain(|id, _| retained_threads.contains(id.as_str()));
         checkpoints.retain(|p, _| missing.contains(p));
         dirty = files
             .iter()
@@ -408,8 +424,8 @@ pub(crate) fn sync_cached(
         }
     }
     // Persist unreconciled candidates. Derived reconciliation may retract old deltas.
-    let full = rebuild || previous.is_empty() || facts.migrated != prior_migrations;
-    let changed_operations = if full {
+    let full = rebuild || previous.is_empty();
+    let changed_operations = if full || !facts.parents.is_empty() {
         None
     } else {
         Some(facts.dirty_operations.clone())
@@ -434,7 +450,6 @@ pub(crate) fn sync_cached(
         }
     }
     save!(parents);
-    save!(migrated);
     save!(projects);
     crate::live_index::put(
         db,
@@ -456,10 +471,13 @@ pub(crate) fn sync_cached(
     }
     let metadata = serde_json::json!({"checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
+    facts.dirty_measurements.clear();
+    facts.dirty_operations.clear();
+    facts.dirty_aliases.clear();
     let mut result = Collected::default();
     // Direct response records require no cumulative/fork reconciliation. Preserve
-    // the general path for legacy counters and identity migrations.
-    let direct_only = facts.migrated.is_empty() && facts.measurements.values().all(|v| v.direct);
+    // the general path for cumulative source counters.
+    let direct_only = facts.parents.is_empty() && facts.measurements.values().all(|v| v.direct);
     let derived = facts.fork_derived(!direct_only);
     finish_facts(derived, root, &mut report, &mut result);
     if direct_only {

@@ -16,7 +16,7 @@ pub const PRICE_REVISION: &str = "openai-standard-2026-09-30.2";
 pub const PRICE_POLICY: &str = "official-standard-api-equivalent-v1";
 const CATEGORIES: [&str; 4] = ["input", "cacheRead", "cacheCreate", "output"];
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct PriceComponent {
     pub category: Arc<str>,
@@ -56,7 +56,7 @@ pub struct PriceResult {
     pub known_cost: String,
     /// priced, partial, unknown
     pub status: Arc<str>,
-    pub components: Vec<PriceComponent>,
+    pub components: Vec<Arc<PriceComponent>>,
     pub basis: Vec<PriceBasis>,
     pub issues: Vec<Arc<str>>,
 }
@@ -258,7 +258,7 @@ pub(crate) fn price_with_catalog(
             complete = false;
             result.issues.push(format!("{category}PriceUnknown").into());
         }
-        result.components.push(PriceComponent {
+        result.components.push(Arc::new(PriceComponent {
             category: (*category).into(),
             tokens: count,
             cost: cost.map(decimal_string),
@@ -269,7 +269,7 @@ pub(crate) fn price_with_catalog(
             } else {
                 rates[index].map(Into::into)
             },
-        });
+        }));
     }
     // Fetching a catalog can repair missing rates, but cannot repair missing log evidence.
     if !invalid
@@ -370,176 +370,11 @@ fn add_exact(left: Decimal, right: Decimal) -> Result<Decimal, String> {
     Ok(sum)
 }
 
-/// Read compatibility only: an old stored amount is not relabeled as a newly
-/// verified official API equivalent and never triggers current-price replay.
-pub fn legacy_price(cost: Option<&str>) -> Result<PriceResult, String> {
-    let mut result = empty_price();
-    result.policy = "legacy_recorded".into();
-    result.price_revision = "legacy".into();
-    let amount = cost.map(parse_amount).transpose()?;
-    result.cost = amount.map(decimal_string);
-    result.known_cost = decimal_string(amount.unwrap_or(Decimal::ZERO));
-    result.status = if amount.is_some() {
-        "priced"
-    } else {
-        "unknown"
-    }
-    .into();
-    Ok(result)
-}
-
-/// Aggregates persisted exact decimal amounts, never rounded display strings or
-/// daily Token counts. Empty input is the exact additive identity.
-pub fn sum_prices<'a>(
-    values: impl IntoIterator<Item = &'a PriceResult>,
-) -> Result<PriceResult, String> {
-    let mut result = empty_price();
-    let mut total = Decimal::ZERO;
-    let mut complete = true;
-    let mut known = false;
-    let mut basis = BTreeSet::new();
-    let mut issues = BTreeSet::new();
-    let mut revisions = BTreeSet::new();
-    let mut policy: Option<&str> = None;
-    let mut components: Vec<Vec<&PriceComponent>> = vec![Vec::new(); 4];
-    for value in values {
-        if value.currency.as_ref() != "USD"
-            || ![PRICE_POLICY, "legacy_recorded"].contains(&value.policy.as_ref())
-            || policy.is_some_and(|p| p != value.policy.as_ref())
-        {
-            return Err("incompatiblePricePolicy".into());
-        }
-        policy = Some(&value.policy);
-        if !["priced", "partial", "unknown"].contains(&value.status.as_ref()) {
-            return Err("invalidPriceStatus".into());
-        }
-        let amount = parse_amount(&value.known_cost)?;
-        if (value.status.as_ref() == "priced"
-            && value.cost.as_deref().map(parse_amount).transpose()? != Some(amount))
-            || (value.status.as_ref() != "priced" && value.cost.is_some())
-            || (value.status.as_ref() == "unknown" && amount != Decimal::ZERO)
-        {
-            return Err("inconsistentPriceResult".into());
-        }
-        total = add_exact(total, amount)?;
-        complete &= value.status.as_ref() == "priced";
-        known |= value.status.as_ref() != "unknown";
-        basis.extend(value.basis.iter().cloned().map(|mut entry| {
-            entry.request_input_tokens = None;
-            entry
-        }));
-        issues.extend(value.issues.iter().cloned());
-        revisions.insert(value.price_revision.clone());
-        for component in &value.components {
-            let index = CATEGORIES
-                .iter()
-                .position(|c| *c == component.category.as_ref())
-                .ok_or("invalidPriceCategory")?;
-            components[index].push(component);
-        }
-    }
-    for (index, values) in components.iter().enumerate() {
-        if values.is_empty() {
-            continue;
-        }
-        let mut amount = Decimal::ZERO;
-        let mut count = Some(0_u64);
-        let mut priced = true;
-        let mut any = false;
-        let mut rates = BTreeSet::new();
-        for value in values {
-            amount = add_exact(amount, parse_amount(&value.known_cost)?)?;
-            count = match (count, value.tokens) {
-                (Some(left), Some(right)) => {
-                    Some(left.checked_add(right).ok_or("tokenCountOverflow")?)
-                }
-                _ => None,
-            };
-            priced &= value.status.as_ref() == "priced";
-            any |= value.status.as_ref() != "unknown";
-            rates.insert(value.rate_per_million.clone());
-        }
-        result.components.push(PriceComponent {
-            category: CATEGORIES[index].into(),
-            tokens: count,
-            cost: priced.then(|| decimal_string(amount)),
-            known_cost: decimal_string(amount),
-            status: status(priced, any).into(),
-            rate_per_million: if rates.len() == 1 {
-                rates.into_iter().next().flatten()
-            } else {
-                None
-            },
-        });
-    }
-    result.cost = complete.then(|| decimal_string(total));
-    result.known_cost = decimal_string(total);
-    result.status = status(complete, known).into();
-    result.basis = basis.into_iter().collect();
-    if let Some(policy) = policy {
-        result.policy = policy.into();
-    }
-    result.issues = issues.into_iter().collect();
-    if revisions.len() == 1 {
-        result.price_revision = revisions.into_iter().next().unwrap();
-    } else if revisions.len() > 1 {
-        result.price_revision = "mixed".into();
-    }
-    Ok(result)
-}
+mod aggregate;
+pub use aggregate::sum_prices;
+mod sharing;
+pub(crate) use sharing::PriceParts;
 
 #[cfg(test)]
 #[path = "pricing/tests.rs"]
 mod tests;
-
-/// Shares repeated descriptive price strings within a published generation.
-/// Amounts and request-specific counts remain independent and exact.
-#[derive(Default)]
-pub(crate) struct PriceStrings(BTreeSet<Arc<str>>);
-impl PriceStrings {
-    fn share(&mut self, value: &mut Arc<str>) {
-        if let Some(shared) = self.0.get(value.as_ref()) {
-            *value = Arc::clone(shared);
-        } else {
-            self.0.insert(Arc::clone(value));
-        }
-    }
-    pub(crate) fn compact(&mut self, price: &mut PriceResult) {
-        for value in [
-            &mut price.currency,
-            &mut price.policy,
-            &mut price.price_revision,
-            &mut price.status,
-        ] {
-            self.share(value);
-        }
-        for value in &mut price.issues {
-            self.share(value);
-        }
-        for component in &mut price.components {
-            self.share(&mut component.category);
-            self.share(&mut component.status);
-            if let Some(value) = &mut component.rate_per_million {
-                self.share(value);
-            }
-        }
-        for basis in &mut price.basis {
-            for value in [
-                &mut basis.original_model,
-                &mut basis.pricing_model,
-                &mut basis.model_provider,
-                &mut basis.match_method,
-                &mut basis.source,
-                &mut basis.verified_at,
-                &mut basis.price_revision,
-                &mut basis.catalog_hash,
-                &mut basis.condition,
-            ] {
-                self.share(value);
-            }
-            if let Some(value) = &mut basis.api_provider {
-                self.share(value);
-            }
-        }
-    }
-}

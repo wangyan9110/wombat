@@ -25,8 +25,12 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
   const event = (type: string, payload: object) => ({ timestamp: '2026-09-29T00:00:01Z', type, payload });
   const rows = [
     event('session_meta', { id: 't', cwd: project }),
+    event('response_item', { type: 'message', id: 'instructions', role: 'user', content: [{ type: 'input_text', text: `# AGENTS.md instructions for ${project}\n\n<INSTRUCTIONS>SYNTHETIC_RULE_BODY_PRIVATE</INSTRUCTIONS>` }], internal_chat_message_metadata_passthrough: { turn_id: 'u', content_item_kinds: ['agents_md.instructions'] } }),
+    event('response_item', { type: 'message', id: 'ordinary-user-text', role: 'user', content: [{ type: 'input_text', text: `# AGENTS.md instructions for ${root}` }], internal_chat_message_metadata_passthrough: { turn_id: 'u', content_item_kinds: ['user_prompt'] } }),
+    event('response_item', { type: 'message', id: 'skills', role: 'developer', content: [{ type: 'input_text', text: `<skills_instructions>\n### Skill roots\n- \`r0\` = \`${path.join(project, '.agents/skills')}\`\n### Available skills\n- review: Synthetic private description. (file: r0/review/SKILL.md)\n</skills_instructions>` }], internal_chat_message_metadata_passthrough: { turn_id: 'u', content_item_kinds: ['host_skills.instructions'] } }),
     event('turn_context', { turn_id: 'u', model: 'gpt-5.4', cwd: project }),
     event('event_msg', { type: 'task_started', turn_id: 'u' }),
+    event('response_item', { type: 'message', id: 'skill-declaration', role: 'assistant', content: [{ type: 'output_text', text: '我会使用 review Skill。' }], internal_chat_message_metadata_passthrough: { turn_id: 'u', content_item_kinds: ['unknown'] } }),
     event('event_msg', { type: 'token_usage_record', thread_id: 't', turn_id: 'u', response_id: 'r', usage: { input_tokens: 100, cached_input_tokens: 20, cache_write_input_tokens: 0, output_tokens: 10, reasoning_output_tokens: 2, total_tokens: 110 } }),
     ...['read1','read2'].flatMap(call_id => [
       event('response_item', { type: 'function_call', call_id, name: 'read_file', arguments: JSON.stringify({ path: skill }) }),
@@ -60,20 +64,30 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
     assert.equal(failedItem.counts.failed, 1);
     assert.equal(failedItem.observation, 'unknown', 'failed reads do not prove a file was loaded');
     assert.equal(item.counts.fileReads, 2); assert.equal(item.counts.toolCalls, 0);
-    assert.equal(item.observation, 'loaded_only'); assert.equal(item.relatedTurns, 1);
+    // Skill use is an observed, intentionally approximate turn signal; read outcomes remain separate.
+    assert.equal(item.configuredState, 'enabled'); assert.equal(item.observation, 'used'); assert.equal(item.usageCount, 1);
+    assert.equal(item.counts.outcomeUnknown, 2); assert.equal(item.counts.succeeded, 0); assert.equal(item.relatedTurns, 1); assert.equal(item.relatedTasks, 1);
     assert.equal(item.usage?.tokens.total, 110);
     assert.equal(result.items.find(i => i.kind === 'mcp')!.counts.toolCalls, 3, 'duplicate evidence counts once; failed attempts and distinct retries each count');
     assert.equal(result.items.find(i => i.kind === 'mcp')!.usageCount,3);
     assert.equal(result.items.find(i => i.kind === 'mcp')!.counts.failed,1);
     assert.equal(result.summary.usage?.tokens.total, 110, 'shared turns must be counted once');
-    assert.equal(result.items.find(i => i.kind === 'rule')!.usage, null);
+    const rule = result.items.find(i => i.kind === 'rule' && i.current)!;
+    assert.equal(rule.observation, 'loaded_only');
+    assert.equal(rule.counts.fileReads, 1);
+    assert.equal(rule.usage?.tokens.total, 110);
+    const ruleEvidence = await browser.config!({ action: 'evidence', readView: result.readView, itemId: rule.id, scope });
+    assert.equal(ruleEvidence.evidence.length, 1);
+    assert.equal(ruleEvidence.evidence[0].eventType, 'instruction_load');
+    assert.equal(ruleEvidence.evidence[0].outcome, 'completed');
+    assert.ok(!JSON.stringify(result).includes('SYNTHETIC_RULE_BODY_PRIVATE'));
     assert.equal(result.coverage.absenceObservable, false);
     assert.ok(!JSON.stringify(result).includes('SYNTHETIC_SECRET'));
     const request: ConfigRequest = { action: 'evidence', readView: result.readView, itemId: item.id, scope, limit: 1 };
     // A reading page does not poll. Its configuration view must outlive the usage service's normal idle timeout.
     await new Promise(resolve => setTimeout(resolve, 16_100));
     const first = await browser.config!(request);
-    assert.equal(first.page.total, 2); assert.equal(first.page.nextOffset, 1);
+    assert.equal(first.page.total, 4); assert.equal(first.page.nextOffset, 1);
     const next = await browser.config!({ ...request, offset: 1 });
     assert.notEqual(first.evidence[0].id, next.evidence[0].id);
     const threadId = first.evidence[0].threadId, turnId = first.evidence[0].turnId!;
@@ -88,7 +102,7 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
     assert.equal(cliTurn.status, 0, cliTurn.stderr + cliTurn.stdout);
     assert.equal(JSON.parse(cliTurn.stdout).summary.tokens.total, 110, 'CLI fixed queries also resolve the retained usage revision without roots');
     const reverse = await browser.config!({ action: 'list', readView: result.readView, scope: { ...scope, threadId } });
-    assert.equal(reverse.items.length, 3);
+    assert.equal(reverse.items.length, 4);
     for (const bad of [{ roots: [dir] }, { projectRoots: [dir] }, { readView: 'config:foreign' }, { snapshotId: 'live:foreign' }])
       await assert.rejects(browser.config!({ action: 'list', ...bad }), { code: 'INVALID_ARGUMENT' });
     const cli = spawnSync(process.execPath, [path.resolve('dist/wombat.js'), 'optimize','inventory','--root',root,'--project-root',project,'--read-view',result.readView!, '--since',scope.since,'--until',scope.until,'--timezone','UTC','--json'], { encoding: 'utf8', env: process.env, timeout: 10_000 });
@@ -105,11 +119,13 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
     await rm(skill);
     const removed = await browser.config!({ action: 'list', scope });
     assert.equal(removed.items.find(i => i.id === item.id)!.current, false);
-    const elsewhere = await browser.config!({ action: 'list', scope: { ...scope, project: dir } });
-    assert.equal(elsewhere.items.length, 0); assert.ok(elsewhere.coverage.issues.some(i => i.code === 'projectNotAuthorized'));
+    await assert.rejects(
+      browser.config!({ action: 'list', scope: { ...scope, project: dir } }),
+      { code: 'PROJECT_NOT_AUTHORIZED' },
+    );
     const outsideDate = await browser.config!({ action: 'list', readView: result.readView, scope: { since: '2026-09-30', until: '2026-10-01', timezone: 'UTC' } });
     assert.equal(outsideDate.summary.usage, null);
-    for (const filename of await readdir(path.join(data, 'config-v1'))) assert.ok(!(await readFile(path.join(data, 'config-v1', filename), 'utf8')).includes('SYNTHETIC_SECRET'));
+    for (const filename of await readdir(path.join(data, 'config-v2'))) assert.ok(!(await readFile(path.join(data, 'config-v2', filename), 'utf8')).includes('SYNTHETIC_SECRET'));
   } finally {
     await host.close();
     if (service.exitCode === null) { const exited = once(service, 'close'); service.kill(); await exited; }

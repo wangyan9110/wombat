@@ -2,6 +2,7 @@
 use super::super::config_dto::{ContentEstimate, SkillMetadata};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Mutex, OnceLock};
+use unicode_normalization::UnicodeNormalization;
 
 pub(super) const METHOD: &str = "tiktoken-rs-0.12.0/o200k_base/ordinary-v1";
 pub(super) const ESTIMATE_FILE_LIMIT: usize = 1024 * 1024;
@@ -9,7 +10,7 @@ pub(super) const ESTIMATE_ROUND_LIMIT: usize = 8 * 1024 * 1024;
 const CACHE_ENTRIES: usize = 2048;
 type Cache = (HashMap<String, u64>, VecDeque<String>);
 
-pub(super) fn estimate(text: &str, hash: &str) -> Option<ContentEstimate> {
+pub(crate) fn estimate(text: &str, hash: &str) -> Option<ContentEstimate> {
     if text.len() > ESTIMATE_FILE_LIMIT {
         return None;
     }
@@ -57,10 +58,21 @@ pub(super) fn estimate(text: &str, hash: &str) -> Option<ContentEstimate> {
 }
 
 pub(super) fn skill_with_body(text: &str) -> (SkillMetadata, Option<&str>) {
+    skill_in_directory(text, None)
+}
+
+/// Validate the measured entry, without retaining metadata values or treating host extensions
+/// as standard fields. Directory comparison is omitted when entry identity is unverified.
+pub(super) fn skill_in_directory<'a>(
+    text: &'a str,
+    directory: Option<&str>,
+) -> (SkillMetadata, Option<&'a str>) {
+    let diagnostic = |code: &str| skill_diagnostic(text, code);
     let invalid = |code: &str| SkillMetadata {
         status: "invalid".into(),
         description_characters: None,
         issues: vec![code.into()],
+        diagnostics: vec![diagnostic(code)],
     };
     let mut lines = text.split_inclusive('\n');
     if lines.next().map(str::trim_end) != Some("---") {
@@ -81,6 +93,7 @@ pub(super) fn skill_with_body(text: &str) -> (SkillMetadata, Option<&str>) {
                     status: "resourceLimited".into(),
                     description_characters: None,
                     issues: vec![],
+                    diagnostics: vec![],
                 },
                 None,
             );
@@ -90,15 +103,15 @@ pub(super) fn skill_with_body(text: &str) -> (SkillMetadata, Option<&str>) {
     if !closed {
         return (invalid("frontMatterUnclosed"), None);
     }
-    #[derive(serde::Deserialize)]
-    struct Header {
-        name: String,
-        description: String,
-    }
-    let options = serde_saphyr::options! { with_snippet: false, reject_unsupported_tags: true, no_schema: true, budget: serde_saphyr::budget! {
+    let options = serde_saphyr::options! { with_snippet: false, reject_unsupported_tags: true,
+        duplicate_keys: serde_saphyr::DuplicateKeyPolicy::Error,
+        budget: serde_saphyr::budget! {
         max_events: 10_000, max_aliases: 0, max_depth: 32, max_total_scalar_bytes: 64 * 1024,
     }};
-    let header = match serde_saphyr::from_str_with_options::<Header>(&header, options) {
+    let header = match serde_saphyr::from_str_with_options::<
+        std::collections::BTreeMap<String, serde_json::Value>,
+    >(&header, options)
+    {
         Ok(header) => header,
         Err(serde_saphyr::Error::Budget { .. }) => {
             return (
@@ -106,6 +119,7 @@ pub(super) fn skill_with_body(text: &str) -> (SkillMetadata, Option<&str>) {
                     status: "resourceLimited".into(),
                     description_characters: None,
                     issues: vec![],
+                    diagnostics: vec![],
                 },
                 None,
             );
@@ -116,6 +130,7 @@ pub(super) fn skill_with_body(text: &str) -> (SkillMetadata, Option<&str>) {
                     status: "unsupported".into(),
                     description_characters: None,
                     issues: vec![],
+                    diagnostics: vec![],
                 },
                 None,
             );
@@ -123,16 +138,63 @@ pub(super) fn skill_with_body(text: &str) -> (SkillMetadata, Option<&str>) {
         Err(_) => return (invalid("frontMatterInvalid"), None),
     };
     let mut issues = vec![];
-    if header.name.trim().is_empty() {
-        issues.push("nameMissing".into());
+    match header.get("name") {
+        None => issues.push("nameMissing".into()),
+        Some(serde_json::Value::String(name)) if !name.trim().is_empty() => {
+            // Bound to the official Agent Skills reference name validator: trim, NFKC,
+            // Unicode code points, Unicode lowercase/alphanumeric, and directory match.
+            let name: String = name.trim().nfkc().collect();
+            if name.chars().count() > 64 {
+                issues.push("nameTooLong".into());
+            }
+            if name != name.to_lowercase()
+                || name.starts_with('-')
+                || name.ends_with('-')
+                || name.contains("--")
+                || !name.chars().all(|c| c.is_alphanumeric() || c == '-')
+            {
+                issues.push("nameInvalid".into());
+            }
+            if directory.is_some_and(|dir| dir.nfkc().collect::<String>() != name) {
+                issues.push("nameDirectoryMismatch".into());
+            }
+        }
+        Some(serde_json::Value::String(_)) => issues.push("nameMissing".into()),
+        Some(_) => issues.push("nameTypeInvalid".into()),
     }
-    if header.name.chars().count() > 64 {
-        issues.push("nameTooLong".into());
+    let description_characters = match header.get("description") {
+        None => {
+            issues.push("descriptionMissing".into());
+            None
+        }
+        Some(serde_json::Value::String(value)) => {
+            if value.trim().is_empty() {
+                issues.push("descriptionMissing".into());
+            }
+            Some(value.chars().count() as u64)
+        }
+        Some(_) => {
+            issues.push("descriptionTypeInvalid".into());
+            None
+        }
+    };
+    // Overlong description remains a separate, exclusive standard branch in optimize.
+    for field in ["license", "allowed-tools", "compatibility"] {
+        if let Some(value) = header.get(field) {
+            if !value.is_string() {
+                issues.push(format!("{field}TypeInvalid"));
+            } else if field == "compatibility" && value.as_str().unwrap().chars().count() > 500 {
+                issues.push("compatibilityTooLong".into());
+            }
+        }
     }
-    if header.description.trim().is_empty() {
-        issues.push("descriptionMissing".into());
+    if let Some(value) = header.get("metadata")
+        && !value
+            .as_object()
+            .is_some_and(|fields| fields.values().all(|v| v.is_string()))
+    {
+        issues.push("metadataTypeInvalid".into());
     }
-    let description_characters = Some(header.description.chars().count() as u64);
     let body = issues.is_empty().then_some(&text[body_start..]);
     (
         SkillMetadata {
@@ -143,10 +205,87 @@ pub(super) fn skill_with_body(text: &str) -> (SkillMetadata, Option<&str>) {
             }
             .into(),
             description_characters,
+            diagnostics: issues.iter().map(|code| diagnostic(code)).collect(),
             issues,
         },
         body,
     )
+}
+
+fn skill_diagnostic(text: &str, code: &str) -> crate::config_dto::SkillDiagnostic {
+    let field = match code {
+        value if value.starts_with("name") => Some("name"),
+        value if value.starts_with("description") => Some("description"),
+        value if value.starts_with("license") => Some("license"),
+        value if value.starts_with("allowed-tools") => Some("allowed-tools"),
+        value if value.starts_with("compatibility") => Some("compatibility"),
+        value if value.starts_with("metadata") => Some("metadata"),
+        _ => None,
+    };
+    let mut located = field.and_then(|field| {
+        text.lines().enumerate().find_map(|(index, line)| {
+            let trimmed = line.trim_start();
+            (trimmed.starts_with(&format!("{field}:"))
+                || trimmed.starts_with(&format!("{field}：")))
+            .then(|| (index + 1, line))
+        })
+    });
+    if code == "frontMatterInvalid" && located.is_none() {
+        located = text.lines().enumerate().find_map(|(index, line)| {
+            let trimmed = line.trim();
+            (trimmed.contains('：')
+                || (!trimmed.is_empty() && trimmed != "---" && !trimmed.contains(':')))
+            .then(|| (index + 1, line))
+        });
+    }
+    if code == "frontMatterMissing" {
+        located = text.lines().next().map(|line| (1, line));
+    }
+    let structural_line = |value: &str| {
+        value.find([':', '：']).and_then(|column| {
+            value[column..]
+                .chars()
+                .next()
+                .map(|delimiter| format!("{}{} <value>", &value[..column], delimiter))
+        })
+    };
+    let current = located.and_then(|(_, line)| structural_line(line));
+    let reported_field = field.map(str::to_owned).or_else(|| {
+        located.and_then(|(_, line)| {
+            line.find([':', '：'])
+                .map(|column| line[..column].trim())
+                .filter(|value| !value.is_empty())
+                .map(str::to_owned)
+        })
+    });
+    let expected = match code {
+        "frontMatterMissing" => Some("---".into()),
+        "frontMatterUnclosed" => Some("--- (closing delimiter)".into()),
+        "frontMatterInvalid" => reported_field
+            .as_deref()
+            .map(|field| format!("{field}: <value>"))
+            .or_else(|| Some("field: <value>".into())),
+        "nameMissing" => Some("name: skill-name".into()),
+        "nameTypeInvalid" | "nameInvalid" | "nameTooLong" | "nameDirectoryMismatch" => {
+            Some("name: lowercase-skill-name".into())
+        }
+        "descriptionMissing" | "descriptionTypeInvalid" => {
+            Some("description: A concise description".into())
+        }
+        "licenseTypeInvalid" => Some("license: MIT".into()),
+        "allowed-toolsTypeInvalid" => Some("allowed-tools: Read Bash".into()),
+        "compatibilityTypeInvalid" | "compatibilityTooLong" => Some("compatibility: local".into()),
+        "metadataTypeInvalid" => Some("metadata:\n  key: 'value'".into()),
+        _ => None,
+    };
+    crate::config_dto::SkillDiagnostic {
+        code: code.into(),
+        field: reported_field,
+        line: located.map(|(line, _)| line),
+        column: located.and_then(|(_, line)| line.find([':', '：']).map(|column| column + 1)),
+        current,
+        expected,
+    }
 }
 
 #[cfg(test)]
@@ -193,6 +332,12 @@ mod tests {
             "resourceLimited"
         );
         assert_eq!(skill("no header").issues, ["frontMatterMissing"]);
+        let mut metadata = skill("---\nname: synth\ndescription： wrong\n---\n");
+        let diagnostic = metadata.diagnostics.remove(0);
+        assert_eq!(diagnostic.line, Some(3));
+        assert_eq!(diagnostic.field.as_deref(), Some("description"));
+        assert_eq!(diagnostic.current.as_deref(), Some("description： <value>"));
+        assert_eq!(diagnostic.expected.as_deref(), Some("description: <value>"));
         assert!(
             skill("---\nname: synth\ndescription: [wrong]\n---\n")
                 .description_characters
@@ -246,5 +391,85 @@ mod tests {
                 n as u64
             );
         }
+    }
+    #[test]
+    fn names_follow_reference_unicode_normalization_and_entry_identity() {
+        for (name, directory) in [
+            ("中文技能", "中文技能"),
+            ("ｆｏｏ-２", "foo-2"),
+            ("a\u{301}", "á"),
+            (" sample ", "sample"),
+            ("²", "2"),
+        ] {
+            let text = format!("---\nname: '{name}'\ndescription: Synthetic\n---\nbody");
+            assert_eq!(
+                skill_in_directory(&text, Some(directory)).0.status,
+                "parsed",
+                "{name}"
+            );
+        }
+        for name in [
+            "Upper",
+            "-edge",
+            "edge-",
+            "two--parts",
+            "with space",
+            "emoji😀",
+        ] {
+            let text = format!("---\nname: '{name}'\ndescription: Synthetic\n---\nbody");
+            assert!(
+                skill(&text).issues.contains(&"nameInvalid".into()),
+                "{name}"
+            );
+        }
+        let text = "---\nname: sample\ndescription: Synthetic\n---\nbody";
+        assert_eq!(
+            skill_in_directory(text, Some("different")).0.issues,
+            ["nameDirectoryMismatch"]
+        );
+        assert_eq!(skill_in_directory(text, None).0.status, "parsed");
+        for (n, status) in [(64, "parsed"), (65, "invalid")] {
+            let text = format!(
+                "---\nname: {}\ndescription: Synthetic\n---\n",
+                "字".repeat(n)
+            );
+            assert_eq!(skill(&text).status, status);
+        }
+    }
+    #[test]
+    fn optional_fields_are_typed_without_rejecting_unknown_host_extensions() {
+        let prefix = "---\nname: sample\ndescription: Synthetic\n";
+        let valid = format!(
+            "{prefix}license: MIT\nallowed-tools: Read Bash\ncompatibility: local\nmetadata:\n  label: 'true'\nhost-extension:\n  enabled: true\n---\nbody"
+        );
+        assert_eq!(skill(&valid).status, "parsed");
+        for (fields, issue) in [
+            ("license: [MIT]\n", "licenseTypeInvalid"),
+            ("allowed-tools: [Read]\n", "allowed-toolsTypeInvalid"),
+            ("compatibility: true\n", "compatibilityTypeInvalid"),
+            ("metadata:\n  label: 123\n", "metadataTypeInvalid"),
+            ("metadata: []\n", "metadataTypeInvalid"),
+        ] {
+            let text = format!("{prefix}{fields}---\nbody");
+            assert_eq!(skill(&text).issues, [issue]);
+            assert!(skill_with_body(&text).1.is_none());
+        }
+        let too_long = format!("{prefix}compatibility: {}\n---\n", "字".repeat(501));
+        assert_eq!(skill(&too_long).issues, ["compatibilityTooLong"]);
+        for fields in [
+            "name: true\ndescription: text\n",
+            "name: sample\ndescription: 12\n",
+            "name: sample\ndescription: text\nmetadata:\n  label: a\n  label: b\n",
+        ] {
+            let text = format!("---\n{fields}---\nbody");
+            assert_eq!(skill(&text).status, "invalid");
+        }
+        let long_description = format!(
+            "---\nname: sample\ndescription: {}\n---\n",
+            "😀".repeat(1025)
+        );
+        let metadata = skill(&long_description);
+        assert_eq!(metadata.status, "parsed");
+        assert_eq!(metadata.description_characters, Some(1025));
     }
 }

@@ -138,7 +138,7 @@ export function parseUsageArgs(argv: string[]): Invocation {
   if (presentation) { if (!['distribution', 'details', 'projects', 'models'].includes(presentation)) invalid(t('cli.usage-app-cli.presentation_invalid')); request.presentation = presentation as UsageRequest['presentation']; }
   const sort = values.get('sort');
   if (sort) {
-    const choices = action === 'threads' ? ['tokens', 'cost', 'recent'] : ['tokens', 'cost', 'time'];
+    const choices = action === 'threads' ? ['tokens', 'cost', 'recent'] : action === 'turns' ? ['tokens', 'cost', 'time', 'recent'] : ['tokens', 'cost', 'time'];
     if (!choices.includes(sort))
       invalid(t("cli.usage-app-cli.sort_accepts_value", { p0: choices.join('、') }));
     request.sort = sort as UsageRequest['sort'];
@@ -172,6 +172,8 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
   const json = argv.includes('--json');
   try {
     argv = configureLanguage(argv);
+    if (argv[0] === 'account') return await (await import('./account-cli.js')).runAccountCli(argv.slice(1));
+    if (argv[0] === 'directories') return await (await import('./directories-cli.js')).runDirectoriesCli(argv.slice(1));
     if (argv[0] === 'prices') return await runPricingCli(argv.slice(1));
     if (argv[0] === 'optimize') return await (await import('./config-cli.js')).runConfigCli(argv.slice(1));
     if (argv[0] === 'web') return await (await import('./web-cli.js')).runWebCli(argv.slice(1));
@@ -181,7 +183,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     const client = createNodeClient();
@@ -199,7 +201,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
           : (await client.live!({ query: invocation.request, mode: invocation.mode, verify: invocation.verify }, queryOptions)).result;
         const revision = JSON.stringify([result.snapshotRef.snapshotId, result.scope, result.freshness?.status, result.quality]);
         if (!invocation.watch || revision !== lastRevision) {
-          if (!invocation.json && result.freshness && !['current', 'fixed'].includes(result.freshness.status)) process.stderr.write(`Wombat · ${result.freshness.status === 'syncing' ? t("cli.usage-app-cli.syncing_showing_committed_data") : result.freshness.error ?? t("cli.usage-app-cli.showing_cached_data")}\n`);
+          if (!invocation.json && result.freshness && !['current', 'fixed'].includes(result.freshness.status)) process.stderr.write(`Wombat · ${result.freshness.status === 'failed' && result.freshness.error ? result.freshness.error : result.freshness.initialScan ? t('webui.initialTasks') : result.freshness.status === 'syncing' ? t("cli.usage-app-cli.syncing_showing_committed_data") : result.freshness.error ?? t("cli.usage-app-cli.showing_cached_data")}\n`);
           process.stdout.write(invocation.json ? JSON.stringify(result) + '\n' : renderUsageResult(result, process.stdout.columns ?? 120, invocation.request.group ?? undefined) + '\n');
           lastRevision = revision;
         }
@@ -212,9 +214,9 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
   }
   catch (error) {
     const code = error instanceof CoreError ? error.code : error instanceof Error && ['ExitPromptError', 'AbortPromptError'].includes(error.name) ? 'CANCELLED' : 'INTERNAL_ERROR';
-    const message = error instanceof Error ? error.message : String(error);
+    const message = (error instanceof Error ? error.message : String(error));
     if (json)
-      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
+      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize', 'account'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
     else
       process.stderr.write(`Wombat · ${message}\n`);
     return code === 'CANCELLED' ? 130 : 1;

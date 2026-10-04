@@ -6,7 +6,7 @@ import { CoreError } from '../errors.js';
 import {packagedCore} from './packaged-core.js';
 import type { QueryOptions } from '../client.js';
 import type { Request } from '../generated/usage-request.js';
-import type { PricingRequest,PreferencesRequest } from '../client.js';
+import type { PricingRequest,PreferencesRequest,DirectoriesRequest } from '../client.js';
 
 const MAX_RESPONSE = 256_000_000;
 export interface CoreProcessOptions {
@@ -45,7 +45,7 @@ export function invokeCore(request: Request, options: QueryOptions, processOptio
 export function invokePricesCore(request: PricingRequest & { document?: string; attempt_id?: string; error_code?: string }, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
   return invokeOperation('prices', request, options, processOptions);
 }
-export function invokeOperation(op: 'usage_app' | 'prices' | 'live_endpoint' | 'preferences', request: Request | PricingRequest | PreferencesRequest | Record<string, never>, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
+export function invokeOperation(op: 'usage_app' | 'prices' | 'live_endpoint' | 'preferences' | 'directories' | 'native_account' | 'native_allowance_gate' | 'native_hook_context', request: Request | PricingRequest | PreferencesRequest | DirectoriesRequest | Record<string, unknown>, options: QueryOptions, processOptions: CoreProcessOptions): Promise<unknown> {
   if (options.signal?.aborted) return Promise.reject(new CoreError('CANCELLED', '已取消'));
   const binary = binaryPath(processOptions.binaryPath);
   const maxResponseBytes = processOptions.maxResponseBytes ?? MAX_RESPONSE;

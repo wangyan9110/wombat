@@ -17,6 +17,8 @@ const output = path.resolve(option('--output'));
 const measurements = positiveInteger('--measurements', 100_000);
 const threads = positiveInteger('--threads', 500);
 const appends = positiveInteger('--appends', 12);
+const priceGroups = positiveInteger('--price-groups', 1);
+assert(priceGroups <= measurements, 'Price groups cannot exceed measurement count');
 assert(threads <= measurements && existsSync(core));
 const temporary = mkdtempSync(path.join(os.tmpdir(), 'wombat-memory-bench-'));
 const source = path.join(temporary, 'source');
@@ -24,7 +26,7 @@ mkdirSync(path.join(source, 'sessions'), { recursive: true });
 const env = { ...process.env, WOMBAT_DATA_HOME: path.join(temporary, 'data'), CODEX_HOME: source, WOMBAT_CORE_BIN: core };
 const raw = createHash('sha256');
 const line = (value: object) => JSON.stringify(value) + '\n';
-const record = (thread: string, response: string | number) => ({ type: 'event_msg', timestamp: '2026-09-29T00:00:01Z', payload: { type: 'token_usage_record', thread_id: thread, turn_id: 'u', response_id: String(response), usage: { input_tokens: 100, cached_input_tokens: 60, cache_write_input_tokens: 0, output_tokens: 10, reasoning_output_tokens: 2, total_tokens: 110 } } });
+const record = (thread: string, response: string | number) => ({ type: 'event_msg', timestamp: '2026-09-29T00:00:01Z', payload: { type: 'token_usage_record', thread_id: thread, turn_id: 'u', response_id: String(response), usage: { input_tokens: 100 + (typeof response === 'number' ? 2 * (response % priceGroups) : 0), cached_input_tokens: 60, cache_write_input_tokens: 0, output_tokens: 10, reasoning_output_tokens: 2, total_tokens: 110 + (typeof response === 'number' ? 2 * (response % priceGroups) : 0) } } });
 for (let index = 0; index < threads; index++) {
   const thread = `thread-${index}`;
   const file = path.join(source, 'sessions', `${index}.jsonl`);
@@ -75,12 +77,15 @@ try {
   const start = performance.now(); let first: [number, any] | null = null;
   while (first === null) { first = query(); assert(performance.now() - start < 120_000, 'Cold indexing exceeded 120 seconds'); }
   const cold = performance.now() - start;
-  const expected = BigInt(measurements) * 265n;
-  assert.equal(first[1].summary.tokens.total, measurements * 110);
+  const cycles = BigInt(Math.floor(measurements / priceGroups)), groups = BigInt(priceGroups), remainder = BigInt(measurements % priceGroups);
+  const groupSum = cycles * groups * (groups - 1n) / 2n + remainder * (remainder - 1n) / 2n;
+  const expected = BigInt(measurements) * 265n + groupSum * 5n;
+  const expectedTokens = measurements * 110 + Number(groupSum * 2n);
+  assert.equal(first[1].summary.tokens.total, expectedTokens);
   assert.equal(moneyMicros(first[1].summary.price.cost), expected);
   const warm = Array.from({ length: 5 }, () => query()![0]);
   const [threadMs, threadResult] = query('threads')!;
-  assert.equal(threadResult.summary.tokens.total, measurements * 110);
+  assert.equal(threadResult.summary.tokens.total, expectedTokens);
   assert.equal(moneyMicros(threadResult.summary.price.cost), expected);
   const appended: number[] = []; const rssSamples: number[] = [];
   for (let index = 0; index < appends; index++) {
@@ -89,8 +94,8 @@ try {
     const handle = openSync(file, 'a');
     try { writeSync(handle, line(record('thread-0', `extra-${index}`))); fsyncSync(handle); } finally { closeSync(handle); }
     const [elapsed, value] = query()!; appended.push(elapsed);
-    assert.equal(value.summary.tokens.total, (measurements + index + 1) * 110);
-    assert.equal(moneyMicros(value.summary.price.cost), BigInt(measurements + index + 1) * 265n);
+    assert.equal(value.summary.tokens.total, expectedTokens + (index + 1) * 110);
+    assert.equal(moneyMicros(value.summary.price.cost), expected + BigInt(index + 1) * 265n);
     rssSamples.push(rss());
   }
   const cpuStart = cpuSeconds(); const idleStart = performance.now(); await delay(5000);
@@ -108,12 +113,12 @@ try {
   assert(peakMatch, 'time did not report peak RSS');
   const peakRssBytes = Number(peakMatch[1]) * (process.platform === 'linux' ? 1024 : 1);
   const result = {
-    platform: `${os.type()} ${os.arch()}`, coreSha256: fileSha256(core), corpusSha256: raw.digest('hex'), measurements, operations: measurements, threads, appends,
+    platform: `${os.type()} ${os.arch()}`, coreSha256: fileSha256(core), corpusSha256: raw.digest('hex'), measurements, operations: measurements, threads, appends, priceGroups,
     coldSyncAndCliMs: Math.round(cold * 100) / 100, warmCliMs: warm.map(value => Math.round(value * 100) / 100), threadsCliMs: Math.round(threadMs * 100) / 100,
     appendSyncAndCliMs: appended.map(value => Math.round(value * 100) / 100), peakRssBytes,
     rssKiBAtEnd: finalRss, indexBytes: size, liveIndexDbBytes, liveIndexWalBytes, dataBytesAfterIdleExit, idleCpuPercentOver5s: Math.round(idleCpuPercent * 1000) / 1000,
     idleExitMs: Math.round((performance.now() - idleStart) * 100) / 100, appendRssKiB: rssSamples,
-    correctness: `Each synthetic measurement contributes exactly 110 tokens and ${formatMicros(265n)} USD; usage and threads agree, and appended amounts remain exact.`,
+    correctness: `Initial truth: ${expectedTokens} tokens and ${formatMicros(expected)} USD across ${priceGroups} pricing-input groups. Each append contributes 110 tokens and ${formatMicros(265n)} USD; usage and threads agree.`,
     conditions: 'Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance.',
   };
   mkdirSync(path.dirname(output), { recursive: true }); writeFileSync(output, JSON.stringify(result, null, 2) + '\n'); console.log(JSON.stringify(result));

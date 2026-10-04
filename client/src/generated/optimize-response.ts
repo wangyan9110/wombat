@@ -1,11 +1,18 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type Action = "list" | "detail" | "ignore" | "mark_edited" | "restore" | "recheck" | "capabilities";
-export type HookSupportStatus = "no_verified_adapter";
-export type Kind = "rule" | "skill" | "mcp";
+export type Action =
+  "list" | "detail" | "keep" | "not_applicable" | "redisplay" | "recheck" | "capabilities" | "checks";
+export type HookSupportStatus = "no_verified_adapter" | "registry_observed" | "registry_partial";
+export type Kind = "rule" | "skill" | "mcp" | "hook";
 export type Observation = "used" | "loaded_only" | "unknown";
 export type Category = "repair" | "trim" | "organize" | "space";
+export type DecisionKind = "keep" | "not_applicable";
+export type DecisionReason = "necessary" | "object_changed" | "incorrect_evidence";
+export type RuleOutcome = "hit" | "miss" | "insufficient" | "unsupported" | "error";
 export type RelationKind = "chain" | "copy";
+export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
+export type RecordKind = "observation" | "decision" | "recheck" | "redisplay";
+export type FollowUpStatus = "no_observed_records" | "version_unknown" | "unavailable";
 
 export interface Response {
   outputVersion: number;
@@ -23,6 +30,12 @@ export interface Response {
   issues: Issue[];
   resultStatus: string;
   ruleParameters: RuleParameters;
+  ruleCatalog: RuleDefinition[];
+  checks: RuleAssessment[];
+  /**
+   * Derived from the selected usage view; never stored as a user decision or receipt.
+   */
+  followUps: FollowUpObservation[];
 }
 export interface Capabilities {
   staticChecks: boolean;
@@ -31,9 +44,6 @@ export interface Capabilities {
   inactivity: boolean;
   mcpFaults: boolean;
   spaceCleanup: boolean;
-  previews: boolean;
-  execution: boolean;
-  recovery: boolean;
   loadingBudgetDiagnosis: boolean;
   exactInstructionBlocks: boolean;
   declaredCopyDrift: boolean;
@@ -51,17 +61,23 @@ export interface Suggestion {
   item: Item;
   category: Category;
   status: string;
+  decision?: UserDecision | null;
+  /**
+   * Current rule facts; user decisions never stand in for check outcomes.
+   */
+  checks: RuleAssessment[];
   findings: Finding[];
   checkedAt: string;
   ruleVersion: string;
   ruleParameters?: RuleParameters | null;
   recheckRuleParameters?: RuleParameters | null;
   /**
-   * Exact measured metadata at manual-review marking; no source body is retained.
+   * Exact metadata before rechecking; source bodies are never retained.
    */
   reviewBaseline?: Item | null;
   recordId?: string | null;
   recordedAt?: string | null;
+  recordKind?: RecordKind | null;
 }
 export interface Item {
   id: string;
@@ -74,11 +90,11 @@ export interface Item {
   /**
    * Authorized inventory memberships, not proof of joint host loading.
    */
-  authorizedProjects?: string[];
+  authorizedProjects: string[];
   /**
    * Current physical object keeps each source inventory identity and observation.
    */
-  sourceContexts?: SourceContext[];
+  sourceContexts: SourceContext[];
   configuredState: string;
   contentHash: string;
   observedAt: string;
@@ -88,22 +104,23 @@ export interface Item {
   contentTokens?: number | null;
   estimateStatus: string;
   characters?: number | null;
-  measurementStatus?: string;
+  measurementStatus: string;
   bytesSource?: string | null;
   estimate?: ContentEstimate | null;
   skillMetadata?: SkillMetadata | null;
   bodyTokenEstimate?: ContentEstimate | null;
-  bodyEstimateStatus?: string;
+  bodyEstimateStatus: string;
   usageCount?: number | null;
   lastRecordAt?: string | null;
   observation: Observation;
   counts: Counts;
   relatedTurns: number;
+  relatedTasks: number;
   usage?: UsageSummary | null;
 }
 export interface SourceContext {
   inventoryId: string;
-  global?: boolean;
+  global: boolean;
   sourceInstanceId: string;
   contentHash: string;
   configuredState: string;
@@ -114,6 +131,7 @@ export interface SourceContext {
 export interface Counts {
   fileReads: number;
   toolCalls: number;
+  resourceReads: number;
   succeeded: number;
   failed: number;
   outcomeUnknown: number;
@@ -131,6 +149,18 @@ export interface SkillMetadata {
   status: string;
   descriptionCharacters?: number | null;
   issues: string[];
+  /**
+   * Bounded current-file diagnostics for directly reviewable static fields.
+   */
+  diagnostics: SkillDiagnostic[];
+}
+export interface SkillDiagnostic {
+  code: string;
+  field?: string | null;
+  line?: number | null;
+  column?: number | null;
+  current?: string | null;
+  expected?: string | null;
 }
 export interface UsageSummary {
   /**
@@ -200,6 +230,21 @@ export interface PriceBasis {
   requestInputTokens?: number | null;
   requestScoped: boolean;
 }
+export interface UserDecision {
+  kind: DecisionKind;
+  reason: DecisionReason;
+  recordedAt: string;
+}
+export interface RuleAssessment {
+  rule: string;
+  ruleVersion: string;
+  itemId: string;
+  contentVersion: string;
+  checkedAt: string;
+  outcome: RuleOutcome;
+  reason?: string | null;
+  findings: Finding[];
+}
 export interface Finding {
   rule: string;
   status: string;
@@ -222,9 +267,11 @@ export interface StaticEvidence {
   versions: FileVersion[];
   positions: BlockPosition[];
   /**
-   * Scope-bound owner; legacy evidence without this cannot prove a declared relation.
+   * Scope-bound owner required to prove a declared relation.
    */
   relation?: RelationIdentity | null;
+  references: ReferenceEvidence[];
+  hook?: HookTargetEvidence | null;
 }
 export interface FileVersion {
   itemId: string;
@@ -246,6 +293,25 @@ export interface RelationIdentity {
   declarationHash: string;
   relationId: string;
   kind: RelationKind;
+}
+export interface ReferenceEvidence {
+  target: string;
+  baseDirectory: string;
+  expectedType?: string | null;
+  status: string;
+  startByte: number;
+  endByte: number;
+  startLine: number;
+  endLine: number;
+}
+export interface HookTargetEvidence {
+  project: string;
+  nativeKey: string;
+  registrationHash: string;
+  hostVersion: string;
+  trust: HookTrust;
+  target: string;
+  status: string;
 }
 export interface RuleParameters {
   version: string;
@@ -269,4 +335,21 @@ export interface Page {
 export interface Issue {
   code: string;
   path?: string | null;
+}
+export interface RuleDefinition {
+  rule: string;
+  version: string;
+  kinds: Kind[];
+  basis: string;
+}
+export interface FollowUpObservation {
+  recordId: string;
+  suggestionId: string;
+  status: FollowUpStatus;
+  after: string;
+  observedAt: string;
+  observedRecords?: number | null;
+  lastRecordAt?: string | null;
+  usageRevision?: string | null;
+  absenceObservable: boolean;
 }

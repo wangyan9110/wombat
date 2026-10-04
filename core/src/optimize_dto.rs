@@ -9,11 +9,12 @@ pub enum Action {
     #[default]
     List,
     Detail,
-    Ignore,
-    MarkEdited,
-    Restore,
+    Keep,
+    NotApplicable,
+    Redisplay,
     Recheck,
     Capabilities,
+    Checks,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -34,6 +35,8 @@ pub struct Request {
     pub project: Option<String>,
     pub source_instance_id: Option<String>,
     pub suggestion_id: Option<String>,
+    pub item_id: Option<String>,
+    pub decision_reason: Option<DecisionReason>,
     #[serde(default)]
     pub group: Group,
     pub category: Option<Category>,
@@ -61,7 +64,7 @@ pub struct RuleParameters {
 impl Default for RuleParameters {
     fn default() -> Self {
         Self {
-            version: "static-config-v4".into(),
+            version: "static-config-v7".into(),
             agents_bytes_default: 16384,
             description_characters_default: 500,
             overrides: RuleOverrides::default(),
@@ -87,10 +90,8 @@ pub struct Finding {
     pub observed: Option<u64>,
     pub threshold: Option<u64>,
     pub evidence_codes: Vec<String>,
-    #[serde(default)]
     pub basis: Option<String>,
     /// Positions and relationships only; never retain source text or command arguments.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence: Option<StaticEvidence>,
 }
 
@@ -105,9 +106,66 @@ pub struct StaticEvidence {
     pub transform: Option<String>,
     pub versions: Vec<FileVersion>,
     pub positions: Vec<BlockPosition>,
-    /// Scope-bound owner; legacy evidence without this cannot prove a declared relation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Scope-bound owner required to prove a declared relation.
     pub relation: Option<RelationIdentity>,
+    pub references: Vec<ReferenceEvidence>,
+    pub hook: Option<HookTargetEvidence>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct HookTargetEvidence {
+    pub project: String,
+    pub native_key: String,
+    pub registration_hash: String,
+    pub host_version: String,
+    pub trust: crate::config_dto::HookTrust,
+    pub target: String,
+    pub status: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferenceEvidence {
+    pub target: String,
+    pub base_directory: String,
+    pub expected_type: Option<String>,
+    pub status: String,
+    pub start_byte: usize,
+    pub end_byte: usize,
+    pub start_line: usize,
+    pub end_line: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RuleOutcome {
+    Hit,
+    Miss,
+    Insufficient,
+    Unsupported,
+    Error,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RuleDefinition {
+    pub rule: String,
+    pub version: String,
+    pub kinds: Vec<crate::config_dto::Kind>,
+    pub basis: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RuleAssessment {
+    pub rule: String,
+    pub rule_version: String,
+    pub item_id: String,
+    pub content_version: String,
+    pub checked_at: String,
+    pub outcome: RuleOutcome,
+    pub reason: Option<String>,
+    pub findings: Vec<Finding>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord)]
@@ -178,18 +236,47 @@ pub struct Suggestion {
     pub item: Item,
     pub category: Category,
     pub status: String,
+    pub decision: Option<UserDecision>,
+    /// Current rule facts; user decisions never stand in for check outcomes.
+    pub checks: Vec<RuleAssessment>,
     pub findings: Vec<Finding>,
     pub checked_at: String,
     pub rule_version: String,
-    #[serde(default)]
     pub rule_parameters: Option<RuleParameters>,
-    #[serde(default)]
     pub recheck_rule_parameters: Option<RuleParameters>,
-    /// Exact measured metadata at manual-review marking; no source body is retained.
-    #[serde(default)]
+    /// Exact metadata before rechecking; source bodies are never retained.
     pub review_baseline: Option<Item>,
     pub record_id: Option<String>,
     pub recorded_at: Option<String>,
+    pub record_kind: Option<RecordKind>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RecordKind {
+    Observation,
+    Decision,
+    Recheck,
+    Redisplay,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DecisionKind {
+    Keep,
+    NotApplicable,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DecisionReason {
+    Necessary,
+    ObjectChanged,
+    IncorrectEvidence,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UserDecision {
+    pub kind: DecisionKind,
+    pub reason: DecisionReason,
+    pub recorded_at: String,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -200,9 +287,6 @@ pub struct Capabilities {
     pub inactivity: bool,
     pub mcp_faults: bool,
     pub space_cleanup: bool,
-    pub previews: bool,
-    pub execution: bool,
-    pub recovery: bool,
     pub loading_budget_diagnosis: bool,
     pub exact_instruction_blocks: bool,
     pub declared_copy_drift: bool,
@@ -221,6 +305,8 @@ pub struct HookSupport {
 pub enum HookSupportStatus {
     #[default]
     NoVerifiedAdapter,
+    RegistryObserved,
+    RegistryPartial,
 }
 impl Default for Capabilities {
     fn default() -> Self {
@@ -231,9 +317,6 @@ impl Default for Capabilities {
             inactivity: false,
             mcp_faults: false,
             space_cleanup: false,
-            previews: false,
-            execution: false,
-            recovery: false,
             loading_budget_diagnosis: false,
             exact_instruction_blocks: true,
             declared_copy_drift: true,
@@ -259,4 +342,30 @@ pub struct Response {
     pub issues: Vec<Issue>,
     pub result_status: String,
     pub rule_parameters: RuleParameters,
+    pub rule_catalog: Vec<RuleDefinition>,
+    pub checks: Vec<RuleAssessment>,
+    /// Derived from the selected usage view; never stored as a user decision or receipt.
+    pub follow_ups: Vec<FollowUpObservation>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum FollowUpStatus {
+    NoObservedRecords,
+    VersionUnknown,
+    Unavailable,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FollowUpObservation {
+    pub record_id: String,
+    pub suggestion_id: String,
+    pub status: FollowUpStatus,
+    pub after: String,
+    pub observed_at: String,
+    pub observed_records: Option<u64>,
+    pub last_record_at: Option<String>,
+    pub usage_revision: Option<String>,
+    pub absence_observable: bool,
 }

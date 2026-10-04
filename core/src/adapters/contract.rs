@@ -11,7 +11,7 @@ use std::{
 
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenUsage {
     pub input: Option<u64>,
@@ -25,13 +25,13 @@ pub struct TokenUsage {
     pub raw_input: Option<u64>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelRef {
-    pub raw: Option<String>,
-    pub provider: Option<String>,
-    pub api_provider: Option<String>,
-    pub pricing_model: Option<String>,
+    pub raw: Option<Arc<str>>,
+    pub provider: Option<Arc<str>>,
+    pub api_provider: Option<Arc<str>>,
+    pub pricing_model: Option<Arc<str>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -115,6 +115,8 @@ pub struct Turn {
     pub ordinal: u64,
     pub started_at: Option<String>,
     pub ended_at: Option<String>,
+    /// Last observed event; never inferred from turn ordinal.
+    pub last_activity_at: Option<String>,
     /// running, completed, interrupted, failed, unknown
     pub status: String,
 }
@@ -123,17 +125,17 @@ pub struct Turn {
 #[serde(rename_all = "camelCase")]
 pub struct Measurement {
     pub id: String,
-    pub agent_kind: String,
-    pub source_instance_id: String,
-    pub thread_id: Option<String>,
-    pub turn_id: Option<String>,
+    pub agent_kind: Arc<str>,
+    pub source_instance_id: Arc<str>,
+    pub thread_id: Option<Arc<str>>,
+    pub turn_id: Option<Arc<str>>,
     pub response_id: Option<String>,
     pub timestamp: Option<String>,
     pub interval_end: Option<String>,
-    pub grain: String,
-    pub time_precision: String,
+    pub grain: Arc<str>,
+    pub time_precision: Arc<str>,
     pub model: ModelRef,
-    pub reasoning_effort: Option<String>,
+    pub reasoning_effort: Option<Arc<str>>,
     pub tokens: TokenUsage,
     pub request_scoped: bool,
     pub reported_cost: Option<String>,
@@ -146,22 +148,22 @@ pub struct Measurement {
 #[serde(rename_all = "camelCase")]
 pub struct Operation {
     pub id: String,
-    pub thread_id: String,
-    pub turn_id: Option<String>,
+    pub thread_id: Arc<str>,
+    pub turn_id: Option<Arc<str>>,
     pub item_id: Option<String>,
     pub call_id: Option<String>,
     pub response_id: Option<String>,
-    pub kind: String,
-    pub name: String,
+    pub kind: Arc<str>,
+    pub name: Arc<str>,
     pub sequence: u64,
     pub timestamp: Option<String>,
-    pub time_precision: String,
-    pub status: String,
+    pub time_precision: Arc<str>,
+    pub status: Arc<str>,
     pub exit_code: Option<i64>,
     pub duration_ms: Option<u64>,
     pub path: Option<String>,
-    pub server: Option<String>,
-    pub tool: Option<String>,
+    pub server: Option<Arc<str>>,
+    pub tool: Option<Arc<str>>,
     pub evidence: Vec<EvidenceRef>,
 }
 

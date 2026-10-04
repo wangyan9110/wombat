@@ -81,6 +81,9 @@
     },
     "coverage": {
       "$ref": "#/definitions/Coverage"
+    },
+    "hookRegistry": {
+      "$ref": "#/definitions/HookRegistry"
     }
   },
   "required": [
@@ -96,7 +99,8 @@
     "evidence",
     "relatedScopes",
     "page",
-    "coverage"
+    "coverage",
+    "hookRegistry"
   ],
   "definitions": {
     "Action": {
@@ -151,7 +155,8 @@
       "enum": [
         "rule",
         "skill",
-        "mcp"
+        "mcp",
+        "hook"
       ]
     },
     "Scope": {
@@ -594,19 +599,16 @@
             "null"
           ],
           "minimum": 0,
-          "default": null,
           "maximum": 9007199254740991
         },
         "measurementStatus": {
-          "type": "string",
-          "default": ""
+          "type": "string"
         },
         "bytesSource": {
           "type": [
             "string",
             "null"
-          ],
-          "default": null
+          ]
         },
         "estimate": {
           "anyOf": [
@@ -616,8 +618,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "skillMetadata": {
           "anyOf": [
@@ -627,8 +628,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "bodyTokenEstimate": {
           "anyOf": [
@@ -638,12 +638,10 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "bodyEstimateStatus": {
-          "type": "string",
-          "default": "unknown"
+          "type": "string"
         },
         "usageCount": {
           "type": [
@@ -651,15 +649,13 @@
             "null"
           ],
           "minimum": 0,
-          "default": null,
           "maximum": 9007199254740991
         },
         "lastRecordAt": {
           "type": [
             "string",
             "null"
-          ],
-          "default": null
+          ]
         },
         "observation": {
           "$ref": "#/definitions/Observation"
@@ -668,6 +664,11 @@
           "$ref": "#/definitions/Counts"
         },
         "relatedTurns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "relatedTasks": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
@@ -689,15 +690,20 @@
         "kind",
         "sourceInstanceId",
         "path",
+        "authorizedProjects",
+        "sourceContexts",
         "configuredState",
         "contentHash",
         "observedAt",
         "current",
         "stale",
         "estimateStatus",
+        "measurementStatus",
+        "bodyEstimateStatus",
         "observation",
         "counts",
-        "relatedTurns"
+        "relatedTurns",
+        "relatedTasks"
       ]
     },
     "SourceContext": {
@@ -707,8 +713,7 @@
           "type": "string"
         },
         "global": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "sourceInstanceId": {
           "type": "string"
@@ -734,6 +739,7 @@
       },
       "required": [
         "inventoryId",
+        "global",
         "sourceInstanceId",
         "contentHash",
         "configuredState",
@@ -750,6 +756,11 @@
           "maximum": 9007199254740991
         },
         "toolCalls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "resourceReads": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
@@ -773,6 +784,7 @@
       "required": [
         "fileReads",
         "toolCalls",
+        "resourceReads",
         "succeeded",
         "failed",
         "outcomeUnknown"
@@ -845,11 +857,64 @@
           "items": {
             "type": "string"
           }
+        },
+        "diagnostics": {
+          "description": "Bounded current-file diagnostics for directly reviewable static fields.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SkillDiagnostic"
+          }
         }
       },
       "required": [
         "status",
-        "issues"
+        "issues",
+        "diagnostics"
+      ]
+    },
+    "SkillDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "column": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "current": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code"
       ]
     },
     "Evidence": {
@@ -1034,6 +1099,130 @@
       },
       "required": [
         "code"
+      ]
+    },
+    "HookRegistry": {
+      "description": "A current native registry observation; it never proves that a Hook ran.",
+      "type": "object",
+      "properties": {
+        "nativeVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/HookRegistryStatus"
+        },
+        "contexts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HookContext"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "contexts"
+      ]
+    },
+    "HookRegistryStatus": {
+      "type": "string",
+      "enum": [
+        "unavailable",
+        "partial",
+        "observed"
+      ]
+    },
+    "HookContext": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "registrations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HookRegistration"
+          }
+        }
+      },
+      "required": [
+        "project",
+        "complete",
+        "registrations"
+      ]
+    },
+    "HookRegistration": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string"
+        },
+        "nativeKey": {
+          "type": "string"
+        },
+        "contentHash": {
+          "type": "string"
+        },
+        "registrationHash": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "trust": {
+          "$ref": "#/definitions/HookTrust"
+        },
+        "handler": {
+          "$ref": "#/definitions/HookHandler"
+        },
+        "source": {
+          "type": "string"
+        },
+        "pluginId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "itemId",
+        "nativeKey",
+        "contentHash",
+        "registrationHash",
+        "enabled",
+        "trust",
+        "handler",
+        "source"
+      ]
+    },
+    "HookTrust": {
+      "type": "string",
+      "enum": [
+        "managed",
+        "untrusted",
+        "trusted",
+        "modified"
+      ]
+    },
+    "HookHandler": {
+      "type": "string",
+      "enum": [
+        "command",
+        "mcpTool",
+        "prompt",
+        "agent"
       ]
     }
   }

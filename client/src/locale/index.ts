@@ -13,7 +13,7 @@ export function matchLocale(value: string | undefined): Locale | undefined {
   const language = value?.trim().toLowerCase().split(/[-_.@]/)[0];
   return language === 'zh' || language === 'en' ? language : undefined;
 }
-/** Explicit CLI choice, environment choice, ordered system languages, then Chinese compatibility default. */
+/** Explicit CLI choice, environment choice, ordered system languages, then Chinese default. */
 export function resolveLocale(options: { explicit?: string; environment?: string; languages?: readonly string[] } = {}): Locale {
   for (const value of [options.explicit, options.environment]) {
     if (value !== undefined) {
@@ -79,25 +79,43 @@ export function bytesLabel(value: number | null | undefined): string {
   return new Intl.NumberFormat(locale.getSnapshot().locale === 'zh' ? 'zh-CN' : 'en-US', { maximumFractionDigits: 2 }).format(value / 1024) + ' KiB';
 }
 /** One finding supplies the headline and key metric; all findings remain in the detail. */
-export function reviewPresentation(s: import('../generated/optimize-response.js').Suggestion) {
-  const finding = ['descriptionStandard','skillFormat','declaredCopyDrift','exactInstructionBlocks','descriptionSize','bodyTokens','fileSize']
+export function reviewPresentation(s: import('../generated/optimize-response.js').Suggestion): {title:string;value:string;metric:number|null|undefined;label:string;metricText?:string} {
+  const finding = ['skillFormat','hookTarget','localReference','descriptionStandard','declaredCopyDrift','exactInstructionBlocks','descriptionSize','bodyTokens','fileSize','missingInstruction','skillInactivity','mcpInactivity']
     .map(rule => s.findings.find(f => f.rule === rule)).find(Boolean);
   const name = s.item.name;
   switch (finding?.rule) {
+    case 'missingInstruction':return {title:t('optimize.missingInstruction'),value:t('optimize.missingValue'),metric:undefined,label:t('webui.unknown')};
     case 'descriptionStandard': case 'descriptionSize': return {title:t('optimize.descriptionTitle',{name}),value:t(finding.rule==='descriptionStandard'?'optimize.standardValue':'optimize.descriptionValue'),metric:finding.observed,label:t('config.descriptionCharacters')};
-    case 'skillFormat': return {title:t('optimize.formatTitle',{name}),value:t('optimize.formatValue'),metric:finding.evidenceCodes.length || undefined,label:t('optimize.formatErrors')};
+    case 'skillFormat': return {title:t('optimize.formatTitle',{name}),value:t('optimize.formatValue'),metric:finding.evidenceCodes.length || undefined,label:t('optimize.formatErrors'),metricText:finding.evidenceCodes.length?t('optimize.formatCountFull',{count:finding.evidenceCodes.length}):undefined};
+    case 'localReference':return {title:t('optimize.referenceTitle',{name}),value:t('optimize.referenceValue'),metric:finding.observed,label:t('optimize.referenceCount'),metricText:finding.observed==null?undefined:t('optimize.referenceCountFull',{count:finding.observed})};
     case 'bodyTokens': return {title:t('optimize.bodyTitle',{name}),value:t('optimize.bodyValue'),metric:finding.observed,label:t('config.bodyTokens')};
-    case 'declaredCopyDrift': return {title:t('optimize.copyTitle',{name}),value:t('optimize.copyValue'),metric:undefined,label:t('webui.unknown')};
+    case 'declaredCopyDrift': {const count=s.findings.filter(f=>f.rule==='declaredCopyDrift').length;return {title:t('optimize.copyTitle',{name}),value:t('optimize.copyValue'),metric:count,label:t('optimize.copyDrift'),metricText:t('optimize.copyCountFull',{count})};}
+    case 'skillInactivity':case 'mcpInactivity':return {title:t('optimize.idleTitle',{name}),value:t('optimize.idleValue'),metric:finding.observed,label:t('optimize.organize'),metricText:finding.observed==null?undefined:t('optimize.idleDays',{count:finding.observed})};
     case 'exactInstructionBlocks': return {title:t('optimize.blocksTitle',{name}),value:t('optimize.blocksValue'),metric:finding.observed,label:t('optimize.blockPositions')};
+    case 'hookTarget': return {title:t('optimize.hookTargetTitle',{name}),value:t('optimize.hookTargetValue'),metric:undefined,label:t('optimize.repair')};
     case 'fileSize': return {title:t('optimize.fileTitle',{name}),value:t('optimize.fileValue'),metric:finding.observed,label:t('config.size')+' · B'};
     default: return {title:t('optimize.genericTitle',{name}),value:t('optimize.genericValue'),metric:undefined,label:t('webui.unknown')};
   }
 }
 export function reviewFindingLabel(rule:string):string {
-  switch(rule){case 'exactInstructionBlocks':return t('optimize.exactBlocks');case 'declaredCopyDrift':return t('optimize.copyDrift');case 'fileSize':return t('optimize.fileSize');case 'descriptionSize':return t('optimize.descriptionSize');case 'descriptionStandard':return t('optimize.descriptionStandard');case 'bodyTokens':return t('config.bodyTokens');case 'skillFormat':return t('optimize.skillFormat');default:return rule;}
+  const messages = labels({localReference:'optimize.localReference',instructionSelection:'optimize.instructionSelection',skillDependency:'optimize.skillDependency',hookTarget:'optimize.hookTarget',runtimeDuplicateInjection:'optimize.runtimeDuplicateInjection',skillInactivity:'optimize.skillInactivity',mcpInactivity:'optimize.mcpInactivity',mcpFault:'optimize.mcpFault'});
+  if(Object.hasOwn(messages,rule))return messages[rule as keyof typeof messages];
+  if(rule==='missingInstruction')return t('optimize.missingInstruction');
+  switch(rule){case 'exactInstructionBlocks':return t('optimize.exactBlocks');case 'declaredCopyDrift':return t('optimize.copyDrift');case 'fileSize':return t('optimize.fileSize');case 'descriptionSize':return t('optimize.descriptionSize');case 'descriptionStandard':return t('optimize.descriptionStandard');case 'bodyTokens':return t('config.bodyTokens');case 'skillFormat':return t('optimize.skillFormat');default:return t('optimize.genericRule');}
 }
-export function reviewFindingNote(rule:string):string {
+export function reviewFindingNote(rule:string,project?:string):string {
+  if(rule==='skillInactivity')return t('optimize.idleSkillNote');
+  if(rule==='mcpInactivity')return project?t('optimize.idleMcpNote',{project}):t('optimize.idleMcpScope');
+  if(rule==='hookTarget')return t('optimize.hookTargetNote');
+  if(rule==='localReference')return t('optimize.referenceValue');
+  if(rule==='missingInstruction')return t('optimize.missingValue');
   switch(rule){case 'exactInstructionBlocks':return t('optimize.blocksValue');case 'declaredCopyDrift':return t('optimize.copyValue');case 'fileSize':return t('optimize.agentsReminder');case 'descriptionSize':return t('optimize.descriptionReminder');case 'descriptionStandard':return t('optimize.descriptionStandardNote');case 'bodyTokens':return t('config.bodyNote');default:return t('optimize.formatNote');}
+}
+export function reviewFindingCount(f: import('../generated/optimize-response.js').Finding): string | undefined {
+  if(f.rule==='declaredCopyDrift')return t('optimize.copyCountFull',{count:1});
+  if(f.rule==='skillFormat'&&f.evidenceCodes.length)return t('optimize.formatCountFull',{count:f.evidenceCodes.length});
+  if(f.rule==='localReference'&&f.observed!=null)return t('optimize.referenceCountFull',{count:f.observed});
+  return undefined;
 }
 /** Locale-sensitive labels in module-level maps remain live across switches. */
 type PlainMessageKey = { [K in MessageKey]: Slots<(typeof zh)[K]> extends never ? K : never }[MessageKey];
@@ -123,10 +141,23 @@ export function automaticPriceText(result: import('../generated/usage-app.js').R
 }
 
 export function eventStatusLabel(status: string): string {
-  switch(status){case 'completed':case 'succeeded':return t('event.completed');case 'failed':return t('event.failed');case 'cancelled':case 'canceled':return t('event.cancelled');case 'unknown':return t('webui.unknown');default:return status;}
+  switch(status){case 'completed':case 'succeeded':return t('event.completed');case 'observed':return t('config.skillUsed');case 'failed':return t('event.failed');case 'cancelled':case 'canceled':return t('event.cancelled');case 'running':return t('common.running');case 'interrupted':return t('common.interrupted');case 'unknown':return t('webui.unknown');default:return status;}
+}
+export function followUpText(observation: import('../client.js').OptimizeResult['followUps'][number]): string {
+  switch(observation.status){
+    case 'no_observed_records':return t('optimize.followUp.noRecords');
+    case 'version_unknown':return observation.observedRecords!=null&&observation.observedRecords>0?t('optimize.followUp.versionUnknown',{count:observation.observedRecords}):t('optimize.followUp.unavailable');
+    case 'unavailable':return t('optimize.followUp.unavailable');
+  }
 }
 export function operationTypeLabel(kind: string): string {
-  switch(kind){case 'skillRead':return t('event.skillRead');case 'mcp':return t('event.mcp');case 'tool':return t('event.tool');default:return kind;}
+  switch(kind){case 'instructionLoad':return t('event.instructionLoad');case 'skillCatalog':return t('event.skillCatalog');case 'skillAvailable':return t('event.skillAvailable');case 'skillUse':return t('event.skillUse');case 'skillRead':return t('event.skillRead');case 'mcp':case 'mcpTool':return t('event.mcp');case 'mcpResource':return t('event.mcpResource');case 'mcpDiscovery':return t('event.mcpDiscovery');case 'mcpUnclassified':return t('event.mcpUnclassified');case 'mcpConflict':return t('event.mcpConflict');case 'tool':return t('event.tool');default:return kind;}
 }
 
-export function storageFailureText(code?:string):string|undefined {switch(code){case 'STORAGE_FULL':return t('webui.storageFull');case 'STORAGE_UNAVAILABLE':return t('webui.storageUnavailable');case 'INDEX_MIGRATION_FAILED':return t('webui.indexMigrationFailed');case 'INDEX_UNSUPPORTED_VERSION':return t('webui.indexUnsupported');case 'INDEX_UNAVAILABLE':return t('webui.indexUnavailable');default:return undefined;}}
+export function storageFailureText(code?:string):string|undefined {switch(code){case 'STORAGE_FULL':return t('webui.storageFull');case 'STORAGE_UNAVAILABLE':return t('webui.storageUnavailable');case 'INDEX_UNSUPPORTED_VERSION':return t('webui.indexUnsupported');case 'INDEX_UNAVAILABLE':return t('webui.indexUnavailable');default:return undefined;}}
+
+export { observedCount, inventoryRecordState, sourceReadLabel } from "./observations.js";
+
+export function configEvidenceLabel(type: string): string {
+  switch(type){case 'instruction_load':return t('config.instruction_load');case 'skill_available':return t('config.skill_available');case 'skill_use':return t('config.skill_use');case 'file_read':return t('config.file_read');case 'tool_call':return t('config.tool_call');case 'resource_read':return t('config.resource_read');default:return t('webui.unknown');}
+}

@@ -1,11 +1,15 @@
+import type {CodexOptions} from './codex/process.js';
+import type {captureHooks} from './codex/hooks.js';
 import { spawn } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { CoreError } from '../errors.js';
-import type { ConfigRequest, OptimizeRequest, LiveRequest, QueryOptions } from '../client.js';
+import type { ConfigRequest, OptimizeRequest, LiveRequest, QueryOptions,HandoffRequest } from '../client.js';
 import { binaryPath, decode, invokeOperation, type CoreProcessOptions } from './core.js';
 
-function exchange(socket: string, request: LiveRequest | { config: ConfigRequest } | { optimize: OptimizeRequest }, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
+type ProductRequest = LiveRequest | { config: ConfigRequest } | { optimize: OptimizeRequest } | {handoff:HandoffRequest};
+type NativeRequest = ProductRequest & { nativeHooks?: Awaited<ReturnType<typeof captureHooks>> };
+function exchange(socket: string, request: NativeRequest, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const client = createConnection(socket);
     const chunks: Buffer[] = []; let bytes = 0, done = false;
@@ -33,15 +37,22 @@ function exchange(socket: string, request: LiveRequest | { config: ConfigRequest
     client.on('end', () => { try { finish(undefined, decode(Buffer.concat(chunks).toString('utf8'))); } catch (e) { finish(e as Error); } });
   });
 }
-export async function queryLive(request: LiveRequest | { config: ConfigRequest } | { optimize: OptimizeRequest }, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
+export async function queryLive(request: ProductRequest, options: QueryOptions, config: CoreProcessOptions & CodexOptions): Promise<unknown> {
   if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
+  let observed: NativeRequest = request;
+  const product = 'config' in request ? request.config : 'optimize' in request ? request.optimize : 'handoff' in request ? request.handoff : undefined;
+  const fresh = product && product.action !== 'capabilities' && (!product.readView || product.action === 'recheck' || product.action === 'send');
+  if (fresh) {
+    const {captureHooks} = await import('./codex/hooks.js');
+    observed = {...request, nativeHooks: await captureHooks({roots:product.roots,projectRoots:product.projectRoots}, options, config)};
+  }
   if ('query' in request && request.query.action === 'refresh') options.onProgress?.('同步本机日志并保存用量');
   const endpoint = await invokeOperation('live_endpoint', {}, options, config) as { protocolVersion?: number; socket?: string };
   if (endpoint.protocolVersion !== 1 || typeof endpoint.socket !== 'string') throw new CoreError('PROTOCOL_ERROR', '实时用量接口版本不兼容');
   let started = false;
   const deadline = Date.now() + 5_000;
   for (;;) {
-    try { return await exchange(endpoint.socket, request, options, config); }
+    try { return await exchange(endpoint.socket, observed, options, config); }
     catch (error) {
       if (!['ENOENT', 'ECONNREFUSED'].includes((error as NodeJS.ErrnoException).code ?? '') || Date.now() >= deadline) throw error;
       if (!started) {

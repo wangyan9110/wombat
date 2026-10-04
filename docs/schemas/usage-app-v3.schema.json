@@ -335,6 +335,11 @@
         "status": {
           "type": "string"
         },
+        "initialScan": {
+          "description": "Ephemeral task headers; no completed ledger or coverage is available yet.",
+          "type": "boolean",
+          "default": false
+        },
         "checkedAt": {
           "type": [
             "string",
@@ -380,14 +385,6 @@
         },
         "createdAt": {
           "type": "string"
-        },
-        "selector": {
-          "description": "Fixed selector for externally located legacy files; v3 uses snapshotId.",
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null
         }
       },
       "required": [
@@ -805,6 +802,15 @@
                 "type": "string"
               }
             },
+            "matchedTurnCount": {
+              "description": "Distinct turns with measurements in the current thread-list scope.\nNone means the matched source records provide no turn association.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
             "matchedUsage": {
               "$ref": "#/definitions/UsageSummary"
             },
@@ -851,6 +857,13 @@
               ]
             },
             "endedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastActivityAt": {
+              "description": "Latest reliable source event time, independent of ordinal and metering.",
               "type": [
                 "string",
                 "null"

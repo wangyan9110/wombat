@@ -94,9 +94,6 @@ pub struct UsageSummary {
 pub struct SnapshotRef {
     pub snapshot_id: String,
     pub created_at: String,
-    /// Fixed selector for externally located legacy files; v3 uses snapshotId.
-    #[serde(default)]
-    pub selector: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -153,6 +150,9 @@ pub enum Item {
         last_activity_at: Option<String>,
         models: Vec<String>,
         reasoning_efforts: Vec<String>,
+        /// Distinct turns with measurements in the current thread-list scope.
+        /// None means the matched source records provide no turn association.
+        matched_turn_count: Option<usize>,
         matched_usage: UsageSummary,
         thread_usage: UsageSummary,
     },
@@ -162,6 +162,8 @@ pub enum Item {
         ordinal: Option<u64>,
         started_at: Option<String>,
         ended_at: Option<String>,
+        /// Latest reliable source event time, independent of ordinal and metering.
+        last_activity_at: Option<String>,
         status: String,
         models: Vec<String>,
         reasoning_efforts: Vec<String>,

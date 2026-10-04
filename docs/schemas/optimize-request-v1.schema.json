@@ -59,6 +59,22 @@
         "null"
       ]
     },
+    "itemId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decisionReason": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DecisionReason"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "group": {
       "default": "pending",
       "allOf": [
@@ -111,11 +127,20 @@
       "enum": [
         "list",
         "detail",
-        "ignore",
-        "mark_edited",
-        "restore",
+        "keep",
+        "not_applicable",
+        "redisplay",
         "recheck",
-        "capabilities"
+        "capabilities",
+        "checks"
+      ]
+    },
+    "DecisionReason": {
+      "type": "string",
+      "enum": [
+        "necessary",
+        "object_changed",
+        "incorrect_evidence"
       ]
     },
     "Group": {

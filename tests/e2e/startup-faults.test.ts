@@ -1,25 +1,39 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,mkdir,rm} from 'node:fs/promises';
+import {mkdtemp,realpath,mkdir,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 import {once} from 'node:events';
 import {DatabaseSync} from 'node:sqlite';
 import {createNodeClient} from '@wombat/client/node';
+import {createHttpClient} from '@wombat/client/http';
+import {startWebHost} from '@wombat/web';
 
-test('index initialization faults return actual errors, retain legacy rows and recover in the same service',{timeout:20_000},async()=>{
- const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-startup-fault-'))),root=path.join(dir,'source'),data=path.join(dir,'data'),database=path.join(data,'live-v1/index.sqlite');
+test('index initialization faults return actual errors, retain unsupported records and recover in the same service',{timeout:20_000},async()=>{
+ const dir=await realpath(await mkdtemp(path.join(tmpdir(),'wombat-startup-fault-'))),root=path.join(dir,'source'),project=path.join(dir,'project'),data=path.join(dir,'data'),database=path.join(data,'live-v1/index.sqlite');
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(path.dirname(database),{recursive:true});
- const old=new DatabaseSync(database);old.exec("CREATE TABLE kv(scope TEXT NOT NULL,key TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(scope,key)); INSERT INTO kv VALUES('synthetic','invalid key','{}');");old.close();
+ await mkdir(project);const instructions=path.join(project,'AGENTS.md');await writeFile(instructions,'Synthetic local instructions. '.repeat(1000));await writeFile(path.join(root,'AGENTS.md'),'Synthetic global instructions.');
+ const unsupported=new DatabaseSync(database);unsupported.exec("CREATE TABLE sample(value TEXT); INSERT INTO sample VALUES('retained'); PRAGMA user_version=99;");unsupported.close();
  const previous={WOMBAT_DATA_HOME:process.env.WOMBAT_DATA_HOME,CODEX_HOME:process.env.CODEX_HOME,WOMBAT_AUTO_PRICES:process.env.WOMBAT_AUTO_PRICES};Object.assign(process.env,{WOMBAT_DATA_HOME:data,CODEX_HOME:root,WOMBAT_AUTO_PRICES:'0'});
  const binary=path.resolve('dist',process.platform==='win32'?'wombat-core.exe':'wombat-core'),service=spawn(binary,['--serve-usage'],{stdio:'ignore',env:process.env});await once(service,'spawn');
  const client=createNodeClient({binaryPath:binary,automaticPrices:false});
+ const host=await startWebHost({client,roots:[root],projectRoots:[project],assets:path.resolve('dist/web'),automaticPrices:false});
  try{
-  await assert.rejects(client.live!({query:{action:'usage',roots:[root]},mode:'auto'}),{code:'INDEX_MIGRATION_FAILED'});
-  const retained=new DatabaseSync(database);assert.equal(retained.prepare('SELECT count(*) AS n FROM kv').get()!.n,1);assert.equal(retained.prepare('PRAGMA user_version').get()!.user_version,0);
-  retained.exec('DELETE FROM kv');retained.close();
+  await assert.rejects(client.live!({query:{action:'usage',roots:[root]},mode:'auto'}),{code:'INDEX_UNSUPPORTED_VERSION'});
+  const token=new URLSearchParams(new URL(host.url).hash.slice(1)).get('token')!;
+  const browser=createHttpClient({origin:host.origin,token,fetch:(url,init)=>fetch(url,{...init,headers:{...init?.headers,Origin:host.origin}})});
+  const inventory=await browser.config!({});const item=inventory.items.find(i=>i.path===instructions)!;assert.ok(item);assert.equal(inventory.coverage.historyStatus,'unavailable');assert.equal(item.measurementStatus,'complete');assert.equal(item.bytes,Buffer.byteLength('Synthetic local instructions. '.repeat(1000)));
+  const pending=await browser.optimize!({project});const suggestion=pending.suggestions.find(s=>s.item.path===instructions)!;assert.ok(suggestion);assert.ok(suggestion.findings.some(f=>f.rule==='fileSize'));
+  const checks=await browser.optimize!({project,action:'checks',itemId:item.id});assert.equal(checks.checks.find(c=>c.rule==='fileSize')?.outcome,'hit');assert.equal(checks.checks.find(c=>c.rule==='runtimeDuplicateInjection')?.outcome,'unsupported');
+  await writeFile(instructions,'Short synthetic instructions.');await browser.optimize!({project,action:'recheck',suggestionId:suggestion.id});
+  const history=await browser.optimize!({project,group:'history',suggestionId:suggestion.id});assert.equal(history.suggestions[0].status,'verified');assert.equal(history.followUps[0].status,'unavailable');assert.equal(history.followUps[0].observedRecords,null);assert.equal(history.suggestions[0].decision,null);
+  const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','history','--root',root,'--project-root',project,'--project',project,'--suggestion',suggestion.id,'--json'],{env:process.env,encoding:'utf8',timeout:10_000});assert.ifError(cli.error);assert.equal(cli.status,2,cli.stderr+cli.stdout);const record=JSON.parse(cli.stdout);assert.equal(record.suggestions[0].status,'verified');assert.equal(record.followUps[0].status,'unavailable');assert.equal(record.followUps[0].observedRecords,null);
+  const retained=new DatabaseSync(database);assert.equal(retained.prepare('SELECT count(*) AS n FROM sample').get()!.n,1);assert.equal(retained.prepare('PRAGMA user_version').get()!.user_version,99);
+  retained.close();
+  // Explicit test fixture reset, never performed by the product.
+  await rm(database);await rm(database+'-wal',{force:true});await rm(database+'-shm',{force:true});
   const restored=await client.live!({query:{action:'usage',roots:[root]},mode:'fresh'});assert.equal(restored.freshness.status,'current');assert.equal(restored.result.summary.measurementCount,0);
-  const current=new DatabaseSync(database);assert.equal(current.prepare('PRAGMA user_version').get()!.user_version,2);current.close();
- }finally{service.kill('SIGTERM');await once(service,'exit').catch(()=>{});for(const[k,v]of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
+  const current=new DatabaseSync(database);assert.equal(current.prepare('PRAGMA user_version').get()!.user_version,3);current.close();
+ }finally{await host.close();service.kill('SIGTERM');await once(service,'exit').catch(()=>{});for(const[k,v]of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
 });

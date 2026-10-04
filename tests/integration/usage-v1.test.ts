@@ -101,10 +101,12 @@ test('distribution uses whole-range scales and shares before pagination; cost or
     assert.equal(second.items[0].share, 1_100 / 5_100);
     const threads = f.query({ action: 'threads', snapshotId, scope: allDates, sort: 'cost' });
     assert.deepEqual(threads.items.map((item: any) => item.title), ['主工程', '归档实验']);
+    assert.deepEqual(threads.items.map((item: any) => item.matchedTurnCount), [2, 1]);
     assert.equal(threads.items[1].threadUsage.price.status, 'unknown');
     const linked = f.query({ action: 'threads', snapshotId, scope: { ...allDates, since: '2026-09-29', model: 'gpt-5.4' }, sort: 'tokens' });
     assert.equal(linked.items[0].threadUsage.tokens.total, 4_600);
     assert.equal(linked.items[0].matchedUsage.tokens.total, 1_300);
+    assert.equal(linked.items[0].matchedTurnCount, 1);
     const turns = f.query({ action: 'turns', snapshotId, threadId: linked.items[0].id, scope: linked.scope, sort: 'cost' });
     assert.equal(turns.items.length, 2, 'a report link retains all turns');
     assert.equal(turns.summary.tokens.total, 4_600);
@@ -114,6 +116,21 @@ test('distribution uses whole-range scales and shares before pagination; cost or
     assert.equal(cli.status, first.quality.status === 'partial' ? 2 : 0);
     assert.deepEqual(cli.value.distribution, first.distribution);
     assert.equal(cli.value.items.length, 1);
+  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
+});
+
+test('task rows keep a missing source turn association unknown', async () => {
+  const f = await fixture();
+  try {
+    await writeFile(path.join(f.source, 'sessions', 'no-turn.jsonl'), jsonl([
+      envelope('2026-09-29T04:00:00Z', 'session_meta', { id: 'thread-no-turn', cwd: f.workspace }),
+      event('2026-09-29T04:01:00Z', { type: 'token_usage_record', thread_id: 'thread-no-turn', response_id: 'response-no-turn', usage: usage(100, 0, 10) }),
+    ]));
+    const snapshotId = f.refresh().snapshotRef.snapshotId;
+    const result = f.query({ action: 'threads', snapshotId, search: 'thread-no-turn' });
+    assert.equal(result.items.length, 1);
+    assert.equal(result.items[0].matchedTurnCount, null);
+    assert.equal(result.items[0].matchedUsage.tokens.total, 110);
   } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 
@@ -341,35 +358,6 @@ test('快照不持久化正文，分片损坏和路径穿越被拒绝', async ()
     assert.equal(f.raw({ action: 'usage', snapshotId, scope: allDates }).code, 'SNAPSHOT_CORRUPT');
     await writeFile(manifestFile, manifestText);
     assert.equal(f.raw({ action: 'usage', snapshotId: '../../outside' }).code, 'INVALID_ARGUMENT');
-  } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
-});
-
-test('v1/v2 快照只读保留金额政策、部分计价和未知状态，不伪造轮次', async () => {
-  const f = await fixture();
-  try {
-    for (const version of [1, 2]) {
-      const file = path.join(f.root, `legacy-v${version}.json`);
-      const snapshot = {
-        schemaVersion: version, snapshotId: `legacy-v${version}`, createdAt: '2026-09-29T03:00:00Z',
-        sessions: [{ id: 'legacy-thread', sessionId: 'legacy-thread', cwd: f.workspace }],
-        usage: { sections: { session: { rows: [
-          { id: 'legacy-priced', session: 'legacy-thread', period: '2026-09-29', totalTokens: 1_000, inputTokens: 800, outputTokens: 200, cacheReadTokens: 0, cacheCreationTokens: 0, costUSD: 2.5, pricing: 'priced', pricingCoverage: 'priced' },
-          { id: 'legacy-partial', session: 'legacy-thread', period: '2026-09-29', totalTokens: 2_000, inputTokens: 1_800, outputTokens: 200, cacheReadTokens: 0, cacheCreationTokens: 0, costUSD: 1.25, pricing: 'unpriced', pricingCoverage: 'partial' },
-          { id: 'legacy-unpriced', session: 'legacy-thread', period: '2026-09-29', totalTokens: 300, inputTokens: 200, outputTokens: 100, cacheReadTokens: 0, cacheCreationTokens: 0, costUSD: 0, pricing: 'unpriced', pricingCoverage: 'unpriced' },
-        ] } } },
-      };
-      const bytes = JSON.stringify(snapshot); await writeFile(file, bytes);
-      const result = f.query({ action: 'threads', snapshotId: file });
-      assert.equal(result.summary.tokens.total, 3_300);
-      assert.equal(result.summary.price.policy, 'legacy_recorded');
-      assert.equal(result.summary.price.cost, null);
-      assert.equal(result.summary.price.knownCost, '3.75');
-      assert.equal(result.summary.price.status, 'partial');
-      assert.equal(result.items[0].threadUsage.tokens.total, 3_300);
-      const detail = f.raw({ action: 'turns', snapshotId: file, threadId: 'legacy-thread' });
-      assert.equal(detail.ok, false); assert.equal(detail.code, 'DETAIL_UNAVAILABLE');
-      assert.equal(await readFile(file, 'utf8'), bytes);
-    }
   } finally { await rm(f.root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }); }
 });
 

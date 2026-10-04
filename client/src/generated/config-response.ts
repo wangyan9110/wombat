@@ -1,8 +1,11 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
 export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
-export type Kind = "rule" | "skill" | "mcp";
+export type Kind = "rule" | "skill" | "mcp" | "hook";
 export type Observation = "used" | "loaded_only" | "unknown";
+export type HookRegistryStatus = "unavailable" | "partial" | "observed";
+export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
+export type HookHandler = "command" | "mcpTool" | "prompt" | "agent";
 
 export interface Response {
   outputVersion: number;
@@ -25,6 +28,7 @@ export interface Response {
   relatedScopes: RelatedScope[];
   page: Page;
   coverage: Coverage;
+  hookRegistry: HookRegistry;
 }
 export interface Capabilities {
   kinds: Kind[];
@@ -129,11 +133,11 @@ export interface Item {
   /**
    * Authorized inventory memberships, not proof of joint host loading.
    */
-  authorizedProjects?: string[];
+  authorizedProjects: string[];
   /**
    * Current physical object keeps each source inventory identity and observation.
    */
-  sourceContexts?: SourceContext[];
+  sourceContexts: SourceContext[];
   configuredState: string;
   contentHash: string;
   observedAt: string;
@@ -143,22 +147,23 @@ export interface Item {
   contentTokens?: number | null;
   estimateStatus: string;
   characters?: number | null;
-  measurementStatus?: string;
+  measurementStatus: string;
   bytesSource?: string | null;
   estimate?: ContentEstimate | null;
   skillMetadata?: SkillMetadata | null;
   bodyTokenEstimate?: ContentEstimate | null;
-  bodyEstimateStatus?: string;
+  bodyEstimateStatus: string;
   usageCount?: number | null;
   lastRecordAt?: string | null;
   observation: Observation;
   counts: Counts;
   relatedTurns: number;
+  relatedTasks: number;
   usage?: UsageSummary | null;
 }
 export interface SourceContext {
   inventoryId: string;
-  global?: boolean;
+  global: boolean;
   sourceInstanceId: string;
   contentHash: string;
   configuredState: string;
@@ -169,6 +174,7 @@ export interface SourceContext {
 export interface Counts {
   fileReads: number;
   toolCalls: number;
+  resourceReads: number;
   succeeded: number;
   failed: number;
   outcomeUnknown: number;
@@ -186,6 +192,18 @@ export interface SkillMetadata {
   status: string;
   descriptionCharacters?: number | null;
   issues: string[];
+  /**
+   * Bounded current-file diagnostics for directly reviewable static fields.
+   */
+  diagnostics: SkillDiagnostic[];
+}
+export interface SkillDiagnostic {
+  code: string;
+  field?: string | null;
+  line?: number | null;
+  column?: number | null;
+  current?: string | null;
+  expected?: string | null;
 }
 export interface Evidence {
   id: string;
@@ -222,4 +240,29 @@ export interface Coverage {
 export interface Issue {
   code: string;
   path?: string | null;
+}
+/**
+ * A current native registry observation; it never proves that a Hook ran.
+ */
+export interface HookRegistry {
+  nativeVersion?: string | null;
+  checkedAt?: string | null;
+  status: HookRegistryStatus;
+  contexts: HookContext[];
+}
+export interface HookContext {
+  project: string;
+  complete: boolean;
+  registrations: HookRegistration[];
+}
+export interface HookRegistration {
+  itemId: string;
+  nativeKey: string;
+  contentHash: string;
+  registrationHash: string;
+  enabled: boolean;
+  trust: HookTrust;
+  handler: HookHandler;
+  source: string;
+  pluginId?: string | null;
 }

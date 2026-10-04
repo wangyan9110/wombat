@@ -1,6 +1,8 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type Action = "list" | "detail" | "ignore" | "mark_edited" | "restore" | "recheck" | "capabilities";
+export type Action =
+  "list" | "detail" | "keep" | "not_applicable" | "redisplay" | "recheck" | "capabilities" | "checks";
+export type DecisionReason = "necessary" | "object_changed" | "incorrect_evidence";
 export type Group = "pending" | "history";
 export type Category = "repair" | "trim" | "organize" | "space";
 
@@ -13,6 +15,8 @@ export interface Request {
   project?: string | null;
   sourceInstanceId?: string | null;
   suggestionId?: string | null;
+  itemId?: string | null;
+  decisionReason?: DecisionReason | null;
   group?: Group & string;
   category?: Category | null;
   offset?: number | null;

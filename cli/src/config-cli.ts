@@ -1,6 +1,6 @@
 import { CoreError, type ConfigRequest } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { t } from '@wombat/client/locale';
+import { t, configEvidenceLabel, eventStatusLabel } from '@wombat/client/locale';
 import path from 'node:path';
 import { terminalText } from './display-text.js';
 
@@ -30,7 +30,7 @@ export function parseConfigArgs(argv: string[]): { request: ConfigRequest; json:
       case '--agent': scope.agentKind = value; break;
       case '--source': scope.sourceInstanceId = value; break;
       case '--thread': scope.threadId = value; break;
-      case '--kind': if (!['rule','skill','mcp'].includes(value)) fail(value); request.kind = value as ConfigRequest['kind']; break;
+      case '--kind': if (!['rule','skill','mcp','hook'].includes(value)) fail(value); request.kind = value as ConfigRequest['kind']; break;
       case '--observation': if (!['used','loaded_only','unknown'].includes(value)) fail(value); request.observation = value as ConfigRequest['observation']; break;
       case '--sort': if (!['tokens','activity','size','name','content_tokens','characters','recent'].includes(value)) fail(value); request.sort = value as ConfigRequest['sort']; break;
       case '--action': if (!['list','detail','evidence','related_scopes','capabilities'].includes(value)) fail(value); request.action = value as ConfigRequest['action']; break;
@@ -52,6 +52,7 @@ export function parseConfigArgs(argv: string[]): { request: ConfigRequest; json:
 }
 
 export async function runConfigCli(argv: string[]): Promise<number> {
+  if (argv[0] === 'handoff') return (await import('./handoff-cli.js')).runHandoffCli(argv.slice(1));
   if (argv[0] !== 'inventory') return (await import('./optimize-cli.js')).runOptimizeCli(argv);
   const { request, json, help } = parseConfigArgs(argv.slice(1));
   if (help) { process.stdout.write(t('cli.config.help')); return 0; }
@@ -63,7 +64,11 @@ export async function runConfigCli(argv: string[]): Promise<number> {
     else {
       process.stdout.write(t('config.scopeNote') + '\n');
       for (const item of result.items) process.stdout.write(`${item.kind}\t${terminalText(item.name)}\t${t(`config.${item.observation}`)}\t${terminalText(item.path)}\n`);
-      for (const row of result.evidence) process.stdout.write(`${row.timestamp ?? '—'}\t${row.threadId}\t${row.eventType}\t${row.outcome}\n`);
+      for (const context of result.hookRegistry.contexts) for (const hook of context.registrations.filter(h => result.items.some(i => i.id === h.itemId))) {
+        const plugin = hook.pluginId ? '\t' + t('config.hookPlugin', { name: terminalText(hook.pluginId) }) : '';
+        process.stdout.write(`${terminalText(context.project)}\t${terminalText(hook.itemId)}\t${t(hook.enabled ? 'config.hookEnabled' : 'config.hookDisabled')}\t${t(`config.hookTrust.${hook.trust}`)}${plugin}\n`);
+      }
+      for (const row of result.evidence) process.stdout.write(`${row.timestamp ?? '—'}\t${row.threadId}\t${configEvidenceLabel(row.eventType)}\t${eventStatusLabel(row.outcome)}\n`);
       for (const row of result.relatedScopes) process.stdout.write(`${terminalText(row.project ?? '—')}\t${row.evidenceCount}\n`);
       process.stdout.write(t('config.readVersion', { version: result.readView ?? '—' }) + '\n');
       process.stdout.write(t('config.coverageNote') + '\n');

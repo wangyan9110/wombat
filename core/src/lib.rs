@@ -1,7 +1,12 @@
+mod account;
+pub mod account_dto;
 pub mod adapters;
 mod config;
 pub mod config_dto;
+pub mod directories;
 pub mod dto;
+mod handoff;
+pub mod handoff_dto;
 pub mod live;
 mod live_index;
 #[cfg(windows)]
@@ -13,6 +18,7 @@ pub mod preferences;
 pub mod pricing;
 pub mod pricing_sync;
 mod query_cache;
+mod shared_text;
 pub mod storage;
 pub mod usage_app;
 pub mod usage_app_dto;
@@ -53,6 +59,48 @@ pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
 
 pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
     match op {
+        "schema_handoff_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<handoff_dto::Request>(),
+        )?),
+        "schema_handoff_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<handoff_dto::Response>(),
+        )?),
+        "native_hook_context" => Ok(serde_json::to_value(config::hooks::context(
+            serde_json::from_value(args.clone())?,
+        )?)?),
+        "native_account" => Ok(serde_json::to_value(account::normalize(
+            serde_json::from_value(args.clone())?,
+        )?)?),
+        "native_allowance_gate" => Ok(serde_json::to_value(account::gate::evaluate(
+            serde_json::from_value(args.clone())?,
+        )?)?),
+        "schema_account_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<account_dto::Request>(),
+        )?),
+        "schema_account_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<account_dto::Response>(),
+        )?),
+        "directories" => Ok(serde_json::to_value(directories::dispatch(
+            serde_json::from_value(args.clone())?,
+        )?)?),
+        "schema_directories_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<directories::Request>(),
+        )?),
+        "schema_directories_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<directories::Response>(),
+        )?),
         "schema_analysis_declaration" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()
                 .into_generator()

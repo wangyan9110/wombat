@@ -65,6 +65,25 @@
     },
     "ruleParameters": {
       "$ref": "#/definitions/RuleParameters"
+    },
+    "ruleCatalog": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RuleDefinition"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RuleAssessment"
+      }
+    },
+    "followUps": {
+      "description": "Derived from the selected usage view; never stored as a user decision or receipt.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/FollowUpObservation"
+      }
     }
   },
   "required": [
@@ -80,7 +99,10 @@
     "page",
     "issues",
     "resultStatus",
-    "ruleParameters"
+    "ruleParameters",
+    "ruleCatalog",
+    "checks",
+    "followUps"
   ],
   "definitions": {
     "Action": {
@@ -88,11 +110,12 @@
       "enum": [
         "list",
         "detail",
-        "ignore",
-        "mark_edited",
-        "restore",
+        "keep",
+        "not_applicable",
+        "redisplay",
         "recheck",
-        "capabilities"
+        "capabilities",
+        "checks"
       ]
     },
     "Capabilities": {
@@ -116,15 +139,6 @@
         "spaceCleanup": {
           "type": "boolean"
         },
-        "previews": {
-          "type": "boolean"
-        },
-        "execution": {
-          "type": "boolean"
-        },
-        "recovery": {
-          "type": "boolean"
-        },
         "loadingBudgetDiagnosis": {
           "type": "boolean"
         },
@@ -145,9 +159,6 @@
         "inactivity",
         "mcpFaults",
         "spaceCleanup",
-        "previews",
-        "execution",
-        "recovery",
         "loadingBudgetDiagnosis",
         "exactInstructionBlocks",
         "declaredCopyDrift",
@@ -184,7 +195,9 @@
     "HookSupportStatus": {
       "type": "string",
       "enum": [
-        "no_verified_adapter"
+        "no_verified_adapter",
+        "registry_observed",
+        "registry_partial"
       ]
     },
     "Suggestion": {
@@ -208,6 +221,23 @@
         "status": {
           "type": "string"
         },
+        "decision": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UserDecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks": {
+          "description": "Current rule facts; user decisions never stand in for check outcomes.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RuleAssessment"
+          }
+        },
         "findings": {
           "type": "array",
           "items": {
@@ -228,8 +258,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "recheckRuleParameters": {
           "anyOf": [
@@ -239,11 +268,10 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "reviewBaseline": {
-          "description": "Exact measured metadata at manual-review marking; no source body is retained.",
+          "description": "Exact metadata before rechecking; source bodies are never retained.",
           "anyOf": [
             {
               "$ref": "#/definitions/Item"
@@ -251,8 +279,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "recordId": {
           "type": [
@@ -265,6 +292,16 @@
             "string",
             "null"
           ]
+        },
+        "recordKind": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RecordKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -272,6 +309,7 @@
         "item",
         "category",
         "status",
+        "checks",
         "findings",
         "checkedAt",
         "ruleVersion"
@@ -361,19 +399,16 @@
             "null"
           ],
           "minimum": 0,
-          "default": null,
           "maximum": 9007199254740991
         },
         "measurementStatus": {
-          "type": "string",
-          "default": ""
+          "type": "string"
         },
         "bytesSource": {
           "type": [
             "string",
             "null"
-          ],
-          "default": null
+          ]
         },
         "estimate": {
           "anyOf": [
@@ -383,8 +418,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "skillMetadata": {
           "anyOf": [
@@ -394,8 +428,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "bodyTokenEstimate": {
           "anyOf": [
@@ -405,12 +438,10 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "bodyEstimateStatus": {
-          "type": "string",
-          "default": "unknown"
+          "type": "string"
         },
         "usageCount": {
           "type": [
@@ -418,15 +449,13 @@
             "null"
           ],
           "minimum": 0,
-          "default": null,
           "maximum": 9007199254740991
         },
         "lastRecordAt": {
           "type": [
             "string",
             "null"
-          ],
-          "default": null
+          ]
         },
         "observation": {
           "$ref": "#/definitions/Observation"
@@ -435,6 +464,11 @@
           "$ref": "#/definitions/Counts"
         },
         "relatedTurns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "relatedTasks": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
@@ -456,15 +490,20 @@
         "kind",
         "sourceInstanceId",
         "path",
+        "authorizedProjects",
+        "sourceContexts",
         "configuredState",
         "contentHash",
         "observedAt",
         "current",
         "stale",
         "estimateStatus",
+        "measurementStatus",
+        "bodyEstimateStatus",
         "observation",
         "counts",
-        "relatedTurns"
+        "relatedTurns",
+        "relatedTasks"
       ]
     },
     "Kind": {
@@ -472,7 +511,8 @@
       "enum": [
         "rule",
         "skill",
-        "mcp"
+        "mcp",
+        "hook"
       ]
     },
     "SourceContext": {
@@ -482,8 +522,7 @@
           "type": "string"
         },
         "global": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "sourceInstanceId": {
           "type": "string"
@@ -509,6 +548,7 @@
       },
       "required": [
         "inventoryId",
+        "global",
         "sourceInstanceId",
         "contentHash",
         "configuredState",
@@ -525,6 +565,11 @@
           "maximum": 9007199254740991
         },
         "toolCalls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "resourceReads": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
@@ -548,6 +593,7 @@
       "required": [
         "fileReads",
         "toolCalls",
+        "resourceReads",
         "succeeded",
         "failed",
         "outcomeUnknown"
@@ -620,11 +666,64 @@
           "items": {
             "type": "string"
           }
+        },
+        "diagnostics": {
+          "description": "Bounded current-file diagnostics for directly reviewable static fields.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SkillDiagnostic"
+          }
         }
       },
       "required": [
         "status",
-        "issues"
+        "issues",
+        "diagnostics"
+      ]
+    },
+    "SkillDiagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "column": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "current": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code"
       ]
     },
     "UsageSummary": {
@@ -903,6 +1002,95 @@
         "space"
       ]
     },
+    "UserDecision": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/definitions/DecisionKind"
+        },
+        "reason": {
+          "$ref": "#/definitions/DecisionReason"
+        },
+        "recordedAt": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "reason",
+        "recordedAt"
+      ]
+    },
+    "DecisionKind": {
+      "type": "string",
+      "enum": [
+        "keep",
+        "not_applicable"
+      ]
+    },
+    "DecisionReason": {
+      "type": "string",
+      "enum": [
+        "necessary",
+        "object_changed",
+        "incorrect_evidence"
+      ]
+    },
+    "RuleAssessment": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "string"
+        },
+        "ruleVersion": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "string"
+        },
+        "contentVersion": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/definitions/RuleOutcome"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Finding"
+          }
+        }
+      },
+      "required": [
+        "rule",
+        "ruleVersion",
+        "itemId",
+        "contentVersion",
+        "checkedAt",
+        "outcome",
+        "findings"
+      ]
+    },
+    "RuleOutcome": {
+      "type": "string",
+      "enum": [
+        "hit",
+        "miss",
+        "insufficient",
+        "unsupported",
+        "error"
+      ]
+    },
     "Finding": {
       "type": "object",
       "properties": {
@@ -938,8 +1126,7 @@
           "type": [
             "string",
             "null"
-          ],
-          "default": null
+          ]
         },
         "evidence": {
           "description": "Positions and relationships only; never retain source text or command arguments.",
@@ -1005,10 +1192,26 @@
           }
         },
         "relation": {
-          "description": "Scope-bound owner; legacy evidence without this cannot prove a declared relation.",
+          "description": "Scope-bound owner required to prove a declared relation.",
           "anyOf": [
             {
               "$ref": "#/definitions/RelationIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReferenceEvidence"
+          }
+        },
+        "hook": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HookTargetEvidence"
             },
             {
               "type": "null"
@@ -1020,7 +1223,8 @@
         "method",
         "applicability",
         "versions",
-        "positions"
+        "positions",
+        "references"
       ]
     },
     "FileVersion": {
@@ -1119,6 +1323,99 @@
         "copy"
       ]
     },
+    "ReferenceEvidence": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "baseDirectory": {
+          "type": "string"
+        },
+        "expectedType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "startByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "target",
+        "baseDirectory",
+        "status",
+        "startByte",
+        "endByte",
+        "startLine",
+        "endLine"
+      ]
+    },
+    "HookTargetEvidence": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string"
+        },
+        "nativeKey": {
+          "type": "string"
+        },
+        "registrationHash": {
+          "type": "string"
+        },
+        "hostVersion": {
+          "type": "string"
+        },
+        "trust": {
+          "$ref": "#/definitions/HookTrust"
+        },
+        "target": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "project",
+        "nativeKey",
+        "registrationHash",
+        "hostVersion",
+        "trust",
+        "target",
+        "status"
+      ]
+    },
+    "HookTrust": {
+      "type": "string",
+      "enum": [
+        "managed",
+        "untrusted",
+        "trusted",
+        "modified"
+      ]
+    },
     "RuleParameters": {
       "type": "object",
       "properties": {
@@ -1184,6 +1481,15 @@
       },
       "additionalProperties": false
     },
+    "RecordKind": {
+      "type": "string",
+      "enum": [
+        "observation",
+        "decision",
+        "recheck",
+        "redisplay"
+      ]
+    },
     "Page": {
       "type": "object",
       "properties": {
@@ -1232,6 +1538,91 @@
       },
       "required": [
         "code"
+      ]
+    },
+    "RuleDefinition": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Kind"
+          }
+        },
+        "basis": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule",
+        "version",
+        "kinds",
+        "basis"
+      ]
+    },
+    "FollowUpObservation": {
+      "type": "object",
+      "properties": {
+        "recordId": {
+          "type": "string"
+        },
+        "suggestionId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/FollowUpStatus"
+        },
+        "after": {
+          "type": "string"
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "observedRecords": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lastRecordAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "usageRevision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "absenceObservable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "recordId",
+        "suggestionId",
+        "status",
+        "after",
+        "observedAt",
+        "absenceObservable"
+      ]
+    },
+    "FollowUpStatus": {
+      "type": "string",
+      "enum": [
+        "no_observed_records",
+        "version_unknown",
+        "unavailable"
       ]
     }
   }

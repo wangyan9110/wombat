@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "action": {
+      "$ref": "#/definitions/Action"
+    },
+    "grants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Grant"
+      }
+    },
+    "chosenPath": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "choiceToken": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "outputVersion",
+    "action",
+    "grants"
+  ],
+  "definitions": {
+    "Action": {
+      "type": "string",
+      "enum": [
+        "list",
+        "choose",
+        "confirm",
+        "authorize",
+        "revoke"
+      ]
+    },
+    "Grant": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "purpose": {
+          "$ref": "#/definitions/Purpose"
+        },
+        "path": {
+          "type": "string"
+        },
+        "directoryIdentity": {
+          "type": "string"
+        },
+        "authorizedAt": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "purpose",
+        "path",
+        "directoryIdentity",
+        "authorizedAt",
+        "status"
+      ]
+    },
+    "Purpose": {
+      "type": "string",
+      "enum": [
+        "source",
+        "project"
+      ]
+    }
+  }
+}

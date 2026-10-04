@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LocaleRuntime, resolveLocale, locale, relatedActivityText, monthLabel } from '../src/locale/index.js';
+import { LocaleRuntime, resolveLocale, locale, relatedActivityText, monthLabel, eventStatusLabel } from '../src/locale/index.js';
 test('explicit, environment and system language precedence, including regional tags', () => {
   assert.equal(resolveLocale({ explicit: 'en-US', environment: 'zh', languages: ['zh-CN'] }), 'en');
   assert.equal(resolveLocale({ environment: 'zh_CN.UTF-8', languages: ['en'] }), 'zh');
@@ -67,4 +67,13 @@ test('static evidence notes do not describe matching blocks or copy drift as mal
 });
 test('confirmed brand copy preserves Chinese efficiency and English better with its punctuation',()=>{
  const runtime=new LocaleRuntime('zh');assert.equal(runtime.t('webui.tagline'),'让 AI 工作更高效');runtime.setLocale('en');assert.equal(runtime.t('webui.tagline'),'Make AI work better.');
+});
+test('operation outcomes distinguish running, interrupted and unknown in both locales',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{
+  for(const [language,expected] of [['zh',['进行中','已中断','未知','已完成','失败']],['en',['Running','Interrupted','Unknown','Completed','Failed']]] as const){
+   locale.setLocale(language);assert.deepEqual(['running','interrupted','unknown','completed','failed'].map(eventStatusLabel),expected);
+   assert.equal(eventStatusLabel('source-defined-status'),'source-defined-status');
+  }
+ }finally{locale.setLocale(saved);}
 });

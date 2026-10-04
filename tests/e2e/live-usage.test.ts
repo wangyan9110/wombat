@@ -4,8 +4,8 @@ import { mkdtemp, mkdir, writeFile, appendFile, rm, readdir, chmod } from 'node:
 import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
 import { DatabaseSync } from 'node:sqlite';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const binary = path.resolve('dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
 const cli = path.resolve('dist/wombat.js');
@@ -45,18 +45,13 @@ test('live CLI resumes, keeps fixed views, exports only explicitly and streams a
     await start();
     const first=run(['usage','--fresh']);
     assert.equal(first.summary.tokens.total,110); assert.equal(first.freshness.status,'current');
+    const index = new DatabaseSync(path.join(data,'live-v1','index.sqlite'),{readOnly:true});
+    try {
+      assert.equal(index.prepare("SELECT count(*) AS n FROM entries e JOIN buckets b ON b.id=e.bucket WHERE b.scope LIKE 'projection:%' AND b.field='measurements' AND e.payload IS NULL AND e.source_bucket IS NOT NULL").get()!.n,1);
+      assert.equal(index.prepare("SELECT count(*) AS n FROM entries e LEFT JOIN entries origin ON origin.bucket=e.source_bucket AND origin.id=e.id WHERE e.source_bucket IS NOT NULL AND origin.payload IS NULL").get()!.n,0);
+    } finally { index.close(); }
     assert.ok(!(await readdir(data)).includes('usage-v3'), 'automatic sync must not export snapshots');
     await stop();
-    // Recreate the old on-disk format from the same safe facts. Reopening must
-    // migrate it while retaining the cached revision and resumable cursor.
-    const legacyDb = new DatabaseSync(path.join(data, 'live-v1', 'index.sqlite'));
-    try {
-      const records = legacyDb.prepare('SELECT b.scope,b.field,e.id,json(e.payload) AS payload FROM buckets b JOIN entries e ON e.bucket=b.id').all() as {scope:string;field:string;id:string;payload:string}[];
-      legacyDb.exec('BEGIN; DROP TABLE entries; DROP TABLE buckets; CREATE TABLE kv(scope TEXT NOT NULL,key TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(scope,key)) WITHOUT ROWID; PRAGMA user_version=0;');
-      const insert = legacyDb.prepare('INSERT INTO kv VALUES(?,?,?)');
-      for (const record of records) insert.run(record.scope, JSON.stringify([record.field, record.id]), record.payload);
-      legacyDb.exec('COMMIT;');
-    } finally { legacyDb.close(); }
     await appendFile(log,row('two'));
     await start();
     const cached=run(['usage','--cached']);

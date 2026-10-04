@@ -1,0 +1,460 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "action": {
+      "$ref": "#/definitions/Action"
+    },
+    "nativeVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "account": {
+      "$ref": "#/definitions/Section"
+    },
+    "allowance": {
+      "$ref": "#/definitions/Section"
+    },
+    "activity": {
+      "$ref": "#/definitions/Section"
+    },
+    "identity": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Identity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "windows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Window"
+      }
+    },
+    "buckets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Bucket"
+      }
+    },
+    "resetCredits": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ResetCredits"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ordinaryUsageAllowed": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "modelRestriction": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ModelRestriction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Summary"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "outputVersion",
+    "action",
+    "account",
+    "allowance",
+    "activity",
+    "windows",
+    "buckets"
+  ],
+  "definitions": {
+    "Action": {
+      "type": "string",
+      "enum": [
+        "read",
+        "refresh"
+      ]
+    },
+    "Section": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "Identity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "maskedEmail": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "plan": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ]
+    },
+    "Window": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "bucketId": {
+          "type": "string"
+        },
+        "bucketName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "description": "Native normalModelSlug: presentation metadata, not quota applicability.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "usedPercent": {
+          "type": "number"
+        },
+        "durationMinutes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "resetsAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "bucketId",
+        "usedPercent",
+        "status"
+      ]
+    },
+    "Bucket": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "description": "Native normalModelSlug: presentation metadata, not quota applicability.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "credits": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Credits"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "individualLimit": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SpendLimit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "spendControlReached": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "rateLimitReachedType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status"
+      ]
+    },
+    "Credits": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "description": "Native decimal text; no currency or token conversion is inferred.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hasCredits": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "unlimited": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "SpendLimit": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "used": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "remainingPercent": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "resetsAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "ResetCredits": {
+      "type": "object",
+      "properties": {
+        "availableCount": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "credits": {
+          "description": "None means details were not provided; an empty list is an observed empty list.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/ResetCredit"
+          }
+        },
+        "detailsTruncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "detailsTruncated"
+      ]
+    },
+    "ResetCredit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grantedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expiresAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resetType": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "resetType",
+        "status"
+      ]
+    },
+    "ModelRestriction": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "description": "Explicit blocked_model_slug from an identity-bound native usage-limit notice.",
+          "type": "string"
+        },
+        "resetsAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "model"
+      ]
+    },
+    "Summary": {
+      "type": "object",
+      "properties": {
+        "lifetimeTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "currentStreakDays": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "longestStreakDays": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "peakDailyTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "longestRunningTurnSeconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    }
+  }
+}

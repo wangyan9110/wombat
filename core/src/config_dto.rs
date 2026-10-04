@@ -19,6 +19,7 @@ pub enum Kind {
     Rule,
     Skill,
     Mcp,
+    Hook,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -63,6 +64,7 @@ pub struct Request {
     #[serde(default)]
     pub scope: Scope,
     pub kind: Option<Kind>,
+    pub kinds: Option<Vec<Kind>>,
     pub observation: Option<Observation>,
     pub search: Option<String>,
     #[serde(default)]
@@ -84,8 +86,14 @@ pub struct Capabilities {
 impl Default for Capabilities {
     fn default() -> Self {
         Self {
-            kinds: vec![Kind::Rule, Kind::Skill, Kind::Mcp],
-            evidence_types: vec!["file_read".into(), "tool_call".into()],
+            kinds: vec![Kind::Rule, Kind::Skill, Kind::Mcp, Kind::Hook],
+            evidence_types: vec![
+                "file_read".into(),
+                "skill_available".into(),
+                "skill_use".into(),
+                "tool_call".into(),
+                "resource_read".into(),
+            ],
             token_estimates: true,
             historical_content: false,
             writes: false,
@@ -104,10 +112,8 @@ pub struct Item {
     pub project: Option<String>,
     pub native_key: Option<String>,
     /// Authorized inventory memberships, not proof of joint host loading.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub authorized_projects: Vec<String>,
     /// Current physical object keeps each source inventory identity and observation.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub source_contexts: Vec<SourceContext>,
     pub configured_state: String,
     pub content_hash: String,
@@ -117,34 +123,25 @@ pub struct Item {
     pub bytes: Option<u64>,
     pub content_tokens: Option<u64>,
     pub estimate_status: String,
-    #[serde(default)]
     pub characters: Option<u64>,
-    #[serde(default)]
     pub measurement_status: String,
-    #[serde(default)]
     pub bytes_source: Option<String>,
-    #[serde(default)]
     pub estimate: Option<ContentEstimate>,
-    #[serde(default)]
     pub skill_metadata: Option<SkillMetadata>,
-    #[serde(default)]
     pub body_token_estimate: Option<ContentEstimate>,
-    #[serde(default = "unknown_measurement")]
     pub body_estimate_status: String,
-    #[serde(default)]
     pub usage_count: Option<u64>,
-    #[serde(default)]
     pub last_record_at: Option<String>,
     pub observation: Observation,
     pub counts: Counts,
     pub related_turns: usize,
+    pub related_tasks: usize,
     pub usage: Option<UsageSummary>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceContext {
     pub inventory_id: String,
-    #[serde(default)]
     pub global: bool,
     pub source_instance_id: String,
     pub content_hash: String,
@@ -164,10 +161,6 @@ impl Item {
     }
     pub(crate) fn in_source(&self, source: &str) -> bool {
         self.source_ids().any(|id| id == source)
-    }
-    pub(crate) fn inventory_ids(&self) -> impl Iterator<Item = &str> {
-        std::iter::once(self.id.as_str())
-            .chain(self.source_contexts.iter().map(|c| c.inventory_id.as_str()))
     }
     pub(crate) fn applies(&self, source: Option<&str>, project: Option<&str>) -> bool {
         let membership = project.is_none_or(|p| {
@@ -194,21 +187,31 @@ pub struct ContentEstimate {
     #[serde(default)]
     pub tokenizer_version: Option<String>,
 }
-fn unknown_measurement() -> String {
-    "unknown".into()
-}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SkillMetadata {
     pub status: String,
     pub description_characters: Option<u64>,
     pub issues: Vec<String>,
+    /// Bounded current-file diagnostics for directly reviewable static fields.
+    pub diagnostics: Vec<SkillDiagnostic>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillDiagnostic {
+    pub code: String,
+    pub field: Option<String>,
+    pub line: Option<usize>,
+    pub column: Option<usize>,
+    pub current: Option<String>,
+    pub expected: Option<String>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Counts {
     pub file_reads: u64,
     pub tool_calls: u64,
+    pub resource_reads: u64,
     pub succeeded: u64,
     pub failed: u64,
     pub outcome_unknown: u64,
@@ -283,4 +286,59 @@ pub struct Response {
     pub related_scopes: Vec<RelatedScope>,
     pub page: Page,
     pub coverage: Coverage,
+    pub hook_registry: HookRegistry,
+}
+
+/// A current native registry observation; it never proves that a Hook ran.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct HookRegistry {
+    pub native_version: Option<String>,
+    pub checked_at: Option<String>,
+    pub status: HookRegistryStatus,
+    pub contexts: Vec<HookContext>,
+}
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum HookRegistryStatus {
+    #[default]
+    Unavailable,
+    Partial,
+    Observed,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct HookContext {
+    pub project: String,
+    pub complete: bool,
+    pub registrations: Vec<HookRegistration>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct HookRegistration {
+    pub item_id: String,
+    pub native_key: String,
+    pub content_hash: String,
+    pub registration_hash: String,
+    pub enabled: bool,
+    pub trust: HookTrust,
+    pub handler: HookHandler,
+    pub source: String,
+    pub plugin_id: Option<String>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum HookTrust {
+    Managed,
+    Untrusted,
+    Trusted,
+    Modified,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum HookHandler {
+    Command,
+    McpTool,
+    Prompt,
+    Agent,
 }

@@ -1,11 +1,14 @@
 //! Durable review events reference immutable safe metadata, never source bodies.
-use super::*;
+use crate::{dto::operation_error, optimize_dto::*};
+use anyhow::Result;
+use rusqlite::Connection;
 use rusqlite::{OptionalExtension, Transaction, params};
 use serde_json::{Map, Value};
+use std::collections::BTreeMap;
 
-const VERSION: i64 = 1;
+const VERSION: i64 = 3;
 const SCHEMA: &str = "CREATE TABLE review_parts(id INTEGER PRIMARY KEY, hash TEXT NOT NULL UNIQUE, payload BLOB NOT NULL);
-CREATE TABLE review_events(seq INTEGER PRIMARY KEY AUTOINCREMENT, object_id TEXT NOT NULL, suggestion_id TEXT NOT NULL, scope_project TEXT, status TEXT NOT NULL, category TEXT NOT NULL, basis INTEGER NOT NULL REFERENCES review_parts(id), item INTEGER NOT NULL REFERENCES review_parts(id), baseline INTEGER REFERENCES review_parts(id), event BLOB NOT NULL);
+CREATE TABLE review_events(seq INTEGER PRIMARY KEY AUTOINCREMENT, object_id TEXT NOT NULL, suggestion_id TEXT NOT NULL, scope_project TEXT, status TEXT NOT NULL, decided INTEGER NOT NULL, kind TEXT NOT NULL, category TEXT NOT NULL, basis INTEGER NOT NULL REFERENCES review_parts(id), item INTEGER NOT NULL REFERENCES review_parts(id), baseline INTEGER REFERENCES review_parts(id), checks INTEGER NOT NULL REFERENCES review_parts(id), event BLOB NOT NULL);
 CREATE INDEX review_scope_seq ON review_events(scope_project,seq DESC);
 CREATE INDEX review_scope_suggestion ON review_events(scope_project,suggestion_id,seq DESC);
 CREATE INDEX review_scope_object ON review_events(scope_project,object_id,seq DESC);";
@@ -24,40 +27,16 @@ pub(super) fn initialize(db: &mut Connection) -> Result<()> {
             "处理记录版本不支持，原数据未被丢弃",
         ));
     }
-    tx.execute_batch(SCHEMA)?;
-    let legacy: bool = tx.query_row(
-        "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name='decisions')",
-        [],
-        |r| r.get(0),
-    )?;
-    if legacy {
-        let mut statement =
-            tx.prepare("SELECT seq,object_id,suggestion_id,payload FROM decisions ORDER BY seq")?;
-        let mut rows = statement.query([])?;
-        while let Some(row) = rows.next()? {
-            let suggestion: Suggestion =
-                serde_json::from_str(row.get_ref(3)?.as_str()?).map_err(|_| {
-                    operation_error("REVIEWS_UNAVAILABLE", "处理记录无法迁移，原数据未被丢弃")
-                })?;
-            if suggestion.item.id != row.get_ref(1)?.as_str()?
-                || suggestion.id != row.get_ref(2)?.as_str()?
-            {
-                return Err(operation_error(
-                    "REVIEWS_UNAVAILABLE",
-                    "处理记录身份不一致，原数据未被丢弃",
-                ));
-            }
-            write(&tx, &suggestion, Some(row.get(0)?))?;
-        }
-        drop(rows);
-        drop(statement);
-        tx.execute_batch("DROP TABLE decisions;")?;
+    let occupied: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%')", [], |r| r.get(0))?;
+    if occupied {
+        return Err(crate::dto::operation_error(
+            "REVIEWS_UNAVAILABLE",
+            "处理记录格式不支持，原数据未被更改",
+        ));
     }
+    tx.execute_batch(SCHEMA)?;
     tx.pragma_update(None, "user_version", VERSION)?;
     tx.commit()?;
-    if legacy {
-        db.execute_batch("VACUUM;")?;
-    }
     Ok(())
 }
 
@@ -96,9 +75,10 @@ fn category(value: &Category) -> &'static str {
         Category::Space => "space",
     }
 }
-fn write(tx: &Transaction<'_>, s: &Suggestion, seq: Option<i64>) -> Result<()> {
+fn write(tx: &Transaction<'_>, s: &Suggestion) -> Result<()> {
     let mut basis = serde_json::to_value(s)?.as_object().cloned().unwrap();
     let item = part(tx, &basis.remove("item").unwrap())?;
+    let checks = part(tx, &basis.remove("checks").unwrap())?;
     let baseline = basis
         .remove("reviewBaseline")
         .filter(|v| !v.is_null())
@@ -111,25 +91,38 @@ fn write(tx: &Transaction<'_>, s: &Suggestion, seq: Option<i64>) -> Result<()> {
         "recordId",
         "recordedAt",
         "recheckRuleParameters",
+        "decision",
+        "recordKind",
     ] {
         if let Some(value) = basis.remove(name) {
             event.insert(name.into(), value);
         }
     }
     let basis = part(tx, &Value::Object(basis))?;
-    tx.prepare_cached("INSERT INTO review_events(seq,object_id,suggestion_id,scope_project,status,category,basis,item,baseline,event) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,jsonb(?10))")?
-        .execute(params![seq,s.item.id,s.id,s.scope_project,s.status,category(&s.category),basis,item,baseline,serde_json::to_string(&event)?])?;
+    let kind = match s
+        .record_kind
+        .as_ref()
+        .expect("record kind set before persistence")
+    {
+        RecordKind::Observation => "observation",
+        RecordKind::Decision => "decision",
+        RecordKind::Recheck => "recheck",
+        RecordKind::Redisplay => "redisplay",
+    };
+    tx.prepare_cached("INSERT INTO review_events(object_id,suggestion_id,scope_project,status,decided,kind,category,basis,item,baseline,checks,event) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,jsonb(?12))")?
+        .execute(params![s.item.id,s.id,s.scope_project,s.status,s.decision.is_some(),kind,category(&s.category),basis,item,baseline,checks,serde_json::to_string(&event)?])?;
     Ok(())
 }
 
-pub(super) fn append(tx: &Transaction<'_>, s: &mut Suggestion) -> Result<()> {
+pub(super) fn append(tx: &Transaction<'_>, s: &mut Suggestion, kind: RecordKind) -> Result<()> {
     let count: i64 = tx.query_row("SELECT COUNT(*) FROM review_events", [], |r| r.get(0))?;
     if count >= 20_000 {
         return Err(operation_error("RESOURCE_LIMIT", "处理记录达到上限"));
     }
     s.record_id = Some(uuid::Uuid::new_v4().to_string());
     s.recorded_at = Some(chrono::Utc::now().to_rfc3339());
-    write(tx, s, None)
+    s.record_kind = Some(kind);
+    write(tx, s)
 }
 pub(super) fn revision(tx: &Transaction<'_>) -> Result<String> {
     Ok(tx
@@ -157,13 +150,14 @@ pub(super) fn authorize<'a>(
 pub(super) struct State {
     pub seq: i64,
     pub status: String,
+    pub decided: bool,
 }
 // Only lightweight latest metadata is scanned. History payloads stay on disk.
 pub(super) fn states(
     tx: &Transaction<'_>,
     project: Option<&str>,
 ) -> Result<BTreeMap<String, State>> {
-    let mut statement = tx.prepare("SELECT d.suggestion_id,d.seq,d.status FROM review_events d JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1 AND NOT EXISTS(SELECT 1 FROM review_events newer WHERE newer.scope_project IS d.scope_project AND newer.suggestion_id=d.suggestion_id AND newer.seq>d.seq)")?;
+    let mut statement = tx.prepare("SELECT d.suggestion_id,d.seq,d.status,d.decided FROM review_events d JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1 AND NOT EXISTS(SELECT 1 FROM review_events newer WHERE newer.scope_project IS d.scope_project AND newer.suggestion_id=d.suggestion_id AND newer.seq>d.seq)")?;
     Ok(statement
         .query_map([project], |r| {
             Ok((
@@ -171,19 +165,13 @@ pub(super) fn states(
                 State {
                     seq: r.get(1)?,
                     status: r.get(2)?,
+                    decided: r.get(3)?,
                 },
             ))
         })?
         .collect::<rusqlite::Result<_>>()?)
 }
-pub(super) fn rechecks(tx: &Transaction<'_>, project: Option<&str>) -> Result<Vec<i64>> {
-    let mut statement = tx.prepare("SELECT d.seq FROM review_events d JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1 AND d.status IN ('awaitingRecheck','recheckUnavailable','stillNeedsReview') AND NOT EXISTS(SELECT 1 FROM review_events newer JOIN authorized_review_objects next ON next.id=newer.object_id WHERE newer.scope_project IS d.scope_project AND next.physical_id=a.physical_id AND newer.seq>d.seq) ORDER BY d.seq")?;
-    Ok(statement
-        .query_map([project], |r| r.get(0))?
-        .collect::<rusqlite::Result<_>>()?)
-}
-
-const SELECT: &str = "SELECT json(b.payload),json(i.payload),json(base.payload),json(d.event) FROM review_events d JOIN review_parts b ON b.id=d.basis JOIN review_parts i ON i.id=d.item LEFT JOIN review_parts base ON base.id=d.baseline";
+const SELECT: &str = "SELECT json(b.payload),json(i.payload),json(base.payload),json(d.event),json(c.payload) FROM review_events d JOIN review_parts b ON b.id=d.basis JOIN review_parts i ON i.id=d.item JOIN review_parts c ON c.id=d.checks LEFT JOIN review_parts base ON base.id=d.baseline";
 fn decode(row: &rusqlite::Row<'_>) -> rusqlite::Result<Suggestion> {
     let read = |n| -> Result<Value> { Ok(serde_json::from_str(row.get_ref(n)?.as_str()?)?) };
     let parsed = (|| -> Result<Suggestion> {
@@ -192,6 +180,7 @@ fn decode(row: &rusqlite::Row<'_>) -> rusqlite::Result<Suggestion> {
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("invalid review basis"))?;
         basis.insert("item".into(), read(1)?);
+        basis.insert("checks".into(), read(4)?);
         basis.insert(
             "reviewBaseline".into(),
             if matches!(row.get_ref(2)?, rusqlite::types::ValueRef::Null) {
@@ -215,12 +204,8 @@ fn decode(row: &rusqlite::Row<'_>) -> rusqlite::Result<Suggestion> {
 pub(super) fn get(tx: &Transaction<'_>, seq: i64) -> Result<Suggestion> {
     Ok(tx.query_row(&format!("{SELECT} WHERE d.seq=?1"), [seq], decode)?)
 }
-pub(super) fn baseline(tx: &Transaction<'_>, seq: i64) -> Result<Option<crate::config_dto::Item>> {
-    let value: Option<String> = tx.query_row("SELECT json(p.payload) FROM review_events d LEFT JOIN review_parts p ON p.id=d.baseline WHERE d.seq=?1", [seq], |r| r.get(0))?;
-    value.map(|v| Ok(serde_json::from_str(&v)?)).transpose()
-}
 pub(super) fn history_count(tx: &Transaction<'_>, project: Option<&str>) -> Result<usize> {
-    Ok(tx.query_row("SELECT COUNT(*) FROM review_events d JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1", [project], |r| r.get::<_, i64>(0))? as usize)
+    Ok(tx.query_row("SELECT COUNT(*) FROM review_events d JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1 AND d.kind!='observation'", [project], |r| r.get::<_, i64>(0))? as usize)
 }
 pub(super) fn page(
     tx: &Transaction<'_>,
@@ -228,7 +213,7 @@ pub(super) fn page(
     offset: usize,
     limit: usize,
 ) -> Result<(usize, Vec<Suggestion>)> {
-    let filter = "JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1 AND (?2 IS NULL OR d.category=?2) AND (?3 IS NULL OR d.suggestion_id=?3)";
+    let filter = "JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1 AND d.kind!='observation' AND (?2 IS NULL OR d.category=?2) AND (?3 IS NULL OR d.suggestion_id=?3)";
     let category = r.category.as_ref().map(category);
     let target = if r.action == Action::Detail {
         r.suggestion_id.as_deref()

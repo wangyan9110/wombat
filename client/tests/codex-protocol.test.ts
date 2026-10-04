@@ -1,0 +1,46 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { connectCodex } from '../src/node/codex/rpc.js';
+
+async function fixture(body: string, run: (binary: string) => Promise<void>) {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-native-protocol-'));
+  const binary = path.join(dir, 'codex.cjs');
+  try {
+    await writeFile(binary, String.raw`let text=''; process.stdin.on('data',chunk=>{text+=chunk;let end;while((end=text.indexOf('\n'))>=0){const message=JSON.parse(text.slice(0,end));text=text.slice(end+1);if(message.id==null)continue;${body}}});`);
+    await run(binary);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+}
+
+test('native responses preserve split UTF-8 and sanitize rejected requests', async () => {
+  await fixture(String.raw`if(message.method==='initialize'){console.log(JSON.stringify({id:message.id,result:{}}));continue;}if(message.method==='account/read'){const bytes=Buffer.from(JSON.stringify({id:message.id,result:{label:'合成🙂'}})+'\n');const split=bytes.indexOf(Buffer.from('成'))+1;process.stdout.write(bytes.subarray(0,split));setImmediate(()=>process.stdout.write(bytes.subarray(split)));}else console.log(JSON.stringify({id:message.id,error:{message:'Synthetic private native output'}}));`, async binary => {
+    const rpc = await connectCodex(false, {}, { codexBinaryPath: binary, codexTimeoutMs: 1000 });
+    try {
+      assert.deepEqual(await rpc.request('account/read', {}), { label: '合成🙂' });
+      await assert.rejects(rpc.request('account/usage/read', {}), error => {
+        assert.equal((error as { code: string }).code, 'CODEX_REQUEST_REJECTED');
+        assert.ok(!String(error).includes('Synthetic private')); return true;
+      });
+    } finally { rpc.close(); }
+  });
+});
+
+test('native handshake cancellation and timeout stop waiting with explicit outcomes', async () => {
+  await fixture('', async binary => {
+    await assert.rejects(connectCodex(false, {}, { codexBinaryPath: binary, codexTimeoutMs: 50 }), { code: 'CODEX_TIMEOUT' });
+    const controller = new AbortController();
+    const pending = connectCodex(false, { signal: controller.signal }, { codexBinaryPath: binary, codexTimeoutMs: 1000 });
+    setTimeout(() => controller.abort(), 30);
+    await assert.rejects(pending, { code: 'CANCELLED' });
+  });
+});
+
+test('malformed native responses and disconnects never look like acceptance', async () => {
+  for (const [body, code] of [["console.log('invalid json');", 'NATIVE_PROTOCOL_ERROR'], ['process.exit(0);', 'CODEX_DISCONNECTED']] as const) {
+    await fixture(body, async binary => {
+      await assert.rejects(connectCodex(false, {}, { codexBinaryPath: binary, codexTimeoutMs: 1000 }), { code });
+    });
+  }
+});

@@ -4,8 +4,8 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value};
 use std::{collections::HashSet, path::Path};
 
-const VERSION: i64 = 2;
-const UPSERT: &str = "INSERT INTO entries(bucket,id,payload) VALUES(?1,?2,jsonb(?3)) ON CONFLICT(bucket,id) DO UPDATE SET payload=excluded.payload WHERE payload<>excluded.payload";
+const VERSION: i64 = 3;
+const UPSERT: &str = "INSERT INTO entries(bucket,id,payload) VALUES(?1,?2,jsonb(?3)) ON CONFLICT(bucket,id) DO UPDATE SET payload=excluded.payload,source_bucket=NULL,member=NULL WHERE payload IS NOT excluded.payload OR source_bucket IS NOT NULL";
 
 pub(crate) fn failure_code(error: &anyhow::Error) -> &'static str {
     if let Some(e) = error.downcast_ref::<crate::dto::OperationError>() {
@@ -61,55 +61,28 @@ fn open_inner(path: &Path) -> Result<Connection> {
             format!("unsupported live index schema: {version}"),
         ));
     }
-    tx.execute_batch("CREATE TABLE buckets (id INTEGER PRIMARY KEY, scope TEXT NOT NULL, field TEXT NOT NULL, UNIQUE(scope,field));
-        CREATE TABLE entries (bucket INTEGER NOT NULL REFERENCES buckets(id), id TEXT NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(bucket,id)) WITHOUT ROWID;")?;
-    let legacy: bool = tx.query_row(
-        "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name='kv')",
-        [],
-        |r| r.get(0),
-    )?;
-    if legacy {
-        // Stream one legacy record at a time. Any invalid key/payload rolls back
-        // the entire migration, leaving the old index available for inspection.
-        let mut statement = tx.prepare("SELECT scope,key,payload FROM kv")?;
-        let mut rows = statement.query([])?;
-        while let Some(row) = rows.next()? {
-            let scope: String = row.get(0)?;
-            let key: String = row.get(1)?;
-            let payload: String = row.get(2)?;
-            let (field, id): (String, String) = serde_json::from_str(&key).map_err(|_| {
-                crate::dto::operation_error(
-                    "INDEX_MIGRATION_FAILED",
-                    "旧索引键无法迁移，旧索引未被丢弃",
-                )
-            })?;
-            write(&tx, bucket(&tx, &scope, &field)?, &id, &payload).map_err(|error| {
-                let code = failure_code(&error);
-                crate::dto::operation_error(
-                    if code == "STORAGE_FULL" || code == "STORAGE_UNAVAILABLE" {
-                        code
-                    } else {
-                        "INDEX_MIGRATION_FAILED"
-                    },
-                    "旧索引迁移未完成，原索引事务已回滚",
-                )
-            })?;
-        }
-        drop(rows);
-        drop(statement);
-        tx.execute_batch("DROP TABLE kv;")?;
+    let occupied: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%')", [], |r| r.get(0))?;
+    if occupied {
+        return Err(crate::dto::operation_error(
+            "INDEX_UNSUPPORTED_VERSION",
+            "实时索引格式不支持，原数据未被更改",
+        ));
     }
+    tx.execute_batch("CREATE TABLE buckets (id INTEGER PRIMARY KEY, scope TEXT NOT NULL, field TEXT NOT NULL, UNIQUE(scope,field));
+        CREATE TABLE entries (bucket INTEGER NOT NULL REFERENCES buckets(id), id TEXT NOT NULL, payload BLOB, source_bucket INTEGER REFERENCES buckets(id), member TEXT, CHECK((payload IS NOT NULL AND source_bucket IS NULL AND member IS NULL) OR (payload IS NULL AND source_bucket IS NOT NULL AND member IS NOT NULL AND member IN ('$', '$.measurement'))), PRIMARY KEY(bucket,id)) WITHOUT ROWID;")?;
     tx.pragma_update(None, "user_version", VERSION)?;
     tx.commit()?;
-    if legacy {
-        // One-time migration compaction, never on append or ordinary startup.
-        // VACUUM is itself atomic; failure cannot discard committed facts.
-        db.execute_batch("VACUUM;")?;
-    }
     Ok(db)
 }
 
 fn bucket(db: &Connection, scope: &str, field: &str) -> Result<i64> {
+    if let Some(id) = db
+        .prepare_cached("SELECT id FROM buckets WHERE scope=?1 AND field=?2")?
+        .query_row(params![scope, field], |row| row.get(0))
+        .optional()?
+    {
+        return Ok(id);
+    }
     db.prepare_cached(
         "INSERT INTO buckets(scope,field) VALUES(?1,?2) ON CONFLICT(scope,field) DO NOTHING",
     )?
@@ -240,7 +213,7 @@ fn each_row(
     scope: &str,
     mut consume: impl FnMut(&str, &str, &str) -> Result<()>,
 ) -> Result<bool> {
-    let mut statement = db.prepare_cached("SELECT b.field,e.id,json(e.payload) FROM buckets b JOIN entries e ON e.bucket=b.id WHERE b.scope=?1")?;
+    let mut statement = db.prepare_cached("SELECT b.field,e.id,CASE WHEN e.source_bucket IS NULL THEN json(e.payload) ELSE json_extract(t.payload,e.member) END FROM buckets b JOIN entries e ON e.bucket=b.id LEFT JOIN entries t ON t.bucket=e.source_bucket AND t.id=e.id WHERE b.scope=?1")?;
     let mut rows = statement.query([scope])?;
     let mut found = false;
     while let Some(row) = rows.next()? {
@@ -251,6 +224,94 @@ fn each_row(
         consume(field, id, payload)?;
     }
     Ok(found)
+}
+
+/// One-hop references; the target must own a payload at creation.
+pub(crate) enum Member {
+    Whole,
+    Measurement,
+}
+pub(crate) struct ReferenceField<'a> {
+    db: &'a Connection,
+    destination: i64,
+    source: i64,
+    member: &'static str,
+}
+impl<'a> ReferenceField<'a> {
+    pub(crate) fn new(
+        db: &'a Connection,
+        scope: &str,
+        field: &str,
+        source: &str,
+        member: Member,
+    ) -> Result<Self> {
+        let source = bucket(db, source, field)?;
+        let destination = bucket(db, scope, field)?;
+        if source == destination {
+            return Err(crate::dto::operation_error(
+                "INDEX_UNAVAILABLE",
+                "索引事实不能引用自身",
+            ));
+        }
+        Ok(Self {
+            db,
+            source,
+            destination,
+            member: match member {
+                Member::Whole => "$",
+                Member::Measurement => "$.measurement",
+            },
+        })
+    }
+    pub(crate) fn reference(&self, id: &str) -> Result<()> {
+        let count = self.db.prepare_cached("INSERT INTO entries(bucket,id,source_bucket,member) SELECT ?1,id,?2,?3 FROM entries WHERE bucket=?2 AND id=?4 AND payload IS NOT NULL ON CONFLICT(bucket,id) DO UPDATE SET payload=NULL,source_bucket=excluded.source_bucket,member=excluded.member WHERE payload IS NOT NULL OR source_bucket IS NOT excluded.source_bucket OR member IS NOT excluded.member")?
+            .execute(params![self.destination,self.source,self.member,id])?;
+        if count == 0 {
+            let exists: bool = self.db.prepare_cached("SELECT EXISTS(SELECT 1 FROM entries WHERE bucket=?1 AND id=?2 AND payload IS NOT NULL)")?.query_row(params![self.source,id], |r| r.get(0))?;
+            if !exists {
+                return Err(crate::dto::operation_error(
+                    "INDEX_UNAVAILABLE",
+                    "索引引用的来源事实不可用",
+                ));
+            }
+        }
+        Ok(())
+    }
+    pub(crate) fn put<T: serde::Serialize>(&self, id: &str, value: &T) -> Result<()> {
+        write(
+            self.db,
+            self.destination,
+            id,
+            &serde_json::to_string(value)?,
+        )
+    }
+}
+
+#[cfg(test)]
+fn reference(
+    db: &Connection,
+    scope: &str,
+    field: &str,
+    id: &str,
+    source: &str,
+    member: Member,
+) -> Result<()> {
+    ReferenceField::new(db, scope, field, source, member)?.reference(id)
+}
+
+pub(crate) fn retain_field<'a>(
+    db: &Connection,
+    scope: &str,
+    field: &str,
+    ids: impl Iterator<Item = &'a str>,
+) -> Result<()> {
+    let bucket = bucket(db, scope, field)?;
+    let mut desired: HashSet<&str> = ids.collect();
+    if desired.is_empty() {
+        write(db, bucket, "", "{}")?;
+        desired.insert("");
+    }
+    prune(db, bucket, &desired)
 }
 
 pub(crate) fn replace_field<'a, T: serde::Serialize + 'a>(
@@ -289,90 +350,135 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn legacy(path: &Path, key: &str, payload: &str) {
-        let db = Connection::open(path).unwrap();
-        db.execute_batch("CREATE TABLE kv(scope TEXT NOT NULL,key TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(scope,key)) WITHOUT ROWID;").unwrap();
-        db.execute("INSERT INTO kv VALUES('old',?1,?2)", params![key, payload])
-            .unwrap();
-    }
-
     #[test]
-    fn legacy_migration_preserves_exact_values_and_reopens() {
+    fn references_preserve_exact_values_transaction_rollback_and_replacement() {
         let root = tempfile::tempdir().unwrap();
-        let path = root.path().join("index.sqlite");
-        let value = json!({"int":u64::MAX,"negative":i64::MIN,"float":1.23456789012345e-250,"unicode":"😀中文\n\0\\\"","array":[null,true,false,{},[]]});
-        legacy(
-            &path,
-            &serde_json::to_string(&("quoted\"field", "id\0中")).unwrap(),
-            &value.to_string(),
-        );
-        let db = open(&path).unwrap();
+        let mut db = open(&root.path().join("index.sqlite")).unwrap();
+        let value = json!({"measurement":{"id":"m","total":u64::MAX,"text":"中文"},"direct":true});
+        put(&db, "parser", "measurements", "m", &value).unwrap();
+        reference(
+            &db,
+            "projection",
+            "measurements",
+            "m",
+            "parser",
+            Member::Measurement,
+        )
+        .unwrap();
         assert_eq!(
-            load_map(&db, "old").unwrap()["quoted\"field"]["id\0中"],
-            value
-        );
-        assert_eq!(
-            db.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))
-                .unwrap(),
-            VERSION
+            load_map(&db, "projection").unwrap()["measurements"]["m"],
+            value["measurement"]
         );
         assert!(
-            !db.query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE name='kv')",
-                [],
-                |r| r.get::<_, bool>(0)
+            reference(
+                &db,
+                "third",
+                "measurements",
+                "m",
+                "projection",
+                Member::Whole
             )
-            .unwrap()
+            .is_err()
         );
+        assert!(reference(&db, "parser", "measurements", "m", "parser", Member::Whole).is_err());
+        {
+            let tx = db.transaction().unwrap();
+            put(
+                &tx,
+                "parser",
+                "measurements",
+                "m",
+                &json!({"measurement":{"total":1}}),
+            )
+            .unwrap();
+            assert_eq!(
+                load_map(&tx, "projection").unwrap()["measurements"]["m"]["total"],
+                1
+            );
+            tx.rollback().unwrap();
+        }
         assert_eq!(
-            db.query_row("SELECT typeof(payload) FROM entries", [], |r| r
-                .get::<_, String>(0))
-                .unwrap(),
-            "blob"
+            load_map(&db, "projection").unwrap()["measurements"]["m"],
+            value["measurement"]
         );
-        drop(db);
+        put(
+            &db,
+            "projection",
+            "measurements",
+            "m",
+            &json!({"derived":true}),
+        )
+        .unwrap();
         assert_eq!(
-            load_map(&open(&path).unwrap(), "old").unwrap()["quoted\"field"]["id\0中"],
+            load_map(&db, "projection").unwrap()["measurements"]["m"],
+            json!({"derived":true})
+        );
+        reference(
+            &db,
+            "projection",
+            "measurements",
+            "m",
+            "parser",
+            Member::Whole,
+        )
+        .unwrap();
+        assert_eq!(
+            load_map(&db, "projection").unwrap()["measurements"]["m"],
             value
+        );
+        remove(&db, "parser", "measurements", "m").unwrap();
+        assert!(
+            load_map(&db, "projection").is_err(),
+            "missing referenced facts cannot disappear silently"
         );
     }
 
     #[test]
-    fn malformed_legacy_and_future_versions_do_not_discard_data() {
-        for (key, payload) in [("invalid", "{}"), ("[\"field\",\"id\"]", "{")] {
+    fn current_schema_keeps_exact_values_across_reopen() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("index.sqlite");
+        let value = json!({"int":u64::MAX,"negative":i64::MIN,"float":1.23456789012345e-250,"unicode":"😀中文","array":[null,true,false,{},[]]});
+        let db = open(&path).unwrap();
+        put(&db, "scope", "facts", "id", &value).unwrap();
+        drop(db);
+        assert_eq!(
+            load_map(&open(&path).unwrap(), "scope").unwrap()["facts"]["id"],
+            value
+        );
+    }
+    #[test]
+    fn unsupported_schema_is_rejected_without_mutating_records() {
+        for version in [0, 1, 2, 99] {
             let root = tempfile::tempdir().unwrap();
             let path = root.path().join("index.sqlite");
-            legacy(&path, key, payload);
-            assert!(open(&path).is_err());
+            let db = Connection::open(&path).unwrap();
+            db.execute_batch(
+                "CREATE TABLE sample(value TEXT); INSERT INTO sample VALUES('retained')",
+            )
+            .unwrap();
+            db.pragma_update(None, "user_version", version).unwrap();
+            drop(db);
+            let error = open(&path).unwrap_err();
+            assert_eq!(failure_code(&error), "INDEX_UNSUPPORTED_VERSION");
             let db = Connection::open(&path).unwrap();
             assert_eq!(
-                db.query_row("SELECT key,payload FROM kv", [], |r| Ok((
-                    r.get::<_, String>(0)?,
-                    r.get::<_, String>(1)?
-                )))
-                .unwrap(),
-                (key.into(), payload.into())
+                db.query_row("SELECT value FROM sample", [], |r| r.get::<_, String>(0))
+                    .unwrap(),
+                "retained"
             );
             assert_eq!(
                 db.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))
                     .unwrap(),
-                0
+                version
             );
-            assert!(
-                !db.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE name='entries')",
+            assert_eq!(
+                db.query_row(
+                    "SELECT COUNT(*) FROM sqlite_schema WHERE name='entries'",
                     [],
-                    |r| r.get::<_, bool>(0)
+                    |r| r.get::<_, i64>(0)
                 )
-                .unwrap()
-            );
-            db.pragma_update(None, "user_version", 99).unwrap();
-            drop(db);
-            assert!(
-                open(&path)
-                    .unwrap_err()
-                    .to_string()
-                    .contains("unsupported live index")
+                .unwrap(),
+                0
             );
         }
     }

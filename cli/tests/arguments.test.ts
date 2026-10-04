@@ -9,7 +9,7 @@ test('v1 arguments enforce action-specific flags and exact independent filters',
   assert.deepEqual(parseUsageArgs(['threads','--agent','codex','--source','s','--locate-thread','id']).request, { action:'threads',locateThreadId:'id',scope:{agentKind:'codex',sourceInstanceId:'s'} });
   assert.throws(() => parseUsageArgs(['--version', '--since', '2026-09-01']));
   assert.equal(parseUsageArgs([]).request.action, 'usage');
-  for (const args of [['usage', '--sort', 'recent'], ['threads', '--presentation', 'distribution'], ['usage', '--presentation', 'graph'], ['refresh', '--model', 'x'], ['usage', '--fresh', '--cached'], ['steps', '--thread', 'x'], ['turns'], ['threads', '--sort', 'time'], ['turns', '--thread', 'x', '--sort', 'recent'], ['refresh', '--agent', 'codex'], ['scan'], ['usage', '--limit', '501'], ['usage', '--limit', '1.5'], ['usage', '--offset', '-1'], ['usage', '--since', '2026-02-30'], ['usage', '--since', '2026-09-30', '--until', '2026-09-30'], ['usage', '--timezone', 'Not/AZone'], ['usage', '--model', 'a', '--model', 'b'], ['usage', '--json', '--json'], ['usage', 'other']])
+  for (const args of [['usage', '--sort', 'recent'], ['threads', '--presentation', 'distribution'], ['usage', '--presentation', 'graph'], ['refresh', '--model', 'x'], ['usage', '--fresh', '--cached'], ['steps', '--thread', 'x'], ['turns'], ['threads', '--sort', 'time'], ['refresh', '--agent', 'codex'], ['scan'], ['usage', '--limit', '501'], ['usage', '--limit', '1.5'], ['usage', '--offset', '-1'], ['usage', '--since', '2026-02-30'], ['usage', '--since', '2026-09-30', '--until', '2026-09-30'], ['usage', '--timezone', 'Not/AZone'], ['usage', '--model', 'a', '--model', 'b'], ['usage', '--json', '--json'], ['usage', 'other']])
     assert.throws(() => parseUsageArgs(args), args.join(' '));
 });
 
@@ -17,6 +17,7 @@ test('distribution and cost sorting use the shared public request', () => {
   assert.deepEqual(parseUsageArgs(['usage','--presentation','distribution','--sort','cost']).request, { action: 'usage', presentation: 'distribution', sort: 'cost' });
   assert.equal(parseUsageArgs(['threads','--sort','cost']).request.sort, 'cost');
   assert.equal(parseUsageArgs(['turns','--thread','fixture','--sort','cost']).request.sort, 'cost');
+  assert.equal(parseUsageArgs(['turns','--thread','fixture','--sort','recent']).request.sort, 'recent');
 });
 
 test('unknown dimensions remain distinct from explicit names and dates', () => {

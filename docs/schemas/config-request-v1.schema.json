@@ -68,6 +68,15 @@
         }
       ]
     },
+    "kinds": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/Kind"
+      }
+    },
     "observation": {
       "anyOf": [
         {
@@ -186,7 +195,8 @@
       "enum": [
         "rule",
         "skill",
-        "mcp"
+        "mcp",
+        "hook"
       ]
     },
     "Observation": {
