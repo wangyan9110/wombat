@@ -6,6 +6,9 @@ use rusqlite::Connection;
 
 use std::time::UNIX_EPOCH;
 
+/// Required resume mapping: older intermediate indexes did not emit Message facts.
+pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 1;
+
 #[derive(Default, Serialize, Deserialize)]
 pub(super) struct Checkpoint {
     pub offset: u64,
@@ -343,18 +346,29 @@ pub(crate) fn sync_cached(
         );
     }
     let scope = format!("parser:{}:{VERSION}:1", source.id);
-    let previous = crate::live_index::load_map(db, &scope)?;
-    if !previous.is_empty()
-        && previous
-            .get("watermarkVersion")
-            .and_then(serde_json::Value::as_u64)
-            != Some(u64::from(WATERMARK_FORMAT_VERSION))
-    {
-        return Err(crate::dto::operation_error(
-            "UNSUPPORTED_VERSION",
-            "不支持此来源水位格式",
-        ));
+    if crate::live_index::has_scope(db, &scope)? {
+        // Reject an unavailable mapping before materializing any future parser
+        // payload, whose shape may be beyond this version's JSON decoding limits.
+        for (field, version, message) in [
+            (
+                "messageObservationVersion",
+                MESSAGE_OBSERVATION_VERSION,
+                "不支持此来源消息观察映射",
+            ),
+            (
+                "watermarkVersion",
+                WATERMARK_FORMAT_VERSION,
+                "不支持此来源水位格式",
+            ),
+        ] {
+            if crate::live_index::scalar(db, &scope, field)?.and_then(|value| value.as_u64())
+                != Some(u64::from(version))
+            {
+                return Err(crate::dto::operation_error("UNSUPPORTED_VERSION", message));
+            }
+        }
     }
+    let previous = crate::live_index::load_map(db, &scope)?;
     let mut checkpoints: BTreeMap<String, Checkpoint> = previous
         .get("checkpoints")
         .map(|v| serde_json::from_value(v.clone()))
@@ -636,7 +650,7 @@ pub(crate) fn sync_cached(
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
-    let metadata = serde_json::json!({"watermarkVersion": WATERMARK_FORMAT_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
+    let metadata = serde_json::json!({"watermarkVersion": WATERMARK_FORMAT_VERSION, "messageObservationVersion": MESSAGE_OBSERVATION_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();

@@ -125,7 +125,7 @@ fn native_and_locatable_durations_remain_separate() {
     assert_eq!(result.intervals.gap_union_ms, 0);
     assert_eq!(
         result.response_gap_support,
-        ResponseGapSupport::UnsupportedMissingContentAndBatchEvidence
+        ResponseGapSupport::UnsupportedMissingBatchAndCycleEvidence
     );
     assert_eq!(result.first_content_record_delay_ms, None);
 }
@@ -893,4 +893,378 @@ fn unrelated_source_thread_file_generation_and_outside_span_gaps_do_not_pollute_
         assert!(!result.coverage.partial);
         assert!(!result.issues.contains(&Issue::SourceGap(id)));
     }
+}
+
+fn content(
+    offset: u64,
+    time: Option<i64>,
+    origin: crate::session_events::MessageOrigin,
+    presence: crate::session_events::ContentPresence,
+) -> Arc<Event> {
+    event(
+        offset,
+        time,
+        Payload::Message {
+            origin,
+            presence,
+            native_id: None,
+            record_kind: crate::session_events::MessageRecordKind::LegacySnapshot,
+            record_phase: Phase::Unknown,
+            content_phase: crate::session_events::ContentPhase::Unknown,
+        },
+    )
+}
+
+#[test]
+fn first_content_record_uses_record_time_and_remains_distinct_from_ttft() {
+    use crate::session_events::{ContentPresence as C, MessageOrigin as O};
+    for delay in [0, 25] {
+        let result = analyze_events(&[
+            boundary(0, Some(100), Phase::Started, None, Some(4)),
+            content(1, Some(101), O::UserUnclassified, C::NonEmpty),
+            content(2, Some(102), O::InjectedContext, C::NonEmpty),
+            content(3, Some(103), O::Inherited, C::NonEmpty),
+            content(4, Some(104), O::InterAgent, C::NonEmpty),
+            content(5, Some(105), O::Reasoning, C::NonEmpty),
+            content(6, Some(106), O::Compaction, C::NonEmpty),
+            content(7, Some(100), O::AssistantVisible, C::Empty),
+            content(8, Some(100 + delay), O::AssistantVisible, C::NonEmpty),
+            // Known physical order establishes first despite later unknown content/time.
+            content(9, None, O::AssistantVisible, C::Unknown),
+        ]);
+        assert_eq!(result.first_content_record_delay_ms, Some(delay as u64));
+        assert_eq!(result.native_ttft_ms, Some(4));
+        assert_eq!(result.coverage.content_candidates, 3);
+        assert_eq!(result.coverage.unknown_content_records, 1);
+        assert_eq!(result.coverage.missing_content_time_records, 1);
+        assert_eq!(result.response_gap_union_ms, None);
+    }
+    assert_eq!(
+        analyze_events(&[content(1, Some(25), O::AssistantVisible, C::NonEmpty)])
+            .first_content_record_delay_ms,
+        None
+    );
+}
+
+#[test]
+fn earlier_unknown_or_untimed_content_cannot_be_filled_by_later_known_content() {
+    use crate::session_events::{ContentPresence as C, MessageOrigin as O};
+    for first in [
+        content(1, Some(10), O::AssistantVisible, C::Unknown),
+        content(1, None, O::AssistantVisible, C::NonEmpty),
+        content(1, Some(10), O::Unknown, C::Empty),
+    ] {
+        let result = analyze_events(&[
+            boundary(0, Some(0), Phase::Started, None, None),
+            first,
+            content(2, Some(20), O::AssistantVisible, C::NonEmpty),
+        ]);
+        assert_eq!(result.first_content_record_delay_ms, None);
+        assert!(result.coverage.partial);
+        assert_eq!(result.coverage.content_candidates, 2);
+        assert!(result.issues.iter().any(|issue| matches!(
+            issue,
+            Issue::UnknownContent(_) | Issue::MissingContentTime(_)
+        )));
+    }
+}
+
+#[test]
+fn content_identity_time_and_source_breaks_preserve_unknown_and_correct_scope() {
+    use crate::session_events::{ContentPresence as C, MessageOrigin as O};
+    let start = boundary(0, Some(0), Phase::Started, None, None);
+    let known = content(10, Some(20), O::AssistantVisible, C::NonEmpty);
+    let base = vec![start.clone(), known.clone()];
+    for gap in [
+        Gap::SourcePartial,
+        Gap::MissingIdentity,
+        Gap::ConflictingIdentity,
+        Gap::UnmatchedBoundary,
+        Gap::InvalidTimestamp,
+    ] {
+        let control = Arc::new(
+            Event::new(
+                Position {
+                    byte_offset: 5,
+                    ..known.position().clone()
+                },
+                Some("thread".into()),
+                None,
+                Time::from_source(None).0,
+                vec![gap],
+                Payload::Activity {
+                    activity: crate::session_events::ActivityKind::Assistant,
+                },
+            )
+            .unwrap(),
+        );
+        let mut events = base.clone();
+        events.push(control.clone());
+        assert_eq!(analyze_events(&events).first_content_record_delay_ms, None);
+        assert!(analyze_events(&events).coverage.partial);
+        for (file, generation, thread, source, offset) in [
+            ("other", "generation", "thread", "source", 5),
+            ("file", "other", "thread", "source", 5),
+            ("file", "generation", "other", "source", 5),
+            ("file", "generation", "thread", "other", 5),
+            ("file", "generation", "thread", "source", 15),
+        ] {
+            let outside = Arc::new(
+                Event::new(
+                    Position {
+                        source_instance_id: source.into(),
+                        file_id: file.into(),
+                        generation: generation.into(),
+                        byte_offset: offset,
+                        ordinal: 0,
+                    },
+                    Some(thread.into()),
+                    None,
+                    control.time().clone(),
+                    control.gaps().to_vec(),
+                    control.payload().clone(),
+                )
+                .unwrap(),
+            );
+            let mut events = base.clone();
+            events.push(outside);
+            assert_eq!(
+                analyze_events(&events).first_content_record_delay_ms,
+                Some(20)
+            );
+        }
+    }
+    let reversed = analyze_events(&[
+        start,
+        content(1, Some(20), O::AssistantVisible, C::NonEmpty),
+        content(2, Some(10), O::AssistantVisible, C::NonEmpty),
+    ]);
+    assert_eq!(reversed.first_content_record_delay_ms, None);
+    assert!(
+        reversed
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::ContentConflict(_)))
+    );
+}
+
+#[test]
+fn record_delay_never_uses_item_started_at_or_unanchored_other_generation() {
+    use crate::session_events::{ContentPresence as C, MessageOrigin as O};
+    let start = boundary(0, Some(100), Phase::Started, None, None);
+    let item = item(
+        1,
+        Some("assistant"),
+        ItemKind::Assistant,
+        Phase::Completed,
+        Some(101),
+        Some(102),
+        Some(140),
+    );
+    assert_eq!(
+        analyze_events(&[start.clone(), item.clone()]).first_content_record_delay_ms,
+        None
+    );
+    let known = content(2, Some(140), O::AssistantVisible, C::NonEmpty);
+    assert_eq!(
+        analyze_events(&[start.clone(), item, known.clone()]).first_content_record_delay_ms,
+        Some(40)
+    );
+    let other = Arc::new(
+        Event::new(
+            Position {
+                generation: "replacement".into(),
+                ..known.position().clone()
+            },
+            Some("thread".into()),
+            Some("turn".into()),
+            known.time().clone(),
+            vec![],
+            known.payload().clone(),
+        )
+        .unwrap(),
+    );
+    let result = analyze_events(&[start, known, other]);
+    assert_eq!(result.first_content_record_delay_ms, None);
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::UnmatchedContentDomain(_)))
+    );
+}
+
+#[test]
+fn conflicting_completed_content_snapshots_and_event_budget_are_unknown() {
+    use crate::session_events::{
+        ContentPhase, ContentPresence as C, MessageOrigin as O, MessageRecordKind,
+    };
+    let snapshot = |offset, presence| {
+        event(
+            offset,
+            Some(20),
+            Payload::Message {
+                origin: O::AssistantVisible,
+                presence,
+                native_id: Some("native".into()),
+                record_kind: MessageRecordKind::NativeSnapshot,
+                record_phase: Phase::Completed,
+                content_phase: ContentPhase::Unknown,
+            },
+        )
+    };
+    let events = [
+        boundary(0, Some(0), Phase::Started, None, None),
+        snapshot(1, C::Empty),
+        snapshot(2, C::NonEmpty),
+    ];
+    let result = analyze_events(&events);
+    assert_eq!(result.first_content_record_delay_ms, None);
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::ContentConflict(_)))
+    );
+    let result = analyze(AnalyzeInput {
+        source: "source",
+        thread: "thread",
+        turn: "turn",
+        events: &events,
+        measurements: &[],
+        budget: Budget {
+            events: 2,
+            measurements: 0,
+            lifecycle_records: 0,
+        },
+    });
+    assert_eq!(result.first_content_record_delay_ms, None);
+    assert_eq!(result.issues, vec![Issue::ResourceLimit]);
+}
+
+#[test]
+fn missing_own_start_time_and_candidate_free_gap_domain_block_record_delay() {
+    use crate::session_events::{ContentPresence as C, MessageOrigin as O};
+    let start = boundary(0, Some(0), Phase::Started, None, None);
+    let known = content(10, Some(20), O::AssistantVisible, C::NonEmpty);
+    let own_start = boundary(0, None, Phase::Started, None, None);
+    let other_start = Arc::new(
+        Event::new(
+            Position {
+                file_id: "other".into(),
+                ..own_start.position().clone()
+            },
+            Some("thread".into()),
+            Some("turn".into()),
+            own_start.time().clone(),
+            vec![],
+            own_start.payload().clone(),
+        )
+        .unwrap(),
+    );
+    let other = Arc::new(
+        Event::new(
+            Position {
+                file_id: "other".into(),
+                ..known.position().clone()
+            },
+            Some("thread".into()),
+            Some("turn".into()),
+            known.time().clone(),
+            vec![],
+            known.payload().clone(),
+        )
+        .unwrap(),
+    );
+    let result = analyze_events(&[start.clone(), known.clone(), other_start, other]);
+    assert_eq!(result.first_content_record_delay_ms, None);
+    assert_eq!(result.start, None);
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::MissingBoundaryTime(_)))
+    );
+    let other_gap = Arc::new(
+        Event::new(
+            Position {
+                file_id: "gap-file".into(),
+                ..known.position().clone()
+            },
+            Some("thread".into()),
+            Some("turn".into()),
+            known.time().clone(),
+            vec![Gap::SourcePartial],
+            Payload::Activity {
+                activity: crate::session_events::ActivityKind::Assistant,
+            },
+        )
+        .unwrap(),
+    );
+    let result = analyze_events(&[start, known, other_gap]);
+    assert_eq!(result.first_content_record_delay_ms, None);
+    assert!(result.coverage.partial);
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::UnmatchedContentDomain(_)))
+    );
+}
+
+#[test]
+fn copied_source_domains_need_agreeing_record_times_and_allow_started_empty_snapshot() {
+    use crate::session_events::{
+        ContentPhase, ContentPresence as C, MessageOrigin as O, MessageRecordKind as R,
+    };
+    let start = boundary(0, Some(0), Phase::Started, None, None);
+    let native = |offset, phase, time, presence| {
+        event(
+            offset,
+            Some(time),
+            Payload::Message {
+                origin: O::AssistantVisible,
+                presence,
+                native_id: Some("native-message".into()),
+                record_kind: R::NativeSnapshot,
+                record_phase: phase,
+                content_phase: ContentPhase::Commentary,
+            },
+        )
+    };
+    let empty = native(1, Phase::Started, 1, C::Empty);
+    let known = native(10, Phase::Completed, 20, C::NonEmpty);
+    let copy = |event: &Arc<Event>| {
+        Arc::new(
+            Event::new(
+                Position {
+                    file_id: "copy".into(),
+                    ..event.position().clone()
+                },
+                Some("thread".into()),
+                Some("turn".into()),
+                event.time().clone(),
+                vec![],
+                event.payload().clone(),
+            )
+            .unwrap(),
+        )
+    };
+    let result = analyze_events(&[
+        start.clone(),
+        empty,
+        known.clone(),
+        copy(&start),
+        copy(&known),
+    ]);
+    assert_eq!(result.first_content_record_delay_ms, Some(20));
+    let conflict = copy(&native(10, Phase::Completed, 30, C::NonEmpty));
+    let result = analyze_events(&[start.clone(), known, copy(&start), conflict]);
+    assert_eq!(result.first_content_record_delay_ms, None);
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::ContentConflict(_)))
+    );
 }

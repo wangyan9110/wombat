@@ -7,6 +7,7 @@ pub(in crate::adapters::codex) struct Context {
     time: Time,
     gaps: Vec<Gap>,
     phase: Phase,
+    pub(super) history_origin: Option<crate::session_events::MessageOrigin>,
 }
 impl Context {
     pub(in crate::adapters::codex) fn new(
@@ -15,6 +16,7 @@ impl Context {
         kind: &str,
         subtype: Option<&str>,
         evidence: &EvidenceRef,
+        metadata: Option<&RawValue>,
     ) -> Self {
         let (time, gap) = Time::from_source(timestamp);
         let event = if kind == "event_msg" || kind == "response_item" {
@@ -38,8 +40,46 @@ impl Context {
             time,
             gaps: gap.into_iter().collect(),
             phase,
+            history_origin: super::messages::history_origin(metadata),
         }
     }
+}
+
+/// A corrupt complete row breaks attribution but is not a target-turn sample.
+/// Reuse the same source namespace; no timestamp can be trusted from that row.
+pub(in crate::adapters::codex) fn discontinuity(
+    facts: &mut Facts,
+    position: Position,
+    thread: Option<String>,
+    report: &mut SourceReport,
+    evidence: &EvidenceRef,
+) {
+    use crate::session_events::{ContentPhase, ContentPresence, MessageOrigin, MessageRecordKind};
+    let previous = facts.event_context.replace(Context::new(
+        position,
+        None,
+        "source_gap",
+        None,
+        evidence,
+        None,
+    ));
+    record(
+        facts,
+        thread,
+        None,
+        SafePayload::Message {
+            origin: MessageOrigin::Unknown,
+            presence: ContentPresence::Unknown,
+            native_id: None,
+            record_kind: MessageRecordKind::Unknown,
+            record_phase: Phase::Unknown,
+            content_phase: ContentPhase::Unknown,
+        },
+        vec![Gap::SourcePartial],
+        report,
+        evidence,
+    );
+    facts.event_context = previous;
 }
 
 #[allow(clippy::too_many_arguments)]

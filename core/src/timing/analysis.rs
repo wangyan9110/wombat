@@ -49,6 +49,10 @@ pub enum Issue {
     MissingItemTime(String),
     ReversedBoundary,
     UnmatchedClockDomain(String),
+    UnknownContent(String),
+    MissingContentTime(String),
+    ContentConflict(String),
+    UnmatchedContentDomain(String),
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -65,14 +69,18 @@ pub struct Coverage {
     pub linked_lifecycles: [usize; 3],
     pub conflicting_lifecycles: usize,
     pub missing_identity_lifecycles: usize,
+    /// Counts describe safe message records, never messages or API requests.
+    pub content_candidates: usize,
+    pub nonempty_content_records: usize,
+    pub unknown_content_records: usize,
+    pub missing_content_time_records: usize,
     pub partial: bool,
 }
 
-/// Current safe events omit nonempty-content, tool-batch and response-cycle evidence.
-/// No record-delay or response-gap sample can be established from activity markers.
+/// Safe message presence cannot supply tool-batch completion or response-cycle identity.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ResponseGapSupport {
-    UnsupportedMissingContentAndBatchEvidence,
+    UnsupportedMissingBatchAndCycleEvidence,
 }
 
 #[derive(Debug)]
@@ -192,7 +200,7 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
         intervals: intervals::analyze(None, &[], &[], input.budget.lifecycle_records),
         category_union_ms: [None; 3],
         context: None,
-        response_gap_support: ResponseGapSupport::UnsupportedMissingContentAndBatchEvidence,
+        response_gap_support: ResponseGapSupport::UnsupportedMissingBatchAndCycleEvidence,
         response_gap_union_ms: None,
         first_content_record_delay_ms: None,
         coverage: Coverage {
@@ -544,6 +552,7 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
         .native_wall_clock_ms
         .zip(result.derived_wall_clock_ms)
         .map(|(native, derived)| i128::from(native) - i128::from(derived));
+    content::first_record(&events, &discontinuities, &mut result);
     if lifecycle_records > input.budget.lifecycle_records {
         result.coverage.partial = true;
         result.issues.push(Issue::ResourceLimit);
@@ -637,6 +646,8 @@ pub fn analyze(input: AnalyzeInput<'_>) -> Analysis {
     });
     result
 }
+
+mod content;
 
 #[cfg(test)]
 #[path = "analysis/tests.rs"]

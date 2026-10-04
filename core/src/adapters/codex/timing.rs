@@ -8,7 +8,7 @@ use crate::session_events::{
 
 mod recording;
 use recording::record;
-pub(super) use recording::{Context, ancestry, measurement, operation};
+pub(super) use recording::{Context, ancestry, discontinuity, measurement, operation};
 
 pub(super) fn safe_integer(raw: &RawValue) -> Option<u64> {
     serde_json::from_str::<u64>(raw.get())
@@ -102,8 +102,10 @@ pub(super) fn observe(
         );
     }
     items::observe(payload, item, kind, thread, turn, facts, report, evidence);
+    messages::observe(payload, item, kind, thread, turn, facts, report, evidence);
 }
 
 mod items;
+mod messages;
 
 mod scopes;

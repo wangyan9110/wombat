@@ -227,3 +227,100 @@ fn empty_replacement_has_unknown_generation_until_first_valid_record() {
     assert!(observed.generation.is_some());
     assert_ne!(observed.generation, first.generation);
 }
+
+#[test]
+fn missing_or_future_message_mapping_refuses_append_and_warm_parser_without_mutation() {
+    let (_root, _index, path, source, mut db) = setup();
+    fs::OpenOptions::new().append(true).open(&path).unwrap().write_all(b"{\"type\":\"event_msg\",\"timestamp\":\"2026-10-05T00:00:00Z\",\"payload\":{\"type\":\"task_started\",\"turn_id\":\"turn\"}}\n{\"type\":\"event_msg\",\"timestamp\":\"2026-10-05T00:00:00.010Z\",\"payload\":{\"type\":\"agent_message\",\"message\":\"PRIVATE_EARLIER\"}}\n").unwrap();
+    let mut cache = incremental::Cache::default();
+    {
+        let tx = db.transaction().unwrap();
+        assert!(
+            incremental::sync_cached(&tx, &source, false, &mut cache)
+                .unwrap()
+                .is_some()
+        );
+        tx.commit().unwrap();
+    }
+    assert!(!cache.needs_seed());
+    let scope = format!("parser:{}:{VERSION}:1", source.id);
+    let facts_scope = format!("{scope}:facts");
+    let original = crate::live_index::load_map(&db, &scope).unwrap();
+    assert_eq!(
+        original["messageObservationVersion"],
+        serde_json::json!(incremental::MESSAGE_OBSERVATION_VERSION)
+    );
+    {
+        let tx = db.transaction().unwrap();
+        assert!(
+            incremental::sync_cached(&tx, &source, false, &mut cache)
+                .unwrap()
+                .is_none()
+        );
+    }
+    let mut facts = crate::live_index::load_map(&db, &facts_scope).unwrap();
+    // Model the old intermediate shape: explicit start/activity, no Message facts.
+    let events = facts["events"].as_object_mut().unwrap();
+    assert!(
+        events
+            .values()
+            .any(|event| event["payload"]["kind"] == "message")
+    );
+    events.retain(|_, event| event["payload"]["kind"] != "message");
+    crate::live_index::save_map(&db, &facts_scope, &facts).unwrap();
+    // A later visible record cannot fill the old mapping's unobserved history.
+    fs::OpenOptions::new().append(true).open(&path).unwrap().write_all(b"{\"type\":\"event_msg\",\"timestamp\":\"2026-10-05T00:00:01Z\",\"payload\":{\"type\":\"agent_message\",\"turn_id\":\"turn\",\"message\":\"PRIVATE_LATER\"}}\n").unwrap();
+    for header in [None, Some(serde_json::json!(2))] {
+        let mut stored = original.clone();
+        stored.remove("messageObservationVersion");
+        if let Some(header) = header {
+            stored.insert("messageObservationVersion".into(), header);
+        }
+        crate::live_index::save_map(&db, &scope, &stored).unwrap();
+        for verify in [false, true] {
+            let tx = db.transaction().unwrap();
+            let error = incremental::sync_cached(&tx, &source, verify, &mut cache)
+                .err()
+                .unwrap();
+            assert_eq!(
+                crate::live_index::failure_code(&error),
+                "UNSUPPORTED_VERSION"
+            );
+        }
+        assert_eq!(crate::live_index::load_map(&db, &scope).unwrap(), stored);
+        assert_eq!(
+            crate::live_index::load_map(&db, &facts_scope).unwrap(),
+            facts
+        );
+    }
+}
+
+#[test]
+fn mapping_header_precedes_future_parser_payload_decoding() {
+    let (_root, _index, _path, source, mut db) = setup();
+    sync(&mut db, &source).unwrap();
+    let scope = format!("parser:{}:{VERSION}:1", source.id);
+    let original = crate::live_index::load_map(&db, &scope).unwrap();
+    let nested = format!("{}0{}", "[".repeat(200), "]".repeat(200));
+    for header in [None, Some(serde_json::json!(2))] {
+        let mut stored = original.clone();
+        stored.remove("messageObservationVersion");
+        if let Some(header) = header {
+            stored.insert("messageObservationVersion".into(), header);
+        }
+        crate::live_index::save_map(&db, &scope, &stored).unwrap();
+        // A future payload can be valid JSON beyond serde Value's current depth.
+        db.execute("UPDATE entries SET payload=jsonb(?1) WHERE bucket IN (SELECT id FROM buckets WHERE scope=?2 AND field='checkpoints')", rusqlite::params![nested, scope]).unwrap();
+        assert!(crate::live_index::load_map(&db, &scope).is_err());
+        let before: String = db.query_row("SELECT json(e.payload) FROM buckets b JOIN entries e ON e.bucket=b.id WHERE b.scope=?1 AND b.field='checkpoints'", [&scope], |row| row.get(0)).unwrap();
+        let tx = db.transaction().unwrap();
+        let error = incremental::sync(&tx, &source, false).err().unwrap();
+        assert_eq!(
+            crate::live_index::failure_code(&error),
+            "UNSUPPORTED_VERSION"
+        );
+        drop(tx);
+        let after: String = db.query_row("SELECT json(e.payload) FROM buckets b JOIN entries e ON e.bucket=b.id WHERE b.scope=?1 AND b.field='checkpoints'", [&scope], |row| row.get(0)).unwrap();
+        assert_eq!(after, before);
+    }
+}

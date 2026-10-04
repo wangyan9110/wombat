@@ -200,8 +200,23 @@ pub(super) fn read_file_from(
                     } else {
                         "日志记录格式无效"
                     },
-                    Some(evidence),
+                    Some(evidence.clone()),
                 );
+                if let Some(generation) = &state.event_generation {
+                    timing::discontinuity(
+                        facts,
+                        crate::session_events::Position {
+                            source_instance_id: source.id.clone(),
+                            file_id: file_id.clone(),
+                            generation: generation.clone(),
+                            byte_offset: consumed - row.bytes().len() as u64,
+                            ordinal: 0,
+                        },
+                        state.thread.clone(),
+                        report,
+                        &evidence,
+                    );
+                }
                 state.corrupt_boundary();
                 continue;
             }
@@ -209,7 +224,27 @@ pub(super) fn read_file_from(
         let payload: Payload = match serde_json::from_str(record.payload.get()) {
             Ok(payload) => payload,
             Err(_) => {
-                issue(report, "invalidRecord", "日志字段格式无效", Some(evidence));
+                issue(
+                    report,
+                    "invalidRecord",
+                    "日志字段格式无效",
+                    Some(evidence.clone()),
+                );
+                if let Some(generation) = &state.event_generation {
+                    timing::discontinuity(
+                        facts,
+                        crate::session_events::Position {
+                            source_instance_id: source.id.clone(),
+                            file_id: file_id.clone(),
+                            generation: generation.clone(),
+                            byte_offset: consumed - row.bytes().len() as u64,
+                            ordinal: 0,
+                        },
+                        state.thread.clone(),
+                        report,
+                        &evidence,
+                    );
+                }
                 state.corrupt_boundary();
                 continue;
             }
@@ -254,6 +289,7 @@ pub(super) fn read_file_from(
             record.kind,
             payload.kind.as_deref(),
             &evidence,
+            record.metadata,
         ));
         process(
             record.kind,

@@ -9,6 +9,8 @@ pub(super) struct Envelope<'a> {
     pub timestamp: Option<&'a str>,
     #[serde(borrow)]
     pub payload: &'a RawValue,
+    #[serde(borrow)]
+    pub metadata: Option<&'a RawValue>,
 }
 
 /// Unknown fields, including messages and outputs, are skipped by serde without allocation.
@@ -87,6 +89,12 @@ pub(super) struct Payload<'a> {
     pub role: Option<String>,
     #[serde(borrow)]
     pub content: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub message: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub delta: Option<&'a RawValue>,
+    #[serde(borrow)]
+    pub phase: Option<&'a RawValue>,
     #[serde(borrow)]
     pub internal_chat_message_metadata_passthrough: Option<&'a RawValue>,
 }

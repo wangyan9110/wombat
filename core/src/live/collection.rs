@@ -11,6 +11,7 @@ pub(super) fn source_key(roots: &[String]) -> String {
     crate::hash(ids.join(":"))
 }
 pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Option<Collected>> {
+    validate_message_mapping(db, key)?;
     let mut value = Collected::default();
     let mut paths = EvidencePaths::default();
     let mut watermark_version = None;
@@ -22,6 +23,7 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
             };
         }
         match field {
+            "messageObservationVersion" => {}
             "watermarkVersion" => {
                 watermark_version = Some(serde_json::from_str::<u32>(payload)?);
             }
@@ -80,6 +82,24 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
     Ok(found.then_some(value))
 }
 
+/// Guard before reading facts and before sync's unchanged/cached fast path.
+fn validate_message_mapping(db: &rusqlite::Connection, key: &str) -> Result<()> {
+    let scope = format!("projection:{key}");
+    if crate::live_index::has_scope(db, &scope)?
+        && crate::live_index::scalar(db, &scope, "messageObservationVersion")?
+            .and_then(|value| value.as_u64())
+            != Some(u64::from(
+                adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
+            ))
+    {
+        return Err(operation_error(
+            "UNSUPPORTED_VERSION",
+            "不支持此投影消息观察映射",
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn sync(
     db: &mut rusqlite::Connection,
     key: &str,
@@ -107,6 +127,9 @@ pub(super) fn sync(
     let mut epochs = BTreeMap::new();
     let mut updated = BTreeMap::new();
     for source in &discovered.sources {
+        validate_message_mapping(&tx, &source.id)?;
+    }
+    for source in &discovered.sources {
         let cache = caches.entry(source.id.clone()).or_default();
         if cache.needs_seed()
             && let Some(prior) = prior_view
@@ -128,6 +151,15 @@ pub(super) fn sync(
                 source_tx.rollback()?;
                 drop(source_tx);
                 caches.remove(&source.id);
+                if error
+                    .downcast_ref::<crate::dto::OperationError>()
+                    .is_some_and(|error| error.code == "UNSUPPORTED_VERSION")
+                {
+                    // Earlier sources may have updated in-memory facts inside this
+                    // transaction; discard them along with the durable rollback.
+                    caches.clear();
+                    return Err(error);
+                }
                 let mut report = prior_view
                     .and_then(|v| v.manifest.sources.iter().find(|s| s.source.id == source.id))
                     .cloned()
@@ -198,6 +230,13 @@ pub(super) fn sync(
                 "watermarkVersion",
                 "",
                 &WATERMARK_FORMAT_VERSION,
+            )?;
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "messageObservationVersion",
+                "",
+                &adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
             )?;
             crate::live_index::replace_field(
                 &tx,

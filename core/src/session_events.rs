@@ -138,6 +138,47 @@ pub enum ActivityKind {
     Tool,
 }
 
+/// Source-backed provenance only; an unclassified user record is not authorization.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MessageOrigin {
+    AssistantVisible,
+    UserInput,
+    UserUnclassified,
+    InjectedContext,
+    Reasoning,
+    InterAgent,
+    Inherited,
+    Compaction,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContentPresence {
+    NonEmpty,
+    Empty,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MessageRecordKind {
+    LegacySnapshot,
+    ResponseSnapshot,
+    NativeSnapshot,
+    Delta,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContentPhase {
+    Commentary,
+    FinalAnswer,
+    Unknown,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ItemKind {
@@ -195,6 +236,15 @@ pub enum Payload {
     },
     Activity {
         activity: ActivityKind,
+    },
+    /// Presence is observed in memory; no body, size, hash or media reference is retained.
+    Message {
+        origin: MessageOrigin,
+        presence: ContentPresence,
+        native_id: Option<String>,
+        record_kind: MessageRecordKind,
+        record_phase: Phase,
+        content_phase: ContentPhase,
     },
     Item {
         item_kind: ItemKind,
@@ -317,7 +367,7 @@ impl TryFrom<StoredEvent> for Event {
             Payload::ContextWindow { tokens, .. } => {
                 ensure!(*tokens > 0, "context window must be positive")
             }
-            Payload::Lifecycle { native_id, .. } => ensure!(
+            Payload::Lifecycle { native_id, .. } | Payload::Message { native_id, .. } => ensure!(
                 native_id.as_ref().is_none_or(|id| !id.is_empty()),
                 "empty lifecycle identity"
             ),

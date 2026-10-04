@@ -211,3 +211,34 @@ fn restored_item_retains_submillisecond_duration_and_rejects_unsafe_native_numbe
         assert!(serde_json::from_value::<Event>(malformed).is_err());
     }
 }
+
+#[test]
+fn safe_message_roundtrips_closed_enums_and_rejects_body_or_empty_identity() {
+    let message = Event::new(
+        position(),
+        Some("thread".into()),
+        Some("turn".into()),
+        Time::from_source(None).0,
+        vec![],
+        Payload::Message {
+            origin: MessageOrigin::AssistantVisible,
+            presence: ContentPresence::Unknown,
+            native_id: Some("item".into()),
+            record_kind: MessageRecordKind::NativeSnapshot,
+            record_phase: Phase::Completed,
+            content_phase: ContentPhase::Unknown,
+        },
+    )
+    .unwrap();
+    let stored = serde_json::to_value(&message).unwrap();
+    assert!(serde_json::from_value::<Event>(stored.clone()).is_ok());
+    for (field, value) in [
+        ("body", serde_json::json!("PRIVATE")),
+        ("presence", serde_json::json!("future")),
+        ("native_id", serde_json::json!("")),
+    ] {
+        let mut changed = stored.clone();
+        changed["payload"][field] = value;
+        assert!(serde_json::from_value::<Event>(changed).is_err());
+    }
+}
