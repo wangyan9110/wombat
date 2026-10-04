@@ -6,6 +6,8 @@
 
 Wombat uses GitHub Releases as its only product distribution channel and does not publish an npm package. The root workspace stays `private: true` for source development. No public Release exists yet; the one-command README installers become usable after the first Release. Source tools require Node.js 26.4.0 or newer. User archives bundle a fixed Node.js 26.4.0 runtime, CLI/Web, and the local Rust core, so users do not install Node, npm, Rust, pnpm, or a compiler.
 
+Release automation uses only free GitHub capabilities. GitHub-hosted builds stay disabled while the repository is private, and local release gates prepare development candidates instead. CI and tag releases use standard GitHub-hosted runners after the repository becomes public; paid larger runners are not used. Intermediate Actions artifacts expire after one day, while final archives become GitHub Release assets. No formal tag is created before the repository is public.
+
 ## One-command installation and updates
 
 macOS / Linux:

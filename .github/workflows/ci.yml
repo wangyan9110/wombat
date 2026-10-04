@@ -12,6 +12,7 @@ concurrency:
 jobs:
   verify:
     name: Verify ${{ matrix.target }}
+    if: ${{ github.event.repository.private == false }}
     strategy:
       fail-fast: false
       matrix:
@@ -57,10 +58,11 @@ jobs:
           name: native-${{ matrix.target }}
           path: dist/native-artifacts/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
   github-candidate:
     name: Assemble GitHub Release candidate
+    if: ${{ github.event.repository.private == false }}
     needs: verify
     runs-on: macos-15
     timeout-minutes: 30
@@ -88,10 +90,11 @@ jobs:
           name: github-candidate
           path: dist/github/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
   install-candidate:
     name: Install archive on ${{ matrix.target }}
+    if: ${{ github.event.repository.private == false }}
     needs: github-candidate
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
@@ -123,6 +126,7 @@ jobs:
 
   dependency-audit:
     name: Dependency advisories
+    if: ${{ github.event.repository.private == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

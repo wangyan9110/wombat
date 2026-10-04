@@ -6,6 +6,8 @@
 
 Wombat 以 GitHub Releases 为唯一产品分发渠道，不发布 npm 包。根工作区保持 `private: true`，只用于源码开发。当前尚无公开 Release；README 中的一键安装命令在首个 Release 创建后生效。源码工具要求 Node.js 26.4.0 或更新版本，用户安装包已内置固定的 Node.js 26.4.0、CLI/Web 和本机 Rust 内核，无需另装 Node、npm、Rust、pnpm 或编译器。
 
+发行自动化只使用 GitHub 的免费能力：仓库私有期间不启动 GitHub 托管构建，改由本机发行门禁准备开发候选；仓库公开后，CI 和标签发行才使用标准 GitHub 托管运行器，不使用收费的 larger runner。Actions 中间产物只保留 1 天，最终归档进入 GitHub Release。仓库公开前不会创建正式标签。
+
 ## 一键安装与升级
 
 macOS / Linux：

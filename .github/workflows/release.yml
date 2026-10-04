@@ -12,6 +12,7 @@ concurrency:
 jobs:
   build:
     name: Build ${{ matrix.target }}
+    if: ${{ github.event.repository.private == false }}
     strategy:
       fail-fast: false
       matrix:
@@ -55,9 +56,11 @@ jobs:
           name: native-${{ matrix.target }}
           path: dist/native-artifacts/
           if-no-files-found: error
+          retention-days: 1
 
   assemble:
     name: Assemble release archives
+    if: ${{ github.event.repository.private == false }}
     needs: build
     runs-on: macos-15
     timeout-minutes: 30
@@ -85,9 +88,11 @@ jobs:
           name: release-candidate
           path: dist/github/
           if-no-files-found: error
+          retention-days: 1
 
   verify:
     name: Verify release on ${{ matrix.target }}
+    if: ${{ github.event.repository.private == false }}
     needs: assemble
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
@@ -118,6 +123,7 @@ jobs:
 
   publish:
     name: Publish GitHub Release
+    if: ${{ github.event.repository.private == false }}
     needs: verify
     runs-on: ubuntu-24.04
     steps:
