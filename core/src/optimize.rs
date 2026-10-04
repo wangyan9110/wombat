@@ -1,10 +1,12 @@
 //! Static optimization rules and durable review decisions share one inventory basis.
+mod cache;
 mod detection;
 mod evaluation;
 mod follow_up;
 #[cfg(test)]
 #[path = "optimize/follow_up_tests.rs"]
 mod follow_up_tests;
+mod inputs;
 mod registry;
 mod repository;
 mod reviews;

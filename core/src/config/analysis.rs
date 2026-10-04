@@ -2,6 +2,9 @@
 mod blocks;
 #[cfg(test)]
 mod boundary_tests;
+mod dependencies;
+#[cfg(test)]
+mod dependency_tests;
 mod relations;
 #[cfg(test)]
 mod tests;
