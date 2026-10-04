@@ -51,8 +51,10 @@ fn native_skill_catalog_and_observed_use_keep_only_resolved_identity() {
     let catalog = format!(
         "<skills_instructions>\n### Skill roots\n- `r0` = `{root}`\n### Available skills\n- review: PRIVATE_DESCRIPTION (file: r0/review/SKILL.md)\n</skills_instructions>"
     );
+    let command = format!("cat '{skill}'");
     let exec = format!(
-        "text(await tools.exec_command({{cmd:\"cat '{skill}'\",max_output_tokens:1000}}));"
+        "text(await tools.exec_command({{cmd:{},max_output_tokens:1000}}));",
+        serde_json::to_string(&command).unwrap()
     );
     write(
         dir.path(),
@@ -80,7 +82,16 @@ fn native_skill_catalog_and_observed_use_keep_only_resolved_identity() {
             .operations
             .iter()
             .find(|operation| operation.kind.as_ref() == kind)
-            .unwrap();
+            .unwrap_or_else(|| {
+                panic!(
+                    "missing {kind}; found {:?}",
+                    result
+                        .operations
+                        .iter()
+                        .map(|operation| operation.kind.as_ref())
+                        .collect::<Vec<_>>()
+                )
+            });
         assert_eq!(operation.path.as_deref(), Some(skill.as_str()));
         assert_eq!(
             operation.turn_id.as_deref(),
