@@ -1,0 +1,256 @@
+{
+  "date": "2026-10-04",
+  "platform": "macOS arm64",
+  "node": "v26.4.0",
+  "build": {
+    "sourceSha256": "0772ea8d846ec3fb4f8a43b91b6b38da324699976c170eb2a614326540fbc61a",
+    "coreSha256": "02a61db4a221e093513c82667aaabbc942a98b49abf02cf969cbc26e4ef3761b",
+    "webFiles": [
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "size": 54912,
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f",
+        "executable": false
+      },
+      {
+        "path": "web/assets/index-V6YccqfR.js",
+        "size": 479351,
+        "sha256": "b84872f7e40e16e1d8fa4fb03d51becadb1fe28a5815511afc6c290aba25a14d",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-account-request-IeKMEFJl.js",
+        "size": 1004,
+        "sha256": "c6a0437fbf4dbee32896dfabb63aafbfa5ef9533cdb9186f1abb327a2a6fe524",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-account-response-59m3hEfa.js",
+        "size": 39828,
+        "sha256": "9719fb0a93bc898629b85630bff6d7f8bac30c94a133a66b7db5768fbe7ac467",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-config-request-C81V2j38.js",
+        "size": 13598,
+        "sha256": "5e5daac56ff0dac528e41337fd8575c8c7daeca040358eae8c31055b32e91f88",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-config-response-B-xh7JNv.js",
+        "size": 104016,
+        "sha256": "8e67a87c01cad34a7b98998eec7a7b58a55a68a7dd125d4b9f6d91eb591e662e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-directories-request-BM_zSf6D.js",
+        "size": 3571,
+        "sha256": "66004d72f0c02fa3525357d73de5a5848bc285ba0c3f9742ae81e6e92213346e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-directories-response-B73u2Pxz.js",
+        "size": 6151,
+        "sha256": "6d604cf75def926101dcb9550bf025343ac46b0ae6af87896b876af1eaa3a11b",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-handoff-request-sLZ012D6.js",
+        "size": 9014,
+        "sha256": "fd02418985f66f3cdabbaefe117b8ca03553f4ffa26a0ee6b5b8f824e1ba5003",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-handoff-response-BNFdB3mt.js",
+        "size": 39479,
+        "sha256": "bba75727255050cff796d3061911bd9fa8ce0ebafa5622c30252b9c8cc586288",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-live-request-_9TsPaOY.js",
+        "size": 16918,
+        "sha256": "966ed7243a2a6955051822716d52944046e1bbb49a359755d370e158f816347e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-live-response-B0trLq4D.js",
+        "size": 120302,
+        "sha256": "5b7e5989cc1a615d8957d08ade53817adee4ed67201396ae315dcf88e6ec78c8",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-optimize-request-B0x0bh9T.js",
+        "size": 13342,
+        "sha256": "14dde1aacd02d66e5b46ad5bab236433a0be11ba5fdcc6d3bd201a467fb6ed66",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-optimize-response-BXYFtbTg.js",
+        "size": 143805,
+        "sha256": "6ee0fd64f30033dcd2f85d3cb4273a9640d6eaa91dc1d13e82caea3a46d0c48e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-preferences-request-CYJpvfFL.js",
+        "size": 2295,
+        "sha256": "6a08fdaccccfece60ab4aa456bd9fee7ea42668737001a7c6b95a527058be218",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-preferences-response-DWTm6JFN.js",
+        "size": 2855,
+        "sha256": "0ae5e2cf704b886fd99a599cdd1a489529ed0b1097239148be42050a71f03c5a",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-pricing-request-Dl_sv005.js",
+        "size": 1234,
+        "sha256": "253728e15ec1450031e0d3652881d695f18a450fe83d2dfe8566db335784754f",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-pricing-response-BD94msK-.js",
+        "size": 19742,
+        "sha256": "67e723b2f700721340caa511bde6d725239c1ff8cfa281b42aa7d7b036ba70ae",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-usage-app-HCp4V0DA.js",
+        "size": 116400,
+        "sha256": "73ce561cb0ff2c6428e587b5a95d77229b302c363ecfd32edcecc8086f8d5ceb",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-usage-request-D_HPfdWa.js",
+        "size": 16118,
+        "sha256": "de93316cebd102e94c69b3509992945af4b2ecc79284ad57b4bd6912a4348bca",
+        "executable": false
+      },
+      {
+        "path": "web/index.html",
+        "size": 352,
+        "sha256": "7980fa88efb07a2a2cb397687c4076dd08e680d26104ac66fb3f3b97f14fc1a8",
+        "executable": false
+      },
+      {
+        "path": "web/wombat.png",
+        "size": 2321,
+        "sha256": "9766774aa14285b2b5a7aa362f572db991e1172ac6518d416476633894fdefbc",
+        "executable": false
+      }
+    ]
+  },
+  "implementation": {
+    "hookMeasurement": "Exact JSON handler object or flat/inline TOML declaration; no script reads",
+    "nestedToml": "Unknown declaration measurement; not invalid configuration",
+    "fileRevisionHash": "Once per configuration read",
+    "nativeRegistryProductIntegration": false,
+    "wideDrawerEscape": true
+  },
+  "verification": {
+    "fullSuite": {
+      "rust": 133,
+      "rustIgnored": 1,
+      "client": 30,
+      "ui": 51,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 30
+    },
+    "afterFinalKeyboardChange": {
+      "ui": 51,
+      "typecheck": true,
+      "browser": {
+        "report": [
+          {
+            "language": "zh",
+            "width": 320,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          },
+          {
+            "language": "zh",
+            "width": 390,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          },
+          {
+            "language": "zh",
+            "width": 1280,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          },
+          {
+            "language": "zh",
+            "width": 1440,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          },
+          {
+            "language": "en",
+            "width": 320,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          },
+          {
+            "language": "en",
+            "width": 390,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          },
+          {
+            "language": "en",
+            "width": 1280,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          },
+          {
+            "language": "en",
+            "width": 1440,
+            "correctDeclarationBytes": true,
+            "scriptExcludedInCopy": true,
+            "noOverflow": true,
+            "focusRestored": true
+          }
+        ]
+      }
+    },
+    "clippy": true,
+    "nativeReadOnlyProbe": {
+      "nativeVersion": "0.160.0",
+      "registered": 1,
+      "states": {
+        "initial": "untrusted",
+        "trusted": "trusted",
+        "disabled": false,
+        "changed": "modified",
+        "featureOff": 0
+      },
+      "noHookExecution": true,
+      "noThreadCreated": true
+    }
+  },
+  "limitations": [
+    "Native hooks/list was verified in an isolated synthetic CODEX_HOME; it is not yet wired into product inventory or reference checks.",
+    "No Hook execution or model task was started. Trusted state was only changed in the synthetic test configuration.",
+    "Windows, Linux and other Codex versions were not validated.",
+    "Nested non-contiguous TOML declarations remain unmeasured.",
+    "The full suite preceded the final keyboard-only change; UI tests, types and all eight browser conditions were rerun after it.",
+    "No performance, million-record or 24-hour claim is made."
+  ]
+}

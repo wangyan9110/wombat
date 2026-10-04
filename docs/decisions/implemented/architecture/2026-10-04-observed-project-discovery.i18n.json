@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-continuous-project-discovery-from-observed-records": {
+      "zh": "a9c00a71a17121511fc238a1e3b1309e3b89b886b21a9bce050420d1ea5da54f",
+      "en": "5c0da7e9ee8359f9f1ad1bf7ca6fa7fcf2aeb70f455983f2b1cdf01169e1b262"
+    },
+    "/decision-note-continuous-project-discovery-from-observed-records/problem": {
+      "zh": "4876a78aef987835258ed1cce2630674cc039ecdc08576a65e87e410af428e18",
+      "en": "8ba93f9b033ed21b8982f27a79e4998a8b83cfd0768cd6424bc5cc66e20a3703"
+    },
+    "/decision-note-continuous-project-discovery-from-observed-records/decision": {
+      "zh": "afef88271b446140ffb7c23439aeedb6c107ea31e4d4a5047a13aba2d3b7ae42",
+      "en": "fbd77df454e9e72fb407f838d81ee75b80327c32b01a2769f2649e55428a5589"
+    },
+    "/decision-note-continuous-project-discovery-from-observed-records/alternatives-considered": {
+      "zh": "d49d5b72c8033c76076fe495802555401745f21e1064623aca12a3b527e6ccbe",
+      "en": "2940e1d6f45ca1dbdf1154de5c6e5fb68d9f87d2870bba1c6d8d11e0b22fc28c"
+    },
+    "/decision-note-continuous-project-discovery-from-observed-records/consequences-and-verification": {
+      "zh": "cdb796520d19e16264fe69a4d72abf4ff14b741f42bf4bc9f7d7872e77943652",
+      "en": "9cfea97adaf630cbc9e39be8e6379121b2ad11780f90456acebd9b29026e3747"
+    }
+  }
+}

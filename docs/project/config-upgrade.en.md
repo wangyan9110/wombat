@@ -6,7 +6,7 @@ This is the independent public specification for the 2026-10-01 upgrade, not a c
 
 ## Entry points and scope
 
-The GUI has Overview, Tasks, Configuration and Optimize entry points. CLI and Web consume shared Rust business logic and generated contracts in parallel; protocol identities such as thread remain unchanged. TUI does not return; Tauri is a future host. Projects remain explicitly authorized directory evidence, not a project registry.
+The GUI has Overview, Tasks, Configuration and Optimize entry points. CLI and Web consume shared Rust business logic and generated contracts in parallel; protocol identities such as thread remain unchanged. TUI does not return; Tauri is a future host. Reliable historical working directories form a selectable local project catalog without registration or separate authorization; an unknown browser path still cannot expand read scope.
 
 Overview shows Token, standard API-equivalent cost with a USD label, trends, project distribution, recent tasks and an optimization summary together; a single project shows high-usage tasks. Increased usage does not imply waste. Clicking usage or cost opens the same right-side detail with composition, time, model, project and related tasks. Task details expand Token and cost composition by default, with source details disclosed on demand. Overview cost uses two decimals and a threshold for positive values below 0.01; details use four decimals. Algorithms and sorting never use display rounding.
 
@@ -65,7 +65,7 @@ This table records source inspection on 2026-10-03, not browser or end-to-end ac
 | Configuration and finding evidence | [Configuration details](../../ui/src/ConfigView.tsx) and [optimization details](../../ui/src/OptimizeView.tsx) retain positions and evidence | Rule versions, content hashes, evidence codes and some source identities still need presentation mapping |
 | Initial waiting and cancellation | The [coordinator](../../ui/src/workspace.ts) handles real pending states, follow-up reads, old results and cancellation of this view; [waiting feedback](../../ui/src/Preparation.tsx) shows elapsed time | No per-file progress or reliable ETA; fixed delays must not announce completion or claim to stop shared scanning |
 | Manual edits and rechecks | The [operation contract](../../core/src/optimize_dto.rs) supports marking, ignoring, restoring ignored findings and rechecking collected files | Restoring an ignored finding does not undo file edits; plan generation, file application and file recovery are absent |
-| Prices and sources | Real queries, price updates, background pricing, startup authorization roots and restart instructions are connected | Authorization recovery mainly requires restarting, rather than interactive directory authorization; preserve failures and unknown values |
+| Prices and sources | Real queries, price updates, background pricing, source directories, and the system picker are connected; historical projects and projects added while running enter the catalog automatically | Extra directories absent from supported sources still require host selection; preserve failures and unknown values |
 | Usage and text results | Independent accounting, deduplicated related usage, complete measurements with matching methods and review baselines are connected | Actual injection, continuous inactivity and complete MCP runtime health lack reliable evidence; do not invent findings or success |
 
 ### Delivery order and acceptance

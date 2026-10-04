@@ -16,7 +16,7 @@ Rust uses locked pulldown-cmark for complete blocks and raw UTF-8 positions. Has
 
 An existing analysis.json in an authorized project expresses user-declared joint applicability and identity-v1 copy direction. It does not prove host loading, infer relationships from names, or read paths outside the inventory. Copies compare full bytes without assuming the original is correct; fingerprints include both versions and the declaration. Missing files, permissions, resource limits, or insufficient relations do not establish resolution. User records remain separate, old records readable, and index rebuilding cannot clear them.
 
-Hook support has no effective-registry adapter and reports no_verified_adapter; actual injection and execution remain closed. Storage/migration failures publish explicit codes, preserve corrupt legacy rows, and allow same-service recovery without automatic clearing or rebuilding.
+Hook support has no effective-registry adapter and reports no_verified_adapter; actual injection and execution remain closed. Storage failures and unsupported index formats publish explicit codes and preserve original records without automatic clearing or rebuilding.
 
 ## Alternatives considered
 
@@ -24,6 +24,6 @@ Blocking preferences and prices ties first results to unnecessary work. Guessing
 
 ## Impact and verification
 
-A Markdown dependency and licenses are added, the initial rules used static-config-v3, with current v4 evidence constraints recorded in the [integrity decision](2026-10-02-rule-review-integrity.en.md), and Rust generates public DTOs. Synthetic truth covers Chinese/CRLF, complete units, example exclusion, heading conditions, collisions, Skill-body positions, huge-group limits, related-version/declaration changes, and insufficient rechecks. CLI/HTTP agree at a fixed version. Web tests cover first results before prices, shared flights, and lifecycle; storage tests cover controlled SQLite quota exhaustion and corrupt legacy-index recovery.
+A Markdown dependency and licenses are added, the initial rules used static-config-v3, with current v4 evidence constraints recorded in the [integrity decision](2026-10-02-rule-review-integrity.en.md), and Rust generates public DTOs. Synthetic truth covers Chinese/CRLF, complete units, example exclusion, heading conditions, collisions, Skill-body positions, huge-group limits, related-version/declaration changes, and insufficient rechecks. CLI/HTTP agree at a fixed version. Web tests cover first results before prices, shared flights, and lifecycle; storage tests cover controlled SQLite quota exhaustion and unsupported-index rejection with records retained.
 
 See [progress](../../../project/progress.en.md) for local measurements and browser scope. This does not establish actual disk exhaustion, every permission failure, other platforms, million-record scale, 24-hour residency, or actual injection/Hook health. Local parsing time is not presented as complete first-start latency.

@@ -1,0 +1,177 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Codex file-declaration Hook registry observations, not static script failure detection or runtime execution evidence",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1",
+    "codex": "0.160.0"
+  },
+  "build": {
+    "sourceSha256": "1469a9de678a7d500b937a4e3936746e49c96f3934f8f3f35cc812ae31ef8106",
+    "coreSha256": "768b621719921bc0f309a80799576be12ea7678611b05370b48765294287cdcc",
+    "webAssets": [
+      {
+        "path": "web/assets/index-D5SlpT9Z.js",
+        "sha256": "d50c45b1a8d3b8bea30543e1cf82a441e255695f47b147a60b52678538ee50ec"
+      },
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f"
+      }
+    ]
+  },
+  "verification": {
+    "build": true,
+    "fullSuite": {
+      "passed": 289,
+      "rust": 137,
+      "client": 30,
+      "ui": 52,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 31,
+      "ignoredResourceTests": 1
+    },
+    "typecheck": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "behavior": [
+      "exact current file hash and native declaration identity",
+      "independent project enablement and trust",
+      "pinned view retention without native reread",
+      "equal observations retain review revision despite timestamp change",
+      "native errors and unknown versions stay unavailable",
+      "mutating native response and changed source file fail binding",
+      "duplicate native keys produce no chosen state",
+      "512-registration limit",
+      "out-of-scope files are not bound or exposed",
+      "public requests reject private native observations",
+      "no-declaration preflight avoids native startup"
+    ],
+    "cli": {
+      "samePinnedRegistry": true,
+      "textEnablementAndTrust": true,
+      "commandNotExposed": true,
+      "partialExitCode": 2
+    },
+    "native": {
+      "nativeVersion": "0.160.0",
+      "productRegistry": true,
+      "states": [
+        "untrusted",
+        "trusted",
+        "disabled",
+        "modified",
+        "featureOff"
+      ],
+      "noHookExecution": true
+    },
+    "browser": [
+      {
+        "language": "zh",
+        "width": 320,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "nativeTrustedState": true,
+        "correctDeclarationBytes": true,
+        "scriptExcludedInCopy": true,
+        "noOverflow": true,
+        "focusRestored": true
+      }
+    ],
+    "repositoryChecks": {
+      "passed": true,
+      "bilingualPairs": 54,
+      "maintenanceTests": 13
+    }
+  },
+  "budgets": {
+    "authorizedProjects": 64,
+    "registrations": 512,
+    "preflightBytesPerFile": 10485760,
+    "preflightBytesPerRound": 33554432,
+    "hashBytesPerFile": 10485760,
+    "hashBytesPerRound": 33554432,
+    "hashBufferBytes": 65536,
+    "nativeCaptureDeadlineMs": 5000,
+    "maximumCaptureAgeAtViewMs": 60000,
+    "blockingFilesystemHardRealtime": false
+  },
+  "failuresResolved": [
+    "new UI test changed build identity; rebuilt before installation verification",
+    "unnecessary native startup initialized bundled Skills and invalidated five independent end-to-end expectations; added bounded declaration preflight without weakening assertions",
+    "browser script selected a bundled Skill and then raced a list redraw; selected the Hook explicitly and waited for it"
+  ],
+  "boundaries": [
+    "Only the verified Codex 0.160.0 file-backed key shape is bound. Plugin keys and other native versions remain unverified.",
+    "Native initialization may maintain its own bundled resources when Hook observation is requested. No Hook command or task was executed.",
+    "Enabled/trusted registration does not prove execution, successful script behavior or absence of failures.",
+    "Static Hook references, reliable runtime invocations/injection, continuous inactivity and natural-adoption checks remain incomplete.",
+    "No cross-platform, sustained resource, million-record or full five-page acceptance claim.",
+    "No handoff acceptance message, npm publication, commit or push in this increment."
+  ]
+}

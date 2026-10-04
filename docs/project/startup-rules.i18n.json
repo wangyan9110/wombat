@@ -6,40 +6,40 @@
       "en": "d664ade4308c8a4ab2765a80d41089015afd21df1df3e0cca693b71808f0dd2d"
     },
     "/startup-and-deterministic-rule-upgrade-specification/product-boundaries": {
-      "zh": "fc6336370d87af950d5d796004a45284e658abc694eecc7f2f77a50aff14335a",
-      "en": "a8aaf88d3836739a3e6af0627216eb5ec708046f2be9f1294167ad646acce6c7"
+      "zh": "ba261f9a40446e350a52b6021d55ba9b915dc5708d65118d952289bcc9cf7c44",
+      "en": "de8abf806e08bfdfd16101a884f99152cb453d1ced60fd432169d6c439803ef7"
     },
     "/startup-and-deterministic-rule-upgrade-specification/existing-capabilities-and-required-changes": {
-      "zh": "f1c706a4377f79dbcd490a4318a3dffebd82320bf123156ecf2c0f6e1bbb38b0",
-      "en": "263a37514b4843ac0f276c7614783a08bb102366305ad943d0467768abefed81"
+      "zh": "3a7ea2bfba2c638765b79bbb925617f63fd69caab22626ca289481de0362a213",
+      "en": "47bf3c640a661e7b786fd4409659290a6ce5f4eeb0e42275c66b4dd0f0773b69"
     },
     "/startup-and-deterministic-rule-upgrade-specification/phase-a-startup-and-failure-states": {
-      "zh": "d74b5e1f141bd51ae4994fd98e5dcb4cd98cdd9239994016bb1d291b2d00a616",
-      "en": "f751b3832702a764f80d2e92d614e0510e597904bc7736e5f7f8f1c8f87181cb"
+      "zh": "1b023f30bb4d5c28aebf261b36e77df9bdfc41c5f4a31e03b8f87c3bfed2fd49",
+      "en": "a2e872f1d1453395092465e09141ed11b9bdb62844d1bd35495015b839854019"
     },
     "/startup-and-deterministic-rule-upgrade-specification/phase-a-startup-and-failure-states/phase-a-work-breakdown": {
-      "zh": "9472e2fda800fb279d19311ce0dbcf3d5f0288a8fddd88940785c2451e475835",
-      "en": "8faa964c96e02e3e7484fb37daf0ebcee1751cd5190c393efc5c60a443ba1fe9"
+      "zh": "73e2e404ef07e1874222ab67e961641519e18ce2ad17e490c6a6a96606c9a64a",
+      "en": "d4c720003c25d99839779c68b17e952963eb9b7f04d10708d5178a6bf2c3398e"
     },
     "/startup-and-deterministic-rule-upgrade-specification/phase-b-deterministic-rules-and-prerequisite-evidence": {
-      "zh": "9e85d487a213779d9ad3c5771a49d3118d1db0701ec4eb178e25ab3725f45495",
-      "en": "ff84b6ee7b202bdb953175cda832e00e00952d51e345651301e865ef1dd7d71c"
+      "zh": "bdcfa13471ceb7462267105a1ce4348d3b2d8f2e604741c68886867aca3af677",
+      "en": "85773480a632bb5cce6ad470f7291cf9f590263a3a6692cab802af7d47ac5ebb"
     },
     "/startup-and-deterministic-rule-upgrade-specification/phase-b-deterministic-rules-and-prerequisite-evidence/phase-b-structures-and-work-breakdown": {
       "zh": "3149d0f82c7552a69fa3ab51740a5e60ebdd5d0efea9b50aaa08eed835f8f1a9",
       "en": "78709bb83aa6bfa91e7f9a3f6cf2ec1d8dcf8dc1d0501df19277b1ff897e95ba"
     },
     "/startup-and-deterministic-rule-upgrade-specification/acceptance-data-and-phase-completion": {
-      "zh": "8f112cfdb07a7bbe1660318b2008d88bed99c2d1b93b22300e7eb8699e6edec7",
-      "en": "05b7707844392bc0b877c58b3e0bd80c3b422ddffc4546dd26b760648b8c30bd"
+      "zh": "86282468efb9ad35725000854f5466be144e4dc6faa9fffe75a151a983213978",
+      "en": "c0059c54a57865af488fb1ae06f3f7edc115552af47f3215f2779c0121466f4a"
     },
     "/startup-and-deterministic-rule-upgrade-specification/performance-and-later-scope": {
-      "zh": "758658a836b6741e6fbee4d2f8c8fae5a2b33f3d318b35537ecc7a087b576496",
+      "zh": "672125fbb9dfe772757e78a457c8b95c1c119e695a44e0c49f60f94ee66b0219",
       "en": "3b42eb83e1b3b08756d2bf632c2b3e1ff205d87ec6f02e181e102dc198cbe562"
     },
     "/startup-and-deterministic-rule-upgrade-specification/current-declarations-and-resource-boundaries": {
-      "zh": "b64f339325edb12508e68ea168ec1d6c4d1c8148af8f02040910057603649e9e",
-      "en": "18b4d18d3464f20abbe075c9b93a3a76b8729faf9dfb2a630cf30ca444484598"
+      "zh": "7d5a0d8e0eb716a59310eadfac3765dc70d3a6932b075b7e7808915623551ee5",
+      "en": "cf46902dfc1b03f5e0706ce3e31315b0753b4bfcd7d800ed0459638596556cab"
     }
   }
 }

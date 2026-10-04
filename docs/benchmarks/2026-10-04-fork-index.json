@@ -1,0 +1,353 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Shared fork-forest reconciliation and sparse operation aliases; current-format facts, outcomes and user history retained",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1"
+  },
+  "build": {
+    "sourceSha256": "0b92a2e18988d5c1f27cce3cb1859bdb715f7e4c470766f7ca96a453a3686182",
+    "coreSha256": "bde550d642a4e674397c0e2c86d215d197cbf2549ec07913106556ce7be18a51"
+  },
+  "algorithms": {
+    "ancestry": "One iterative preorder interval forest shared by cumulative measurements and operations; exact identities sorted once, oldest recorded ancestor selected in a linear pass",
+    "evidence": "Merge operation metadata by owner, sort/deduplicate physical references once per owner",
+    "aliases": "Canonical identities resolve through existing operations; only alternate native identities occupy the alias map",
+    "work": "O((T+E)log(T+E)+PlogP), with T relationship nodes, E candidate events and P physical references",
+    "persistence": "No new index, DTO or snapshot layout; no migration or user-record deletion",
+    "cycles": "Retain facts for cycles and descendants; expose forkAncestryCycle rather than deleting mutual copies to zero"
+  },
+  "verification": {
+    "fullSuite": {
+      "passed": 313,
+      "rust": 156,
+      "client": 30,
+      "ui": 54,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 34,
+      "ignoredResourceTests": 1
+    },
+    "build": true,
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "repositoryChecks": {
+      "passed": true,
+      "bilingualPairs": 55,
+      "maintenanceTests": 13
+    },
+    "independentCases": [
+      "30 deterministic sparse/cyclic forest fixtures compared with independent ancestor walks",
+      "100,000-level chain without recursive stack growth; shared identity resolves to root and unique events remain",
+      "cyclic ancestry and descendants retain four normalized operations and440 tokens including an independent valid tree",
+      "alternate item/call identities survive index restart; same ID in another turn remains independent; pinned view unchanged",
+      "full CLI/HTTP MCP evidence, fixed views, append and restart regression remains valid"
+    ],
+    "browser": "No UI changes or new browser verification; previous browser evidence is not claimed as a new run"
+  },
+  "measurements": {
+    "indexOnly": {
+      "twoThousandDepthThreeRuns": {
+        "format": 1,
+        "date": "2026-10-03T22:00:56.255Z",
+        "platform": "darwin-arm64",
+        "scope": "Cold Rust refresh: source scan, parse, ancestry reconciliation, pricing, immutable snapshot persistence and summary; no live service, browser or warm-index claims",
+        "cache": "Fresh product data directory for every run; OS filesystem caches uncontrolled, run order alternates",
+        "corpus": {
+          "shape": "chain",
+          "threads": 2000,
+          "perThread": 10,
+          "sourceBytes": 7129984,
+          "sourceSha256": "3db319b3b166d0ccd26ea646e3ce41a69a2ae4645497a2115c9e08f732f2c0db",
+          "nativeCounters": 2000,
+          "sourceOperations": 20000
+        },
+        "binaries": {
+          "currentSha256": "b3c41e34f7f891d15b9c8f004823354574cea36ee4bef09907af7cfd00372352",
+          "baselineSha256": "0267e89022c08ba5e9f1b58422d5c2ae71131a04f438a38d7f3b9d8e10111a58"
+        },
+        "results": [
+          {
+            "label": "baseline",
+            "iteration": 0,
+            "wallMs": 27212.64,
+            "peakRssBytes": 91832320,
+            "persistedBytes": 13875464,
+            "canonicalSha256": "5b5c6cf9091952211b509131afe4b48cf5733ddd12e653a07893375a7c8acf1d",
+            "operations": 18001,
+            "physicalEvidence": 20000,
+            "tokenTotal": 110
+          },
+          {
+            "label": "current",
+            "iteration": 0,
+            "wallMs": 18972.621,
+            "peakRssBytes": 90701824,
+            "persistedBytes": 13875464,
+            "canonicalSha256": "5b5c6cf9091952211b509131afe4b48cf5733ddd12e653a07893375a7c8acf1d",
+            "operations": 18001,
+            "physicalEvidence": 20000,
+            "tokenTotal": 110
+          },
+          {
+            "label": "current",
+            "iteration": 1,
+            "wallMs": 20916.01,
+            "peakRssBytes": 88309760,
+            "persistedBytes": 13875464,
+            "canonicalSha256": "5b5c6cf9091952211b509131afe4b48cf5733ddd12e653a07893375a7c8acf1d",
+            "operations": 18001,
+            "physicalEvidence": 20000,
+            "tokenTotal": 110
+          },
+          {
+            "label": "baseline",
+            "iteration": 1,
+            "wallMs": 27765.898,
+            "peakRssBytes": 92733440,
+            "persistedBytes": 13875464,
+            "canonicalSha256": "5b5c6cf9091952211b509131afe4b48cf5733ddd12e653a07893375a7c8acf1d",
+            "operations": 18001,
+            "physicalEvidence": 20000,
+            "tokenTotal": 110
+          },
+          {
+            "label": "baseline",
+            "iteration": 2,
+            "wallMs": 27722.758,
+            "peakRssBytes": 90980352,
+            "persistedBytes": 13875464,
+            "canonicalSha256": "5b5c6cf9091952211b509131afe4b48cf5733ddd12e653a07893375a7c8acf1d",
+            "operations": 18001,
+            "physicalEvidence": 20000,
+            "tokenTotal": 110
+          },
+          {
+            "label": "current",
+            "iteration": 2,
+            "wallMs": 20981.344,
+            "peakRssBytes": 86507520,
+            "persistedBytes": 13875464,
+            "canonicalSha256": "5b5c6cf9091952211b509131afe4b48cf5733ddd12e653a07893375a7c8acf1d",
+            "operations": 18001,
+            "physicalEvidence": 20000,
+            "tokenTotal": 110
+          }
+        ],
+        "resultEquality": true,
+        "boundaries": [
+          "Synthetic fixed corpus; no real source data",
+          "Small persisted footprint reflects this fixture and is not a product-wide disk bound",
+          "No 256MiB, million-record, 24-hour, Windows or UI acceptance claim"
+        ]
+      },
+      "hundredThousandOperations": {
+        "format": 1,
+        "date": "2026-10-03T22:03:35.108Z",
+        "platform": "darwin-arm64",
+        "scope": "Cold Rust refresh: source scan, parse, ancestry reconciliation, pricing, immutable snapshot persistence and summary; no live service, browser or warm-index claims",
+        "cache": "Fresh product data directory for every run; OS filesystem caches uncontrolled, run order alternates",
+        "corpus": {
+          "shape": "chain",
+          "threads": 2000,
+          "perThread": 50,
+          "sourceBytes": 31005584,
+          "sourceSha256": "b5c9e0ea95b49e53472feda35bb6ac1584d8e8df94c6b75d59450b3259fa67e1",
+          "nativeCounters": 2000,
+          "sourceOperations": 100000
+        },
+        "binaries": {
+          "currentSha256": "b3c41e34f7f891d15b9c8f004823354574cea36ee4bef09907af7cfd00372352",
+          "baselineSha256": "0267e89022c08ba5e9f1b58422d5c2ae71131a04f438a38d7f3b9d8e10111a58"
+        },
+        "results": [
+          {
+            "label": "baseline",
+            "iteration": 0,
+            "wallMs": 64020.007,
+            "peakRssBytes": 293273600,
+            "persistedBytes": 65193064,
+            "canonicalSha256": "b12fb9a37ef54ccd690684514895dd46c66d2fb8114119cf400e2f6b068971e8",
+            "operations": 98001,
+            "physicalEvidence": 100000,
+            "tokenTotal": 110
+          },
+          {
+            "label": "current",
+            "iteration": 0,
+            "wallMs": 25157.861,
+            "peakRssBytes": 293568512,
+            "persistedBytes": 65193064,
+            "canonicalSha256": "b12fb9a37ef54ccd690684514895dd46c66d2fb8114119cf400e2f6b068971e8",
+            "operations": 98001,
+            "physicalEvidence": 100000,
+            "tokenTotal": 110
+          }
+        ],
+        "resultEquality": true,
+        "boundaries": [
+          "Synthetic fixed corpus; no real source data",
+          "Small persisted footprint reflects this fixture and is not a product-wide disk bound",
+          "No 256MiB, million-record, 24-hour, Windows or UI acceptance claim"
+        ]
+      },
+      "concurrency": "Short build/repository checks overlapped parts of the smaller run; no parallel second performance benchmark. Treat times as observations rather than controlled guarantees."
+    },
+    "final": {
+      "coldRefresh": {
+        "format": 1,
+        "date": "2026-10-03T22:09:40.703Z",
+        "platform": "darwin-arm64",
+        "scope": "Cold Rust refresh: source scan, parse, ancestry reconciliation, pricing, immutable snapshot persistence and summary; no live service, browser or warm-index claims",
+        "cache": "Fresh product data directory for every run; OS filesystem caches uncontrolled, run order alternates",
+        "corpus": {
+          "shape": "chain",
+          "threads": 2000,
+          "perThread": 50,
+          "sourceBytes": 31005584,
+          "sourceSha256": "b5c9e0ea95b49e53472feda35bb6ac1584d8e8df94c6b75d59450b3259fa67e1",
+          "nativeCounters": 2000,
+          "sourceOperations": 100000
+        },
+        "binaries": {
+          "currentSha256": "bde550d642a4e674397c0e2c86d215d197cbf2549ec07913106556ce7be18a51",
+          "baselineSha256": "0267e89022c08ba5e9f1b58422d5c2ae71131a04f438a38d7f3b9d8e10111a58"
+        },
+        "results": [
+          {
+            "label": "baseline",
+            "iteration": 0,
+            "wallMs": 60722.463,
+            "peakRssBytes": 310083584,
+            "persistedBytes": 65193064,
+            "canonicalSha256": "50dc2a8593e6c315b5e1d4a5a8c0643cded890263d446b4373d9100542e05896",
+            "operations": 98001,
+            "physicalEvidence": 100000,
+            "tokenTotal": 110
+          },
+          {
+            "label": "current",
+            "iteration": 0,
+            "wallMs": 19265.316,
+            "peakRssBytes": 252133376,
+            "persistedBytes": 65193064,
+            "canonicalSha256": "50dc2a8593e6c315b5e1d4a5a8c0643cded890263d446b4373d9100542e05896",
+            "operations": 98001,
+            "physicalEvidence": 100000,
+            "tokenTotal": 110
+          }
+        ],
+        "resultEquality": true,
+        "boundaries": [
+          "Synthetic fixed corpus; no real source data",
+          "Small persisted footprint reflects this fixture and is not a product-wide disk bound",
+          "No 256MiB, million-record, 24-hour, Windows or UI acceptance claim"
+        ]
+      },
+      "live": {
+        "baseline": {
+          "platform": "Darwin arm64",
+          "coreSha256": "0267e89022c08ba5e9f1b58422d5c2ae71131a04f438a38d7f3b9d8e10111a58",
+          "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+          "measurements": 100000,
+          "operations": 100000,
+          "threads": 500,
+          "appends": 4,
+          "priceGroups": 1,
+          "coldSyncAndCliMs": 6943.57,
+          "warmCliMs": [
+            86.24,
+            68.25,
+            70.25,
+            70.29,
+            69.81
+          ],
+          "threadsCliMs": 320.32,
+          "appendSyncAndCliMs": [
+            476.72,
+            422.88,
+            437.84,
+            427.3
+          ],
+          "peakRssBytes": 367329280,
+          "rssKiBAtEnd": 358640,
+          "indexBytes": 220495872,
+          "liveIndexDbBytes": 211976192,
+          "liveIndexWalBytes": 8388608,
+          "dataBytesAfterIdleExit": 211976192,
+          "idleCpuPercentOver5s": 0.599,
+          "idleExitMs": 14813.04,
+          "appendRssKiB": [
+            343696,
+            347088,
+            351776,
+            358560
+          ],
+          "correctness": "Initial truth: 11000000 tokens and 26.500000 USD across 1 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+          "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+        },
+        "current": {
+          "platform": "Darwin arm64",
+          "coreSha256": "bde550d642a4e674397c0e2c86d215d197cbf2549ec07913106556ce7be18a51",
+          "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+          "measurements": 100000,
+          "operations": 100000,
+          "threads": 500,
+          "appends": 4,
+          "priceGroups": 1,
+          "coldSyncAndCliMs": 5709.62,
+          "warmCliMs": [
+            79.69,
+            88.25,
+            68.11,
+            70.34,
+            70.03
+          ],
+          "threadsCliMs": 288.97,
+          "appendSyncAndCliMs": [
+            505.03,
+            456.08,
+            443.29,
+            423.85
+          ],
+          "peakRssBytes": 334430208,
+          "rssKiBAtEnd": 326576,
+          "indexBytes": 204406784,
+          "liveIndexDbBytes": 195919872,
+          "liveIndexWalBytes": 8388608,
+          "dataBytesAfterIdleExit": 195919872,
+          "idleCpuPercentOver5s": 0.798,
+          "idleExitMs": 14913.13,
+          "appendRssKiB": [
+            309360,
+            315072,
+            319728,
+            326480
+          ],
+          "correctness": "Initial truth: 11000000 tokens and 26.500000 USD across 1 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+          "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+        },
+        "sameCorpus": true,
+        "concurrency": "Build and full tests completed before these final measurements; no parallel benchmark, browser or build in this task. System and filesystem caches remain uncontrolled."
+      }
+    }
+  },
+  "failuresResolved": [
+    "Initial refactor required a Rust visibility and optional interval type annotation; compilation fixed before verification",
+    "POSIX time could not read system clock statistics in the sandbox; rerun with approved local measurement access",
+    "Benchmark initially omitted the committed snapshot directory; fixed and smoke-tested against both binaries before larger measurements"
+  ],
+  "boundaries": [
+    "Final cold refresh is2,000 forked threads,2,000 replayed counter records and100,000 operation records, not100,000 independent usage measurements",
+    "Live fixture separately includes100,000 measurements and100,000 operations in500 threads with four appends; only one final comparison per condition",
+    "Cold final sample is below256MiB; live peak remains above256MiB and distinct-price/million-record/24-hour goals remain incomplete",
+    "Immutable snapshot size is unchanged; live-index size reduction requires a fresh derived index, not a migration of existing data",
+    "Physical memory reports Rust process only; disk counts logical database/WAL/file lengths, not allocated filesystem blocks",
+    "No new Windows/Linux, UI journey, model execution, publishing, commit, push or product-acceptance claim"
+  ]
+}

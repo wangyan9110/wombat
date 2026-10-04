@@ -1,0 +1,386 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Handoff cancellation before/after queueing, batch continuation, nested dialog Escape isolation and page departure",
+  "platform": "darwin-arm64",
+  "build": {
+    "sourceSha256": "d528d786cb12af698e51e5afaceb96a1a33858e86c853466ef398848aaa4fd38",
+    "coreSha256": "6c01177464636a48a8adf3fd43ba43be1fde28603ac726aaccedd0dbc64f9930"
+  },
+  "fixtures": {
+    "syntheticOnly": true,
+    "helperSha256": "6281b15cf616a879b56ab1fbbe04d6c94ded2f223aae1c5babfb0f765bd84f84",
+    "testSha256": "ac9c6b3ede7ef83188e13751f7dafed4c7807c8217bce77392c41c116e4e06e1",
+    "responseDelayMs": 5000,
+    "delayPurpose": "Functional cancellation condition, not performance measurement",
+    "observations": "Each fixture process records spawn/exit and delayed-response events; tests require exit before delayed reply"
+  },
+  "verification": {
+    "build": true,
+    "buildIdentity": true,
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "fullRegression": {
+      "sourceSha256": "5d962e1b960f3b8e51cefa41ba473e2247709057e8fd41c52d259e9cb800f94d",
+      "passed": 327,
+      "rust": 163,
+      "client": 30,
+      "ui": 59,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 36,
+      "ignoredResourceTests": 1
+    },
+    "finalBuildChecks": {
+      "unitPassed": 112,
+      "e2ePassed": 36,
+      "focusedCancellation": true
+    },
+    "browser": {
+      "engine": "Isolated Chrome, real Web/Node/Rust and synthetic native protocol",
+      "cases": 28,
+      "report": [
+        {
+          "language": "zh",
+          "width": 320,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "queued": false,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "queued": true,
+          "closeReleasesConnections": true,
+          "closedBeforeDelayedResponse": true,
+          "outerDetailRetained": true,
+          "reopenDoesNotSend": true,
+          "explicitRetryAccepted": true,
+          "duplicateClickDisabled": true,
+          "sendingStateCorrect": true,
+          "closeNoteVisible": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "pageLeaveWhileSending": true,
+          "transportProcessesExit": true,
+          "reopenDoesNotResend": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "pageLeaveWhileSending": true,
+          "transportProcessesExit": true,
+          "reopenDoesNotResend": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "pageLeaveWhileSending": true,
+          "transportProcessesExit": true,
+          "reopenDoesNotResend": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "pageLeaveWhileSending": true,
+          "transportProcessesExit": true,
+          "reopenDoesNotResend": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "batchClose": true,
+          "remainingProjectNotStarted": true,
+          "noAutomaticResend": true,
+          "closedBeforeDelayedResponse": true
+        }
+      ]
+    },
+    "repositoryChecks": "repo:check passed: 55 bilingual pairs, public source scan, module/locale checks and 13 repository tests; git diff --check passed"
+  },
+  "fixes": [
+    "Native cancel propagation and wide-drawer Escape handling are scoped to the current dialog, keeping outer suggestion details open",
+    "Dialog explains closing stops waiting and remaining sends without withdrawing requests already sent to Codex",
+    "Active send shows a sending status instead of a generic local-record read status"
+  ],
+  "cases": [
+    "Abort while awaiting thread/start yields failed/CANCELLED and no queue request",
+    "Abort after queue attempt yields unknown/HANDOFF_UNKNOWN; exactly one attempt remains",
+    "Both branches release native connections and in-flight guard; subsequent explicit preview/send succeeds",
+    "Batch cancellation after first queue leaves first unknown and second failed/CANCELLED without starting second project",
+    "Dialog close or page departure exits fixture transport processes before delayed reply; reopening never sends automatically"
+  ],
+  "testRepairs": [
+    "Initial actual browser run exposed Escape closing both nested dialogs; corrected event ownership and reran",
+    "Final status selector initially matched an empty status in the outer drawer; narrowed it to the closest handoff dialog"
+  ],
+  "boundaries": [
+    "Native protocol is synthetic; earlier actual native acceptance/daemon-retention evidence remains separate",
+    "Page departure tested in both locales at 320/1440px; dialog and batch close tested at all four widths",
+    "Other platforms, full five-page journeys, runtime/continuous rules and natural adoption remain incomplete",
+    "No new persistent receipts, compatibility logic or performance tests"
+  ]
+}

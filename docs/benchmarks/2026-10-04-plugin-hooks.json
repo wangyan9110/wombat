@@ -1,0 +1,293 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Codex 0.160.0 standalone plugin JSON Hook declarations: native identity, file version, authorized projects, retained unknowns and functional rechecks",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1",
+    "codex": "0.160.0"
+  },
+  "build": {
+    "sourceSha256": "0adaaa9be360094953bb378e8f5443a45a66230396e2834c440013f869f6e2ab",
+    "coreSha256": "b02f332a25a874631663ccb29b78765670f179cbcaab50684b2bd670136d98f8",
+    "webAssets": [
+      {
+        "path": "web/assets/index-Bm1qCu6l.js",
+        "sha256": "b0d1caee179f4c1bc489a22e233024837abd5ef96315d1a30541c54988183ee8"
+      },
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f"
+      }
+    ]
+  },
+  "fixtures": {
+    "syntheticOnly": true,
+    "helperSha256": "d3d25cda62ee136e05136a4e74140dd0d475a74d6636ca976150344879761868",
+    "testSha256": "8b927cb52c92677d7898d313a56a812c37b494ce1ed125aa5d74c603b9ccfd67",
+    "browserScriptSha256": "d459ae40b692ec76db55fb667a8b82709d1b794129c73fe4317355b76a1a85f4",
+    "nativeProbeScriptSha256": "12bb5cd4a88627e95a794a16e2189d07dc2be403ba417da71deb90b47f5453d1",
+    "finalRegressionLogSha256": "03d41f8ca65545218a1c9c174bccedd0b91f4464e06a92194d20c6b707d62d7b",
+    "finalRepoLogSha256": "b661d87c55ed376f1f4fa57f75b9aedce4709d13d61ee86daf00a8096d50d343"
+  },
+  "verification": {
+    "build": true,
+    "buildIdentity": true,
+    "fullRegression": {
+      "passed": 332,
+      "rust": 167,
+      "client": 30,
+      "ui": 59,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 37,
+      "ignoredResourceTests": 1
+    },
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "contracts": true,
+    "repoCheck": true,
+    "behavior": [
+      "exact plugin metadata and native key identity",
+      "normal package-relative slash paths must match authorized source path suffix",
+      "native-listed standalone JSON only; no cache traversal or guessed install version",
+      "registered declaration pointers and authorized projects only",
+      "one bounded inventory read per physical file",
+      "additions share the 10000-item inventory limit without rewriting existing identities",
+      "separate project trust and enablement; omitted registration is not disabled",
+      "current file hash and complete before/after native responses must match",
+      "registration failure retains last successful declaration as stale",
+      "actual missing source files move declarations to history",
+      "fixed views, equal revisions and generated CLI/HTTP evidence",
+      "recheck unavailable without registry; restored reference can pass while keep decision survives",
+      "disabled plugins alone do not start native host",
+      "escaping symlink and out-of-scope files cannot bind",
+      "commands and native states excluded from safe inventory cache",
+      "no thread creation or Hook execution"
+    ],
+    "native": {
+      "version": "0.160.0",
+      "pluginId": "sample@test",
+      "key": "sample@test:hooks/hooks.json:session_start:0:0",
+      "states": [
+        "untrusted",
+        "trusted",
+        "disabled",
+        "modified"
+      ],
+      "exactProductBinding": true,
+      "exactDeclarationBytes": 100,
+      "noHookExecution": true,
+      "noThreadCreated": true
+    },
+    "browser": [
+      {
+        "language": "zh",
+        "width": 320,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 320,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 320,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      }
+    ],
+    "bilingualPairs": 55,
+    "repoTests": 13,
+    "diffCheck": true,
+    "ownedFixtureServicesClosed": true
+  },
+  "resourceDesign": {
+    "performanceTestsRun": false,
+    "inventoryReadPerFileMiB": 10,
+    "inventoryReadRoundMiB": 64,
+    "inventoryEntryLimit": 10000,
+    "nativeRegistrationsLimit": 512,
+    "nativeProjectsLimit": 64,
+    "hashReadPerFileMiB": 10,
+    "hashReadRoundMiB": 32,
+    "bufferKiB": 64,
+    "inventoryIndex": "Index native-listed physical paths once, group declarations and project memberships, aggregate additions only",
+    "note": "Hash capture, inventory reads and target-analysis reads are separate bounded phases; no performance or disk-reduction claim"
+  },
+  "limitations": [
+    "Inline plugin declarations and dynamic variable paths remain unknown",
+    "Windows/Linux and other native versions unverified",
+    "Registration does not prove Hook execution or injection",
+    "Runtime/continuous rules, natural adoption and full five-page acceptance remain pending",
+    "No performance benchmark, batch acceptance, publish, commit or push"
+  ],
+  "verificationRepairs": [
+    "Sandbox initially denied local listeners; approved isolated reruns succeeded",
+    "Initial assertions omitted read-only account RPCs required by handoff preview",
+    "A first-target assumption depended on random physical IDs; explicit suggestion/item selection now used",
+    "Fixture cleanup waits for known synthetic processes to exit before removing files",
+    "Browser assertions were corrected to the actual English locale copy and stable async page state"
+  ]
+}

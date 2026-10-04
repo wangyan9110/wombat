@@ -54,8 +54,8 @@ Amounts use pinned [rust_decimal 1.40.0](https://docs.rs/crate/rust_decimal/1.40
 - `unknown`: usage cost cannot be established; a zero known subtotal does not mean free.
 - Explicit zeros in all four categories establish zero cost; missing tokens cannot become zero.
 
-Aggregation retains the same policy and catalog basis. Existing v1/v2 amounts are `legacy_recorded`, not newly verified official prices; mixing them with the new standard policy is rejected. Invalid numbers, negative amounts, overflow, and conflicting token categories cannot become priced costs.
+Aggregation retains the same policy and catalog basis. Only the current policy is accepted; aggregation rejects unknown policies. Invalid numbers, negative amounts, overflow, and conflicting token categories cannot become priced costs.
 
 ## Independent verification
 
-[Pricing tests](../../core/src/pricing/tests.rs) use hand-calculated synthetic data for ordinary components, long-context boundaries and whole-request rates, reasoning inclusion, per-request aggregation, unknown cumulative-difference conditions, missing versus zero, unknown cache creation, exact aliases, provider isolation, tiny-cost accumulation, legacy-policy isolation, overflow, and replay of persisted costs. Tests never download catalogs, install/run ccusage, or read real conversations.
+[Pricing tests](../../core/src/pricing/tests.rs) use hand-calculated synthetic data for ordinary components, long-context boundaries and whole-request rates, reasoning inclusion, per-request aggregation, unknown cumulative-difference conditions, missing versus zero, unknown cache creation, exact aliases, provider isolation, tiny-cost accumulation, unknown-policy rejection, overflow, and replay of persisted costs. Tests never download catalogs, install/run ccusage, or read real conversations.

@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-maintain-only-current-formats-before-the-first-release": {
+      "zh": "a3b8fe85fdc905c59d0158cf0af237a4df117a15740f12cf3a1203dc48df68f7",
+      "en": "f337be10f5061808e3eca832240ce400fd0eeaab07ff3d15be074bcb56cf9638"
+    },
+    "/decision-note-maintain-only-current-formats-before-the-first-release/problem": {
+      "zh": "1cb8348879de5515333c74ef5be3768887567c6f1a750380b5e44d7994488c3f",
+      "en": "c8e8f0a95a2c79c4637e01f8faa9b9dbe4d3bcc61943d0bb4379d70a32cf6918"
+    },
+    "/decision-note-maintain-only-current-formats-before-the-first-release/decision": {
+      "zh": "aa94d39834ccc94fbae22b23a9f90387a425c4cf41cfc8fd63c71fd4495b861d",
+      "en": "d3d821597bbb6c5c89b1226a4d107e34b5eae2ac09be81497073e70adcb80778"
+    },
+    "/decision-note-maintain-only-current-formats-before-the-first-release/alternatives-considered": {
+      "zh": "46ee9c1e8e766ba8556f0c20bfdf1529032a7a6466204dec284a1f2918960c24",
+      "en": "e1eebe3739b7d7bed62735783fec3efd1b8be82308aece3d2f4eb07275fbee1f"
+    },
+    "/decision-note-maintain-only-current-formats-before-the-first-release/impact-and-verification": {
+      "zh": "edf0b6ede1c73b8a0bf51f398dac6824e6a8dca948098c25e5b0c589cf8e05f1",
+      "en": "c902fe8400cc4b2d5ed1aa2fbd5ec53c28b13b074e74fc2fe39627d87fd10004"
+    }
+  }
+}

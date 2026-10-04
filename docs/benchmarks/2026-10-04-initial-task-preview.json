@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "date": "2026-10-04",
+  "platform": "macOS arm64",
+  "node": "v26.4.0",
+  "coreProfile": "release",
+  "coreSha256": "0eb198163c5df861abbb2d90969e9b41749a0249d001f0669261c7fda64821b7",
+  "fixture": {
+    "tasks": 3,
+    "measurementsPerTask": 30000,
+    "measurements": 90000,
+    "sourceBytes": 29127579,
+    "tokensPerMeasurement": {
+      "input": 100,
+      "cacheReadSubset": 20,
+      "output": 10,
+      "reasoningOutputSubset": 2,
+      "total": 110
+    },
+    "expectedTotal": 9900000,
+    "firstRecord": "session_meta",
+    "content": "Synthetic identities and measurements only; no conversations or tool output"
+  },
+  "conditions": {
+    "index": "new and empty for each run",
+    "filesystemCache": "warm after fixture generation",
+    "automaticPrices": false,
+    "concurrentProductTests": true,
+    "timing": "UI navigation-to-visible results; includes polling and queries, not isolated parser throughput",
+    "memory": "Rust process RSS sampled every 100 ms, not OS maximum RSS; excludes Node and browser",
+    "disk": "file lengths after stopping the dedicated host/core; not peak storage"
+  },
+  "runs": [
+    {
+      "language": "en",
+      "width": 1280,
+      "previewMs": 541,
+      "completeTaskMs": 4781,
+      "taskRetained": true,
+      "noHorizontalOverflow": true,
+      "measurements": 90000,
+      "total": 9900000,
+      "quality": "complete",
+      "initialScan": false,
+      "sampledPeakRssKiB": 401616,
+      "disk": {
+        "index.sqlite": 183533568,
+        "index.sqlite-wal": 183868080,
+        "index.sqlite-shm": 98304
+      }
+    },
+    {
+      "language": "zh",
+      "width": 390,
+      "timingOrigin": "after initial page header became visible",
+      "previewMs": 354,
+      "completeTaskMs": 4386,
+      "taskRetained": true,
+      "noHorizontalOverflow": true,
+      "measurements": 90000,
+      "total": 9900000,
+      "quality": "complete",
+      "initialScan": false,
+      "sampledPeakRssKiB": 438656,
+      "disk": {
+        "index.sqlite": 183648256,
+        "index.sqlite-wal": 183982936,
+        "index.sqlite-shm": 98304
+      },
+      "note": "Earlier copy displayed generic incomplete-source instructions; corrected and visually verified in the subsequent English run."
+    },
+    {
+      "language": "zh",
+      "width": 320,
+      "previewMs": 511,
+      "completeTaskMs": 4646,
+      "cancelledWaitingThenOpenedTask": true,
+      "taskRetained": true,
+      "noHorizontalOverflow": true,
+      "measurements": 90000,
+      "total": 9900000,
+      "quality": "complete",
+      "initialScan": false,
+      "sampledPeakRssKiB": 408640,
+      "concurrentProductTests": false,
+      "disk": {
+        "index.sqlite": 183599104,
+        "index.sqlite-wal": 183933712,
+        "index.sqlite-shm": 98304
+      },
+      "note": "Cancellation behavior verified; the provisional cancellation label was subsequently corrected and covered by component assertions."
+    }
+  ],
+  "limits": [
+    "Sampled RSS exceeds the 256 MiB target.",
+    "No speedup claim or controlled before/after benchmark.",
+    "No cold filesystem-cache, other-platform, million-record or long-running acceptance."
+  ]
+}

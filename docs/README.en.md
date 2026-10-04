@@ -22,7 +22,7 @@ Choose documentation by task. Source code, technical references, and implementat
 
 - [Architecture](development/architecture.en.md): modules, dependencies, data flow, storage, and failures.
 - [Multi-entry development workflow](development/workflow.en.md): delivering and verifying the same business capability.
-- [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and compatibility.
+- [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and formats.
 - [Source adapter acceptance](development/adapters.en.md): independent truth, attribution, and failure cases.
 - [Four-entry Web and configuration analysis proposal](decisions/proposed/architecture/2026-10-01-config-analysis-web.en.md): shared Rust contracts, configuration evidence, versions and phased acceptance; partly delivered with remaining stages pending acceptance.
 - [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
@@ -30,6 +30,7 @@ Choose documentation by task. Source code, technical references, and implementat
 ## Project status · project
 
 - [Version-one specification](project/specification.en.md) maintains requirements and acceptance criteria.
+- [Codex Skill product plan](project/codex-skill.en.md) defines task workflows, CLI capability mapping and local installation boundaries.
 - [Configuration measurement/manual review upgrade](project/config-upgrade.en.md) maintains additional requirements and boundaries.
 - [Startup and deterministic rule upgrade](project/startup-rules.en.md) maintains startup-state and static-rule specifications, phase A/B work, and conditional capabilities still awaiting implementation.
 - [Implementation status](project/status.en.md) tracks current delivery and remaining acceptance.

@@ -2,20 +2,28 @@
   "version": 2,
   "sections": {
     "/public-contracts": {
-      "zh": "cb48eb18bd2b30ffca61cdb7a4d30281e96097d3f5801fc9881abb92cf92705b",
-      "en": "ef304ad9f48762e8b87bfd39ca836f48a5788e58eb57d64780bbe83d2e3798bb"
+      "zh": "4e3369a68c97ceec8fa560e1b91d31e016e0909800558ffdc10f1dbd66cadb5f",
+      "en": "42eacf3888a50ae7d33e85f9c0c0143588921e74e519fc2af020e4f3f2b4a01e"
     },
     "/public-contracts/client-entries": {
-      "zh": "105a060dd1397a3b764ed50ee17d7c0cbb5097ff4c32d37bebbd2c471fd5cced",
-      "en": "53a24ad28332fe77b0e401e082f26685de2bdc305da990f401ab8c1a814e967f"
+      "zh": "43df27589e6cac42deff22d885581433bb66077922612dcb496abf56f4557b4f",
+      "en": "d0ef4dba22e780929a3e8a6026abfd1c58f2912a649e69fc0752dc52ea43e6ae"
     },
     "/public-contracts/read-only-configuration-contract-v1": {
-      "zh": "8437fd1984da209582ef8c4e8f7b22c62e7307a02096c4098364a151f1f166e7",
-      "en": "035dd90e10529284f3b47d1ac02dc67903f25aeecba8389a818a2ec3b9e1f340"
+      "zh": "003fcf5dfe8f914bcc67c1f2591e260cf6d74844378c8af50c2354b0a00c1465",
+      "en": "a654f66798b55f3ba73d27de3be7777209ee15fea963afcbd831673b60a37950"
     },
     "/public-contracts/optimize-and-preference-contracts-v1": {
-      "zh": "3061ce90f044886694188e697bba0795f4b57b5378a20ed9a6689b25302c3300",
-      "en": "bc8bf8d59aa872fcde8efcf26daf8ce1b1593a24c9aa4b87123f8c386b137d30"
+      "zh": "47694ac85e0fceb44cd41b104462c96d5b6eb5d4771ab0e65ab032388cfe045a",
+      "en": "f1c4dba7d9530ec93730b216b029f9556fe2169ef993220132c1093ab7652b74"
+    },
+    "/public-contracts/account-contract-v1": {
+      "zh": "390c4e1b573c6d836b89d887b8d1a9ad3fec8073bb3d93b858e38f5c9fd4a746",
+      "en": "fbe1c2c11a0a7c71d399d5ccfe31a72f69c21cb0a9786fb36bc0f1eb972b8d64"
+    },
+    "/public-contracts/handoff-allowance-assessment": {
+      "zh": "1c14fad80d3d9e6eda3e7c93daa8b152689b813f4d277491442e9bca76489314",
+      "en": "e12bdcb2d68d73a32d9f2aacd406df6199484b3bcf32aa00a39479e80ed5fff1"
     }
   }
 }

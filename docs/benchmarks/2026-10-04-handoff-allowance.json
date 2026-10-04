@@ -1,0 +1,280 @@
+{
+  "date": "2026-10-04",
+  "scope": "Fresh native model restriction and ordinary account allowance in CLI/Web handoff",
+  "platform": "macOS arm64",
+  "node": "v26.4.0",
+  "nativeSchemaVersion": "0.160.0",
+  "build": {
+    "sourceSha256": "0f939b61b2210dcfcfe78d4bcb5b9b9d4627291150e8662fafe089a0cd696546",
+    "coreSha256": "6a28c6dc78d6d2cdb157672427fab9a5c2ba43ec5851260c5a12689fcfbfa798",
+    "webFiles": [
+      {
+        "path": "web/assets/index-Df8QaxaM.js",
+        "size": 478685,
+        "sha256": "e6072c54a614f3a9acfc98591dbd6b711b5ae9908ae55682bb9f9d0200866be9",
+        "executable": false
+      },
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "size": 54912,
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-account-request-IeKMEFJl.js",
+        "size": 1004,
+        "sha256": "c6a0437fbf4dbee32896dfabb63aafbfa5ef9533cdb9186f1abb327a2a6fe524",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-account-response-59m3hEfa.js",
+        "size": 39828,
+        "sha256": "9719fb0a93bc898629b85630bff6d7f8bac30c94a133a66b7db5768fbe7ac467",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-config-request-C81V2j38.js",
+        "size": 13598,
+        "sha256": "5e5daac56ff0dac528e41337fd8575c8c7daeca040358eae8c31055b32e91f88",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-config-response-B-xh7JNv.js",
+        "size": 104016,
+        "sha256": "8e67a87c01cad34a7b98998eec7a7b58a55a68a7dd125d4b9f6d91eb591e662e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-directories-request-BM_zSf6D.js",
+        "size": 3571,
+        "sha256": "66004d72f0c02fa3525357d73de5a5848bc285ba0c3f9742ae81e6e92213346e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-directories-response-B73u2Pxz.js",
+        "size": 6151,
+        "sha256": "6d604cf75def926101dcb9550bf025343ac46b0ae6af87896b876af1eaa3a11b",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-handoff-request-sLZ012D6.js",
+        "size": 9014,
+        "sha256": "fd02418985f66f3cdabbaefe117b8ca03553f4ffa26a0ee6b5b8f824e1ba5003",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-handoff-response-BNFdB3mt.js",
+        "size": 39479,
+        "sha256": "bba75727255050cff796d3061911bd9fa8ce0ebafa5622c30252b9c8cc586288",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-live-request-_9TsPaOY.js",
+        "size": 16918,
+        "sha256": "966ed7243a2a6955051822716d52944046e1bbb49a359755d370e158f816347e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-live-response-B0trLq4D.js",
+        "size": 120302,
+        "sha256": "5b7e5989cc1a615d8957d08ade53817adee4ed67201396ae315dcf88e6ec78c8",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-optimize-request-B0x0bh9T.js",
+        "size": 13342,
+        "sha256": "14dde1aacd02d66e5b46ad5bab236433a0be11ba5fdcc6d3bd201a467fb6ed66",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-optimize-response-BXYFtbTg.js",
+        "size": 143805,
+        "sha256": "6ee0fd64f30033dcd2f85d3cb4273a9640d6eaa91dc1d13e82caea3a46d0c48e",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-preferences-request-CYJpvfFL.js",
+        "size": 2295,
+        "sha256": "6a08fdaccccfece60ab4aa456bd9fee7ea42668737001a7c6b95a527058be218",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-preferences-response-DWTm6JFN.js",
+        "size": 2855,
+        "sha256": "0ae5e2cf704b886fd99a599cdd1a489529ed0b1097239148be42050a71f03c5a",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-pricing-request-Dl_sv005.js",
+        "size": 1234,
+        "sha256": "253728e15ec1450031e0d3652881d695f18a450fe83d2dfe8566db335784754f",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-pricing-response-BD94msK-.js",
+        "size": 19742,
+        "sha256": "67e723b2f700721340caa511bde6d725239c1ff8cfa281b42aa7d7b036ba70ae",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-usage-app-HCp4V0DA.js",
+        "size": 116400,
+        "sha256": "73ce561cb0ff2c6428e587b5a95d77229b302c363ecfd32edcecc8086f8d5ceb",
+        "executable": false
+      },
+      {
+        "path": "web/assets/validate-usage-request-D_HPfdWa.js",
+        "size": 16118,
+        "sha256": "de93316cebd102e94c69b3509992945af4b2ecc79284ad57b4bd6912a4348bca",
+        "executable": false
+      },
+      {
+        "path": "web/index.html",
+        "size": 352,
+        "sha256": "bb5a272dfc29f2978d6c578c31de240922b4f932f9bd531e7dc5e20eb37a3f73",
+        "executable": false
+      },
+      {
+        "path": "web/wombat.png",
+        "size": 2321,
+        "sha256": "9766774aa14285b2b5a7aa362f572db991e1172ac6518d416476633894fdefbc",
+        "executable": false
+      },
+      {
+        "path": "wombat-web-cli-EHS277NO.js",
+        "size": 18237,
+        "sha256": "fdba51f4becbf011f3fa78e1f81a1abff3d63d2adeee0086e2aee3f816543a8a",
+        "executable": false
+      }
+    ]
+  },
+  "verification": {
+    "rustPassed": 130,
+    "rustIgnored": 1,
+    "client": 30,
+    "ui": 51,
+    "web": 7,
+    "cli": 16,
+    "integration": 16,
+    "e2e": 29,
+    "typecheck": true,
+    "clippy": true,
+    "contractsGenerated": true,
+    "browser": {
+      "report": [
+        {
+          "language": "zh",
+          "width": 320,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "blocked": true,
+          "lowAllowsReview": true,
+          "selectionRetained": true,
+          "noOverflow": true,
+          "focusRestored": true
+        }
+      ],
+      "expiryBecomesUnknown": true,
+      "noAutomaticSend": true,
+      "sendRecheckedActualNativeState": true,
+      "blockedQueueCount": 0,
+      "recoveryRequiresConfirmation": true,
+      "acceptedQueueCount": 1,
+      "foreignBucketDoesNotBlock": true
+    }
+  },
+  "semantics": {
+    "modelDisplayMetadataNeverBindsQuota": true,
+    "explicitIdentityBoundBlockedModel": true,
+    "knownNoticeTypes": [
+      "selected_model_limit",
+      "luna_reserve"
+    ],
+    "observationMaxSeconds": 60,
+    "expiryDoesNotProveRecovery": true,
+    "previewBudgetMilliseconds": 5000,
+    "previewMaximumProjects": 128,
+    "actualTaskModelRechecked": true,
+    "filesRevalidatedAfterNativeReads": true,
+    "noPersistentReceipts": true
+  },
+  "realNativeRead": {
+    "version": "0.160.0",
+    "account": "available",
+    "allowance": "available",
+    "activity": "available",
+    "windowCount": 1,
+    "bucketCount": 1,
+    "resetDetailsProvided": true,
+    "accountIdentityAndValuesNotPublished": true,
+    "modelExecution": false
+  },
+  "limitations": [
+    "Model restriction cases use a synthetic native protocol; actual exhausted and alternate-account backend conditions were not forced.",
+    "Only explicit supported blocked-model notices can disable sending. Display metadata, percentage, spend flags, missing facts and expired observations cannot establish model applicability.",
+    "Creating the actual task precedes the final allowance read and may leave an empty Codex task when queueing is prevented.",
+    "Real upstream observation preceded the final model-restriction normalization change; it verifies the native read route, not final restriction handling.",
+    "No other platform, full upgrade acceptance, clean package installation or new performance result is claimed."
+  ]
+}

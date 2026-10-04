@@ -1,0 +1,78 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Post-recheck natural associations without inferred adoption",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1"
+  },
+  "build": {
+    "sourceSha256": "8207347cc8f57a9d9290c334d21d6ef385d8829766436ee34743b5451f27f01a",
+    "coreSha256": "e168ff66b1dc059a00fde59f64692b4141a2e2b561a04a555a4c54ae5dc99140",
+    "webAssets": [
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "size": 54912,
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f",
+        "executable": false
+      },
+      {
+        "path": "web/assets/index-s0mXwJ1R.js",
+        "size": 490710,
+        "sha256": "dbbae88a32037c11c90a196e76dea168b8af4a002ff8ed2ff081e61a30daa85b",
+        "executable": false
+      }
+    ]
+  },
+  "fixtures": {
+    "syntheticOnly": true,
+    "rustTestsSha256": "d41c3f54977256f3b8b624e623b2b392896ae2f3d248572ac68a89db075992b5",
+    "cliApiTestSha256": "2648b37595df79e4ae4f700794f3b4bd35799b1297713216dc71b715cd8d8a05",
+    "componentTestsSha256": "748f1100de68940332e4a257498475452a27e8d1c039703c2581a21f21eedc61",
+    "regressionLogSha256": "da85ae3e60c4ee050a2eeab1bb4ccb3a3a6789173acf40f12cb7fe3df6095564",
+    "repoCheckLogSha256": "26fb3df9c938a1644b4b8f7349c6947c0d9d02a3e1effc8922ae58154658cd01"
+  },
+  "verification": {
+    "build": true,
+    "buildIdentity": true,
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "contracts": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "fullRegression": {
+      "passed": 344,
+      "rust": 173,
+      "client": 31,
+      "ui": 60,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 41,
+      "ignoredResourceTests": 1
+    },
+    "repoCheck": true,
+    "diffCheck": true,
+    "ownedFixtureServicesClosed": true,
+    "behavior": [
+      "No associated records observed after a verified file check produces no_observed_records with a null count and absenceObservable=false.",
+      "Explicit native file reads and MCP tool/resource associations can yield version_unknown; current native records cannot confirm adoption.",
+      "Associations bind record/suggestion, physical item, authorized project/source, reliable event time and pinned usage revision.",
+      "Events before/equal to the recheck, future/undated events and other projects/sources do not enter the observed count.",
+      "Native replay remains deduplicated; one post-recheck file request/output plus replay counts once.",
+      "Unsupported Hook runtime and unavailable/initial history remain unavailable.",
+      "Fixed earlier views remain unchanged; server restart preserves results and original handling time.",
+      "Derived observations do not modify user decisions, review revision/history count or persistent review layout.",
+      "CLI JSON/text and HTTP share generated Rust outcomes; bilingual component tests preserve unknown adoption, no savings and singular/plural counts.",
+      "Only the requested historical page builds counters; canonical operations are traversed once without storing a second body or ledger."
+    ]
+  },
+  "boundaries": [
+    "Confirmed content-version adoption and runtime problem recurrence remain unfinished; no inference from current file hashes or static success.",
+    "No complete absence coverage, continuous inactivity/resource/rapid-check rules or actual duplicate injection is established.",
+    "No browser/screenshot or performance run occurred in this increment.",
+    "No model, Hook, MCP service or source script was executed; no execution receipt or compatibility/migration logic was added.",
+    "This increment does not complete the full optimization lifecycle, platform/startup/fault acceptance or resource targets; product acceptance has not been requested."
+  ]
+}

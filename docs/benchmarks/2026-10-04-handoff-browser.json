@@ -1,0 +1,416 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Functional Codex handoff selection, keyboard, failure and unknown-delivery journeys; no performance testing",
+  "platform": "darwin-arm64",
+  "build": {
+    "sourceSha256": "9d04e1bf1c098887430d8fb0335cfcbb576fbbc07aa8870149ba157a30dde74f",
+    "coreSha256": "6c01177464636a48a8adf3fd43ba43be1fde28603ac726aaccedd0dbc64f9930"
+  },
+  "fixtures": {
+    "syntheticOnly": true,
+    "nativeProtocol": "0.160.0 supported methods emulated by fixture",
+    "helperSha256": "ff89a334f9db4b8799c44d418983453ccfaa1997cb64a20a1ae8f97b6f12e6f5",
+    "deliveryTestSha256": "fda51c8575164962df1c89f29250d6d446ac9b4690cdaeccc5cf7032f7938f8b",
+    "noCredentialsOrModelWork": true
+  },
+  "verification": {
+    "build": true,
+    "buildIdentity": true,
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "e2e": {
+      "passed": 35,
+      "failed": 0
+    },
+    "browser": {
+      "engine": "Isolated Chrome with actual Web host, Node transport, Rust service and synthetic Codex protocol",
+      "cases": 42,
+      "report": [
+        {
+          "language": "zh",
+          "width": 320,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "categoryAndPaginationIgnored": true,
+          "allScopedFiles": 41,
+          "backRetainsSelection": true,
+          "reopenResetsSelection": true,
+          "singleDoesNotReuseBatch": true,
+          "escapeFocusRestored": true,
+          "spaceTogglesSelection": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "queueBehavior": "rejected",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "queueBehavior": "mismatch",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "queueBehavior": "disconnect",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "queueBehavior": "accepted",
+          "outcomeCorrect": true,
+          "noAutomaticResend": true,
+          "manualReviewRequired": true
+        },
+        {
+          "language": "zh",
+          "globalProjects": 2,
+          "globalTargets": 81,
+          "sharedFileOnce": true
+        },
+        {
+          "language": "en",
+          "globalProjects": 2,
+          "globalTargets": 81,
+          "sharedFileOnce": true
+        }
+      ],
+      "keyboard": "Enter button activation, Space checkbox toggles, Escape close and trigger focus restoration"
+    },
+    "repositoryChecks": "repo:check passed: 55 bilingual pairs, public source scan, module and locale boundaries, 13 repository tests; final diff check passed"
+  },
+  "behaviors": [
+    "Filtered page shows 30 repair suggestions while batch includes all 41 pending files in project",
+    "Back retains subset; closing/reopening restores default current pending selection; single does not reuse prior batch",
+    "Global batch includes 81 targets across two projects and sends shared instruction file once",
+    "Rejected queue response is failed; mismatched acceptance and disconnection after queueing are unknown; accepted response is separate from solving the problem",
+    "One explicit send attempts one queue request; review-again does not automatically queue; pending checks and decision revision survive every result"
+  ],
+  "testRepairs": [
+    "Selected a current-page suggestion rather than assuming the trim suggestion is on the first repair-prioritized page",
+    "Mouse position became stale during asynchronous drawer layout; final button activation uses Enter with the required CDP character event"
+  ],
+  "boundaries": [
+    "Native execution here is a synthetic protocol fixture; earlier real native acceptance evidence remains separate",
+    "Browser covers stated interactions and widths, not operating-system installation, real account exhaustion or all five-page acceptance",
+    "Continuous/runtime rules and natural adoption remain incomplete",
+    "No performance tests or product execution receipt/deduplication subsystem added"
+  ]
+}

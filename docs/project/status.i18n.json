@@ -2,24 +2,36 @@
   "version": 2,
   "sections": {
     "/wombat-implementation-status": {
-      "zh": "60d44968b47839a53e818d691484f7c2c456c0985236bd7112db0809f3cac7f7",
-      "en": "db263c5a58639164e470db10a8ff7fe9cb32811aa36cbe5ebe5fa2688698d2f8"
+      "zh": "77e92a13295f2da98b2e337d1f153fa8012c5c65671bf58aea68f947c9c66e5f",
+      "en": "3bcae0828d761e797d457b75e0bf1ccc232f5c6c1e1ba5c5e664081b7a61d660"
+    },
+    "/wombat-implementation-status/five-surfaces-and-the-full-optimization-lifecycle-stage-acceptance-failed": {
+      "zh": "13fb879ab02318477a4e467584a295813c19ecf9a1ee299800bcedfcd2fe8d0c",
+      "en": "09a94240fcd9e69f74a42f8ce22da72f987836119de9bb6cf18b49d8a8f40945"
+    },
+    "/wombat-implementation-status/five-surfaces-and-the-full-optimization-lifecycle-stage-acceptance-failed/product-findings-register": {
+      "zh": "d183d790c364ca131d27466473ad33f883a48e0509a6b96578efc585ecaf7202",
+      "en": "2b81169493135500ee68e8c5aa2fad5067ee37a90cbf800f13176be18fd8eea1"
+    },
+    "/wombat-implementation-status/five-surfaces-and-the-full-optimization-lifecycle-stage-acceptance-failed/existing-requirement-gaps-register": {
+      "zh": "fe2926ef954b8b155da3424ee5b8437e45e8ecc7d0a917c31d1e824b0d2c0abe",
+      "en": "bd1d95837e3a6cf794de1baae6328cd68d9ddea82fada7131f2a09c1bfbc71b4"
     },
     "/wombat-implementation-status/delivered-baseline": {
-      "zh": "bdabec3f8a140d1bef7dc3bd9f9bde29fb0f82873f8be53b808ebc84050286eb",
-      "en": "9bc8a6c3a3a9aa0d3e71ba7a10d0258afd8356d5d9951e2807d591d4c76a2f8a"
+      "zh": "dc150061f746e35986753c7fa1430ea6402edf7be1457e5c17a755bb19d8e557",
+      "en": "37ba7724b47a9b1dd58928bc2a75d24b464c04e5f094e7425a4b9cc334be083d"
     },
     "/wombat-implementation-status/remaining-work-and-acceptance-responsibility": {
-      "zh": "88602d925b89787e89c59a641cf057cc62f4316bf01db95d200f60ad90115aee",
-      "en": "6b9e68da70a283d432275c5bf2959a957e883529c34d44fadddfbd4c8c8143f5"
+      "zh": "76b764cbab8ba7d241990010adec2f912d6585d30aaad66410f818226580ad26",
+      "en": "76d1466c75e75040b2a0f024d50145248e6130653eb5ea19c2a707ac795a28df"
     },
     "/wombat-implementation-status/first-web-delivery-2026-10-01": {
       "zh": "66e04aecf1e044ecb7c7340faa96b563a2c713e6d363fc7dd8231041a7727902",
       "en": "9471248fa9694c2c2dbd6b8b2dbfea22ba99408894ee1d685e8a03835acd45d3"
     },
     "/wombat-implementation-status/configuration-measurement-and-manual-reviews-2026-10-02": {
-      "zh": "294d0c87dea0bae8ac793c66e8016c0d9327a86b89eee5bc307e575bd8caec3d",
-      "en": "6619122204488a5205f194be40d81e56a6ef4c606a0097e0a4ec9b1482b475a8"
+      "zh": "4cf362851d10dadc1b9fa954284eb426b414eafd3ce51500f32440cb087cb389",
+      "en": "77677be842aa055bafadcbeb905fbea579b98808eca2dc5e3c73d6114cdac245"
     }
   }
 }

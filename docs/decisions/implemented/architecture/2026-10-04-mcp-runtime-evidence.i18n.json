@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-mcp-invocation-identity-resource-reads-and-fork-replay": {
+      "zh": "fa17dc33a5e23bbcfaa2d764b5aedea40a24b471603ade77e44aace3f8856fd5",
+      "en": "e5708c81a85c5d8060db97e25bfc1da6a077cd1ea901180ea4b470720a64bde2"
+    },
+    "/decision-mcp-invocation-identity-resource-reads-and-fork-replay/problem": {
+      "zh": "1a288f143e0dd6acab18e748f55330f44512db461c883d7ddddfe9eba3635d9b",
+      "en": "8f6e99c10a050665a8b2bbf945d8abe6aa38f7be5ccddcca5e3fe0387533d51c"
+    },
+    "/decision-mcp-invocation-identity-resource-reads-and-fork-replay/decision": {
+      "zh": "b40a27818c65fbd902158a9ba455620f3cf673bc3fe2295120902db0dc4936b0",
+      "en": "ddb28e719ae8a7b95846fb1e9dfc86a6376f138258df78eae31e24ce7639802f"
+    },
+    "/decision-mcp-invocation-identity-resource-reads-and-fork-replay/alternatives-considered": {
+      "zh": "5eefe0b50ecb9f6e7944af3e7120e2496f2d81ad930fc711671e981c20928bb9",
+      "en": "b677491ae3e8c72844386abd6e61255bfde196df33a7f5d08b4b6b46815923fc"
+    },
+    "/decision-mcp-invocation-identity-resource-reads-and-fork-replay/impact-and-validation": {
+      "zh": "faa71288f9e803f4d94fc69b9f80f7ac94a187c27a21d531be9c4a90f963bf79",
+      "en": "b52b573a9f79442b88a828976ed0fb8580d9d0bffdcf6c70dbce00df62153826"
+    }
+  }
+}

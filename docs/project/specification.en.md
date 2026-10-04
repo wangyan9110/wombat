@@ -16,9 +16,9 @@ Shared Rust queries present usage and tasks, aggregating complete ranges before 
 | Conversations | Cross-day/model lists, native titles, title/project search, consumption or recent-activity sorting |
 | Turns and records | In-place expansion, time/consumption sorting, accounting categories, safe operation metadata; no text replay |
 | Multiple entries | Rust operations reach Node CLI, JSON, and local Web through generated contracts; future hosts reuse the same narrow interface |
-| Platform and language | Node.js ≥26.4.0, first accepted on macOS arm64; Chinese/English follow the [language contract](../i18n/product.en.md); other platforms need separate installation acceptance |
+| Platform and language | npm runtime Node.js ≥22, source tools ≥26.4.0, first accepted on macOS arm64; Chinese/English follow the [language contract](../i18n/product.en.md); other platforms need separate installation acceptance |
 
-No quota, checkup, automatic configuration writes/repair, evidence-package export, threshold notifications, comparison, parent/child task analysis or HTML reports. Read-only configuration, static reminders and manual reviews follow the upgrade specification; desktop hosting remains future work. Inheritance/fork facts serve only necessary attribution and deduplication. See the [support matrix](../reference/support-matrix.en.md) for complete current boundaries.
+Accounts and Codex handoff follow the [lifecycle upgrade](optimization-lifecycle.en.md). The base usage entry provides no checkup, automatic configuration writes/repair, evidence-package export, threshold notifications, comparison, parent/child task analysis or HTML reports. Read-only configuration, static reminders and manual reviews follow the upgrade specification; desktop hosting remains future work. Inheritance/fork facts serve only necessary attribution and deduplication. See the [support matrix](../reference/support-matrix.en.md) for complete current boundaries.
 
 ## User journeys
 
@@ -48,7 +48,7 @@ Adapters own formats; the public model depends on neither JSONL nor Codex privat
 
 Collection scope and display scope are separate. Process complete valid large lines; wait on incomplete tails. Truncation, replacement, failures, and resource limits produce receipts. Fix each file's observed boundary per read without claiming atomic source consistency across files. Do not persist messages, model text, full command arguments, or tool output by default; source data cannot trigger commands.
 
-Explicit v3 snapshots use immutable generations, manifests, partitions, and checksums. Failure/cancellation never publishes partial snapshots. Narrow read-only v1/v2 compatibility retains original identity, cost policy, and missing semantics without deleting original files or recovery materials. Later live indexes and the on-demand service are partially delivered; the [live architecture proposal](../decisions/proposed/architecture/2026-09-30-live-usage.en.md) still owns the full target without changing explicit snapshot responsibilities.
+Explicit v3 snapshots use immutable generations, manifests, partitions, and checksums. Failure/cancellation never publishes partial snapshots. Only current formats are read; unknown versions are rejected while original files and user records remain intact, without compatibility or migration. Later live indexes and the on-demand service are partially delivered; the [live architecture proposal](../decisions/proposed/architecture/2026-09-30-live-usage.en.md) still owns the full target without changing explicit snapshot responsibilities.
 
 Snapshot list/expansion p95 ≤300ms and cold query ≤1s are original targets, not measurements. Reports must state fixed fixtures, release build, cache state, process startup, I/O, serialization, rendering, and peak memory. Diagnose reading/projection bottlenecks before choosing indexes; local parsing speedups do not establish complete-chain improvement.
 

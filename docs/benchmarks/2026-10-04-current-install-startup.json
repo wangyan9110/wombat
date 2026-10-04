@@ -1,0 +1,99 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Current local npm installation and independent static checks during index initialization faults",
+  "platform": "darwin-arm64",
+  "build": {
+    "sourceSha256": "cdbc3f0f108ecc8302c4b1b8f272d94325b4a2d9ea349e6dcdcb3f0e7d82b4f3",
+    "coreSha256": "765c2355fd3a21f548cb83dbb2ebce2a02b733ec5eccf22f27a1f0185cc403f6",
+    "reusedMatchingBuild": true,
+    "dirtyWorktree": true
+  },
+  "candidate": {
+    "name": "@wangyan9110/wombat",
+    "version": "0.3.0",
+    "sourceCommit": "895bb2d739959ae409fd4a71cc3f0f22333f5b6b",
+    "candidateOnly": true,
+    "targets": [
+      "darwin-arm64"
+    ],
+    "archives": [
+      {
+        "target": "darwin-arm64",
+        "archive": "wangyan9110-wombat-0.3.0-darwin-arm64.tgz",
+        "version": "0.3.0-darwin-arm64",
+        "sha256": "a4cfc2c9e8398edeb1ce7c0283f05518ffb3146d966aa0652473e599059a5947",
+        "size": 6368866
+      },
+      {
+        "target": "main",
+        "archive": "wangyan9110-wombat-0.3.0.tgz",
+        "version": "0.3.0",
+        "sha256": "0e0062e2141c63280c01b3a49d71e77e24be413dc159fb4ccd673328ca98101a",
+        "size": 933812
+      }
+    ]
+  },
+  "installations": [
+    {
+      "runtime": "v26.4.0",
+      "downloaded": [
+        "wangyan9110-wombat-0.3.0-darwin-arm64.tgz",
+        "wangyan9110-wombat-0.3.0.tgz"
+      ],
+      "globalCommand": true,
+      "missingOptional": true,
+      "emptyAppPath": true,
+      "live": true,
+      "append": true,
+      "fixedSnapshot": true,
+      "web": true,
+      "logSha256": "73df8063202d94305abec605586ee5f633fa255262507ad417a08f2c5ccea33e"
+    },
+    {
+      "runtime": "v22.0.0",
+      "downloaded": [
+        "wangyan9110-wombat-0.3.0-darwin-arm64.tgz",
+        "wangyan9110-wombat-0.3.0.tgz"
+      ],
+      "globalCommand": true,
+      "missingOptional": true,
+      "emptyAppPath": true,
+      "live": true,
+      "append": true,
+      "fixedSnapshot": true,
+      "web": true,
+      "logSha256": "daeb943cc969b1c653612cda3b1614ecd6d7fd119e746aa97836bf4d25d207f9"
+    }
+  ],
+  "verification": {
+    "buildIdentity": true,
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "licenses": true,
+    "publicPackage": true,
+    "repoCheck": true,
+    "diffCheck": true,
+    "startupFault": {
+      "passed": 1,
+      "testSha256": "ebe386667688e7d10ac0079ba34eb7af007f393835dbee9b19ba6feb15f9b06a",
+      "logSha256": "e05a7b7d65df2649d074b8ce99175e9b0ebde6a3d8bf65e9c7cb9201f3d2f8e0",
+      "behavior": [
+        "Unsupported index rejects initialization and retains its original records and version.",
+        "HTTP static measurements and size rule checks remain available without usage history.",
+        "Static recheck enters handling history; follow-up remains unavailable rather than zero/adopted.",
+        "CLI and HTTP return the same handling result; user decisions remain unchanged.",
+        "An explicit synthetic fixture reset allows current-index recovery in the same service."
+      ]
+    },
+    "temporaryServicesAndInstallationsCleaned": true,
+    "repoCheckLogSha256": "4c869f3bd10445d9f75081d4bae0edc050200d22a67b8edaa851854cc6c5e878"
+  },
+  "boundaries": [
+    "No publication, remote registry availability, universal candidate or other-platform installation claim.",
+    "Node/npm remain required; application execution does not require Rust, pnpm or compilers.",
+    "No browser, screenshots, performance run or model execution.",
+    "Full release gates were not repeated; this is focused local candidate verification.",
+    "Actual disk exhaustion, permission faults, complete startup/fault journeys and the full optimization lifecycle remain unfinished; no product acceptance request."
+  ]
+}

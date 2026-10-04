@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-separate-skill-availability-from-approximate-adoption-observations": {
+      "zh": "9082606ddb66dea62f3f3e0327e7ca9fb3fa8b1861b7d87f92763840e109b2bb",
+      "en": "f2fcdf0fcc6c786b79b1efea17e4f3ddef939ef9814de57d5b567dd39bae9007"
+    },
+    "/decision-note-separate-skill-availability-from-approximate-adoption-observations/problem": {
+      "zh": "493ba26e322b6e02e18290ea64dbf3297179b86bc28e777671029f7ac1c4f094",
+      "en": "3e7246b6df5fdb1410ce5fbd3412bec1aed79179266b924bd4a036ade3abaa4a"
+    },
+    "/decision-note-separate-skill-availability-from-approximate-adoption-observations/decision": {
+      "zh": "9f9689de3add6e2e6292beb9061b4803055940d481d81bd1fe1756f858c80d5b",
+      "en": "ca8fedcba38b2c1ae500f535e27d45b7875adc6784b9c5b9081c52041e63f4e0"
+    },
+    "/decision-note-separate-skill-availability-from-approximate-adoption-observations/alternatives-considered": {
+      "zh": "0611aa241527fe206ee914e0a34c2b8d5c4f8e17a1d5d46cd6bc82c311f4baa0",
+      "en": "73b5eeb2241fa9e6a4d7bf718711a5077a858e563a22e697112b9688d3ab09a2"
+    },
+    "/decision-note-separate-skill-availability-from-approximate-adoption-observations/consequences-and-verification": {
+      "zh": "a2a1638d8ac478c7f31e1993f1ab0729ec6cc75c1df34263fdcede41d2901e2c",
+      "en": "bbe882249303c83ad372129e0507a5a71dd9a2fb53f94a7df498ca2ef0bc7304"
+    }
+  }
+}

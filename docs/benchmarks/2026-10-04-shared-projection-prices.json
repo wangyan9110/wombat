@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "date": "2026-10-04",
+  "purpose": "Equal projection payload references and bounded exact-input price sharing",
+  "runs": {
+    "identicalBefore": {
+      "platform": "Darwin arm64",
+      "coreSha256": "0eb198163c5df861abbb2d90969e9b41749a0249d001f0669261c7fda64821b7",
+      "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+      "measurements": 100000,
+      "operations": 100000,
+      "threads": 500,
+      "appends": 4,
+      "coldSyncAndCliMs": 5578.23,
+      "warmCliMs": [
+        160.19,
+        102.44,
+        100.26,
+        101.34,
+        97.01
+      ],
+      "threadsCliMs": 388.96,
+      "appendSyncAndCliMs": [
+        554.08,
+        526.54,
+        531.45,
+        539.56
+      ],
+      "peakRssBytes": 525008896,
+      "rssKiBAtEnd": 512688,
+      "indexBytes": 368377856,
+      "liveIndexDbBytes": 359792640,
+      "liveIndexWalBytes": 8388608,
+      "dataBytesAfterIdleExit": 359792640,
+      "idleCpuPercentOver5s": 0.999,
+      "idleExitMs": 14811.49,
+      "appendRssKiB": [
+        494464,
+        501168,
+        505840,
+        512576
+      ],
+      "correctness": "Each synthetic measurement contributes exactly 110 tokens and 0.000265 USD; usage and threads agree, and appended amounts remain exact.",
+      "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+    },
+    "identicalAfter": {
+      "platform": "Darwin arm64",
+      "coreSha256": "929baceca1062038b10236c69a3cf16e2c0d563fb66ed2bddea28658c244c13f",
+      "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+      "measurements": 100000,
+      "operations": 100000,
+      "threads": 500,
+      "appends": 4,
+      "priceGroups": 1,
+      "coldSyncAndCliMs": 5618.18,
+      "warmCliMs": [
+        73.53,
+        96.97,
+        69.84,
+        98.58,
+        102.12
+      ],
+      "threadsCliMs": 318.18,
+      "appendSyncAndCliMs": [
+        474.2,
+        432.79,
+        447.96,
+        433.68
+      ],
+      "peakRssBytes": 365232128,
+      "rssKiBAtEnd": 356672,
+      "indexBytes": 221708288,
+      "liveIndexDbBytes": 213188608,
+      "liveIndexWalBytes": 8388608,
+      "dataBytesAfterIdleExit": 213188608,
+      "idleCpuPercentOver5s": 0.799,
+      "idleExitMs": 14809.3,
+      "appendRssKiB": [
+        341904,
+        345264,
+        349872,
+        356592
+      ],
+      "correctness": "Initial truth: 11000000 tokens and 26.500000 USD across 1 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+      "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+    },
+    "distinctBefore": {
+      "platform": "Darwin arm64",
+      "coreSha256": "0eb198163c5df861abbb2d90969e9b41749a0249d001f0669261c7fda64821b7",
+      "corpusSha256": "591d1bb9c71c14816d5e8038f45f565265649c870087aa07ee264a6e335bc35c",
+      "measurements": 100000,
+      "operations": 100000,
+      "threads": 500,
+      "appends": 4,
+      "priceGroups": 100000,
+      "coldSyncAndCliMs": 4177.34,
+      "warmCliMs": [
+        104.79,
+        103.2,
+        70.2,
+        69.48,
+        69.92
+      ],
+      "threadsCliMs": 362.97,
+      "appendSyncAndCliMs": [
+        617.76,
+        578.61,
+        570.57,
+        564.19
+      ],
+      "peakRssBytes": 526090240,
+      "rssKiBAtEnd": 513696,
+      "indexBytes": 367886336,
+      "liveIndexDbBytes": 359301120,
+      "liveIndexWalBytes": 8388608,
+      "dataBytesAfterIdleExit": 359301120,
+      "idleCpuPercentOver5s": 0.599,
+      "idleExitMs": 14808.98,
+      "appendRssKiB": [
+        496368,
+        502160,
+        506848,
+        513632
+      ],
+      "correctness": "Initial truth: 10010900000 tokens and 25026.250000 USD across 100000 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+      "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+    },
+    "distinctAfter": {
+      "platform": "Darwin arm64",
+      "coreSha256": "929baceca1062038b10236c69a3cf16e2c0d563fb66ed2bddea28658c244c13f",
+      "corpusSha256": "591d1bb9c71c14816d5e8038f45f565265649c870087aa07ee264a6e335bc35c",
+      "measurements": 100000,
+      "operations": 100000,
+      "threads": 500,
+      "appends": 4,
+      "priceGroups": 100000,
+      "coldSyncAndCliMs": 5666.31,
+      "warmCliMs": [
+        84.28,
+        68.98,
+        70.02,
+        70.14,
+        70.01
+      ],
+      "threadsCliMs": 347.8,
+      "appendSyncAndCliMs": [
+        555.1,
+        486.26,
+        484.42,
+        521.54
+      ],
+      "peakRssBytes": 527171584,
+      "rssKiBAtEnd": 514736,
+      "indexBytes": 221331456,
+      "liveIndexDbBytes": 212811776,
+      "liveIndexWalBytes": 8388608,
+      "dataBytesAfterIdleExit": 212811776,
+      "idleCpuPercentOver5s": 0.798,
+      "idleExitMs": 14824.62,
+      "appendRssKiB": [
+        500032,
+        503376,
+        508000,
+        514736
+      ],
+      "correctness": "Initial truth: 10010900000 tokens and 25026.250000 USD across 100000 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+      "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+    }
+  },
+  "comparisonLimits": [
+    "One run per condition; timings have uncontrolled filesystem-cache and system-load variation.",
+    "Same corpus hash within each before/after pair; separate new indexes and temporary source roots.",
+    "Price sharing helps repeated inputs; distinct inputs remain individually priced.",
+    "Both final scenarios still exceed the 256 MiB peak-memory target.",
+    "No million-record, 24-hour, other-platform, or installed-package resource acceptance."
+  ]
+}

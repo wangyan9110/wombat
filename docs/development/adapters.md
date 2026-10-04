@@ -2,7 +2,7 @@
 
 中文 | [English](adapters.en.md)
 
-Wombat 的独立合成样本使用协议字段与手算期望，不安装或运行 ccusage，不包含真实对话和工具输出。来源实现版本为 `codex-rollout-1`。测试代码见 [Codex 样本](../../core/src/adapters/codex/tests.rs)、[异构协议样本](../../core/src/adapters/mod.rs)、[计价样本](../../core/src/pricing/tests.rs)和[完整查询链路](../../tests/integration/usage-v1.test.ts)。
+Wombat 的独立合成样本使用协议字段与手算期望，不安装或运行 ccusage，不包含真实对话和工具输出。来源实现版本为 `codex-rollout-5`。测试代码见 [Codex 样本](../../core/src/adapters/codex/tests.rs)、[异构协议样本](../../core/src/adapters/mod.rs)、[计价样本](../../core/src/pricing/tests.rs)和[完整查询链路](../../tests/integration/usage-v1.test.ts)。
 
 | 案例 | 已覆盖行为与测试定位 |
 |---|---|
@@ -19,16 +19,22 @@ Wombat 的独立合成样本使用协议字段与手算期望，不安装或运�
 | A10 费用政策 | 计价 `legacy_amount_never_becomes_official_or_mixes_policies`、`persisted_price_replays_without_catalog_recalculation`：旧金额和标准 API 折算不混加，旧快照不随价表重算；精度样本验证十进制与科学计数法。 |
 | A11 读取与隐私 | `large_line_is_fully_skipped_without_losing_next_event_and_tail_is_reported`：完整大行不截断，未完成尾行公开；`source_failure_isolated_and_cancellation_reported`、`explicit_missing_root_has_failure_receipt_and_resource_caps_are_public`：失败隔离、取消与上限回执；工具样本验证正文、参数和结果正文不进入快照。 |
 | A12 关联与守恒 | `tools_merge_by_call_identity_and_never_store_arguments_or_outputs`：call/item 身份合并，MCP 和明确 Skill 文件读取保留安全元数据；集成“用量 → 跨日对话 → 轮次 → 操作”验证同一计量并集的 Token / 金额与占比。 |
+| A13 MCP运行 | 原生完成/持久项结果、工具与资源分项、轮次身份、失败重试、分叉重放、冲突及正文排除；[样本](../../core/src/adapters/codex/tests/mcp.rs)与[CLI/Web追加和重启](../../tests/e2e/mcp-evidence.test.ts)。 |
+| A14 分叉索引与异常关系 | [独立样本](../../core/src/adapters/codex/tests/fork_graph.rs)将随机稀疏/循环分叉与独立祖先遍历对照，验证十万层链无递归、独立调用保留，循环及其后代保留计量并公开缺口；[完整刷新基准](../../scripts/benchmark-forks.ts)校验结果、峰值内存和落盘字节。 |
+| A15 工具结果状态 | [样本](../../core/src/adapters/codex/tests/operations.rs)验证未知返回结束运行状态、已知结果保留、乱序/重放/分叉和追加重启一致，旧查询不被修改，正文仍不落盘。 |
+| A16 AGENTS.md加载证据 | Codex原生`agents_md.instructions`元数据建立项目指令加载事实，绑定任务、轮次、时间和准确路径；普通用户文本不能伪造加载，注入正文不进入派生索引。Rust、CLI/Web合成链路及本机真实历史验证当前项目根规则为已加载。 |
+| A17 Skill可用与观察采用 | Codex原生`host_skills.instructions`解析根别名、名称和准确`SKILL.md`路径，绑定来源、项目、任务、轮次及目录摘要；普通用户文本不能伪造可用目录。正向采用声明仅匹配原生目录名称，定向读取仅接受结构化路径或`exec`包装中的有界字面读取命令；同一Skill同一轮去重，不保存目录简介、助手正文或命令。 |
 
-另有 `existing_identity_registry_migrates_without_writing_or_reusing_replaced_prefix`：只读旧 `identity-v1.json`；来源沿用已登记实例身份，文件前缀哈希仍匹配时沿用已建立的对话身份。改写前缀不错误复用旧文件世代。异构适配器仅用于测试，验证仅有日用量、无对话/轮次、未知供应商的来源无需制造空壳对话。
+异构适配器仅用于测试，验证仅有日用量、无对话/轮次、未知供应商的来源无需制造空壳对话。
 
 ## 当前支持边界
 
 - 首版解析 rollout 的 `session_meta`、`turn_context`、历史 `thread_settings_applied`、现代 `token_usage_record`、旧 `token_count`、轮次生命周期、工具调用/返回、受支持的 `item_started/item_completed` 和压缩计量副本。不是对所有 Codex 历史版本及任意新事件的兼容承诺。
 - 同轮现代记录缺累计覆盖信息时，选择逐响应账本，并报告旧累计覆盖无法核对；累计区间与直接记录仅部分重叠时，不叠加有重叠的整条旧累计，来源标为 partial。未覆盖部分的真实费用不能从这类记录可靠还原。
-- 旧 fork 只有明确关系和完全相同事件才能判定重放；没有身份依据的相似内容不能用 Token 或时间近似去重。工具记录没有独占计量时不分摊费用。
-- 只保存事件类型、工具名、明确路径、MCP server/tool、退出码、耗时、状态、身份与出处；不回放对话正文，不解析任意 shell 文本来推断 Skill。只有明确文件参数指向 `SKILL.md` 才标记为技能文件读取。
-- 大日志行通过复用缓冲区和临时映射完整读取，消息/输出正文由选择性反序列化跳过；计量、对话及操作元数据仍会在来源整理期间驻留内存。目录深度、文件数量、读取字节及标题索引上限会有回执，不能将其宣传为无界或常量内存扫描。
+- 旧累计计量的 fork 只有明确关系和完全相同事件才能判定重放；原生操作重放按明确祖先及上游轮次/调用身份归并，见[决定](../decisions/implemented/architecture/2026-10-04-mcp-runtime-evidence.md)。没有身份依据的相似内容不能用 Token 或时间近似去重。工具记录没有独占计量时不分摊费用。
+- 只保存事件类型、工具名、明确路径、MCP server/tool、退出码、耗时、状态、身份与出处；不回放对话正文。Skill观察采用只接受匹配原生目录名称的正向助手声明、结构化文件路径，或`exec`包装中`cat/sed/head/tail/bat`的有界字面读取命令，不执行或解释任意shell。AGENTS.md加载只接受Codex原生内容类型元数据，不从用户消息文本猜测。
+- 大日志行通过复用缓冲区完整读取；绝大多数消息/输出正文由选择性反序列化跳过，带原生AGENTS.md标记的单个内容项仅在解析标题路径时临时解码并立即丢弃。计量、对话及操作元数据仍会在来源整理期间驻留内存。目录深度、文件数量、读取字节及标题索引上限会有回执，不能将其宣传为无界或常量内存扫描。
+- 工具返回没有可靠成功或失败字段时显示未知，不沿用开始事件的运行中状态；已知失败、取消或成功不被未知返回覆盖，重放开始不重新开启操作。
 - 原生标题来自同来源 `session_index.jsonl`。标题缺失保持缺失，不用用户提问生成标题；多次设置、失败和缺失字段按来源证据处理。
 
 运行方式：`cargo test --locked --manifest-path core/Cargo.toml adapters`、`cargo test --locked --manifest-path core/Cargo.toml pricing`；完整 CLI 链路先执行 `corepack pnpm build`，再运行相应集成测试。验证结果和未完成的验收条件记录在[进度记录](../project/progress.md)，本页不以测试名称代替测试通过证据。

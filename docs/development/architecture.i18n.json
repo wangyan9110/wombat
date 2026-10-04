@@ -2,32 +2,32 @@
   "version": 2,
   "sections": {
     "/wombat-architecture": {
-      "zh": "17277a42a26ec5fe23d00893d2c4bf3739f4bbeda4eaa51c4695ba04d9d8f24b",
-      "en": "f8b8e243bd1e88795dc69b451b4dfc8cdb60e574b978a711c72e8b99c6fdee1d"
+      "zh": "ea176d7aa559058c3ea2a3d90dde0d22985f912dfaf02ac95d0c0cd291bb3c76",
+      "en": "cdcb9521b4706d6805838a9243ba2b9d44ea3745984bb23136da610dd3e24bc0"
     },
     "/wombat-architecture/data-flow": {
       "zh": "f3d50ef603c7d029feccd2525ac4d8d4adc4d5dbb77d2da5afef5fec06405d8b",
       "en": "28a598b035fcef6728d9b87dab8fe37d1d5bb1264f7b5ece72420c53628ed6fa"
     },
-    "/wombat-architecture/independent-modules": {
-      "zh": "00981a7b8b9d357209efb5eef5fc1726893231d334d406addbec047c6e124389",
-      "en": "6c1036aa5f6d87fccaa0fec1937215908df9a6440622024dfc38b8d8757c542d"
+    "/wombat-architecture/modules": {
+      "zh": "9a86297bcd6036e47cdfa17649762c462ce2557c2284d2958a9c1aa0e518de87",
+      "en": "0ffceb8e2d7888de92c230debafabf18ae1fe1e49b86ec15a7219e876c8c2118"
     },
     "/wombat-architecture/web-host-and-lifecycle": {
-      "zh": "8b22b7c8bbc033066d62fb393432c1f978cd701099eda57d814a82c1f43f7c8e",
-      "en": "1113bfceb3ba761bb0cf99c5760d38c5b2bbb32e927dfbe322165b2357da6bd3"
+      "zh": "6d0f1a7e26dad4b9f7a2da66760dcf0f71faecd170b0cb3acf393efc2c66b8a4",
+      "en": "1257a56af8210702b70f9801e4b4246cadfdc446e8b6c9961cc4c8747315a14d"
     },
     "/wombat-architecture/identity-and-accounting": {
       "zh": "71a9b862fd1de889f01a1f64e94e3cee976457c1eba133f36d1235045e648919",
       "en": "6b699ea16cbb27828792b4c99a32598910d3f9b430c3063f1ed919c3efe01ae5"
     },
     "/wombat-architecture/storage-and-failures": {
-      "zh": "d2d2516dbd6f283cdc22f9e87cf0d5630c19d658f009f038565fa3dbac33aa42",
-      "en": "f03393fed0a609fad93e5ca7999f73509affc2d1b3d00e0477e5a1e34331eb43"
+      "zh": "41d04ce99cd1411c834809a17500bddccbc1ea92312924c1dd3afb8376282da3",
+      "en": "3a5ad402843055520e623ff19d519f6b21740fc07a5f5ea2d0a668c676fd2602"
     },
     "/wombat-architecture/build-and-verification": {
-      "zh": "e3f313cbce625fc9617db50ee161a90a872d747530f1c7e3a58c0a54bbf01a4e",
-      "en": "fa0ad97bcd51343e31e3421abc0c5a371b080191278f6bf5a8f24c5931d82c1f"
+      "zh": "599b9d38e5562aa24a1b77d59b54669bf38e84f4a6323d5a08b52661e021a76c",
+      "en": "65a9efbba2d4cb97400416878464406987744df09905a4b88d9689701f585abf"
     }
   }
 }

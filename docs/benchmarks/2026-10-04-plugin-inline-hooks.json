@@ -1,0 +1,384 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Codex 0.160.0 inline plugin Hook declarations and ephemeral native-expanded static script paths",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1",
+    "codex": "0.160.0"
+  },
+  "build": {
+    "sourceSha256": "22323c7821381e3297a9aed0f897eff3afaeb4f63012f25af1d9cc34d9686551",
+    "coreSha256": "e87876cd72683abcf91f303461509647193a5eac5fc89b0400a7b87054c2be74",
+    "webAssets": [
+      {
+        "path": "web/assets/index-Bm1qCu6l.js",
+        "sha256": "b0d1caee179f4c1bc489a22e233024837abd5ef96315d1a30541c54988183ee8"
+      },
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f"
+      },
+      {
+        "path": "web/assets/validate-account-request-IeKMEFJl.js",
+        "sha256": "c6a0437fbf4dbee32896dfabb63aafbfa5ef9533cdb9186f1abb327a2a6fe524"
+      },
+      {
+        "path": "web/assets/validate-account-response-59m3hEfa.js",
+        "sha256": "9719fb0a93bc898629b85630bff6d7f8bac30c94a133a66b7db5768fbe7ac467"
+      },
+      {
+        "path": "web/assets/validate-config-request-C81V2j38.js",
+        "sha256": "5e5daac56ff0dac528e41337fd8575c8c7daeca040358eae8c31055b32e91f88"
+      },
+      {
+        "path": "web/assets/validate-config-response-NY-cgbO4.js",
+        "sha256": "68bcc0ce4730f423f1094614fb6404503228ef150795943f46536d4c2c98e4ed"
+      },
+      {
+        "path": "web/assets/validate-directories-request-BM_zSf6D.js",
+        "sha256": "66004d72f0c02fa3525357d73de5a5848bc285ba0c3f9742ae81e6e92213346e"
+      },
+      {
+        "path": "web/assets/validate-directories-response-B73u2Pxz.js",
+        "sha256": "6d604cf75def926101dcb9550bf025343ac46b0ae6af87896b876af1eaa3a11b"
+      },
+      {
+        "path": "web/assets/validate-handoff-request-sLZ012D6.js",
+        "sha256": "fd02418985f66f3cdabbaefe117b8ca03553f4ffa26a0ee6b5b8f824e1ba5003"
+      },
+      {
+        "path": "web/assets/validate-handoff-response-CjTQKu1A.js",
+        "sha256": "9caec65617b16443fd04ef0f3bd17ae41de01d27a463e238886d9286d3fc0e9a"
+      },
+      {
+        "path": "web/assets/validate-live-request-_9TsPaOY.js",
+        "sha256": "966ed7243a2a6955051822716d52944046e1bbb49a359755d370e158f816347e"
+      },
+      {
+        "path": "web/assets/validate-live-response-B0trLq4D.js",
+        "sha256": "5b7e5989cc1a615d8957d08ade53817adee4ed67201396ae315dcf88e6ec78c8"
+      },
+      {
+        "path": "web/assets/validate-optimize-request-B0x0bh9T.js",
+        "sha256": "14dde1aacd02d66e5b46ad5bab236433a0be11ba5fdcc6d3bd201a467fb6ed66"
+      },
+      {
+        "path": "web/assets/validate-optimize-response-D7pbWiFt.js",
+        "sha256": "f35682c58129f860cdc906b276ef723bb8dde54988afb631ffbc006f8083c38c"
+      },
+      {
+        "path": "web/assets/validate-preferences-request-CYJpvfFL.js",
+        "sha256": "6a08fdaccccfece60ab4aa456bd9fee7ea42668737001a7c6b95a527058be218"
+      },
+      {
+        "path": "web/assets/validate-preferences-response-DWTm6JFN.js",
+        "sha256": "0ae5e2cf704b886fd99a599cdd1a489529ed0b1097239148be42050a71f03c5a"
+      },
+      {
+        "path": "web/assets/validate-pricing-request-Dl_sv005.js",
+        "sha256": "253728e15ec1450031e0d3652881d695f18a450fe83d2dfe8566db335784754f"
+      },
+      {
+        "path": "web/assets/validate-pricing-response-BD94msK-.js",
+        "sha256": "67e723b2f700721340caa511bde6d725239c1ff8cfa281b42aa7d7b036ba70ae"
+      },
+      {
+        "path": "web/assets/validate-usage-app-HCp4V0DA.js",
+        "sha256": "73ce561cb0ff2c6428e587b5a95d77229b302c363ecfd32edcecc8086f8d5ceb"
+      },
+      {
+        "path": "web/assets/validate-usage-request-D_HPfdWa.js",
+        "sha256": "de93316cebd102e94c69b3509992945af4b2ecc79284ad57b4bd6912a4348bca"
+      }
+    ]
+  },
+  "fixtures": {
+    "syntheticOnly": true,
+    "testSha256": "300ce788c9ba69c2a6110ca700483f84fd9409cf37436266ae166f1047b9ab6b",
+    "inventoryTestSha256": "48e0274946cbcd6299d93aeced3162001a4538759ecda38286d996abc215be85",
+    "nativeCommandTestSha256": "daec12491be97aa47d113fe7b2e67cb28beebdb0e4ede5850c854fb913bc09b9",
+    "helperSha256": "d3d25cda62ee136e05136a4e74140dd0d475a74d6636ca976150344879761868",
+    "nativeProbeScriptSha256": "62ca19c771ad089b4864b8f1f420ea19a3c57ecec2a116e8bb1f7cdbf4917a13",
+    "browserScriptSha256": "0621fed03d09c92bed1c622ccc6bde0505fbb9c29fe647f67fdbbf21216e9ddf",
+    "finalRegressionLogSha256": "1b652b4a75d9529a8aa8e10743b3d6275f3aaac1082c99962406462c2feaed7c",
+    "finalRepoLogSha256": "d60ae013a1485e2076de69e004050d7e4ad48477d3d72e75a7bc0314266e74ef"
+  },
+  "verification": {
+    "build": true,
+    "buildIdentity": true,
+    "fullRegression": {
+      "passed": 336,
+      "rust": 169,
+      "client": 30,
+      "ui": 59,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 39,
+      "ignoredResourceTests": 1
+    },
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "contracts": true,
+    "repoCheck": true,
+    "diffCheck": true,
+    "ownedFixtureServicesClosed": true,
+    "behavior": [
+      "Native single-object and object-array inline keys bind exact JSON handler positions",
+      "Unlisted documents and handlers do not enter inventory; file hash and raw declaration bytes remain exact",
+      "One bounded inventory read per native-listed physical file, including shared project memberships",
+      "Native-expanded commands bind authorized project, plugin identity, current source file and exact registration version",
+      "Source declaration is reread and must still be a command before any expanded path can be checked",
+      "Missing native command, changed version/trust, duplicate identity and remaining dynamic syntax stay unknown",
+      "Static script targets use filesystem-order authorized path checks; no shell or Hook execution",
+      "Public inventory/registry and persistent safe caches exclude command text and private arguments",
+      "CLI JSON and HTTP share native registration evidence; handoff preview binds actual project targets",
+      "Keep decision survives successful and unavailable rechecks; changing native command responses invalidate capture"
+    ],
+    "native": {
+      "version": "0.160.0",
+      "rows": [
+        {
+          "form": "object",
+          "nativeKeys": [
+            "sample@test:plugin.json#hooks[0]:session_start:0:0"
+          ],
+          "pluginRootExpanded": true,
+          "pluginDataExpanded": null,
+          "exactProductBinding": true,
+          "trustedMissingDetected": true,
+          "referenceRecheckVerified": true,
+          "declarationBytes": 109
+        },
+        {
+          "form": "array",
+          "nativeKeys": [
+            "sample@test:plugin.json#hooks[0]:session_start:0:0",
+            "sample@test:plugin.json#hooks[1]:stop:0:0"
+          ],
+          "pluginRootExpanded": true,
+          "pluginDataExpanded": true,
+          "exactProductBinding": true,
+          "trustedMissingDetected": true,
+          "referenceRecheckVerified": true,
+          "declarationBytes": 109
+        }
+      ],
+      "noHookExecution": true,
+      "noThreadCreated": true
+    },
+    "browser": [
+      {
+        "language": "zh",
+        "width": 320,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "pluginIdentityVisible": true,
+        "projectStatesSeparate": true,
+        "runtimeUnknown": true,
+        "correctDeclarationBytes": true,
+        "inlineArrayDeclaration": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 320,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "selectedProjectOnly": true,
+        "disabledStateVisible": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 320,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "unavailableDoesNotMeanRemoved": true,
+        "lastSuccessfulDeclarationRetained": true,
+        "noOverflow": true
+      }
+    ],
+    "bilingualPairs": 55,
+    "repoTests": 13
+  },
+  "resourceDesign": {
+    "performanceTestsRun": false,
+    "inventoryReadPerFileMiB": 10,
+    "inventoryReadRoundMiB": 64,
+    "inventoryEntryLimit": 10000,
+    "targetReadPerFileMiB": 10,
+    "targetReadRoundMiB": 32,
+    "nativeCommandBytes": 16384,
+    "completeCaptureBytes": 786432,
+    "nativeRegistrationLimit": 512,
+    "nativeProjectLimit": 64,
+    "algorithm": "Borrow JSON declaration slices; index requested inline document positions once; group physical files and project memberships; build bounded registration maps; share sparse target checks by project and static path",
+    "note": "Hash capture, inventory and target rereads remain separate bounded phases. No new persisted commands, runtime evidence, migration, performance or disk-savings claim"
+  },
+  "verificationRepairs": [
+    "First full regression detected a stale build record after a Rust test edit; rebuilt and reran full regression with verified final identity"
+  ],
+  "limitations": [
+    "Windows/Linux and other native versions unverified",
+    "Remaining variables, dynamic shell syntax and unsupported invocation forms stay unknown",
+    "Registration and script existence do not prove Hook execution, injection or script validity",
+    "Browser cases use the inline array form; single-object behavior is covered by Rust, CLI/HTTP and real native tests",
+    "Runtime/continuous rules, natural adoption and full five-page acceptance remain pending",
+    "No performance benchmark, batch acceptance, publish, commit or push"
+  ]
+}

@@ -2,15 +2,15 @@
   "version": 2,
   "sections": {
     "/decision-note-immutable-snapshots-and-on-demand-detail-reads": {
-      "zh": "d9b001d1a29f87926f1beeb99daa59e214d3096088e87f5872bbf8285a9177d8",
-      "en": "35b42a71bd6ab052778112c180e908e21feef35c356843a2fc3972180e6161be"
+      "zh": "7f806e7c33d1755f4a10e99e5a63eaa7eb9189358922b34016ad394b7757fff2",
+      "en": "7666d09be2747101c2384fb8d86fc30c22e00e16e058b6a06a91510108a081b1"
     },
     "/decision-note-immutable-snapshots-and-on-demand-detail-reads/problem": {
       "zh": "401d9568a2d30c176b4e9f39e222c730875272a0acce4d998a427a9f2701bf68",
       "en": "4bf946f1637faeca124ce719fbe6c4a74a1e473a6bff744b21ff2eb322a8c726"
     },
     "/decision-note-immutable-snapshots-and-on-demand-detail-reads/decision": {
-      "zh": "54d649cd53913595d796306aed4398052c61488b750805f426ca26035f4ee24c",
+      "zh": "d1b71dc0292b00fb9d067b14b13a2d04cb44ff864b63dbe2b4099578974f0388",
       "en": "a8e7733b7acb825214ad2d56a62e0be0f5fd7a11f13273fbbe446a674ae6bba1"
     },
     "/decision-note-immutable-snapshots-and-on-demand-detail-reads/alternatives-considered": {

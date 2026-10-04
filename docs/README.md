@@ -22,7 +22,7 @@
 
 - [架构](development/architecture.md)：模块、依赖、数据流、存储与故障。
 - [多入口开发流程](development/workflow.md)：同一业务能力的交付与验证。
-- [契约](development/contracts.md)：Rust 源头、生成类型、版本与兼容。
+- [契约](development/contracts.md)：Rust 源头、生成类型、版本与格式。
 - [来源适配验收](development/adapters.md)：独立真值、归属及故障用例。
 - [四入口 Web 与配置分析提案](decisions/proposed/architecture/2026-10-01-config-analysis-web.md)：共享 Rust 契约、配置证据、版本与分期验收；部分交付，剩余阶段仍待验收。
 - [贡献说明](../CONTRIBUTING.zh-CN.md)提供仓库操作入口。
@@ -30,6 +30,7 @@
 ## 项目状态 · project
 
 - [首版规格](project/specification.md)维护需求与验收条件。
+- [Codex Skill 产品方案](project/codex-skill.md)维护任务流程、CLI能力对照与本机安装边界。
 - [配置测量与人工处理升级](project/config-upgrade.md)维护追加规格与边界。
 - [首次运行与确定性规则升级](project/startup-rules.md)维护启动状态与静态规则规格、A/B开发拆分及仍待实施的条件性能力。
 - [实施状态](project/status.md)维护当前交付和剩余验收。

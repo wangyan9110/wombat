@@ -1,0 +1,139 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Functional review outcome navigation and stale mutation isolation; no performance tests after priority changed",
+  "build": {
+    "sourceSha256": "9d04e1bf1c098887430d8fb0335cfcbb576fbbc07aa8870149ba157a30dde74f",
+    "coreSha256": "6c01177464636a48a8adf3fd43ba43be1fde28603ac726aaccedd0dbc64f9930"
+  },
+  "verification": {
+    "build": true,
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "fullSuite": {
+      "passed": 325,
+      "rust": 163,
+      "client": 30,
+      "ui": 59,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 34,
+      "ignoredResourceTests": 1,
+      "execution": "Rust and unit suites passed; after test-copy change, rebuilt and reran integration/e2e successfully"
+    },
+    "unitCases": [
+      "Exact target read after mutation ignores list pagination/category and retains project/source/version",
+      "Verified target goes to history even if unrelated pending problems remain",
+      "Still-present or unavailable targets remain pending; keep decision survives recheck",
+      "Bulk check remains pending until no pending suggestions remain",
+      "Cancellation stops follow-up read; missing or mismatched target cannot imply resolution",
+      "User-decision labels remain distinct from subsequent recheck facts in both locales"
+    ],
+    "browser": {
+      "engine": "Isolated Chrome headless with real local Web/Node/Rust and synthetic authorized files",
+      "report": [
+        {
+          "language": "zh",
+          "width": 320,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 390,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1280,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 390,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1280,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "stillPending": true,
+          "fixedInHistory": true,
+          "noOverflow": true
+        },
+        {
+          "language": "zh",
+          "width": 320,
+          "keptInHistory": true,
+          "decisionLabelCorrect": true,
+          "redisplayedPending": true
+        },
+        {
+          "language": "zh",
+          "width": 1440,
+          "keptInHistory": true,
+          "decisionLabelCorrect": true,
+          "redisplayedPending": true
+        },
+        {
+          "language": "en",
+          "width": 320,
+          "keptInHistory": true,
+          "decisionLabelCorrect": true,
+          "redisplayedPending": true
+        },
+        {
+          "language": "en",
+          "width": 1440,
+          "keptInHistory": true,
+          "decisionLabelCorrect": true,
+          "redisplayedPending": true
+        },
+        {
+          "lateResponseAfterProjectSwitchIgnored": true
+        }
+      ],
+      "delay": "Test host delays recheck response by 1500ms after actual Rust operation, permitting project switch before delivery",
+      "noCodexExecution": true
+    },
+    "repositoryChecks": "Final working-tree repo:check passed: 55 bilingual pairs, module boundaries, locale checks, public source scan and 13 repository tests; git diff --check passed"
+  },
+  "testRepairs": [
+    "First browser selector matched the category label of an unrelated missing-file suggestion; narrowed to the concrete suggestion title",
+    "Corrected English expected copy and test-side project-selector interpolation; final complete browser run passed",
+    "Corrected case-sensitive English assertion; rebuilt after source-identity gate rejected stale build; restarted fixture host because assets are loaded at startup"
+  ],
+  "boundaries": [
+    "Unavailable/cancellation branches have unit/backend evidence; browser covers unchanged/fixed file, keep/redisplay and one delayed cross-project response",
+    "Not a full five-page, keyboard, cross-platform, natural-adoption, runtime-rule or complete handoff acceptance",
+    "No performance gates run after user directed focus to functionality"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-provisional-tasks-during-the-first-scan": {
+      "zh": "c3814e12b6844c7237676cd24973777e96c818f494f5ab5e47432092f556b65a",
+      "en": "c6cfb39f79e4528d94d2f0392fa7c8d03be288ab6fe410cb270c121a0bc3d75a"
+    },
+    "/decision-note-provisional-tasks-during-the-first-scan/problem": {
+      "zh": "ef00be7406f6d6d3e9694a0d9b459f6599fc28896c4964293f3365e5669c2be1",
+      "en": "22155cde342ad4e40e9b0cba7ea70732f1319ac680e43fd26c9952b3ac1f4502"
+    },
+    "/decision-note-provisional-tasks-during-the-first-scan/decision": {
+      "zh": "9e9c5eda6e0a05942feb9bd6f251c9f49ed2d7ea8cc2f8a75afe6f156c68bea6",
+      "en": "fdcfa8a48e36852059274a30013701f23b48883014eaa64d681763fed1a6c890"
+    },
+    "/decision-note-provisional-tasks-during-the-first-scan/alternatives-considered": {
+      "zh": "2c0865753d36ed31f9be8be45d112c1b6d0f260d39cf33e666fd083029e87622",
+      "en": "a3363274f1eed4eea8425b5a43547bf80da3006a60611daf13bcb94dfccafae9"
+    },
+    "/decision-note-provisional-tasks-during-the-first-scan/impact-and-verification": {
+      "zh": "4decbac0723905a2f0bacd9f080539715b3d156b088821e6a46a0a837f76adea",
+      "en": "24379fc07defdfb4c149bf6f2587033f313882df3372903915bc42dcadf8152d"
+    }
+  }
+}

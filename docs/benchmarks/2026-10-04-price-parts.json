@@ -1,0 +1,281 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Immutable equal pricing-component sharing, bounded price metadata and streaming category aggregation; exact amounts and current JSON preserved",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1"
+  },
+  "build": {
+    "sourceSha256": "62114f8243a926807547a3d16fc2e08ca31e2fa47e7f72a794389c3bf4f25436",
+    "coreSha256": "6c01177464636a48a8adf3fd43ba43be1fde28603ac726aaccedd0dbc64f9930"
+  },
+  "algorithm": {
+    "components": "Standard HashSet equality across category, count, cost, knownCost, status and rate; Arc sharing never merges request identities or ledger amounts",
+    "budgets": "Component pool at most 4096 entries and 1MiB of component text; entries over 1KiB bypass it; additional bounded structure/table overhead. Separate common text pool at most 4096 entries and 1MiB of UTF-8 text",
+    "overflow": "Keep original fields in full and reuse existing matches; no record truncation or loss",
+    "aggregation": "Four streaming category accumulators replace input-sized reference lists and rate sets; distinct bases, issues and revisions retain their sets, so whole aggregation is not constant space",
+    "validation": "Totals and individual components validate status and exact known/complete amounts, including single-row queries; request-specific basis preserved",
+    "boundaries": "No new DTO or schema, persistence version, migration, compatibility, external execution or dependency"
+  },
+  "verification": {
+    "build": true,
+    "generatedContracts": true,
+    "typecheck": true,
+    "moduleBoundaries": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "fullSuite": {
+      "passed": 320,
+      "rust": 163,
+      "client": 30,
+      "ui": 54,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 34,
+      "ignoredResourceTests": 1
+    },
+    "cases": [
+      "5000 distinct component candidates under entry and byte budgets preserve all fields; oversized Unicode bypasses sharing",
+      "Different request totals share only equal categories; rates, counts, missing values and old revisions remain distinct",
+      "1000 requests checked against independent 500500 input / 2000 output token truth and 1.28125 USD; partitioned sums agree",
+      "Mixed and absent rates stay unknown independent of encounter order",
+      "Invalid component status, inconsistent amount, negative amount and single-query bypass rejected",
+      "Existing current-layout restart, corrections, canonical alias and fixed CLI/Web query regressions pass"
+    ],
+    "initialIssue": "Clippy rejected implementation below test module; reordered module and rebuilt before final full validation",
+    "browser": "No UI changes or new browser acceptance in this increment",
+    "repositoryChecks": "Final working-tree repo:check passed: 55 bilingual pairs, module boundaries, locale checks, public source scan and 13 repository tests; git diff --check passed"
+  },
+  "live": {
+    "repeat": {
+      "baseline": {
+        "platform": "Darwin arm64",
+        "coreSha256": "a75b8a506fcc1c00b90f235b12f24bc9fb6b349ad99ffca3d7b041d9cce2c5b0",
+        "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+        "measurements": 100000,
+        "operations": 100000,
+        "threads": 500,
+        "appends": 4,
+        "priceGroups": 1,
+        "coldSyncAndCliMs": 6904.69,
+        "warmCliMs": [
+          94.98,
+          88.09,
+          88.41,
+          85.86,
+          84.92
+        ],
+        "threadsCliMs": 270.01,
+        "appendSyncAndCliMs": [
+          505.27,
+          402.18,
+          395.57,
+          400.05
+        ],
+        "peakRssBytes": 254771200,
+        "rssKiBAtEnd": 247968,
+        "indexBytes": 205635584,
+        "liveIndexDbBytes": 197148672,
+        "liveIndexWalBytes": 8388608,
+        "dataBytesAfterIdleExit": 197148672,
+        "idleCpuPercentOver5s": 0.598,
+        "idleExitMs": 14840.34,
+        "appendRssKiB": [
+          232000,
+          236448,
+          241104,
+          247904
+        ],
+        "correctness": "Initial truth: 11000000 tokens and 26.500000 USD across 1 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      },
+      "current": {
+        "platform": "Darwin arm64",
+        "coreSha256": "6c01177464636a48a8adf3fd43ba43be1fde28603ac726aaccedd0dbc64f9930",
+        "corpusSha256": "5a36abfe262667b99bd414bda172d75ff0564205ac93c175a494f11efd355f19",
+        "measurements": 100000,
+        "operations": 100000,
+        "threads": 500,
+        "appends": 4,
+        "priceGroups": 1,
+        "coldSyncAndCliMs": 5611.11,
+        "warmCliMs": [
+          110.05,
+          91.72,
+          89.16,
+          91.14,
+          89.94
+        ],
+        "threadsCliMs": 266.31,
+        "appendSyncAndCliMs": [
+          433.8,
+          400.93,
+          402.64,
+          399.43
+        ],
+        "peakRssBytes": 255606784,
+        "rssKiBAtEnd": 249584,
+        "indexBytes": 205570048,
+        "liveIndexDbBytes": 197083136,
+        "liveIndexWalBytes": 8388608,
+        "dataBytesAfterIdleExit": 197083136,
+        "idleCpuPercentOver5s": 0.799,
+        "idleExitMs": 14822.83,
+        "appendRssKiB": [
+          235760,
+          240208,
+          245200,
+          249488
+        ],
+        "correctness": "Initial truth: 11000000 tokens and 26.500000 USD across 1 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      }
+    },
+    "distinct": {
+      "baseline": {
+        "platform": "Darwin arm64",
+        "coreSha256": "a75b8a506fcc1c00b90f235b12f24bc9fb6b349ad99ffca3d7b041d9cce2c5b0",
+        "corpusSha256": "591d1bb9c71c14816d5e8038f45f565265649c870087aa07ee264a6e335bc35c",
+        "measurements": 100000,
+        "operations": 100000,
+        "threads": 500,
+        "appends": 4,
+        "priceGroups": 100000,
+        "coldSyncAndCliMs": 6883.9,
+        "warmCliMs": [
+          100.15,
+          90.01,
+          100.5,
+          102.2,
+          100.98
+        ],
+        "threadsCliMs": 293.41,
+        "appendSyncAndCliMs": [
+          488.62,
+          450.57,
+          434.43,
+          433.45
+        ],
+        "peakRssBytes": 425377792,
+        "rssKiBAtEnd": 415392,
+        "indexBytes": 204226560,
+        "liveIndexDbBytes": 195739648,
+        "liveIndexWalBytes": 8388608,
+        "dataBytesAfterIdleExit": 195739648,
+        "idleCpuPercentOver5s": 0.798,
+        "idleExitMs": 14824.86,
+        "appendRssKiB": [
+          400512,
+          403888,
+          408576,
+          415312
+        ],
+        "correctness": "Initial truth: 10010900000 tokens and 25026.250000 USD across 100000 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      },
+      "current": {
+        "platform": "Darwin arm64",
+        "coreSha256": "6c01177464636a48a8adf3fd43ba43be1fde28603ac726aaccedd0dbc64f9930",
+        "corpusSha256": "591d1bb9c71c14816d5e8038f45f565265649c870087aa07ee264a6e335bc35c",
+        "measurements": 100000,
+        "operations": 100000,
+        "threads": 500,
+        "appends": 4,
+        "priceGroups": 100000,
+        "coldSyncAndCliMs": 5751.81,
+        "warmCliMs": [
+          87.58,
+          67.11,
+          65.29,
+          70.92,
+          69.75
+        ],
+        "threadsCliMs": 328.49,
+        "appendSyncAndCliMs": [
+          476.98,
+          407.9,
+          398.09,
+          406.02
+        ],
+        "peakRssBytes": 378896384,
+        "rssKiBAtEnd": 370000,
+        "indexBytes": 204652544,
+        "liveIndexDbBytes": 196165632,
+        "liveIndexWalBytes": 8388608,
+        "dataBytesAfterIdleExit": 196165632,
+        "idleCpuPercentOver5s": 0.998,
+        "idleExitMs": 14932.33,
+        "appendRssKiB": [
+          356320,
+          360560,
+          365536,
+          369888
+        ],
+        "correctness": "Initial truth: 10010900000 tokens and 25026.250000 USD across 100000 pricing-input groups. Each append contributes 110 tokens and 0.000265 USD; usage and threads agree.",
+        "conditions": "Release core; new SQLite index; filesystem caches uncontrolled; indexBytes includes all product data and live WAL before idle exit, dataBytesAfterIdleExit includes settled product data; logical file lengths, not filesystem allocated blocks; peak RSS is the maximum resident size reported by time for the service; no raw-body persistence; not a 24-hour or million-record acceptance."
+      }
+    }
+  },
+  "forks": {
+    "format": 1,
+    "date": "2026-10-03T22:49:30.597Z",
+    "platform": "darwin-arm64",
+    "scope": "Cold Rust refresh: source scan, parse, ancestry reconciliation, pricing, immutable snapshot persistence and summary; no live service, browser or warm-index claims",
+    "cache": "Fresh product data directory for every run; OS filesystem caches uncontrolled, run order alternates",
+    "corpus": {
+      "shape": "chain",
+      "threads": 2000,
+      "perThread": 50,
+      "sourceBytes": 31005584,
+      "sourceSha256": "b5c9e0ea95b49e53472feda35bb6ac1584d8e8df94c6b75d59450b3259fa67e1",
+      "nativeCounters": 2000,
+      "sourceOperations": 100000
+    },
+    "binaries": {
+      "currentSha256": "6c01177464636a48a8adf3fd43ba43be1fde28603ac726aaccedd0dbc64f9930",
+      "baselineSha256": "a75b8a506fcc1c00b90f235b12f24bc9fb6b349ad99ffca3d7b041d9cce2c5b0"
+    },
+    "results": [
+      {
+        "label": "baseline",
+        "iteration": 0,
+        "wallMs": 22104.305,
+        "peakRssBytes": 209240064,
+        "persistedBytes": 65193064,
+        "canonicalSha256": "a29308c35568b2199bc8481b2b29756bbff01440a5558d86c196c7cd07baef7f",
+        "operations": 98001,
+        "physicalEvidence": 100000,
+        "tokenTotal": 110
+      },
+      {
+        "label": "current",
+        "iteration": 0,
+        "wallMs": 20991.548,
+        "peakRssBytes": 206520320,
+        "persistedBytes": 65193064,
+        "canonicalSha256": "a29308c35568b2199bc8481b2b29756bbff01440a5558d86c196c7cd07baef7f",
+        "operations": 98001,
+        "physicalEvidence": 100000,
+        "tokenTotal": 110
+      }
+    ],
+    "resultEquality": true,
+    "boundaries": [
+      "Synthetic fixed corpus; no real source data",
+      "Small persisted footprint reflects this fixture and is not a product-wide disk bound",
+      "No 256MiB, million-record, 24-hour, Windows or UI acceptance claim"
+    ]
+  },
+  "boundaries": [
+    "One sequential baseline/current pair per corpus; fresh index; OS filesystem caches uncontrolled; no concurrent build/test/benchmark launched by this task during measurements",
+    "Peak RSS covers Rust service only, not combined CLI/Web/browser",
+    "Distinct pricing inputs still exceed 256MiB; no full resource target claim",
+    "Live-index page occupancy varies with fresh temporary source IDs; same storage layout, no disk reduction claim",
+    "Same-directory fork comparison checks all canonical facts and immutable snapshot byte counts",
+    "No million-record, 24-hour, other-platform, real-source or complete prototype acceptance; full goal remains active",
+    "Distinct-input fixture varies uncached input only; cache-read/output remain fixed and cache-write is zero. Simultaneous high-cardinality variation in all priced categories remains unverified; bounded first-admission pooling may share fewer values in that case."
+  ]
+}

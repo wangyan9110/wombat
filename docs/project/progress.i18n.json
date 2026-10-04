@@ -5,6 +5,142 @@
       "zh": "1f98a88c05b81b506c2bb4d3d0f5b7a83c8d4795f240ab58490d083988b38ad5",
       "en": "edd89bcf7286878fa899e4b308692bc8ed3e35051b49c65a089209281885902f"
     },
+    "/wombat-progress-and-verification-records/skill-availability-and-observed-use-2026-10-04": {
+      "zh": "b176f8fc2fea8790ee8605a14dbfc7164747cfa619cabe1a7faaafbe8b6c67be",
+      "en": "c3b3604bd09afb9e6a02368eae6e034c8a0fdfb89e75007dce1f06ee314d74e1"
+    },
+    "/wombat-progress-and-verification-records/native-agents-md-load-evidence-2026-10-04": {
+      "zh": "74b7f0209f97ddf4e28e8323152908ddafe29d84d3b24abc26261758a46a74c6",
+      "en": "5ce40e81fa7d676ffbc4e1fa4d18058e30afce173ea02db5d72f2540877b7e7d"
+    },
+    "/wombat-progress-and-verification-records/optimization-suggestion-detail-refinement-2026-10-04": {
+      "zh": "7b2a783dbcd6ba368fc082bc9fa817584a8ac56ac7a9ba9fa7f289a3cdf3a096",
+      "en": "00496c3e4bebc5268c2260ef7ce7cf70bb5b199055377a2ed8225983c2d05727"
+    },
+    "/wombat-progress-and-verification-records/task-page-orientation-refinement-2026-10-04": {
+      "zh": "5a43b3f9d8b4a03f0c1b13c520948b5ee497934e45b6e4ad916e6d834f572b24",
+      "en": "ba74fd02ff6abe913654e5112db2fd4a5e8e8e5616fcb7f4c5f3f9a5660f8f28"
+    },
+    "/wombat-progress-and-verification-records/persistent-account-allowance-summary-2026-10-04": {
+      "zh": "7ed53dd43f5d6d06c3bd202ebb8d99b9253432db6cdca687f13ef9a88f5de4f8",
+      "en": "e501fa53543120c2a208a014e340b5ec879b5aa957aa61f52679448a901db5bd"
+    },
+    "/wombat-progress-and-verification-records/product-acceptance-findings-fixed-2026-10-04": {
+      "zh": "db11ee9e3881df30deec2b323c316a1d98c11c96ed6f168058122d5bcf3634c6",
+      "en": "56ed3e2ccf35b811309c626e4d5aa80218077831c9a3cff8c49aa912e48a86b2"
+    },
+    "/wombat-progress-and-verification-records/product-acceptance-feedback-received-and-registered-2026-10-04": {
+      "zh": "62de00da77b4a524554f7308e6547a8c9c98851d05fe1b3a22103ac2d5ac9fca",
+      "en": "41a551c150deb79997a2b115a06792a1c4c154b4448e15a76ab9780f9f8eff42"
+    },
+    "/wombat-progress-and-verification-records/implementation-ended-and-handed-over-for-stage-acceptance-at-the-user-s-request-2026-10-04": {
+      "zh": "3f8e096e5f09007ad6ae28001eeb40380612b259610abc1cc1bda00a83a16c75",
+      "en": "40ec4d904421827e91f443be47855593394bc4bc07401a60dd0d07488460bc7e"
+    },
+    "/wombat-progress-and-verification-records/current-npm-candidate-and-index-fault-separation-2026-10-04": {
+      "zh": "8add00cedd5e70e0f107ebabddefcd62eaa377c2998664f3104b1a27c11e358a",
+      "en": "30a8fe6ed69162b9f35f3f2941b28c16b8bb869ff2053b62e316507969ea17b2"
+    },
+    "/wombat-progress-and-verification-records/follow-up-observations-time-order-and-full-mcp-ownership-2026-10-04": {
+      "zh": "01975e0df4164c8cd7c46193ac22a67d063e95ccd6a430eca010cffa86cd41b5",
+      "en": "b5a299ee0607815231bb44c09febaf4c585ca0eafb8d422a4780975441e68bff"
+    },
+    "/wombat-progress-and-verification-records/manual-review-static-success-and-natural-follow-up-records-2026-10-04": {
+      "zh": "fb99ac9cd7b73105dbd464de67fb6a06dddb1c1af4cc6ce8ed7d0b2f4119184f",
+      "en": "6c24e43077b18f1b5e43b16ea52a566d3f6579b3960a923cc35f9501d732b435"
+    },
+    "/wombat-progress-and-verification-records/manual-review-tool-outcome-status-and-local-functional-verification-2026-10-04": {
+      "zh": "32ae91a57d8c8b87e443619bd59bc8ea90ebdf6222070c33e9df1a11e945f2a8",
+      "en": "fa1cde8fef63ddb8526ef60a2ad6e9d7279705a708517bfc26e3d2fc963d1d7a"
+    },
+    "/wombat-progress-and-verification-records/manual-review-inline-plugin-hook-declarations-and-native-paths-2026-10-04": {
+      "zh": "2c740373a1a45e6dc79364b0338c6a8a35dca4ac38ac375eb0a254f57ba60173",
+      "en": "20c05395ebd43a7348a95af6b94bc0cf4a52647f7f2752a8bd65cc630436c987"
+    },
+    "/wombat-progress-and-verification-records/manual-review-plugin-hook-registration-and-unavailable-observations-2026-10-04": {
+      "zh": "3e6d97b878f3ac7732a61008a123356f1fe7a35884f32e74e249b5d89f9cf4e5",
+      "en": "c5bad768f0b8361baa06e6bcda4482dc431f397eb0a384e91b06e40845b47176"
+    },
+    "/wombat-progress-and-verification-records/manual-verification-sending-cancellation-and-nested-dialog-closure-2026-10-04": {
+      "zh": "c3fcc96ade08ca89baa73273a9ea9f3e38f84d46200c07968c2c71f41c7196ac",
+      "en": "4b3d61a77b12ef5dee2c3b99da4cc3f6ed2aeb5fb0007971d8f893c8bda5f907"
+    },
+    "/wombat-progress-and-verification-records/manual-verification-codex-handoff-selection-failures-and-keyboard-flows-2026-10-04": {
+      "zh": "2150d64a64cc057059afb9957828a1dae1bdf7cf91cbf46a720932591aa39140",
+      "en": "914d8dbb24a0b55c3d9ed16f96d648d882eee1419882017843a68ac99494bcef"
+    },
+    "/wombat-progress-and-verification-records/manual-verification-recheck-destinations-and-user-decisions-2026-10-04": {
+      "zh": "da6391dcb4eafecefe79179cb8039ab6897e7d8e94340fb731c5fa62dffafe63",
+      "en": "96d88c07fb84990822012d19cfc052d35f3b966a8ce766c0f1641011e323355c"
+    },
+    "/wombat-progress-and-verification-records/manual-verification-shared-fact-text-and-resource-boundaries-2026-10-04": {
+      "zh": "be846c94a7e3c36065f869280884bae68d7e794b60948f46dd0cd6e0ce7cee1d",
+      "en": "8fe31018a0bdcb695c2e92d60de0567527c3e3f055899a60ec00631698a97c3c"
+    },
+    "/wombat-progress-and-verification-records/manual-verification-fork-reconciliation-performance-and-compact-call-indexes-2026-10-04": {
+      "zh": "eab04272a17a5e75765387a29ad310958da0cfea1fe3a1a486980bec7fec2361",
+      "en": "08d2f3a9f4585fab1585dbfa9f737e9c55300523dad558be1519763eb9d2e5a3"
+    },
+    "/wombat-progress-and-verification-records/manual-verification-mcp-tools-resource-reads-and-fork-replay-2026-10-04": {
+      "zh": "d1d5cfd5c5773f7817ba443f63300d4cc9429f09867b21a7058f529f58a78eaf",
+      "en": "844549a3a0ca72024de91613a5dac7c20ce6545aec60da22c4270ed2cf2413b7"
+    },
+    "/wombat-progress-and-verification-records/manual-review-hook-static-script-references-project-rechecks-and-handoff-2026-10-04": {
+      "zh": "70a998f2ac47a5bade38bdb47654472ff2bac136e9c97f093ebce8b2f65fb9e5",
+      "en": "9ee0e63e363637ce71f36b6e36c10388aca60c460128c84061bab1d4ba829f88"
+    },
+    "/wombat-progress-and-verification-records/manual-review-project-bound-native-hook-registry-2026-10-04": {
+      "zh": "10578d22ee26448ef48191b8c370dd8c98ccd51bf1d0acc024a03d1d6d56ad43",
+      "en": "e3579fc12ae080037f3128723f96c6cd113cb4cf5850f3e76d7ee18784f2e0a3"
+    },
+    "/wombat-progress-and-verification-records/manual-review-hook-declaration-measurement-and-registry-verification-2026-10-04": {
+      "zh": "0d5ac964b58eb79d4d4a6fd3be748974cec5c31b4730c026e1507870f8f6c994",
+      "en": "7b565c84c0c534adb5d4ae6c231063acc069333996890586c0c1c4864ffbec31"
+    },
+    "/wombat-progress-and-verification-records/manual-review-handoff-allowance-and-actual-task-rechecks-2026-10-04": {
+      "zh": "a4ebc682f8bc6b901a57a5774b8d0bc731de6414c20734f0ea72b934a05ba720",
+      "en": "32e30bbba2a4676e9bbd15f20c9a21a902d9c776a86fd5fc0b7e5a3894ac5d00"
+    },
+    "/wombat-progress-and-verification-records/manual-review-account-overview-native-values-and-read-only-credits-2026-10-04": {
+      "zh": "c1df4ef2cd7ba769b3ff74511b76e83109d2fefba8de5e3ca5197422fce84f83",
+      "en": "48a4f27b2a01c147bc0186e188887b3977ef35816a52f20e793b3e101a442ab9"
+    },
+    "/wombat-progress-and-verification-records/manual-review-shared-projections-and-bounded-price-reuse-2026-10-04": {
+      "zh": "c9ee6b4b5dbcdd09583b719476f3978eaedfbf2358a8db03f310220ba2303341",
+      "en": "90306d1fb06bc8598282119385b203ee9b0eaeef98de4b16b66c95a53b1c8c87"
+    },
+    "/wombat-progress-and-verification-records/manual-review-initial-task-previews-and-completed-usage-2026-10-04": {
+      "zh": "36c428d89b917a6e01aa1d4bc0eca8ee75cd18335f76e5362060daa378d30165",
+      "en": "f35e44f2ab6fb4517a9c6ae648d54ba7a9d4e2eee1c465e359ab43cd36588cef"
+    },
+    "/wombat-progress-and-verification-records/manual-review-nested-returns-and-reading-positions-2026-10-04": {
+      "zh": "4e4596d9caa35ba6ba3ff1caca4d9ae69f1dac938437f960e55f9b63325d3a91",
+      "en": "7fe84d70f890fe973e3594e7444dc19751bf48b4e8fb838fadab77c3235eee5f"
+    },
+    "/wombat-progress-and-verification-records/simple-codex-handoff-accounts-and-evidence-copy-2026-10-04": {
+      "zh": "4c64c1cd01cd2d96477b12939839d0c7258f9de71f2d0cee4a7298c3108e31e7",
+      "en": "ea0137033da1c761013257aa6aff1d6a5103a7e99cafad00996248cbf225bbe4"
+    },
+    "/wombat-progress-and-verification-records/independent-decisions-and-direct-rechecks-2026-10-03": {
+      "zh": "da1b654b475d4e30dce2f45866ed91c8127947dd45278aaebff674eea0edc862",
+      "en": "f41ab0835bd2e1495a0f83a9a03633a9b9ea1f90ffb3cc6fd8546af29330d23b"
+    },
+    "/wombat-progress-and-verification-records/modules-current-formats-and-project-jobs-2026-10-03": {
+      "zh": "ae9766c2580e65093d95a2c78e172470765fd7d3ee732f14913d99952bb8197a",
+      "en": "8580762bf72927b567dc29a22b38cd11f1377d2e1a974210e15d6837fd72dc90"
+    },
+    "/wombat-progress-and-verification-records/skill-metadata-accuracy-additions-2026-10-03": {
+      "zh": "b55f132e541d6c201d6c4ee454fd22a954c1723d8567c2b986004d7050672978",
+      "en": "e3edf33bba618161ddc9e4912371a5826ad900c96ec7cd8abfda464eaa82a396"
+    },
+    "/wombat-progress-and-verification-records/five-surfaces-and-basic-execution-2026-10-03": {
+      "zh": "e7ef1924f04d392891ea70581122739b9ae8afc888cd530783b889e48632fcc9",
+      "en": "c1ad07a38b1d153d9ac0f45518287fc4243c7221ea68ff2890f3d8f3a4e71835"
+    },
+    "/wombat-progress-and-verification-records/platform-npm-installation-and-runtime-compatibility-2026-10-03": {
+      "zh": "147aa3417c224a67919ff20c10641d0f4e67cd23973f39ead246c8116019092f",
+      "en": "d444f898ae00ad14dcabfdf42498664bc2a856785ddab46e57a480044ea8b73d"
+    },
     "/wombat-progress-and-verification-records/user-facing-interface-technical-review-2026-10-03": {
       "zh": "2cf0a7e2b15878d8df9cc651a4286275f37f095c4ae83e45700df9ab06bb72b6",
       "en": "565f9d61a361c9d6d773ad41e2484ff2f53aef7258e6806bc239faa85aa93bae"

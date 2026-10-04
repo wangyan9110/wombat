@@ -16,6 +16,26 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 `--root` 可重复；省略时使用 CODEX_HOME 或 `~/.codex`。同时读取 sessions 与 archived_sessions，显示范围不限制历史采集。刷新不接受查询筛选。
 
+
+`wombat web --open` 在启动后请求系统打开浏览器；失败时继续运行并输出链接，不影响查询。
+
+Hook清单JSON与Web详情提供同口径的项目注册观察及插件身份，文本输出也标明插件。注册不代表运行；支持的声明形式与未知状态见[配置契约](../development/contracts.md)。
+
+## Codex Skill
+
+以下是技术草稿的试验安装方式，正式任务流程正在由产品重新设计；本机尚未安装，行为验收未完成。
+
+从源码构建并安装本机 `$wombat`：
+
+```sh
+corepack pnpm build
+corepack pnpm skills:install
+```
+
+默认安装到 `~/.agents/skills/wombat`，携带当前平台CLI、内核和Web资产，运行需要Node22+。安装工具需要Node26.4.0+。已有目录不覆盖；更新已安装版本用 `corepack pnpm skills:install -- --replace`。可用 `--skills-root /path/to/skills` 安装到其他目录；自定义同名Skill不会被replace覆盖。
+
+在Codex输入 `$wombat 查看今天的用量并定位主要消耗任务` 或 `$wombat 检查当前项目的指令和扩展`。Skill按任务串联查询，配置改写经过具体方案审阅；[产品方案](../project/codex-skill.md)说明与Web的差异和边界。Codex通常自动发现新Skill，未出现时重启。卸载只移除安装的wombat目录，保留独立产品数据。当前仅本机Skill安装，不是公开插件或MCP发行。
+
 ## 语言
 
 使用 `--lang zh` 或 `--lang en` 选择展示语言；也可设置 `WOMBAT_LANG`。JSON 字段与原始内容保持不变，完整优先级见[产品语言](../i18n/product.md)。
@@ -26,7 +46,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 - `--fresh` 等待本次同步，最长10秒；失败或超时明确报错。`--cached` 不触发来源扫描，返回已提交索引；没有索引时报错。
 - `usage --watch --json` 输出逐行 JSON，版本、日期范围或状态改变时发出结果；Ctrl+C 退出130。普通 `--json` 仍只输出一个对象。
 - `refresh --verify` 完整重读来源再保存快照，用于核验追加快速路径无法证明的历史前缀改写。正常 refresh 利用增量游标。
-- `--snapshot ID` 保持固定读取，不自动同步。实时结果的 `live:…` 标识是短期读取版本，服务内最多保留8版、最长10分钟；过期或服务重启后旧版可能返回 `VIEW_EXPIRED`。需要长期固定数据时执行 refresh 并使用其快照ID。
+- `--snapshot ID`固定当前快照，后续分页继续传同一snapshotId，不能重新解析latest。未知格式明确拒绝。
 - `--root` 可用于实时查询；每次省略时仍使用默认 Codex 来源，不会因为另一窗口指定根而改变。固定快照不能同时指定来源根。
 
 同一数据目录共用按需 Rust 服务；文件通知加约2秒巡检，CLI watch约每秒查询。没有有效配置读取版本时，最后一个调用结束约15秒后退出；配置读取版本最长保留10分钟。实时接口当前在macOS验收；Windows/Linux 未作本机安装验收。计量以完整日志记录为准，模型还未写入的Token无法即时显示。
@@ -45,7 +65,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 - `--since` 包含起日，`--until` 不包含截止日；`--all-time` 包含日期未知，不能与日期或 --undated 同用。缺省时区 UTC；Web 使用系统时区。
 - `--model`、`--effort`、`--project` 精确匹配；项目是已观察到的目录证据，不是路径子串。`--model-unknown`、`--effort-unknown`、`--undated` 分别筛选缺失模型、强度和日期，不能与对应具体值或日期范围同时指定。
 - `threads --search TEXT` 搜索标题或项目，`--sort tokens|cost|recent`，按匹配用量或最近匹配计量排序；轮次与步骤使用 `tokens|cost|time`。
-- `--snapshot ID` 固定快照；旧 v1/v2 可显式传文件。后续分页应继续传同一快照，不能重新查询 latest。外部旧文件的固定定位符返回在 snapshotRef.selector，优先于 snapshotId 用于续查。
+- `--snapshot ID`固定当前快照，后续分页继续传同一snapshotId，不能重新解析latest。未知格式明确拒绝。
 - `usage --presentation distribution|details`：默认 details 保持分类明细；distribution 只返回时段小计。显式指定此参数时按日期组分页，limit 是时段数，明细保留该时段的全部模型行；省略时维持逐行分页。`--sort time|tokens|cost` 按日期倒序或消耗倒序；完整范围的 distribution 刻度、峰值筛选、未计价 Token 与金额占比在分页前计算，未知金额排在已知金额之后。
 - `--limit 1..500 --offset N`，默认50。完整范围排序、金额、分类、占比均在分页前计算。
 
@@ -61,7 +81,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 ## 旧版迁移
 
-保留 v1/v2 用量与任务的只读读取。缺轮次/强度不伪造，旧金额保留旧政策。执行 refresh 创建 v3，旧文件和恢复材料保持不变。原 scan/report/checkup/quota/codex/observe/compare 等命令及旧输出协议已退出当前产品；没有替代能力的命令不留占位入口。
+仅读取当前v3快照，未知版本拒绝并保留已有文件和用户记录。不提供迁移或旧命令/输出兼容。已退出的scan/report/checkup/quota/codex/observe/compare命令不留占位入口。
 
 ## 本机 Web
 
@@ -73,7 +93,7 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 ## 只读配置
 
-`wombat web --project-root /path/to/project` 指定配置授权目录，可重复；省略时授权当前启动目录。历史任务里的cwd不会自动获得读取权限。`--root` 仍指定Codex来源，与项目配置根分开。
+`wombat web --project-root /path/to/project` 添加历史中未出现的配置目录，可重复；省略时保留当前启动目录。本机 Web 会把当前来源中可靠的历史cwd自动加入项目目录，直接CLI配置查询仍用 `--project-root` 明确范围。`--root` 仍指定Codex来源，与项目配置根分开。
 
 `wombat optimize inventory --json` 提供同口径无TTY查询。使用 `--kind rule|skill|mcp`、`--observation used|loaded_only|unknown`、`--search`、`--sort tokens|activity|size|name|content_tokens|characters|recent` 筛选排序；`--limit` 默认50、最多200，`--offset` 从0开始。`--since` / `--until` 为包含起日、不含止日，`--timezone` 默认UTC。
 
@@ -88,16 +108,35 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 ```sh
 wombat optimize list --project-root /path/to/project --json
 wombat optimize detail --suggestion SUGGESTION_ID --read-view READ_VIEW --decision-revision REVISION --json
-wombat optimize ignore --suggestion SUGGESTION_ID --read-view READ_VIEW --decision-revision REVISION --json
+wombat optimize keep --reason necessary --suggestion SUGGESTION_ID --read-view READ_VIEW --decision-revision REVISION --json
 wombat optimize history --read-view READ_VIEW --json
-wombat optimize restore --suggestion SUGGESTION_ID --read-view READ_VIEW --decision-revision REVISION --json
-wombat optimize mark-edited --suggestion SUGGESTION_ID --read-view READ_VIEW --decision-revision REVISION --json
+wombat optimize redisplay --suggestion SUGGESTION_ID --read-view READ_VIEW --decision-revision REVISION --json
+wombat optimize not-applicable --reason incorrect_evidence --suggestion SUGGESTION_ID --read-view READ_VIEW --decision-revision REVISION --json
 wombat optimize recheck --read-view READ_VIEW --decision-revision REVISION --json
 wombat optimize capabilities --json
 ```
 
-续查保留原授权根及项目/来源范围，每次操作使用上次返回的新 decisionRevision；过期冲突重新读取。detail/ignore/mark-edited/restore 必须带建议身份；`--category`、`--offset`、`--limit 1..200` 支持列表筛选分页，默认50。人工编辑在产品外完成，mark-edited 只保存待复查记录；recheck 重采集并检查，不写来源。配置和优化结果独立 v1，证据缺口时退出2，错误1、取消130；能力查询不扫描。处理记录保留在产品数据目录，重建索引不删除。
+续查保留原授权根与项目/来源范围，每次使用返回的新decisionRevision；冲突重新读取。detail/keep/not-applicable/redisplay必须带建议身份，keep/not-applicable另需原因。列表支持category、offset及limit 1..200，默认50。在Wombat外修改后直接recheck，--suggestion可限制单项。复查不写来源或撤销用户决定，redisplay不恢复文件。配置/处理结果使用v1，证据不足退出2、错误1、取消130；能力查询不扫描，索引重建保留产品记录。
 
 产品提醒值可用 `--agents-bytes 16384 --description-characters 500` 调整，后续操作保持相同参数。仅授权当前配置范围生效，记录保留参数。正文5,000参考线及description1,024规范上限不可修改；Web提醒值面板使用同一契约。全文/正文估算分别返回，见[规格](../project/config-upgrade.md)。
 
 Web优化列表显示建议、价值和关键指标，详情可展开处理步骤与依据，相关记录次数、轮次Token和API估算金额同屏。关联记录日期不改变当前静态检查；查看准确轮次后可返回原建议及原筛选。无关联保持未知，不能按次数分摊金额。CLI/Agent先从optimize结果取得item.id/readView，再用inventory --action evidence --item ID --read-view VERSION和日期/时区参数；由返回usageRevision/threadId/turnId定位turns。保留授权根，不混用读取版本。人工标记与复查结果通过reviewBaseline/item提供文本测量前后值；未知或不同方法不可比较，变化不代表节省。
+
+## 本机 Codex 交接与账户
+
+需要本机可运行的 Codex；当前原生接口在0.160.0验证。登录、模型审阅、执行及恢复均由 Codex 管理。CLI 和 Web 使用同一清单；不会复制登录凭据。
+
+```sh
+wombat optimize handoff preview --project-root /path/to/project --json
+wombat optimize handoff send --project-root /path/to/project --selection-version SELECTION_VERSION --read-view READ_VIEW --decision-revision REVISION --json
+wombat account read --json
+wombat account refresh --json
+```
+
+先审阅preview返回的项目工作目录、文件和依据，再使用返回的selectionVersion发送；保留相同来源、项目授权和筛选。省略`--suggestion`选全部待处理项，不受列表分页或类型限制；可重复指定该参数发送单项/子集。共享文件只出现一次，同文件规则合并；项目切换需要重新确认。发送前文件/依据变化明确拒绝。
+
+发送返回accepted、failed或unknown及可用的Codex任务ID；accepted只表示接受请求。查看任务用`codex resume TASK_ID`。失联时先在Codex核对，再由用户决定重发；不会自动重发，不保存执行回执或遍历历史查重。重复手动发送可能产生新任务，关闭Wombat不取消已接受任务。处理后使用`optimize recheck`判断问题是否仍在。
+
+确认窗口可刷新额度并保留文件选择。低额度只提醒；当前任务有可靠的原生限制时阻止发送，刷新后需再次确认。过期、未知或其他模型的限制不当作当前任务耗尽，也不会自动重发。发送会按实际任务重新核对；最终受阻可能留下没有请求内容的空Codex任务。
+
+账户v1响应中的身份、额度和活动有独立状态与读取时间；仅显示脱敏邮箱。真实窗口名称、模型、周期和重置来自Codex，不固定五小时/七天，不回退旧单桶。失败保留先前数据和读取时间，换账户清除旧数据；已过重置时间不推定满额。余额和消费限额保留来源小数字符串，不猜单位；重置权益只读，未提供明细与空列表分开，明细上限128条且不替代来源总数。概览和账户详情共享读取结果，项目或日期不改变账户范围。额度不与项目Token/API估算金额相加或换算。部分读取及未确认交接退出2，错误1、取消130。近期轮次可用`turns --sort recent`，按可靠活动时间排序，未知时间置后。

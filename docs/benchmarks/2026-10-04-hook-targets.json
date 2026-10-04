@@ -1,0 +1,174 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Native file-backed Hook static script references, project-specific rechecks and handoff; no runtime failure or execution inference",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1",
+    "codex": "0.160.0"
+  },
+  "build": {
+    "sourceSha256": "748580641bcac74cb55bfa9046b9e0c5060d3fb94735c3be8df44e59fc38e753",
+    "coreSha256": "0e8af25423e612f64748232c04caa8cc14eddbd5eddf0115ebf02927b65f4d55",
+    "webAssets": [
+      {
+        "path": "web/assets/index-DuDaadeN.js",
+        "sha256": "f99e8c06aaf65e371ed3e18ba985d0c84a6d6e0e6ff634483a1c74c561bda44a"
+      },
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f"
+      }
+    ]
+  },
+  "verification": {
+    "build": true,
+    "fullSuite": {
+      "passed": 299,
+      "rust": 144,
+      "client": 30,
+      "ui": 53,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 33,
+      "ignoredResourceTests": 1
+    },
+    "typecheck": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "licenseCheck": {
+      "nodePackages": 115,
+      "rustPackages": 175,
+      "newPackageIdentities": 0,
+      "directLockedDependency": "shlex 2.0.1"
+    },
+    "behavior": [
+      "quoted Unicode paths and escaped spaces",
+      "static interpreter/direct-script subset; dynamic/module/inline/unknown flags stay unknown",
+      "same global registration resolves against each authorized native working directory",
+      "independent project hit/miss and CLI/HTTP pinned-view equality",
+      "original project can resolve while a new project problem remains pending",
+      "missing native registry preserves history and decisions with unknown recheck",
+      "explicit disabled registration can resolve; untrusted and modified remain unknown",
+      "Node extension candidates and directories avoid false missing-reference claims",
+      "changed declaration version, scope escapes and filesystem errors do not become missing files",
+      "intermediate regular-file/.. and trailing slash require correct filesystem directory semantics",
+      "native parent/child inheritance augments only the current view",
+      "unknown nested declaration measurement does not block a version-bound reference handoff",
+      "affected-project handoff and marker remains unexecuted"
+    ],
+    "native": {
+      "nativeVersion": "0.160.0",
+      "trustedMissingReference": true,
+      "existingTargetRechecked": true,
+      "reappearance": true,
+      "noHookExecution": true,
+      "script": "./工具 script.py"
+    },
+    "browser": [
+      {
+        "language": "zh",
+        "width": 320,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "correctProjectAndScript": true,
+        "staticReferenceNotExecutionFailure": true,
+        "noOverflow": true,
+        "focusRestored": true
+      }
+    ],
+    "visualInspection": [
+      "Chinese 320px visible target, base and file version",
+      "English 1440px evidence panel",
+      "final Chinese 320px no repeated internal error code"
+    ],
+    "repositoryChecks": {
+      "passed": true,
+      "bilingualPairs": 54,
+      "maintenanceTests": 13
+    }
+  },
+  "budgets": {
+    "registrations": 512,
+    "commandBytes": 16384,
+    "commandWords": 128,
+    "targetBytes": 4096,
+    "declarationBytesPerFile": 10485760,
+    "declarationBytesPerRound": 33554432,
+    "filesystemPathComponents": 128,
+    "inventoryByProjectMatrix": false,
+    "readsOrExecutesReferencedScript": false
+  },
+  "failuresResolved": [
+    "parent declaration membership incorrectly filtered a natively inherited child registration",
+    "handoff wrongly required measurable declaration text despite independently version-bound script evidence",
+    "filesystem normalization hid regular-file traversal and trailing-slash type errors",
+    "browser harness initially inspected collapsed evidence, raced list redraw, and inherited saved language; expanded, awaited settled rows and used an explicit initial locale",
+    "evidence displayed a redundant internal code; kept localized explanation"
+  ],
+  "boundaries": [
+    "Only verified Codex 0.160.0 file-backed registrations and the documented Unix command subset. Plugin keys and Windows commands remain incomplete.",
+    "Interpreter identity, script validity, actual Hook execution/failure and runtime injection are not inferred.",
+    "Native initialization can maintain its own bundled resources inside the isolated source. No Hook or model task was executed.",
+    "The complete registry is ephemeral; findings/decisions retain necessary project and version evidence.",
+    "No whole-scan performance, 256MiB, million-record, 24-hour, cross-platform or full-product acceptance claim.",
+    "Remaining usage/injection/inactivity/resource/adoption rules and complete page journeys are still active work.",
+    "No product acceptance message, publication, commit or push in this increment."
+  ]
+}

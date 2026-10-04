@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "sections": {
+    "/five-surfaces-and-the-optimization-lifecycle": {
+      "zh": "1a57a7b4b05c1db13dbf18eaf86bf5c3cadcfcdc2fb50ed21f5045c08d3f81fe",
+      "en": "24203e61acb736a1faaf329144d55475b3f24190449cfebc7458ddd09193c5e6"
+    },
+    "/five-surfaces-and-the-optimization-lifecycle/surfaces-and-shared-facts": {
+      "zh": "069fc78752079b5b079f456abc69d8734e3fc48afdf0796f9646ecb9ab94831f",
+      "en": "793699d94772fe8e7db889677d4125948ae0fc9d905d4a8b11318ce1dbc1f31b"
+    },
+    "/five-surfaces-and-the-optimization-lifecycle/rules-and-resources": {
+      "zh": "e2e2978a68879d628b907a619988886bf0749cb1b52ad11a68ff5180e5a14eb9",
+      "en": "b3fdf618158b77758d9438c16389557d3268e079a45721290d3760070a667456"
+    },
+    "/five-surfaces-and-the-optimization-lifecycle/handoff-and-handling": {
+      "zh": "e7ff43ee45654d92fdc76b199136f374c2b0304bf22b9a4311f014eb8c8dd44e",
+      "en": "548a36fc3f50d52e391b3a2d71a3a22595c95cdadc50a9fb8218c62dda1b3d43"
+    },
+    "/five-surfaces-and-the-optimization-lifecycle/decisions-and-rechecks": {
+      "zh": "bbbe5033ff12d223d43d8cc50dff76f46c064e38b41413db5e645741d303c71d",
+      "en": "ce48ceeeae12edd4e841e86a6690eb3b1f481fb6a782a8136858943dc3d28087"
+    },
+    "/five-surfaces-and-the-optimization-lifecycle/startup-accounts-and-acceptance": {
+      "zh": "8da894dd264f2a67bd87401099aa22b4206bc15ddf26aca2c36fbc2c0d1a3045",
+      "en": "69b4b070c315fbecb42c229841d27ba11c7a200ab7c4e0b312ac5288a4764ed9"
+    }
+  }
+}

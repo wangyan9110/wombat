@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-03",
+  "scope": "Synthetic npm global installation on macOS arm64; unpublished host-only candidate",
+  "source": {
+    "commit": "895bb2d739959ae409fd4a71cc3f0f22333f5b6b",
+    "uncommittedChanges": true,
+    "buildSourceSha256": "62e2f063e4f43e75dae76fd6b09ca5c2f1aa04f63fdea08c96eaf8dab2c911b7"
+  },
+  "candidate": {
+    "directory": "dist/npm/-wangyan9110-wombat-0.3.0-aZinPr",
+    "name": "@wangyan9110/wombat",
+    "version": "0.3.0",
+    "candidateOnly": true,
+    "packages": [
+      {
+        "target": "darwin-arm64",
+        "version": "0.3.0-darwin-arm64",
+        "archive": "wangyan9110-wombat-0.3.0-darwin-arm64.tgz",
+        "sha256": "ab684bd72c6fd54e438f20c24173f15db951a708a0bd86052b99b4645390e907",
+        "bytes": 5987626
+      },
+      {
+        "target": "main",
+        "version": "0.3.0",
+        "archive": "wangyan9110-wombat-0.3.0.tgz",
+        "sha256": "d74fc56262754fc71bde8f8070291d306e50dcb39d9a33f5313dd93af1258adc",
+        "bytes": 791695
+      }
+    ]
+  },
+  "npm": "11.8.0",
+  "checks": {
+    "productTests": 229,
+    "rustResourceTestIgnored": 1,
+    "repositoryTests": 13,
+    "fullReleaseGate": true,
+    "finalPackageOnlyChanges": "Removed duplicate dist/licenses copy, rechecked build receipt after assembly, and corrected Windows shim argument handling; rebuilt, typechecked and retested candidate install.",
+    "node22": {
+      "package": "@wangyan9110/wombat",
+      "version": "0.3.0",
+      "target": "darwin-arm64",
+      "runtime": "v22.0.0",
+      "installMs": 298,
+      "downloaded": [
+        "wangyan9110-wombat-0.3.0-darwin-arm64.tgz",
+        "wangyan9110-wombat-0.3.0.tgz"
+      ],
+      "installedBytes": 19281316,
+      "downloadBytes": 6779321,
+      "globalCommand": true,
+      "missingOptional": true,
+      "emptyAppPath": true,
+      "live": true,
+      "append": true,
+      "fixedSnapshot": true,
+      "web": true,
+      "platformVersion": "0.3.0-darwin-arm64"
+    },
+    "node26": {
+      "package": "@wangyan9110/wombat",
+      "version": "0.3.0",
+      "target": "darwin-arm64",
+      "runtime": "v26.4.0",
+      "installMs": 309,
+      "downloaded": [
+        "wangyan9110-wombat-0.3.0-darwin-arm64.tgz",
+        "wangyan9110-wombat-0.3.0.tgz"
+      ],
+      "installedBytes": 19281316,
+      "downloadBytes": 6779321,
+      "globalCommand": true,
+      "missingOptional": true,
+      "emptyAppPath": true,
+      "live": true,
+      "append": true,
+      "fixedSnapshot": true,
+      "web": true,
+      "platformVersion": "0.3.0-darwin-arm64"
+    },
+    "ciYamlParsed": true
+  },
+  "limitations": [
+    "Five-platform assembly/install CI has not run for these changes.",
+    "Node24, older macOS, Windows/Linux binaries and OS browser opening are not locally accepted.",
+    "A temporary loopback registry supplied exact candidate tarballs; no public registry installation or publication.",
+    "Node22.0.0 is a compatibility test baseline, not a recommended security patch version."
+  ]
+}

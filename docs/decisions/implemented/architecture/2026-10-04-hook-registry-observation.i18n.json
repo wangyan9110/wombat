@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-bind-native-hook-registry-observations-by-project": {
+      "zh": "52f1c9d521b43e02c763b2be116e792b8fcb4d9dc3b6678721558cd307a8022c",
+      "en": "8000f5bcf761a1e3c5b193a97030dcc93a594ff43e059241f48f27aaaf4a361d"
+    },
+    "/decision-bind-native-hook-registry-observations-by-project/problem": {
+      "zh": "87bcd50914364d0a2315f197c683d25532e7db01a76943a6b3268335f6c4ebae",
+      "en": "42ae7fd33d8f20cada912a8210d2bf229bda8d4fe237cb66953072c3fecc73f6"
+    },
+    "/decision-bind-native-hook-registry-observations-by-project/decision": {
+      "zh": "12d0b901a426afbd0307e43d5bb7a3f6fb03d883d4e73ea8a548bd286872f18a",
+      "en": "bbf3458d1c225829b64d896056e602bb695a736d34eddfc514b962d34f5dd3a4"
+    },
+    "/decision-bind-native-hook-registry-observations-by-project/alternatives-considered": {
+      "zh": "447aa75607abf9f44225ad2b320ce232f5b413019605b9dd80df4c1d2961d759",
+      "en": "19a8af66450dfdcbeb5007b656f802987366cf5c7697a85c0c3b65940702cfb2"
+    },
+    "/decision-bind-native-hook-registry-observations-by-project/impact-and-validation": {
+      "zh": "d7c7756fe1ac31a0179df91b64d55c7819ae1121a42dc2ceef079b916b799363",
+      "en": "f7dc03dd2cc7c02d643d52d831da255ec1dcaa76c2025968d655ee7a4f7c413b"
+    }
+  }
+}

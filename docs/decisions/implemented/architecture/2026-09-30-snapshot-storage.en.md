@@ -4,6 +4,8 @@
 
 Status: implemented
 
+The prior compatibility decision is superseded by [current formats before the first release](2026-10-03-current-format-only.en.md).
+
 Extracted from the version-one specification on 2026-09-30, covering explicitly saved v3 snapshots. The current SQLite live index coexists with snapshots; its full extension goals remain in the [live usage proposal](../../proposed/architecture/2026-09-30-live-usage.en.md).
 
 ## Problem

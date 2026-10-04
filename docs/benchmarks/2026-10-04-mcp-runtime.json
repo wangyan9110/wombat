@@ -1,0 +1,213 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Native MCP tool attempts, explicit resource reads, turn-scoped identity and fork replay; no inference from name prefixes or discovery",
+  "platform": "darwin-arm64",
+  "runtime": {
+    "node": "26.4.0",
+    "rust": "1.98.1",
+    "codex": "0.160.0"
+  },
+  "build": {
+    "sourceSha256": "d627aa844e137ca7ae49f36892eedeee6f9f3e85b7f1a65816326a2134511f80",
+    "coreSha256": "0267e89022c08ba5e9f1b58422d5c2ae71131a04f438a38d7f3b9d8e10111a58",
+    "webAssets": [
+      {
+        "path": "web/assets/index-B1K2DqtF.js",
+        "sha256": "efb42a54c9f27a91b79d721e3830525375040ab78da2e077e359def7f2d373f8"
+      },
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f"
+      }
+    ]
+  },
+  "formats": {
+    "codexAdapter": "codex-rollout-2",
+    "inventoryCache": "config-v2",
+    "reviewUserVersion": 3,
+    "compatibilityOrMigration": false
+  },
+  "primarySources": [
+    {
+      "url": "https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/protocol/src/protocol.rs",
+      "sha256": "d3d3d384da91b2824c10091de4331a2bc26ec5474887ed0aef1e3f3c4ae110f4"
+    },
+    {
+      "url": "https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/protocol/src/items.rs",
+      "sha256": "9beedaaebaf8812ece5907cef9bb3f99e104df26770a888e888b987ac3e4b96e"
+    },
+    {
+      "url": "https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/rollout/src/policy.rs",
+      "sha256": "9963db1dad94a26dbddcfd9792624ff975615c795bb212c12d0f9441db1ad395"
+    },
+    {
+      "url": "https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/core/src/skills.rs",
+      "sha256": "984e9e4de3deb02013a3857c290076471ed8411a21d1180399115db59825cbf3"
+    },
+    {
+      "url": "https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/core/src/tools/handlers/mcp_resource.rs",
+      "sha256": "ae33c724a1abad5d229fb7137888d23326e154cd59523b9bd1388e10aabf9820"
+    },
+    {
+      "url": "https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/core/src/tools/handlers/mcp_resource/read_mcp_resource.rs",
+      "sha256": "e4248b15c7d05973d3a1623640ea760945fd094bb3f2976cc07209bc4b72800c"
+    }
+  ],
+  "verification": {
+    "build": true,
+    "fullSuite": {
+      "passed": 309,
+      "rust": 152,
+      "client": 30,
+      "ui": 54,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 34,
+      "ignoredResourceTests": 1
+    },
+    "typecheck": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "generatedContracts": true,
+    "native": {
+      "isolatedSchemaGeneration": true,
+      "version": "0.160.0",
+      "modelTaskExecuted": false,
+      "mcpServerExecuted": false
+    },
+    "behavior": [
+      "native legacy and paginated events override ambiguous prefix identities",
+      "failed attempts and distinct retries count; list/template discovery and unverified prefixes do not",
+      "explicit resource requests count separately and missing reserved-name classification remains unknown",
+      "same call identifier is independent across turns; physical anonymous records are not content-deduplicated",
+      "fork copies merge only with a recorded ancestor sharing upstream turn and native identity",
+      "conflicting child identities remain conflicting after ancestor projection",
+      "empty call identity cannot prove resource usage",
+      "append, fixed view and restart preserve exact counts; CLI and HTTP share evidence",
+      "associated token ledger remains 110 across repeated evidence, resource reads and retries",
+      "arguments, resource URIs and result/error bodies do not appear in projected responses",
+      "native MCP tool named read_file remains a tool call",
+      "resource-only review activity uses total observed uses; unavailable history and incomplete zero counts stay unknown"
+    ],
+    "browser": [
+      {
+        "language": "zh",
+        "width": 320,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "toolCalls": 2,
+        "resourceReads": 1,
+        "relatedTokens": 110,
+        "attemptRows": 3,
+        "noPayloadLeak": true,
+        "noOverflow": true,
+        "focusRestored": true
+      }
+    ],
+    "visualInspection": [
+      "Chinese 320px separate tool/resource counts and unknown file reads",
+      "English 1440px matching list/detail counts, deduplicated 110 tokens and keyboard focus"
+    ],
+    "repositoryChecks": {
+      "passed": true,
+      "bilingualPairs": 55,
+      "maintenanceTests": 13
+    }
+  },
+  "failuresResolved": [
+    "Old file-read test assumed returned text was success. It now asserts two unknown outcomes and no successful load, matching the evidence contract.",
+    "Hook handoff test selected targets[0], sometimes an instruction file; selection now uses the Hook item identity, retaining the original project assertion.",
+    "Architecture review found a conflicting fork observation could lose its conflict marker when merged into a reliable ancestor; conflict is now sticky in both directions."
+  ],
+  "resourceNotes": {
+    "persistedArgumentsOrBodies": false,
+    "persistedAdditionalOperationFields": false,
+    "replayIndexBorrowsIdentities": true,
+    "wholeScanPerformanceMeasured": false,
+    "remaining": "Fork replay currently walks ancestor chains per operation. Deep-fork cost, large encoded argument allocation, million-record and 24-hour resource goals still require work and measurement."
+  },
+  "boundaries": [
+    "This is synthetic product-chain verification plus exact-version primary source and native schema inspection; it is not a live model or MCP execution test.",
+    "Skill invocation, Hook runtime and MCP prompts are not inferred from unavailable durable records; full historical coverage and absence remain unknown.",
+    "No new claim for 256MiB memory, whole-scan speed, disk limits, million-record scale or 24-hour operation.",
+    "Other operating systems, full page journeys, continuous idle/resource/adoption rules and release acceptance remain incomplete.",
+    "No product acceptance message, publication, commit or push in this increment."
+  ]
+}

@@ -2,44 +2,52 @@
   "version": 2,
   "sections": {
     "/cli-and-automation": {
-      "zh": "a9a73eb94abed254fd64f35b5c1c92efc664a2c974270f198893ab1b216c5949",
-      "en": "99b07bc8c6206f3d0c34bc177ae7b81781a69f1935b303313349674517aad964"
+      "zh": "f8bbdb00c44e5c90703ab9705ccd8ef61473a4496f359ceafc0c9506fe41b0b6",
+      "en": "a79d3458695f56160cb645f84d9307dca8cc3164897c3d0ce470e4e77865e659"
+    },
+    "/cli-and-automation/codex-skill": {
+      "zh": "7114c71b1496ce758a773bb499c1dd5415381bc4f7142449afdcc9c4e9f1a6ae",
+      "en": "d77a57c55b8e2bdc81a2b29044a179c142f6642198fea8b46287a543aa2f0add"
     },
     "/cli-and-automation/language": {
       "zh": "cfeb3518580569b9e18e81faff0c4e1c5c22c77d25820978f49c8948d44e0b14",
       "en": "cfcd29aa701e358926ef720610ea8bfd04163393062050e955faa3d7c94f0d81"
     },
     "/cli-and-automation/automatic-synchronization": {
-      "zh": "7675a063a7923b1e10abcc22b8336accab97ac55e2b88cc06af602244ada82c5",
-      "en": "82f7853eba58c1b6bfa2d9ccb7ab6022af19a81652701e2aad3a09ee7440db27"
+      "zh": "e655173fd246ce68de526f097d3f262691ebf6bb28fd33e7509aa98e1115e565",
+      "en": "fc83d0b53fddcec0315b27e418a9f874f129df3aac2b77cbbde6643750ab163d"
     },
     "/cli-and-automation/official-price-catalog": {
       "zh": "3e21a5311caf73994096301e2a6cd457372d029b55552c06146778a8db92ed46",
       "en": "637d7ed13d58ea6ca9ae10fdc6121d10eb986d3425b93e1e69db36d84fca9d53"
     },
     "/cli-and-automation/filtering-and-pagination": {
-      "zh": "6cb2d7ea081d645ed063845b9f234d6271e90e2bb339e49a73f75524dca449b6",
-      "en": "0474a4be922866a0419871a2665089f1324b9a1a85a2374bb41af6e1a94e5ff9"
+      "zh": "fc22fef1f4e0e6d3e1ebe09e5e1b7a4679a8dfae27a285fa842bb614c115a36b",
+      "en": "91b096d08e7d12ff97bc2dea5e341d2f5dcca763cf9b255ee70bd512dc5e0898"
     },
     "/cli-and-automation/json": {
       "zh": "31e897a6761cbe04ec1101f754f6d5c3123688785f70dbc10bed2cfd7864e178",
       "en": "642d1f21b19a1c38e49f9f437fdfb90a15fe99cc919577bc7e6c4252242779e7"
     },
-    "/cli-and-automation/legacy-migration": {
-      "zh": "069ba413db3d049fca1d437591d9658ce511c0859fff31aa2b5569f9b060b21a",
-      "en": "9c52f2d8be52973bd8bd47f7cdac74b840250364a78fc3e8f225601c85f26115"
+    "/cli-and-automation/current-formats": {
+      "zh": "a93aa190b4e25bd794be159a6f2e2cd4a80875550ba27835fd31adf790d77a6b",
+      "en": "1290c8227ed5c110148ec3c866bb17550c0ebd538d853ab2a2e7ae67c9cb22c9"
     },
     "/cli-and-automation/local-web": {
       "zh": "7b43eb1463913ef50fcb482891bbc8ce440575efa7f127890b078327bd321ffa",
       "en": "0a3f3bd2e782c0e43db54b86abacccf4bbf5d2f027b0618cb2d4951436556f4b"
     },
     "/cli-and-automation/read-only-configuration": {
-      "zh": "05cbfdee332046e3d597d5f2033675b78dc1cc45ec2896f3f1365fe20e22265b",
-      "en": "a19c45f2e0af9589a4a336e72bcafb7dfefca19f3476abe5a524f16f88d6c72d"
+      "zh": "8e32b7cb2274aecdb1b9f6d47b235844c292e5427a821a0da345e34ce29868d7",
+      "en": "0607e2f78ea67c8f3de69ea2ae60326a77275d1097989a3af21c031be129dcd8"
     },
     "/cli-and-automation/static-suggestions-and-manual-rechecks": {
-      "zh": "20b48c7010ededfff2604b799cef8dca02c997333622806ffdc66a690c9343ee",
-      "en": "ffbc07c5288d4f8d4d1beadd1837765917602b064d23582b32f0dec4360bbf86"
+      "zh": "8652ac03dc58951a51d05a4f823e1ef8731d79307e6fe5c7efb79681dac576bc",
+      "en": "c652ac43fa1a3244c8af01f19026f7708d8b9e172f8e9389e2f87be9fb4972cf"
+    },
+    "/cli-and-automation/local-codex-handoff-and-account": {
+      "zh": "ba839b9ac425a3743b04783b901a80634cb1d0402ea8dbf4816e058e8ce937b2",
+      "en": "e2cc1b21b354109aad0f8d74e9b40599dc3c4fe96d158bfe70a909f2676ae96a"
     }
   }
 }

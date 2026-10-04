@@ -1,0 +1,93 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Product acceptance fixes F01/F02/F03",
+  "platform": "darwin-arm64",
+  "build": {
+    "sourceSha256": "3a978ecb12d5fc0e5708bb87f0180fa3d7675b02409ac54e159d8ff8ec880447",
+    "coreSha256": "765c2355fd3a21f548cb83dbb2ebce2a02b733ec5eccf22f27a1f0185cc403f6"
+  },
+  "verification": {
+    "build": true,
+    "buildIdentity": true,
+    "typecheck": true,
+    "ui": {
+      "passed": 64,
+      "command": "TSX_TSCONFIG_PATH=ui/tsconfig.json node --import tsx --test ui/tests/*.test.ts"
+    },
+    "localeCli": {
+      "passed": 13,
+      "files": [
+        "client/tests/locale.test.ts",
+        "cli/tests/config.test.ts"
+      ]
+    },
+    "handoff": {
+      "passed": 4,
+      "files": [
+        "tests/e2e/handoff-delivery.test.ts",
+        "tests/e2e/handoff-cancellation.test.ts",
+        "tests/e2e/handoff-account.test.ts"
+      ]
+    },
+    "repoCheck": true,
+    "diffCheck": true
+  },
+  "evidence": {
+    "syntheticOnly": true,
+    "modelCalls": false,
+    "screenshots": false,
+    "performanceTests": false,
+    "buildLogSha256": "c005cc9d1a66e4702b07a9aa69466b9fbc55d3ac533160a80478a23656de656d",
+    "uiLogSha256": "1dbd0d5b27806367d34c14a25519a4288e2c0db837c5b0492009d5c83cdfbceb",
+    "localeCliLogSha256": "9d38dfd517ad6a53b976bc795a480d870cd7604ccfeeea5d3f0535ff617f8128",
+    "handoffLogSha256": "cbd9bc5a3a9229cbbeab9221894c059e107f76daede38fe99da17db87d86b89c",
+    "typecheckLogSha256": "29aac5d005d2698852203b886044572d6ed885ef0923c989a85af639d2cf1859",
+    "repoCheckLogSha256": "d59506bd492f408e9535e9ec0cfc207b9d30d0de930adc7b0f6a268c78b721f4",
+    "handoffTestSha256": {
+      "tests/e2e/handoff-delivery.test.ts": "d939a39c3aa33aa77bb1c6e04c4e6118ad8aaba6bafb16c023414320d6e6d90e",
+      "tests/e2e/handoff-cancellation.test.ts": "ac9c6b3ede7ef83188e13751f7dafed4c7807c8217bce77392c41c116e4e06e1",
+      "tests/e2e/handoff-account.test.ts": "fc0cd6ed456261bc27e717165a0d69b3c25dbca7668309e331921b7a0e931546"
+    }
+  },
+  "findings": [
+    {
+      "id": "F01",
+      "state": "implementedPendingProductRecheck",
+      "behavior": [
+        "Send failures use a send-specific heading and executable installation/path recovery.",
+        "Read failures and expired-session recovery remain separate.",
+        "Unknown delivery is distinct; retry reopens review and no automatic resend is introduced.",
+        "Isolated Node and Web HTTP missing-binary sends return CODEX_UNAVAILABLE without resolving suggestions; rejection, unknown acceptance and cancellation remain distinct."
+      ]
+    },
+    {
+      "id": "F02",
+      "state": "implementedPendingProductRecheck",
+      "behavior": [
+        "Instructions mention AGENTS.md; Extensions mention Skills/MCP/Hooks.",
+        "Both preserve the unknown historical-version boundary.",
+        "Extension token columns and shared sorting/detail labels use Estimated tokens.",
+        "The unified CLI inventory retains its all-kind scope note."
+      ]
+    },
+    {
+      "id": "F03",
+      "state": "implementedPendingProductRecheck",
+      "behavior": [
+        "Task headings and related records use localized Untitled task for missing or blank titles.",
+        "Full snapshot and task/turn identities remain available behind closed disclosure.",
+        "Related usage has one visible nonexclusive/not-savings warning; detailed counting, filtering, cost and version explanations remain available on demand.",
+        "The trend keeps its known-date boundary and partial-record warning visible; detailed composition explanation is collapsible.",
+        "Totals, unknown prices, partial history and pinned exact-turn navigation are retained."
+      ]
+    }
+  ],
+  "boundaries": [
+    "The original product acceptance result and nine existing requirement-gap groups remain unresolved; these three fixes do not establish full product acceptance.",
+    "SSR structure and local CLI/HTTP behavior tested; interactive browser, responsive visual and other-platform acceptance not performed.",
+    "Rust algorithms and public DTOs unchanged; no repeated Rust or performance test claimed.",
+    "The earlier npm candidate predates these fixes and does not validate the new frontend.",
+    "No compatibility logic, receipts, historical-send deduplication, publication, commits or pushes."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-simple-local-codex-handoff-and-independent-account-reads": {
+      "zh": "d029523f3d454d90df018a8513f6c56add7d818df5cf5845f31f8ce9ba20c455",
+      "en": "b403224f7a0ebf3ae164134d6ddcd0b17c13dd62d09187c9d6d17954e9c3eccd"
+    },
+    "/decision-note-simple-local-codex-handoff-and-independent-account-reads/problem": {
+      "zh": "0e9358a9b6b9b0c9c8ee44ef50839b95643cc43b4fd44c60906f316ae99a107e",
+      "en": "4be530c04522a45105ce9f4ddc6ed12d4ff909368deae85868b140fae9c32ba8"
+    },
+    "/decision-note-simple-local-codex-handoff-and-independent-account-reads/decision": {
+      "zh": "b809696c7d6d79046af4540c8f5731b869ca402270fcb2273c2020477b782971",
+      "en": "f57a168e20e65f3aa27f84260d042aa71c6154ebcf9166671f9ba1a9ad79e5ce"
+    },
+    "/decision-note-simple-local-codex-handoff-and-independent-account-reads/alternatives-considered": {
+      "zh": "ff4ec64fec9f2d36125a60e2104493b846dd59c7b90fce03c3b0afec4a632b8b",
+      "en": "5b0c9a4613ad1d29660d0a42149730000d3c4b37566c866103013695d7abbf57"
+    },
+    "/decision-note-simple-local-codex-handoff-and-independent-account-reads/impact-and-verification": {
+      "zh": "b4869b12cca6b752d33179cf7b856706661d2e45fb765178f41c07a00c9d4daf",
+      "en": "555350a871c737c0d6820a20c3b42c2f66116abe72badd30662bdfac60f044ab"
+    }
+  }
+}

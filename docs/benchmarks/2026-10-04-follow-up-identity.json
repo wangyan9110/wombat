@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Follow-up time ordering and full-inventory MCP ownership",
+  "platform": "darwin-arm64",
+  "build": {
+    "sourceSha256": "cdbc3f0f108ecc8302c4b1b8f272d94325b4a2d9ea349e6dcdcb3f0e7d82b4f3",
+    "coreSha256": "765c2355fd3a21f548cb83dbb2ebce2a02b733ec5eccf22f27a1f0185cc403f6"
+  },
+  "verification": {
+    "build": true,
+    "buildIdentity": true,
+    "rustFmt": true,
+    "clippyWarningsDenied": true,
+    "rust": {
+      "passed": 174,
+      "ignoredResourceTests": 1
+    },
+    "cliApi": {
+      "passed": 3,
+      "files": [
+        "tests/e2e/follow-up.test.ts",
+        "tests/e2e/config.test.ts",
+        "tests/e2e/config-upgrade.test.ts"
+      ]
+    },
+    "repoCheck": true,
+    "diffCheck": true
+  },
+  "fixtures": {
+    "syntheticOnly": true,
+    "rustTestSha256": "9c71e4f6c8b2544cef412c191ffe1bad30156d0516a259f2b842fe3ded77e9d1",
+    "rustLogSha256": "abd952ed705d7548a6298fa771aa2d089148a287fa1a036d3765dc4bdd5a3f7b",
+    "cliApiLogSha256": "6b27b49ce8d880bdf983eeb7bd07732f6c50c21026c9bbbfa33f59981f10d52e",
+    "repoCheckLogSha256": "0fe0473bb6f1d017082585c51c266a5ef9650309f080f854e37f24086e0ed0df"
+  },
+  "behavior": [
+    "Out-of-order fractional and equivalent-timezone timestamps select the latest actual instant.",
+    "Competing physical MCP declarations outside the requested history page prevent attribution.",
+    "Ambiguity without attributable events is unavailable with null count and last time.",
+    "A noncompeting project and multiple rechecks of one object retain canonical failed attempts with replay deduplicated.",
+    "CLI/API fixed views, restart, independent decisions, review time and ledger association remain intact."
+  ],
+  "boundaries": [
+    "No public-field, frontend, persistent-layout, receipt, compatibility or migration change.",
+    "No browser, screenshot, performance or model execution in this increment.",
+    "The earlier 344-test regression belongs to its original build and is not claimed for this build.",
+    "Confirmed adoption, runtime recurrence, continuous rules, full faults and other platform acceptance remain unfinished; no batch acceptance request."
+  ]
+}

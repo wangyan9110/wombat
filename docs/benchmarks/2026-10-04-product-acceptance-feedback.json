@@ -1,0 +1,211 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "scope": "Product acceptance feedback registration only",
+  "platform": "darwin-arm64",
+  "build": {
+    "sourceSha256": "cdbc3f0f108ecc8302c4b1b8f272d94325b4a2d9ea349e6dcdcb3f0e7d82b4f3",
+    "coreSha256": "765c2355fd3a21f548cb83dbb2ebce2a02b733ec5eccf22f27a1f0185cc403f6",
+    "identityVerified": true
+  },
+  "verdict": {
+    "boundedLocalMacTrial": true,
+    "fullAcceptancePassed": false,
+    "counts": {
+      "satisfied": 10,
+      "unsatisfied": 12,
+      "insufficientEvidence": 26
+    },
+    "cases": {
+      "satisfied": [
+        "A05",
+        "A08",
+        "A19",
+        "A21",
+        "A23",
+        "A37",
+        "A38",
+        "A39",
+        "A42",
+        "A48"
+      ],
+      "unsatisfied": [
+        "A18",
+        "A20",
+        "A22",
+        "A25",
+        "A26",
+        "A27",
+        "A28",
+        "A29",
+        "A34",
+        "A40",
+        "A41",
+        "A46"
+      ],
+      "insufficientEvidence": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A06",
+        "A07",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A17",
+        "A24",
+        "A30",
+        "A31",
+        "A32",
+        "A33",
+        "A35",
+        "A36",
+        "A43",
+        "A44",
+        "A45",
+        "A47"
+      ]
+    }
+  },
+  "receivedEvidence": {
+    "checksSha256": "da7024f1dd6375fb7f2ea3b4a11985f3fe31bfc751a087ead730ce4d788cc081",
+    "reportSha256": "fe926698e77e7dfbfee16fc002c19b9917e1551f9feb1c3dd3b406437bd408c8",
+    "verifiedHashCount": 13,
+    "reportedFocusedTests": {
+      "cliHttp": 14,
+      "stateCopy": 18,
+      "total": 32,
+      "notFullRegression": true,
+      "notRerunHere": true
+    }
+  },
+  "issues": [
+    {
+      "id": "F01",
+      "priority": "P2",
+      "kind": "productIssue",
+      "assessment": "confirmedInSource",
+      "locations": [
+        "ui/src/optimize/Handoff.tsx:40",
+        "ui/src/Feedback.tsx:10",
+        "client/src/locale/zh.ts",
+        "client/src/locale/en.ts"
+      ],
+      "requirement": "Send-stage heading and recovery guidance; retain definite failure versus unknown delivery and no automatic uncertain resend.",
+      "state": "registeredAwaitingUserDirection"
+    },
+    {
+      "id": "F02",
+      "priority": "P2",
+      "kind": "productIssue",
+      "assessment": "confirmedInSource",
+      "locations": [
+        "ui/src/ConfigView.tsx:42",
+        "ui/src/Inventory.tsx",
+        "client/src/locale/zh.ts",
+        "client/src/locale/en.ts"
+      ],
+      "requirement": "Page-specific Instructions/Extensions scope copy and Estimated tokens for extensions.",
+      "state": "registeredAwaitingUserDirection"
+    },
+    {
+      "id": "F03",
+      "priority": "P2",
+      "kind": "experienceRefinement",
+      "assessment": "versionAndUntitledFallbackConfirmed;densityIsProductJudgment",
+      "locations": [
+        "ui/src/ThreadsView.tsx:18",
+        "ui/src/ReviewUsage.tsx:24"
+      ],
+      "requirement": "Prioritize titles/turns/time and disclose full technical identities on demand, retaining necessary coverage/accounting notices.",
+      "qualification": "Related records already use disclosure; not all hashes are expanded by default. No full visual acceptance.",
+      "state": "registeredAwaitingUserDirection"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "G01",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Complete Skill/Hook runtime and MCP prompts"
+    },
+    {
+      "id": "G02",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Reliable MCP definitions and text/token measurement"
+    },
+    {
+      "id": "G03",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Automatically added context inventory and recorded counts, independent from duplicate detection"
+    },
+    {
+      "id": "G04",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Actual same-request duplicate injection provenance"
+    },
+    {
+      "id": "G05",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Continuous 30-day enabled inactivity with complete coverage"
+    },
+    {
+      "id": "G06",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "14-day worktree/temp/cache ownership, protection, running-task and recovery conditions"
+    },
+    {
+      "id": "G07",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Complete task/overall rapid-check predicates and modifiable locations"
+    },
+    {
+      "id": "G08",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Reliable natural adoption, recurrence and optimization-usage reconciliation"
+    },
+    {
+      "id": "G09",
+      "kind": "existingRequirementGap",
+      "state": "registeredAwaitingUserDirection",
+      "requirement": "Windows Hooks, five-platform release set and public release; fault/platform/keyboard/multiwidth evidence remains separate. Tauri is future desktop scope."
+    }
+  ],
+  "invariants": [
+    "No ledger-subset double counting or zero-filled unknown prices.",
+    "Unified token/cost drawer and exact-turn return remain intact.",
+    "Static success/text changes do not prove adoption or savings; no records is not zero.",
+    "Later user decisions supersede old historical-send-deduplication and execution-receipt criteria."
+  ],
+  "boundaries": {
+    "implementationStopped": true,
+    "productSourceOrArtifactsModified": false,
+    "privateEvidenceCopiedToPublic": false,
+    "privateLinksRequiredByPublicBuild": false,
+    "newFunctionalTestsRun": false,
+    "screenshots": false,
+    "performanceTests": false,
+    "modelCalls": false,
+    "commit": false,
+    "push": false,
+    "publication": false
+  },
+  "verification": {
+    "documentationCheck": true,
+    "diffCheck": true,
+    "documentationLogSha256": "dc108b6d2344c6ac236d840f897fef36e2c1526453868530e018373a1a341bd4"
+  }
+}

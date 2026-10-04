@@ -1,0 +1,144 @@
+{
+  "format": 1,
+  "date": "2026-10-04",
+  "environment": {
+    "platform": "darwin-arm64",
+    "node": "26.4.0",
+    "browser": "Isolated headless Chrome"
+  },
+  "build": {
+    "sourceSha256": "7b5668ea337ac8ad322925d78f0cc4be7597f3ee8b434f9dd7656a01559244bd",
+    "files": [
+      {
+        "path": "web/assets/index-Dc_dYdCg.js",
+        "size": 475968,
+        "sha256": "48ed1bb72c2b4a8a1367df6844d49d2943234e56fe898941d9f2b6fc37a92b18",
+        "executable": false
+      },
+      {
+        "path": "web/assets/index-Ni1KtlJm.css",
+        "size": 54912,
+        "sha256": "a895738c40f4d866df439fe07e4ea6084b437706f6cc178e824cbcf9c2747d9f",
+        "executable": false
+      },
+      {
+        "path": "web/index.html",
+        "size": 352,
+        "sha256": "88cff5e706970e3ec698c869e7f890b73bdbb51180dfa1dfd4f8c85552766122",
+        "executable": false
+      },
+      {
+        "path": "wombat-core",
+        "size": 14406352,
+        "sha256": "c417829a4b012a513e7474e80e81437f3fffc424597a150a53926b5f0ee28055",
+        "executable": true
+      }
+    ]
+  },
+  "source": "Synthetic native Codex 0.160.0 responses via the real Node/Rust/HTTP pipeline; no real account or model execution",
+  "verified": {
+    "report": [
+      {
+        "language": "zh",
+        "width": 320,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 390,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1280,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      },
+      {
+        "language": "zh",
+        "width": 1440,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 320,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 390,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1280,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      },
+      {
+        "language": "en",
+        "width": 1440,
+        "noOverflow": true,
+        "readonly": true,
+        "focusRestored": true
+      }
+    ],
+    "sharedRead": true,
+    "dateIndependent": true,
+    "usableDuringUsageRead": true,
+    "staleRetained": true,
+    "accountChangedCleared": true,
+    "recovery": true,
+    "methods": [
+      "account/rateLimits/read",
+      "account/read",
+      "account/usage/read",
+      "initialize"
+    ]
+  },
+  "cli": {
+    "json": true,
+    "text": true,
+    "originalDecimal": "0.0000000000000000001",
+    "spendLimit": "100.000",
+    "nativeResetCount": 7,
+    "returnedResetDetails": 1,
+    "windows": 3
+  },
+  "limits": [
+    "Browser evidence applies to the recorded build. Required-field completeness was subsequently tightened and verified by Rust and integration regressions.",
+    "A preliminary shared-read count check included a concurrent CLI run; isolated reruns passed.",
+    "The development host caches assets at startup. It was restarted after final UI changes before these screenshots and checks.",
+    "No real upstream account, other platform, sending-limit policy or whole-product acceptance is established."
+  ],
+  "finalRegression": {
+    "sourceSha256": "fdfd2ec2b511087f1db4ea16a6ef400937b4690d711ed67f2a7b3b7d968873e4",
+    "coreSha256": "b520f23db2835e229a64359c94551f9781894a2666fefaf8c60ea5d400a73f49",
+    "passed": {
+      "rust": 125,
+      "client": 29,
+      "ui": 50,
+      "web": 7,
+      "cli": 16,
+      "integration": 16,
+      "e2e": 28
+    },
+    "ignoredRust": 1,
+    "types": true,
+    "contracts": true,
+    "rustFmt": true,
+    "rustClippy": true
+  }
+}

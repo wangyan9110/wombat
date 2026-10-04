@@ -239,6 +239,56 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-03-npm-platform-distribution.md",
       "en": "docs/decisions/implemented/architecture/2026-10-03-npm-platform-distribution.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-03-npm-platform-distribution.i18n.json"
+    },
+    {
+      "zh": "docs/project/optimization-lifecycle.md",
+      "en": "docs/project/optimization-lifecycle.en.md",
+      "record": "docs/project/optimization-lifecycle.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-03-current-format-only.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-03-current-format-only.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-03-current-format-only.i18n.json"
+    },
+    {
+      "zh": "docs/project/codex-skill.md",
+      "en": "docs/project/codex-skill.en.md",
+      "record": "docs/project/codex-skill.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-03-native-codex-handoff.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-03-native-codex-handoff.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-03-native-codex-handoff.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-initial-task-preview.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-initial-task-preview.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-initial-task-preview.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-hook-registry-observation.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-hook-registry-observation.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-hook-registry-observation.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-mcp-runtime-evidence.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-mcp-runtime-evidence.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-mcp-runtime-evidence.i18n.json"
+    },
+    {
+      "zh": "docs/project/initialization.md",
+      "en": "docs/project/initialization.en.md",
+      "record": "docs/project/initialization.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-observed-project-discovery.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-observed-project-discovery.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-observed-project-discovery.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-skill-observation.i18n.json"
     }
   ],
   "legacyUnpaired": [],
