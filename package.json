@@ -31,6 +31,7 @@
     "licenses:check": "node scripts/dependency-licenses.mjs --check",
     "public:check": "node scripts/check-public-release.mjs",
     "release:prepare": "node scripts/prepare-release.ts",
+    "release:probe": "node scripts/probe-release-startup.ts",
     "release:check": "node scripts/check-release.mjs",
     "github:pack": "node scripts/prepare-github-release.ts",
     "github:verify": "node scripts/verify-github-release.ts",

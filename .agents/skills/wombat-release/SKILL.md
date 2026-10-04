@@ -21,6 +21,7 @@ description: 构建和发行 Wombat，准备 GitHub Release 独立归档，执�
 | 准备版本 | `corepack pnpm release:prepare -- --version <version>` | 同步版本和当前发布文档，重录明确的双语配对并刷新许可证清单；不提交、不打标签、不发布 |
 | 检查准备结果 | `corepack pnpm release:prepare -- --check` | 快速检查版本、双语记录、许可证清单和补丁格式；不替代完整发行门禁 |
 | 本机开发构建 | `corepack pnpm build` | 编译内核、客户端、Web 和 CLI；不代表发行验收 |
+| 无扫描启动探针 | `corepack pnpm release:probe` | 用不存在的来源目录启动共享服务并只读取能力声明，快速验证进程、套接字和 CLI 协议；要求已构建 `dist/` |
 | 完整发行检查 | `corepack pnpm release:check` | 格式、Rust lint、构建、类型、契约、产品测试、许可、仓库规则和公开源码 |
 | 本机开发候选 | `corepack pnpm github:pack -- --current-platform` | 生成并解压验证本机独立归档、校验和及 release-set；不上传 |
 | 五平台候选 | `corepack pnpm github:pack -- --native-dir <artifacts>` | 校验同版本/提交的五个平台内核、运行时和许可，组装全部归档；不上传 |
@@ -54,7 +55,7 @@ description: 构建和发行 Wombat，准备 GitHub Release 独立归档，执�
 1. 确认工作树和远端基线，选择唯一候选版本与标签 `v<version>`，执行 `corepack pnpm release:prepare -- --version <version>`。脚本先确认所有旧版本面一致，再统一更新根、`client`、`ui`、`web`、`cli`、Rust crate/锁文件、README、分发状态和实施状态，随后重录这三组双语配对并刷新许可证清单；任何预期文件缺失旧版本时停止，不提交、不打标签、不发布。
 2. 人工审阅脚本产生的补丁，尤其是版本阶段、当前状态、平台边界和中英文语义；版本断言从根清单读取，不在测试中复制当前版本字符串。审阅后执行 `corepack pnpm release:prepare -- --check`。发行工作流根据标签中的预发行段设置 Pre-release；稳定版仍使用同一工作流。
 3. 私有仓库只运行本机 `release:check`，GitHub 托管作业必须跳过。公开后只使用免费的标准 GitHub 托管运行器，不启用 larger runner；中间 Actions 产物保留 1 天。
-4. 最终代码和文档确定后运行一次完整 `release:check`。失败后先做最小修正和定向复验；只有源码、版本、发行脚本、锁文件或清单继续变化时才重新运行完整门禁，不对相同内容机械重复构建。`release:prepare --check` 只提供快速反馈，不能代替该门禁。
+4. 最终代码和文档确定后运行一次完整 `release:check`。门禁会在构建后先运行 `release:probe`，用无扫描能力请求快速定位共享服务启动、套接字或协议故障；后续产品测试仍负责真实扫描语义。失败后先做最小修正和定向复验；只有源码、版本、发行脚本、锁文件或清单继续变化时才重新运行完整门禁，不对相同内容机械重复构建。`release:prepare --check` 和 `release:probe` 只提供快速反馈，不能代替该门禁。
 5. 提交并推送候选，公开仓库后在同一提交运行五平台 CI。全部通过才创建并推送匹配标签；标签工作流负责重建、汇总、最终归档五平台安装验证、来源证明和 Pre-release 创建。
 6. 等待 Release 完成，读取 `release-set.json` 和 `SHA256SUMS`，从公开 URL 重新下载并核对五份归档。用版本化安装命令在仓库外干净前缀验收当前平台，再执行 `wombat update --check --version <version>`。
 7. 将真实运行、归档哈希、平台结果和未覆盖边界写入任务或 Release 验证结果；验收变化更新实施状态。发布失败保留失败证据并使用新的递增预览版本修复，不移动或覆盖已公开标签。

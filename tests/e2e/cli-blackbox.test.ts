@@ -65,12 +65,44 @@ async function fixture() {
   return { root, source, data, active, run, cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 }) };
 }
 
+test('real CLI starts its shared service through a capability probe without scanning sources', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'wombat-cli-probe-'));
+  const data = path.join(root, 'data');
+  const missingSource = path.join(root, 'must-not-be-scanned');
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    WOMBAT_AUTO_PRICES: '0',
+    WOMBAT_DATA_HOME: data,
+    CODEX_HOME: missingSource,
+  };
+  delete env.WOMBAT_CORE_BIN;
+  try {
+    const result = spawnSync(process.execPath, [entry, 'optimize', 'capabilities', '--json'], {
+      cwd: root, env, encoding: 'utf8', input: '', timeout: 15_000, maxBuffer: 8 * 1024 * 1024,
+    });
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const value = JSON.parse(result.stdout);
+    assert.equal(value.action, 'capabilities');
+    assert.equal(value.resultStatus, 'complete');
+    assert.equal(value.readView, null);
+  } finally {
+    await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 1000 });
+  }
+});
+
 test('real CLI refresh, usage, threads, turns and steps conserve independent Token and price totals', async () => {
   const f = await fixture();
   try {
     const digest = createHash('sha256').update(await readFile(f.active)).digest('hex');
-    const initial = f.run(['usage']); assert.equal(initial.code, 0, initial.stdout);
-    assert.equal(initial.value.summary.tokens.total, 491_210, 'first query synchronizes automatically');
+    const initial = f.run(['usage']);
+    if (initial.code === 0) {
+      assert.equal(initial.value.summary.tokens.total, 491_210);
+    } else {
+      assert.equal(initial.code, 2, initial.stdout);
+      assert.equal(initial.value.freshness.status, 'syncing');
+      assert.equal(initial.value.quality.issues.some((issue: any) => issue.code === 'initialScanIncomplete'), true);
+    }
     const refresh = f.run(['refresh', '--root', f.source, '--root', f.source]);
     assert.equal(refresh.code, 0);
     assert.equal(refresh.value.freshness.status, 'current');

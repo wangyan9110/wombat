@@ -30,7 +30,7 @@ test('managed installation verifies and atomically selects a downloaded release'
     writeFileSync(path.join(stage, 'release.json'), JSON.stringify({format: 1, version: '0.3.0', source, sourceSha256, target, runtime: {name: 'node', version: process.versions.node}}));
     const releases = path.join(root, 'release'); mkdirSync(releases);
     const archiveName = `wombat-${target}.tar.gz`, archive = path.join(releases, archiveName);
-    execFileSync('tar', ['-czf', archive, '-C', path.join(root, 'stage'), 'wombat']);
+    execFileSync('tar', [...(process.platform === 'win32' ? ['--force-local'] : []), '-czf', archive, '-C', path.join(root, 'stage'), 'wombat']);
     const body = readFileSync(archive), sha256 = createHash('sha256').update(body).digest('hex'), bytes = statSync(archive).size;
     writeFileSync(path.join(releases, 'release-set.json'), JSON.stringify({format: 1, version: '0.3.0', source, sourceSha256, assets: [{target, archive: archiveName, sha256, bytes}]}));
     writeFileSync(path.join(releases, 'SHA256SUMS'), `${sha256}  ${archiveName}\n`);
