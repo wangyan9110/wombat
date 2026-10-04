@@ -2,7 +2,7 @@
 
 [中文](event-upgrade.md) | English
 
-Updated 2026-10-04. Status: decomposed; product implementation has not started. The [design proposal](../decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md) owns architecture and semantics. This page tracks tasks, dependencies, and completion gates without redefining algorithms. Existing gaps remain in [implementation status](status.en.md); this upgrade does not replace previous product acceptance.
+Updated 2026-10-04. Status: batch-one baseline, contracts, and incremental prototype complete; product implementation starts in batch two. The [design proposal](../decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md) owns architecture and semantics. This page tracks tasks, dependencies, and completion gates without redefining algorithms. Existing gaps remain in [implementation status](status.en.md); this upgrade does not replace previous product acceptance.
 
 ## Scope and delivery principles
 
@@ -12,9 +12,11 @@ Expanded compare/watch, semantic classification, new inactivity/duplicate-inject
 
 Default to one reviewable change per task. Closely coupled format-switch tasks may form an integration batch with responsibility-based commits. Each integration point must build and preserve existing entry points. Synthetic development comparisons may compare old and new results, but the product must not retain dual ledgers, legacy-format readers, or automatic migration. Update implementation status only when the corresponding evidence is complete.
 
+User steering on 2026-10-04: intermediate batches run only independent tests for added or affected modules. Integration, end-to-end tests, and full regression are deferred to the final batch (U19). Prototype design builds on the existing internal design and stays in the internal workspace; the public specification has no private-file dependencies. Baseline integration completed before this steering is historical evidence, not authorization to repeat it mid-upgrade.
+
 ## Task list
 
-All 20 tasks below are not started. Assign owners and add commit/PR and verification evidence during execution; this planning change creates no remote issues or additional chats. Dependencies describe integration prerequisites; pure algorithms can start with synthetic data once input contracts are defined.
+U01–U03 are complete; U04–U20 await implementation. Assign owners and add commit/PR and verification evidence during execution; this planning change creates no remote issues or additional chats. Dependencies describe integration prerequisites; pure algorithms can start with synthetic data once input contracts are defined.
 
 ### Batch one: baseline and design
 
@@ -53,17 +55,17 @@ All 20 tasks below are not started. Assign owners and add commit/PR and verifica
 | U16 / D5 | Integrated turn detail; ui | U03, U14 timing/usage interfaces | Reuse summary; timeline/list fallback, Skill/MCP, evidence and sharing; browser acceptance for group refresh, focus/return, and late responses |
 | U17 / R3 | Rule assessment and recheck pages; ui | U03, U14 rule interfaces | Separate facts/decisions; evidence gaps, version changes, keep/redisplay/recheck journeys in both languages and narrow layouts |
 
-### Batch five: integrated acceptance
+### Batch five: module verification closure
 
 | ID / design stage | Task and primary ownership | Dependencies | Completion gate |
 |---|---|---|---|
-| U18 / D5, R3 | End-to-end consistency and failure regression; all modules | U15, U16, U17 | Full tests after build; same-version CLI/HTTP/Web equality, read-only raw logs, user-record protection, privacy counterexamples; report actual browser and target-platform evidence separately |
-| U19 / D2, D5, R3 | Resource and rebuild acceptance; core and hosts | U18; measurement plan defined in U01 | Release fixed-corpus cold-build/append/rebuild times, event/index/snapshot/WAL space, peak memory; distinguish target-turn and full-source scope, preserve results, avoid single-algorithm speed claims |
+| U18 / D5, R3 | Changed-module verification closure | U15, U16, U17 | Collect targeted independent module evidence and fix gaps; use synthetic or mocked inputs for UI/CLI tests; no integration or end-to-end tests in intermediate batches |
 
-### Batch six: delivery closure
+### Batch six: final integration and delivery
 
 | ID / design stage | Task and primary ownership | Dependencies | Completion gate |
 |---|---|---|---|
+| U19 / D2, D5, R3 | Final integration, failures, and resource acceptance; all modules | U18 | Build then run integration/end-to-end and full regression; same-version CLI/HTTP/Web, user records, privacy, browser/platform checks; release fixed-corpus cold/append/rebuild time, space/WAL and peak memory, with result equivalence |
 | U20 / Overall delivery | Current documentation and upgrade evidence; docs and release preparation | U18, U19 | Align support matrix, contracts, operation instructions, format rejection/recollection, and progress with code; update delivered decision status while retaining unfinished scope; bind artifacts/install evidence to platforms, without automatic publication or global installation |
 
 ## Execution order and milestones
@@ -75,13 +77,27 @@ Start U01 → U02, then U03 prototypes and U04 event adaptation. U10 and U11 can
 | M0 Executable design | U01—U03 | Contracts have truth fixtures, pages can be walked through, storage/history protection is explicit |
 | M1 Reliable data foundation | U04—U08 | Changing logs are collected correctly, existing usage is conserved, fixed views can be rebuilt |
 | M2 Correct metrics and rules | U09—U13 | Counts, timing, and rules have evidence while decision/recheck boundaries remain intact |
-| M3 Usable product | U14—U18 | Complete CLI/Web journeys and failure paths pass |
+| M3 Modules ready | U14—U18 | Entry-point implementation and independent module tests complete; integrated acceptance pending |
 | M4 Upgrade delivered | U19—U20 | Resource costs are verifiable and documentation/acceptance boundaries are complete |
 
-Early prototype or static-rule refactoring completion cannot bypass event-storage and accounting-consistency gates. U18/U19 consolidate existing task evidence and fill integration gaps rather than replacing stepwise checks with one final test. Do not mechanically rerun checks unaffected by later changes.
+Early prototype or static-rule refactoring completion cannot bypass event-storage and accounting-consistency gates. U18 consolidates independent module evidence; U19 fills integration gaps only in the final batch. Do not mechanically rerun checks unaffected by later changes.
 
 ## Risks and completion records
 
 Prioritize three risks: duplicate/missing accounting contributions after source replacement; incorrectly associating historical usage with current configuration; and storage/identity changes affecting user decisions. U02 must define verifiable protection before switching formats. Deliver source limitations as gaps rather than adding unauthorized collection to fill them.
 
 On closure, record scope, commit/PR, actual verification commands/results, corpus/build revisions, and remaining boundaries. Synthetic material can be public; real-log self-test output stays outside the repository. Documentation runs repo:check and diff checks; Rust and cross-language changes follow applicable repository gates; dependency changes add license review. Verify platforms, browsers, performance, and installation separately, never assuming untested items pass. Estimate overall effort after U01/U02 clarify field and storage impacts rather than promising a schedule upfront.
+
+## Batch-one record and frozen contracts · 2026-10-04
+
+The design and task list were committed and pushed in 411bd53. [Baseline evidence](../benchmarks/2026-10-04-event-upgrade-baseline.json) records the fixed source, synthetic fixture fingerprints, accounting truth, and actual checks. Build, 183 Rust tests, module tests, integration, and end-to-end tests passed. The initial sandbox denied a temporary socket; authorized local execution passed. Integration preceded the user steering; subsequent batches use only independent incremental-module tests until U19.
+
+U02 freezes these implementation constraints for the next batch; storage has not yet been upgraded:
+
+- Event keys combine source identity, file generation, complete-record byte offset, and typed-fact ordinal within that record. Appends retain the generation; truncation or a changed consumed prefix starts a new generation and replaces that source contribution. Paths and session identities are distinct.
+- Operation keys prefer source, reliable session/turn, and native call identity; starts, results, and streaming updates share the key. Without native identity, retain event-level candidates; do not merge by name, nearby time, or equal output. Existing accounting deduplication handles proven fork inheritance; independent calls stay separate.
+- Each commit fixes source generations, complete-line end offsets, and parser/projection versions. Incomplete trailing lines do not advance watermarks. Events, cursors, and projections commit together; cancellation or failure cannot publish half a version. Per-file watermarks do not prove a simultaneous directory-wide observation.
+- Occurrence time, observation time, native duration, and precision remain separate; missing values stay unknown. Rule inputs bind configuration content version, event projection version, host observation scope/time, method version, parameters, and evaluation cutoff; invalidate only related dependencies.
+- The next format uses rollout-6, live-v2/DB4, usage-v4/schema4, and protocol2 from design section 14. Preserve old index directories and explicit old snapshots and reject mixed reads. Preserve user-v1/reviews.sqlite3 independently; rebuilding neither opens its write transaction nor clears decisions, reasons, or baselines. Post-switch preservation checks belong to final integration.
+
+U03 extends the existing internal prototype while retaining navigation, task summaries, projects, and account structure. Execution, operation evidence, use counts, sharing, and five assessment outcomes are embedded in existing pages. Twenty added-module checks passed across two languages, wide/narrow screens, and four scenarios; screenshot review and field mapping are complete. The prototype uses synthetic data, is not a public-build dependency, and does not constitute product-interface acceptance. U01–U03 are closed; product features, performance, platforms, and final integration remain unfinished.

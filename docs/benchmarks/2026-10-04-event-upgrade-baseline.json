@@ -1,0 +1,66 @@
+{
+  "sourceCommit": "411bd53",
+  "scope": "pre-upgrade baseline; integration ran before user deferred integration to the final batch",
+  "results": {
+    "build": "passed",
+    "rust": {
+      "passed": 183
+    },
+    "unit": "passed",
+    "integration": "passed",
+    "e2e": {
+      "passed": 42
+    },
+    "initialFailure": "Sandbox denied a temporary Unix socket; same suites passed with local execution permission"
+  },
+  "truth": {
+    "usageFixture": {
+      "totalTokens": 5100,
+      "knownCostUsd": "0.0151225",
+      "unpricedTokens": 500
+    },
+    "privacySentinel": "SYNTHETIC_PRIVATE_BODY_NEVER_PERSIST"
+  },
+  "versions": {
+    "adapter": "codex-rollout-5",
+    "liveDirectory": "live-v1",
+    "liveDatabase": 3,
+    "snapshotDirectory": "usage-v3",
+    "snapshotSchema": 3,
+    "protocol": 1,
+    "userReviews": "user-v1/reviews.sqlite3",
+    "userReviewDatabase": 3
+  },
+  "fixtureSha256": {
+    "tests/integration/usage-v1.test.ts": "aac0f06a3863b18b6e44c52d131dd72c107135b6854a82e5ef4261076b6b2866",
+    "tests/e2e/static-rules.test.ts": "31e049e45df79ec04a73ed1eb01e707e783ec157b436ad7c4653bd3709913930",
+    "tests/e2e/follow-up.test.ts": "2648b37595df79e4ae4f700794f3b4bd35799b1297713216dc71b715cd8d8a05",
+    "tests/e2e/operation-status.test.ts": "1f8b48c63ff618517ae24c0fb2acb664f1c8b703c2e94b12f6a0a6d6b2cc8990"
+  },
+  "boundaries": [
+    "No performance result",
+    "No cross-platform result",
+    "No upgraded product implementation in this baseline",
+    "Source files read-only; reviews remain separate from derived index"
+  ],
+  "prototype": {
+    "base": "startup-20261004-11",
+    "location": "private design workspace; public build has no dependency",
+    "moduleChecks": 20,
+    "languages": [
+      "zh-CN",
+      "en"
+    ],
+    "viewportWidths": [
+      1440,
+      390
+    ],
+    "scenarios": [
+      "complete",
+      "missing",
+      "running",
+      "dense"
+    ],
+    "errors": 0
+  }
+}
