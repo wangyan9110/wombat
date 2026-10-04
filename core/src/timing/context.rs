@@ -23,6 +23,16 @@ type Associated<'a> = (
 /// reliable raw inputs remain governed by the authoritative measurements.
 /// O(E log E + M log M) time and O(E + M) space; callers must bound both inputs.
 pub fn summarize_events(measurements: &[Arc<Measurement>], events: &[Arc<Event>]) -> Statistics {
+    summarize_events_with_discontinuities(measurements, events, &[])
+}
+
+/// Source discontinuities may have no turn owner. They only terminate physical
+/// source segments; their payloads cannot contribute samples or compactions.
+pub(super) fn summarize_events_with_discontinuities(
+    measurements: &[Arc<Measurement>],
+    events: &[Arc<Event>],
+    discontinuities: &[Arc<Event>],
+) -> Statistics {
     let canonical: BTreeMap<_, _> = measurements
         .iter()
         .map(|value| (value.id.as_str(), value.as_ref()))
@@ -58,6 +68,19 @@ pub fn summarize_events(measurements: &[Arc<Measurement>], events: &[Arc<Event>]
             .entry(key)
             .or_insert_with(Vec::new)
             .push(event.as_ref());
+    }
+    for event in discontinuities {
+        if !event.gaps().is_empty() {
+            let position = event.position();
+            breaks
+                .entry((
+                    &position.source_instance_id,
+                    &position.file_id,
+                    &position.generation,
+                ))
+                .or_insert_with(Vec::new)
+                .push(position.byte_offset);
+        }
     }
     let conflicts: std::collections::BTreeSet<_> = identities
         .iter()
