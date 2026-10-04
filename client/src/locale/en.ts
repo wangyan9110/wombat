@@ -1,5 +1,15 @@
 import type { zh } from './zh.js';
 export const en = {
+"startup.explanation": "History is still being prepared. You can view discovered records while usage remains incomplete.",
+"startup.directories": "{count} working directories discovered",
+"startup.directories.one": "{count} working directory discovered",
+"startup.open": "View records",
+"startup.instructions": "View instructions",
+"execution.window": "Observed window {range}",
+"execution.unclassified": "Unknown",
+"startup.title": "Preparing history",
+"startup.details": "Read details",
+"preview.initial": "Initial read",
  "preview.skillRead": "SKILL.md · {status}",
  "execution.count.one": "{count} use",
  "preview.missing": "Missing timing",

@@ -2,7 +2,7 @@ import {t} from '@wombat/client/locale';
 import {accountFixture} from './account.js';
 import {configFixture,createRuleFixture} from './configuration.js';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type UsageSummary, type QueryOptions } from '@wombat/client';
-export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense'] as const;
+export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial'] as const;
 export type Scenario = typeof scenarios[number];
 const at = '2026-10-04T02:00:00Z';
 const page = {offset:0,limit:20,total:0,nextOffset:null};
@@ -17,6 +17,17 @@ export function createPreviewClient(scenario:Scenario):UsageClient {
  const rules=createRuleFixture(scenario==='empty');
  const ready=async(options?:QueryOptions)=>{if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');if(scenario==='error')throw new CoreError('SOURCE_UNREADABLE','Synthetic source error');if(scenario==='loading')await new Promise<void>((_,reject)=>options?.signal?.addEventListener('abort',()=>reject(new CoreError('CANCELLED','Cancelled')),{once:true}));};
  return {
+  ...(scenario==='initial'?{async live(request:import('@wombat/client').LiveRequest){
+   const result=usageFixture(request.query,'complete');
+   const unknown:UsageSummary={measurementCount:0,tokens:{total:null},price:{...summary.price,cost:null,knownCost:'0',status:'unknown'}};
+   result.summary=unknown;
+   result.items=request.query.action==='threads'?result.items.map(item=>item.kind==='thread'?{...item,matchedUsage:unknown,threadUsage:unknown,matchedTurnCount:null}:item):[];
+   result.page={...result.page,total:result.items.length};
+   result.snapshotRef={snapshotId:'live:preview-initial',createdAt:at};
+   const freshness={status:'syncing',revision:'preview-initial',initialScan:true,checkedAt:at};
+   result.freshness=freshness;result.quality.status='partial';
+   return {outputVersion:1,result,freshness};
+  }}:{}),
   async query(request,options){
    if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
    if(scenario==='error')throw new CoreError('SOURCE_UNREADABLE','Synthetic source error');

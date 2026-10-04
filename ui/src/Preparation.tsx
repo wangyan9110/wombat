@@ -6,7 +6,7 @@ import {timestamp} from './components.js';
 export function Preparation({since,pending,progress,initial=false}:{since:number;pending:boolean;progress:string;initial?:boolean}){
  const [elapsed,setElapsed]=useState(0);
  useEffect(()=>{const tick=()=>setElapsed(Math.max(0,Math.floor((Date.now()-since)/1000)));tick();const timer=setInterval(tick,1000);return()=>clearInterval(timer);},[since]);
- return <p className="read-notice" role="status">{initial?t('webui.readingHistory'):progress?progressText(progress):t(pending?'webui.preparing':'webui.loading')} · {t('webui.elapsed',{seconds:elapsed})}{elapsed>=10&&<> {t('webui.longPreparation')}</>}</p>;
+ return <section className="preparation">{initial&&<h2>{t('startup.title')}</h2>}<p className="read-notice" role="status">{initial?t('webui.readingHistory'):progress?progressText(progress):t(pending?'webui.preparing':'webui.loading')}</p><details className="provenance"><summary>{t('startup.details')}</summary><p>{t('webui.elapsed',{seconds:elapsed})}</p>{elapsed>=10&&<p>{t('webui.longPreparation')}</p>}</details></section>;
 }
 export function FreshnessNotice({data}:{data:WorkspaceData}){
  const freshness=data.freshness;

@@ -31,3 +31,16 @@ test('preview fixtures pass the same public client validation as host responses'
  await client.optimize!({action:'checks',itemId:'preview-skill'});
  await client.account!({action:'read'});
 });
+
+test('initial read exposes task headers without inventing a completed ledger',async()=>{
+ const raw=createPreviewClient('initial');
+ const {createUsageClient}=await import('@wombat/client');
+ const client=createUsageClient(raw.query,raw.prices,raw.live);
+ const response=await client.live!({query:{action:'threads'}});
+ assert.equal(response.result.freshness?.initialScan,true);
+ assert.equal(response.result.summary.tokens.total,null);
+ assert.equal(response.result.summary.price.cost,null);
+ assert.equal(response.result.items[0].kind,'thread');
+ if(response.result.items[0].kind==='thread')assert.equal(response.result.items[0].matchedUsage.measurementCount,0);
+ const turns=await client.live!({query:{action:'turns',threadId:'preview-task'}});assert.equal(turns.result.items.length,0);
+});

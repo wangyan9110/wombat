@@ -1,5 +1,15 @@
 // Product copy. Keep keys stable; add complete messages with parameters.
 export const zh = {
+"startup.explanation": "历史记录仍在整理。可以先查看已发现的记录，用量尚不完整。",
+"startup.directories": "已发现 {count} 个工作目录",
+"startup.directories.one": "已发现 {count} 个工作目录",
+"startup.open": "查看记录",
+"startup.instructions": "查看指令",
+"execution.window": "观察范围 {range}",
+"execution.unclassified": "未知",
+"startup.title": "正在准备历史记录",
+"startup.details": "读取详情",
+"preview.initial": "首次读取",
  "preview.skillRead": "SKILL.md · {status}",
  "execution.count.one": "{count} 次",
  "preview.missing": "时间缺失",
