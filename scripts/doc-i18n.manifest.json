@@ -239,6 +239,26 @@
       "zh": "docs/decisions/proposed/architecture/2026-10-04-codex-task-timing.md",
       "en": "docs/decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md",
       "record": "docs/decisions/proposed/architecture/2026-10-04-codex-task-timing.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-10-04-event-foundation.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-04-event-foundation.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-04-event-foundation.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-10-04-event-metrics.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-04-event-metrics.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-04-event-metrics.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-10-04-event-rules.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-04-event-rules.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-04-event-rules.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-10-04-event-delivery.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-04-event-delivery.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-04-event-delivery.i18n.json"
     }
   ],
   "legacyUnpaired": [],

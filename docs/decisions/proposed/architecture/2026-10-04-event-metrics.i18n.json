@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-timing-metrics-and-use-counts": {
+      "zh": "5979509f8a3b1343b50c1693153aabca90df4aca0a6423e3b1b3dfa0c9e3eb1f",
+      "en": "8af1c4d37f93c4e3a20194e7100ed846d165d82341cd4c80b745ce9d283d1884"
+    },
+    "/decision-note-timing-metrics-and-use-counts/problem": {
+      "zh": "5f13cb01936bfe8ffb9ccbee8f931afee555b9f88767d0cdfd79d4b0ccfc7e19",
+      "en": "f989da3cfd3c44636b0cb8aff08c9ee39e3e666f5f7e581967e6d652f6632ed7"
+    },
+    "/decision-note-timing-metrics-and-use-counts/proposal": {
+      "zh": "ca258a5d37ffa6a0ba7c117647724fda51cdfe6385c17e4b18e9127ab0445f72",
+      "en": "986dd8097aac4d3d9e25cf3e2cef01c77daedde5ce18afa375f7c433f9d8bc72"
+    },
+    "/decision-note-timing-metrics-and-use-counts/proposal/2-turn-and-task-timing-definitions": {
+      "zh": "a40c0f93646621e3ad25efc4eba302e104c0ae46306da86fcf86d5cb22d68e9a",
+      "en": "8785a135e3155199f2050529bb41f958cb4cc32014cd37f94d0a038f04804869"
+    },
+    "/decision-note-timing-metrics-and-use-counts/proposal/3-overlap-and-coverage-algorithm": {
+      "zh": "dc6636e9ab4a84f3709700d91c6612562ff9b156c4ed48529a716b0b635cd62b",
+      "en": "99f52a65adc2b571d358f849006470a76ba2c227e5b3d91fc781f33912d15df9"
+    },
+    "/decision-note-timing-metrics-and-use-counts/proposal/4-what-response-waiting-can-explain": {
+      "zh": "63bef61ea71f685ef2b1f91f49eaeebde7371c2ef57e78e504ca109f63917dd7",
+      "en": "c46dcd729bea0b5b0cdd69075ff20862ed5fe85e8dbbbe1de8283c7ef87cb975"
+    },
+    "/decision-note-timing-metrics-and-use-counts/proposal/5-context-pressure": {
+      "zh": "b73ea9c67771166d8564312c2c9281215070a4d1d5ba02f83e8804517591943b",
+      "en": "55f25a16bec7b9bbeefcc4fc17c2e2e90c3e2b464be792b0ddd37b968e53e047"
+    },
+    "/decision-note-timing-metrics-and-use-counts/proposal/6-failures-validation-changes-and-rework-signals": {
+      "zh": "f316ade54e9a09b15140fb21d180015c6d7a2a8454e88c22708b05ba0397ca10",
+      "en": "e2db753ffdf0866452c058e7da5f961d1acf359d4e162dbab644cf879807a67d"
+    },
+    "/decision-note-timing-metrics-and-use-counts/proposal/19-skill-mcp-use-and-use-counts": {
+      "zh": "9d0581d720b2a9958fccbe539ee4746325fda9750e3d35a8f0fd4f5b737f95a8",
+      "en": "a49c7c0b0a675c10f3425ee1b203c5fc94e64cba54431d2eadc6a956ac838cf1"
+    },
+    "/decision-note-timing-metrics-and-use-counts/alternatives-considered": {
+      "zh": "b75923b05d58145205c697f8a9b967ec5d8dd60fedaf2f61e958ef33e9bc326c",
+      "en": "73a45e29bf7b047b1279dd99886c01cd0dd5e7b5b2c039fddf0879f15923cf81"
+    },
+    "/decision-note-timing-metrics-and-use-counts/acceptance-criteria": {
+      "zh": "2637ddd5b7edb1709bbe2a7646d11c7c9ac53704dc2b518dd418937251cc9abb",
+      "en": "cbff1cac21574256fff97dfb8553c3c195c429dc882b5bf6ab71719a3e465a0f"
+    }
+  }
+}
