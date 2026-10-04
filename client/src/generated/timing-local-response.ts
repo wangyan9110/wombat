@@ -1,9 +1,7 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type SummaryAction = "summary";
-export type LocalProfile = "local";
-export type PrivacyProfile = "local" | "share-v1";
-export type Support = "supported" | "partial" | "unavailable";
+export type UseSourceCoverage = "complete" | "partial" | "unknown";
+export type MetricStatus = "observed" | "derived" | "proxy" | "unavailable";
 export type Basis =
   | "native_record"
   | "explicit_boundary"
@@ -30,16 +28,29 @@ export type Basis =
   | "numeric_range"
   | "no_candidates"
   | "missing_batch_cycle"
-  | "missing_repository_baseline";
-export type MetricStatus = "observed" | "derived" | "proxy" | "unavailable";
+  | "missing_repository_baseline"
+  | "canonical_use_identity"
+  | "canonical_use_records"
+  | "unassigned_use_index"
+  | "dispatch_not_proven"
+  | "missing_target"
+  | "missing_turn";
+export type Support = "supported" | "partial" | "unavailable";
+export type UseObjectKind = "skill" | "mcp";
+export type UseState = "used" | "candidate" | "unclassified";
+export type SummaryAction = "summary";
+export type LocalProfile = "local";
+export type PrivacyProfile = "local" | "share-v1";
 export type TimelinePresentation = "timeline" | "list";
 export type TrackCategory = "command" | "compaction" | "reasoning";
 export type FragmentEvidence = "event_records" | "turn_collection" | "unavailable";
 export type TurnState = "running" | "completed" | "failed" | "cancelled" | "unknown";
 export type FindingKind = "fact" | "proxy" | "user_annotation";
-export type CollectionKind = "turn_events" | "canonical_measurements" | "source_controls" | "native_boundary_index";
+export type CollectionKind =
+  "turn_events" | "canonical_measurements" | "canonical_operations" | "source_controls" | "native_boundary_index";
 
 export interface LocalResponse {
+  uses: LocalUses;
   outputVersion: number;
   action: SummaryAction;
   methodVersion: string;
@@ -57,6 +68,71 @@ export interface LocalResponse {
   quality: Quality;
   freshness: QueryFreshness;
   evidence: EvidenceIndex;
+}
+export interface LocalUses {
+  totals: UseTotals;
+  detail: Capability;
+  limit: number;
+  /**
+   * @maxItems 50
+   */
+  objects: UseObject[];
+  nextCursor?: Cursor | null;
+}
+export interface UseTotals {
+  methodVersion: number;
+  sourceCoverage: UseSourceCoverage;
+  objectCount: TimingMetricUint64;
+  /**
+   * Canonical rows, including replay and candidate evidence; not a dispatch count.
+   */
+  recordCount: TimingMetricUint64;
+  unboundTargetRecords: TimingMetricUint64;
+  unassignedSkillRecords: TimingMetricUint64;
+  unassignedMcpRecords: TimingMetricUint64;
+  coverage: UseCoverage;
+}
+export interface TimingMetricUint64 {
+  value: number | null;
+  status: MetricStatus;
+  basis: Basis;
+  evidenceRefs: string[];
+}
+export interface UseCoverage {
+  dispatchGaps: TimingMetricUint64;
+  identityGaps: TimingMetricUint64;
+  targetGaps: TimingMetricUint64;
+  timeGaps: TimingMetricUint64;
+  /**
+   * Gaps among associated records; unassigned membership is separately reported below.
+   */
+  associatedTurnGaps: TimingMetricUint64;
+}
+export interface Capability {
+  support: Support;
+  reason: Basis;
+}
+export interface UseObject {
+  objectRef: string;
+  kind: UseObjectKind;
+  state: UseState;
+  /**
+   * Resolved historical local target; never sent by share-v1.
+   */
+  path?: string | null;
+  server?: string | null;
+  project?: string | null;
+  associatedUseCount: TimingMetricUint64;
+  /**
+   * Membership gaps make the whole-turn count unknown, even if associated uses are exact.
+   */
+  useCount: TimingMetricUint64;
+  recordCount: TimingMetricUint64;
+  unassignedTurnRecords: TimingMetricUint64;
+  coverage: UseCoverage;
+}
+export interface Cursor {
+  token: string;
 }
 export interface Privacy {
   profile: PrivacyProfile;
@@ -88,10 +164,7 @@ export interface Capabilities {
   commandLabels: Capability;
   fileChanges: Capability;
   messageRecords: Capability;
-}
-export interface Capability {
-  support: Support;
-  reason: Basis;
+  objectUses: Capability;
 }
 export interface Anchors {
   startMs: TimingMetricInt64;
@@ -152,12 +225,6 @@ export interface Timeline {
    * @maxItems 200
    */
   unclassifiedGaps: TimelineGap[];
-}
-export interface TimingMetricUint64 {
-  value: number | null;
-  status: MetricStatus;
-  basis: Basis;
-  evidenceRefs: string[];
 }
 export interface TimelineTrack {
   intervalAlias: string;
@@ -339,9 +406,6 @@ export interface FragmentPage {
    * @maxItems 3
    */
   evidenceRefs: [] | [string] | [string, string] | [string, string, string];
-}
-export interface Cursor {
-  token: string;
 }
 export interface EvidenceCollection {
   reference: string;

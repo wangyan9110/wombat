@@ -13,15 +13,18 @@ const unavailable = { support: 'unavailable', reason: 'not_recorded' } as const;
 const capabilities = {
   wallClock: unavailable, nativeTtft: unavailable, firstContentRecordDelay: unavailable,
   lifecycleIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
-  exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable,
+  exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: unavailable,
 };
 const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v1', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
 const distribution = () => ({ samples: count(), median: count(), p90: count() });
+const useTotals = { methodVersion: 1, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
+  unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const local: TimingLocalResult = {
   outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v1', profile: 'local',
+  uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
   scope, capabilities, anchors: { startMs: count(), endMs: count() },
@@ -54,6 +57,7 @@ const local: TimingLocalResult = {
 };
 const share: TimingShareResult = {
   outputVersion: 1, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
+  uses: useTotals,
   privacy: { profile: 'share-v1', omittedFields: ['local_ids'], aliases: 'package' },
   scope: { taskAlias: 'task-1', turnAlias: 'turn-1', wholeTurn: true }, capabilities, relativeAnchors: local.anchors,
   time: local.time, context: local.context, work: local.work, findings: [], coverage: local.coverage, quality: local.quality,
@@ -107,7 +111,7 @@ test('timing validates its narrow request before calling the independent host', 
 
 test('timing responses bind action profile method target and selected snapshot', async () => {
   assert.equal(await client(local).timing!(summary), local);
-  const evidence = { outputVersion: 1, action: 'evidence', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
+  const evidence = { outputVersion: 1, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
   assert.equal(await client(evidence).timing!({ ...summary, action: 'evidence', snapshotId: local.readView.snapshotId }), evidence);
   for (const invalid of [
     { ...local, outputVersion: 2 }, { ...local, action: 'evidence' }, { ...local, methodVersion: 'future' },
@@ -189,5 +193,56 @@ test('nonempty local fragment navigation enforces bounds and stays outside shari
   ]) {
     assert.equal(validateShare(rejected), false);
     await assert.rejects(client(rejected).timing!({ ...summary, privacyProfile: 'share-v1' }), { code: 'PROTOCOL_ERROR' });
+  }
+});
+const observed = (value: number, basis: TimingLocalResult['uses']['totals']['objectCount']['basis'] = 'canonical_use_records') => ({ value, status: 'observed' as const, basis, evidenceRefs: [] });
+const objectRef = `use:${'a'.repeat(64)}`;
+const knownUseTotals = { methodVersion: 1, sourceCoverage: 'complete' as const, objectCount: observed(1), recordCount: observed(3), unboundTargetRecords: observed(0),
+  unassignedSkillRecords: observed(0, 'unassigned_use_index'), unassignedMcpRecords: observed(0, 'unassigned_use_index'),
+  coverage: { dispatchGaps: observed(0), identityGaps: observed(0), targetGaps: observed(0), timeGaps: observed(0), associatedTurnGaps: observed(0) } };
+const useObject = { objectRef, kind: 'skill' as const, state: 'used' as const, path: '/synthetic/skill/SKILL.md', server: null, project: null,
+  associatedUseCount: observed(2, 'canonical_use_identity'), useCount: observed(2, 'canonical_use_identity'), recordCount: observed(3),
+  unassignedTurnRecords: observed(0, 'unassigned_use_index'), coverage: knownUseTotals.coverage };
+const useRecord = { reference: `use:${'b'.repeat(64)}`, objectRef, kind: 'skill_read' as const, state: 'used' as const, outcome: 'failed' as const,
+  timestampMs: 0, timeBasis: 'source_operation_time' as const, nativeDurationMs: 0, tool: null, exitCode: 1, identityKnown: true, replayOf: null, targetConflict: false, gapCodes: [] };
+const usePage = { outputVersion: 1, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const,
+  snapshotId: local.readView.snapshotId, scope, totals: knownUseTotals, total: observed(1), nextCursor: null };
+test('nonempty canonical object and record pages validate and bind collection object and use method', async () => {
+  const objects = { ...usePage, collection: 'use_objects' as const, rows: [useObject] };
+  const records = { ...usePage, collection: 'use_records' as const, objectRef, total: observed(3), rows: [useRecord] };
+  const objectRequest: TimingRequest = { action: 'evidence', collection: 'use_objects', threadId: 'thread', turnId: 'turn', snapshotId: local.readView.snapshotId };
+  const recordRequest: TimingRequest = { ...objectRequest, collection: 'use_records', objectRef };
+  assert.equal(await client(objects).timing!(objectRequest), objects);
+  assert.equal(await client(records).timing!(recordRequest), records);
+  const allRecordsRequest: TimingRequest = { ...objectRequest, collection: 'use_records' };
+  const { objectRef: _filteredObject, ...unfilteredRecords } = records;
+  assert.equal(await client(unfilteredRecords).timing!(allRecordsRequest), unfilteredRecords);
+  const nullObjectRecords = { ...unfilteredRecords, objectRef: null };
+  assert.equal(await client(nullObjectRecords).timing!(allRecordsRequest), nullObjectRecords);
+  await assert.rejects(client(records).timing!(objectRequest), { code: 'PROTOCOL_ERROR' });
+  await assert.rejects(client(objects).timing!(recordRequest), { code: 'PROTOCOL_ERROR' });
+  for (const invalid of [
+    { ...records, objectRef: `use:${'c'.repeat(64)}` },
+    { ...records, rows: [{ ...useRecord, objectRef: `use:${'c'.repeat(64)}` }] },
+    { ...records, totals: { ...knownUseTotals, methodVersion: 99 } },
+    { ...records, rows: Array.from({ length: 201 }, () => useRecord) },
+    { ...records, rows: [{ ...useRecord, nativeDurationMs: Number.MAX_SAFE_INTEGER + 1 }] },
+  ]) await assert.rejects(client(invalid).timing!(recordRequest), { code: 'PROTOCOL_ERROR' });
+  await assert.rejects(client({ ...objects, rows: Array.from({ length: 201 }, () => useObject) }).timing!(objectRequest), { code: 'PROTOCOL_ERROR' });
+  let calls = 0;
+  const reader = createUsageClient({ query: async () => null, timing: async () => { calls++; return objects; } });
+  for (const invalid of [{ ...objectRequest, objectRef }, { ...recordRequest, objectRef: '/synthetic/skill/SKILL.md' }, { ...recordRequest, privacyProfile: 'share-v1' }])
+    await assert.rejects(reader.timing!(invalid as TimingRequest), { code: 'INVALID_ARGUMENT' });
+  assert.equal(calls, 0);
+});
+test('sharing allows numeric use coverage and rejects local object record and cursor fields', async () => {
+  const numeric = { ...share, uses: knownUseTotals };
+  assert.equal(validateShare(numeric), true);
+  assert.equal(await client(numeric).timing!({ ...summary, privacyProfile: 'share-v1' }), numeric);
+  for (const fields of [{ objects: [useObject] }, { path: '/synthetic/skill/SKILL.md' }, { server: 'private-service' },
+    { nextCursor: { token: 'local-cursor' } }, { rows: [useRecord] }]) {
+    const invalid = { ...numeric, uses: { ...knownUseTotals, ...fields } };
+    assert.equal(validateShare(invalid), false);
+    await assert.rejects(client(invalid).timing!({ ...summary, privacyProfile: 'share-v1' }), { code: 'PROTOCOL_ERROR' });
   }
 });

@@ -110,7 +110,14 @@ pub(super) fn save_with_prices(
                 .push(row.clone());
         }
     }
+    let mut unassigned_uses = BTreeMap::<String, UnassignedUseRecords>::new();
     for op in collected.operations {
+        if op.turn_id.as_deref().is_none_or(|id| id.is_empty()) {
+            unassigned_uses
+                .entry(op.thread_id.to_string())
+                .or_default()
+                .observe(&op)?;
+        }
         by_thread
             .entry(op.thread_id.to_string())
             .or_default()
@@ -158,6 +165,7 @@ pub(super) fn save_with_prices(
         }
         crate::storage::atomic_write(&directory.join(&filename), &bytes)?;
         threads.push(ThreadEntry {
+            unassigned_uses: unassigned_uses.remove(&thread.id).unwrap_or_default(),
             thread,
             file: file_ref(&filename, &bytes),
             turns: index,
@@ -267,6 +275,7 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     }
     super::events::check_index_version(raw["events"]["version"].as_u64())?;
     super::native_boundary::check_versions(&raw["events"])?;
+    super::use_metadata::check_headers(&raw)?;
     if raw
         .get("watermarks")
         .and_then(serde_json::Value::as_array)

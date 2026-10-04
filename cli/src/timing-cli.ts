@@ -21,7 +21,7 @@ export function parseTimingArgs(argv: readonly string[]): TimingInvocation {
     if (['--json', '--text', '--share', '--fresh', '--cached'].includes(name)) {
       if (inline !== undefined || flags.has(name)) invalid(); flags.add(name); continue;
     }
-    if (!['--thread', '--turn', '--snapshot', '--source', '--root', '--limit', '--cursor'].includes(name)
+    if (!['--thread', '--turn', '--snapshot', '--source', '--root', '--limit', '--cursor', '--collection', '--object'].includes(name)
       || (name !== '--root' && values.has(name))) invalid();
     const value = inline ?? args[++index];
     if (!value || value.startsWith('-')) invalid();
@@ -34,9 +34,12 @@ export function parseTimingArgs(argv: readonly string[]): TimingInvocation {
     if (values.size || roots.length || flags.has('--fresh') || flags.has('--cached')) invalid();
     return help ? { help, format } : { help, format, request: { action, privacyProfile } };
   }
-  if (action === 'summary' && (values.has('--limit') || values.has('--cursor'))
+  if (action === 'summary' && (values.has('--limit') || values.has('--cursor') || values.has('--collection') || values.has('--object'))
     || action === 'evidence' && (flags.has('--share') || flags.has('--fresh') || flags.has('--cached'))
     || values.has('--snapshot') && flags.has('--fresh')) invalid();
+  const collection = values.get('--collection') ?? 'turn_events';
+  if (!['turn_events', 'use_objects', 'use_records'].includes(collection)
+    || values.has('--object') && collection !== 'use_records') invalid();
   let limit: number | undefined;
   if (values.has('--limit')) {
     const raw = values.get('--limit')!; limit = Number(raw);
@@ -48,6 +51,7 @@ export function parseTimingArgs(argv: readonly string[]): TimingInvocation {
   const scope = values.has('--source') ? { sourceInstanceId: values.get('--source')! } : undefined;
   if (action === 'evidence') return { help, format, request: {
     action, threadId, turnId, snapshotId: snapshotId!, roots, scope, privacyProfile: 'local',
+    collection: collection as 'turn_events' | 'use_objects' | 'use_records', objectRef: values.get('--object'),
     limit: limit ?? 50, cursor: values.has('--cursor') ? { token: values.get('--cursor')! } : undefined,
   } };
   return { help, format, request: { action, threadId, turnId, snapshotId, roots, scope, privacyProfile,

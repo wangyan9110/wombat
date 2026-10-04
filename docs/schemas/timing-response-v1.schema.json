@@ -12,6 +12,12 @@
       "$ref": "#/definitions/EvidenceResponse"
     },
     {
+      "$ref": "#/definitions/UseObjectsResponse"
+    },
+    {
+      "$ref": "#/definitions/UseRecordsResponse"
+    },
+    {
       "$ref": "#/definitions/CapabilitiesResponse"
     }
   ],
@@ -19,6 +25,9 @@
     "LocalResponse": {
       "type": "object",
       "properties": {
+        "uses": {
+          "$ref": "#/definitions/LocalUses"
+        },
         "outputVersion": {
           "type": "integer",
           "minimum": 0,
@@ -78,6 +87,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "uses",
         "outputVersion",
         "action",
         "methodVersion",
@@ -95,6 +105,328 @@
         "quality",
         "freshness",
         "evidence"
+      ]
+    },
+    "LocalUses": {
+      "type": "object",
+      "properties": {
+        "totals": {
+          "$ref": "#/definitions/UseTotals"
+        },
+        "detail": {
+          "$ref": "#/definitions/Capability"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 50
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UseObject"
+          },
+          "maxItems": 50
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "totals",
+        "detail",
+        "limit",
+        "objects"
+      ]
+    },
+    "UseTotals": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "sourceCoverage": {
+          "$ref": "#/definitions/UseSourceCoverage"
+        },
+        "objectCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "recordCount": {
+          "description": "Canonical rows, including replay and candidate evidence; not a dispatch count.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "unboundTargetRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unassignedSkillRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unassignedMcpRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "coverage": {
+          "$ref": "#/definitions/UseCoverage"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "sourceCoverage",
+        "objectCount",
+        "recordCount",
+        "unboundTargetRecords",
+        "unassignedSkillRecords",
+        "unassignedMcpRecords",
+        "coverage"
+      ]
+    },
+    "UseSourceCoverage": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "unknown"
+      ]
+    },
+    "TimingMetric_uint64": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "$ref": "#/definitions/MetricStatus"
+        },
+        "basis": {
+          "$ref": "#/definitions/Basis"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "status",
+        "basis",
+        "evidenceRefs"
+      ]
+    },
+    "MetricStatus": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "derived",
+        "proxy",
+        "unavailable"
+      ]
+    },
+    "Basis": {
+      "type": "string",
+      "enum": [
+        "native_record",
+        "explicit_boundary",
+        "lifecycle_union",
+        "lifecycle_sum",
+        "interval_mask",
+        "request_input",
+        "historical_window",
+        "type7",
+        "safe_message_record",
+        "safe_message_delay",
+        "safe_event_count",
+        "response_gap_v1",
+        "not_recorded",
+        "adapter_not_mapped",
+        "unsupported_method",
+        "missing_identity",
+        "missing_time",
+        "running_turn",
+        "exact_event_page",
+        "boundary_conflict",
+        "source_partial",
+        "resource_limit",
+        "numeric_range",
+        "no_candidates",
+        "missing_batch_cycle",
+        "missing_repository_baseline",
+        "canonical_use_identity",
+        "canonical_use_records",
+        "unassigned_use_index",
+        "dispatch_not_proven",
+        "missing_target",
+        "missing_turn"
+      ]
+    },
+    "UseCoverage": {
+      "type": "object",
+      "properties": {
+        "dispatchGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "identityGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "targetGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "timeGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "associatedTurnGaps": {
+          "description": "Gaps among associated records; unassigned membership is separately reported below.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dispatchGaps",
+        "identityGaps",
+        "targetGaps",
+        "timeGaps",
+        "associatedTurnGaps"
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "properties": {
+        "support": {
+          "$ref": "#/definitions/Support"
+        },
+        "reason": {
+          "$ref": "#/definitions/Basis"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "support",
+        "reason"
+      ]
+    },
+    "Support": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "partial",
+        "unavailable"
+      ]
+    },
+    "UseObject": {
+      "type": "object",
+      "properties": {
+        "objectRef": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/UseObjectKind"
+        },
+        "state": {
+          "$ref": "#/definitions/UseState"
+        },
+        "path": {
+          "description": "Resolved historical local target; never sent by share-v1.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "associatedUseCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "useCount": {
+          "description": "Membership gaps make the whole-turn count unknown, even if associated uses are exact.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "recordCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unassignedTurnRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "coverage": {
+          "$ref": "#/definitions/UseCoverage"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "objectRef",
+        "kind",
+        "state",
+        "associatedUseCount",
+        "useCount",
+        "recordCount",
+        "unassignedTurnRecords",
+        "coverage"
+      ]
+    },
+    "UseObjectKind": {
+      "type": "string",
+      "enum": [
+        "skill",
+        "mcp"
+      ]
+    },
+    "UseState": {
+      "type": "string",
+      "enum": [
+        "used",
+        "candidate",
+        "unclassified"
+      ]
+    },
+    "Cursor": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "maxLength": 8192
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "token"
       ]
     },
     "SummaryAction": {
@@ -234,6 +566,9 @@
         },
         "messageRecords": {
           "$ref": "#/definitions/Capability"
+        },
+        "objectUses": {
+          "$ref": "#/definitions/Capability"
         }
       },
       "additionalProperties": false,
@@ -247,62 +582,8 @@
         "exploratoryGap",
         "commandLabels",
         "fileChanges",
-        "messageRecords"
-      ]
-    },
-    "Capability": {
-      "type": "object",
-      "properties": {
-        "support": {
-          "$ref": "#/definitions/Support"
-        },
-        "reason": {
-          "$ref": "#/definitions/Basis"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "support",
-        "reason"
-      ]
-    },
-    "Support": {
-      "type": "string",
-      "enum": [
-        "supported",
-        "partial",
-        "unavailable"
-      ]
-    },
-    "Basis": {
-      "type": "string",
-      "enum": [
-        "native_record",
-        "explicit_boundary",
-        "lifecycle_union",
-        "lifecycle_sum",
-        "interval_mask",
-        "request_input",
-        "historical_window",
-        "type7",
-        "safe_message_record",
-        "safe_message_delay",
-        "safe_event_count",
-        "response_gap_v1",
-        "not_recorded",
-        "adapter_not_mapped",
-        "unsupported_method",
-        "missing_identity",
-        "missing_time",
-        "running_turn",
-        "exact_event_page",
-        "boundary_conflict",
-        "source_partial",
-        "resource_limit",
-        "numeric_range",
-        "no_candidates",
-        "missing_batch_cycle",
-        "missing_repository_baseline"
+        "messageRecords",
+        "objectUses"
       ]
     },
     "Anchors": {
@@ -351,15 +632,6 @@
         "status",
         "basis",
         "evidenceRefs"
-      ]
-    },
-    "MetricStatus": {
-      "type": "string",
-      "enum": [
-        "observed",
-        "derived",
-        "proxy",
-        "unavailable"
       ]
     },
     "Time": {
@@ -523,38 +795,6 @@
       "enum": [
         "timeline",
         "list"
-      ]
-    },
-    "TimingMetric_uint64": {
-      "type": "object",
-      "properties": {
-        "value": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "status": {
-          "$ref": "#/definitions/MetricStatus"
-        },
-        "basis": {
-          "$ref": "#/definitions/Basis"
-        },
-        "evidenceRefs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "value",
-        "status",
-        "basis",
-        "evidenceRefs"
       ]
     },
     "TimelineTrack": {
@@ -1334,19 +1574,6 @@
         "evidenceRefs"
       ]
     },
-    "Cursor": {
-      "type": "object",
-      "properties": {
-        "token": {
-          "type": "string",
-          "maxLength": 8192
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "token"
-      ]
-    },
     "EvidenceCollection": {
       "type": "object",
       "properties": {
@@ -1384,6 +1611,7 @@
       "enum": [
         "turn_events",
         "canonical_measurements",
+        "canonical_operations",
         "source_controls",
         "native_boundary_index"
       ]
@@ -1391,6 +1619,9 @@
     "ShareResponse": {
       "type": "object",
       "properties": {
+        "uses": {
+          "$ref": "#/definitions/UseTotals"
+        },
         "basisCollections": {
           "type": "array",
           "items": {
@@ -1450,6 +1681,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "uses",
         "basisCollections",
         "outputVersion",
         "action",
@@ -1547,6 +1779,9 @@
     "EvidenceResponse": {
       "type": "object",
       "properties": {
+        "collection": {
+          "$ref": "#/definitions/EventPageKind"
+        },
         "outputVersion": {
           "type": "integer",
           "minimum": 0,
@@ -1589,6 +1824,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "collection",
         "outputVersion",
         "action",
         "methodVersion",
@@ -1597,6 +1833,12 @@
         "scope",
         "total",
         "rows"
+      ]
+    },
+    "EventPageKind": {
+      "type": "string",
+      "enum": [
+        "turn_events"
       ]
     },
     "EvidenceAction": {
@@ -1668,6 +1910,274 @@
         "reference",
         "recordKind",
         "gapCodes"
+      ]
+    },
+    "UseObjectsResponse": {
+      "type": "object",
+      "properties": {
+        "outputVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action": {
+          "$ref": "#/definitions/EvidenceAction"
+        },
+        "collection": {
+          "$ref": "#/definitions/UseObjectPageKind"
+        },
+        "methodVersion": {
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/definitions/LocalProfile"
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/definitions/LocalScope"
+        },
+        "totals": {
+          "$ref": "#/definitions/UseTotals"
+        },
+        "total": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UseObject"
+          },
+          "maxItems": 200
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "outputVersion",
+        "action",
+        "collection",
+        "methodVersion",
+        "profile",
+        "snapshotId",
+        "scope",
+        "totals",
+        "total",
+        "rows"
+      ]
+    },
+    "UseObjectPageKind": {
+      "type": "string",
+      "enum": [
+        "use_objects"
+      ]
+    },
+    "UseRecordsResponse": {
+      "type": "object",
+      "properties": {
+        "outputVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action": {
+          "$ref": "#/definitions/EvidenceAction"
+        },
+        "collection": {
+          "$ref": "#/definitions/UseRecordPageKind"
+        },
+        "methodVersion": {
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/definitions/LocalProfile"
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/definitions/LocalScope"
+        },
+        "objectRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "totals": {
+          "$ref": "#/definitions/UseTotals"
+        },
+        "total": {
+          "description": "Full selected record count; the whole-turn totals do not shrink with this object page.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UseRecord"
+          },
+          "maxItems": 200
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "outputVersion",
+        "action",
+        "collection",
+        "methodVersion",
+        "profile",
+        "snapshotId",
+        "scope",
+        "totals",
+        "total",
+        "rows"
+      ]
+    },
+    "UseRecordPageKind": {
+      "type": "string",
+      "enum": [
+        "use_records"
+      ]
+    },
+    "UseRecord": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        },
+        "objectRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UseKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "$ref": "#/definitions/UseState"
+        },
+        "outcome": {
+          "$ref": "#/definitions/UseOutcome"
+        },
+        "timestampMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "timeBasis": {
+          "$ref": "#/definitions/UseTimeBasis"
+        },
+        "nativeDurationMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tool": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exitCode": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "identityKnown": {
+          "type": "boolean"
+        },
+        "replayOf": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetConflict": {
+          "type": "boolean"
+        },
+        "gapCodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "state",
+        "outcome",
+        "timeBasis",
+        "identityKnown",
+        "targetConflict",
+        "gapCodes"
+      ]
+    },
+    "UseKind": {
+      "type": "string",
+      "enum": [
+        "skill_read",
+        "mcp_tool",
+        "mcp_resource"
+      ]
+    },
+    "UseOutcome": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "unknown"
+      ]
+    },
+    "UseTimeBasis": {
+      "type": "string",
+      "enum": [
+        "source_operation_time",
+        "unknown"
       ]
     },
     "CapabilitiesResponse": {

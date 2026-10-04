@@ -5,15 +5,18 @@ const unavailable = { support: 'unavailable', reason: 'not_recorded' } as const;
 const capabilities = {
   wallClock: unavailable, nativeTtft: unavailable, firstContentRecordDelay: unavailable,
   lifecycleIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
-  exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable,
+  exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: unavailable,
 };
 export const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v1', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
 const distribution = () => ({ samples: count(), median: count(), p90: count() });
+const useTotals = { methodVersion: 1, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
+  unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const baseLocal: TimingLocalResult = {
   outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v1', profile: 'local',
+  uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
   scope, capabilities, anchors: { startMs: count(), endMs: count() },
@@ -46,6 +49,7 @@ const baseLocal: TimingLocalResult = {
 };
 const baseShare: TimingShareResult = {
   outputVersion: 1, action: 'summary', methodVersion: baseLocal.methodVersion, profile: 'share-v1',
+  uses: useTotals,
   privacy: { profile: 'share-v1', omittedFields: ['local_ids'], aliases: 'package' },
   scope: { taskAlias: 'task-1', turnAlias: 'turn-1', wholeTurn: true }, capabilities, relativeAnchors: baseLocal.anchors,
   time: baseLocal.time, context: baseLocal.context, work: baseLocal.work, findings: [], coverage: baseLocal.coverage, quality: baseLocal.quality,
@@ -84,6 +88,7 @@ export function previewTiming(scenario:Scenario){
   if(request.action==='capabilities')return {...capabilityResult,profile:request.privacyProfile??'local'};
   const local=timingFixture(scenario,request.snapshotId??'preview:1',request.threadId,request.turnId);
   if(request.action==='summary')return request.privacyProfile==='share-v1'?timingShareFixture(local):local;
-  return {outputVersion:1,action:'evidence',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:{value:4,status:'observed',basis:'safe_event_count',evidenceRefs:[]},rows:request.cursor?[{reference:'event:end-0',recordKind:'lifecycle',phase:'completed',timestampMs:4000,gapCodes:[]}]:[{reference:'event:start-0',recordKind:'lifecycle',phase:'started',timestampMs:1000,gapCodes:[]}],nextCursor:request.cursor?null:{token:'synthetic-next'}};
+  if(request.collection&&request.collection!=='turn_events')throw new CoreError('TIMING_DETAIL_UNAVAILABLE','Synthetic use evidence is unavailable');
+  return {outputVersion:1,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:{value:4,status:'observed',basis:'safe_event_count',evidenceRefs:[]},rows:request.cursor?[{reference:'event:end-0',recordKind:'lifecycle',phase:'completed',timestampMs:4000,gapCodes:[]}]:[{reference:'event:start-0',recordKind:'lifecycle',phase:'started',timestampMs:1000,gapCodes:[]}],nextCursor:request.cursor?null:{token:'synthetic-next'}};
  };
 }

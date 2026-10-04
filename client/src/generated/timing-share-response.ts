@@ -1,6 +1,6 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type CollectionKind = "turn_events" | "canonical_measurements" | "source_controls" | "native_boundary_index";
+export type UseSourceCoverage = "complete" | "partial" | "unknown";
 export type MetricStatus = "observed" | "derived" | "proxy" | "unavailable";
 export type Basis =
   | "native_record"
@@ -28,7 +28,15 @@ export type Basis =
   | "numeric_range"
   | "no_candidates"
   | "missing_batch_cycle"
-  | "missing_repository_baseline";
+  | "missing_repository_baseline"
+  | "canonical_use_identity"
+  | "canonical_use_records"
+  | "unassigned_use_index"
+  | "dispatch_not_proven"
+  | "missing_target"
+  | "missing_turn";
+export type CollectionKind =
+  "turn_events" | "canonical_measurements" | "canonical_operations" | "source_controls" | "native_boundary_index";
 export type SummaryAction = "summary";
 export type ShareProfile = "share-v1";
 export type PrivacyProfile = "local" | "share-v1";
@@ -40,6 +48,7 @@ export type TurnState = "running" | "completed" | "failed" | "cancelled" | "unkn
 export type FindingKind = "fact" | "proxy" | "user_annotation";
 
 export interface ShareResponse {
+  uses: UseTotals;
   basisCollections: ShareCollection[];
   outputVersion: number;
   action: SummaryAction;
@@ -57,6 +66,35 @@ export interface ShareResponse {
   quality: Quality;
   freshness: ShareFreshness;
 }
+export interface UseTotals {
+  methodVersion: number;
+  sourceCoverage: UseSourceCoverage;
+  objectCount: TimingMetricUint64;
+  /**
+   * Canonical rows, including replay and candidate evidence; not a dispatch count.
+   */
+  recordCount: TimingMetricUint64;
+  unboundTargetRecords: TimingMetricUint64;
+  unassignedSkillRecords: TimingMetricUint64;
+  unassignedMcpRecords: TimingMetricUint64;
+  coverage: UseCoverage;
+}
+export interface TimingMetricUint64 {
+  value: number | null;
+  status: MetricStatus;
+  basis: Basis;
+  evidenceRefs: string[];
+}
+export interface UseCoverage {
+  dispatchGaps: TimingMetricUint64;
+  identityGaps: TimingMetricUint64;
+  targetGaps: TimingMetricUint64;
+  timeGaps: TimingMetricUint64;
+  /**
+   * Gaps among associated records; unassigned membership is separately reported below.
+   */
+  associatedTurnGaps: TimingMetricUint64;
+}
 export interface ShareCollection {
   reference: string;
   kind: CollectionKind;
@@ -64,12 +102,6 @@ export interface ShareCollection {
   turnAlias: string;
   count: TimingMetricUint64;
   method: string;
-}
-export interface TimingMetricUint64 {
-  value: number | null;
-  status: MetricStatus;
-  basis: Basis;
-  evidenceRefs: string[];
 }
 export interface Privacy {
   profile: PrivacyProfile;
@@ -92,6 +124,7 @@ export interface Capabilities {
   commandLabels: Capability;
   fileChanges: Capability;
   messageRecords: Capability;
+  objectUses: Capability;
 }
 export interface Capability {
   support: Support;

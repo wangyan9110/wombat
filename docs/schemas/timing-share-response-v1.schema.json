@@ -3,6 +3,9 @@
   "title": "ShareResponse",
   "type": "object",
   "properties": {
+    "uses": {
+      "$ref": "#/definitions/UseTotals"
+    },
     "basisCollections": {
       "type": "array",
       "items": {
@@ -62,6 +65,7 @@
   },
   "additionalProperties": false,
   "required": [
+    "uses",
     "basisCollections",
     "outputVersion",
     "action",
@@ -80,45 +84,59 @@
     "freshness"
   ],
   "definitions": {
-    "ShareCollection": {
+    "UseTotals": {
       "type": "object",
       "properties": {
-        "reference": {
-          "type": "string"
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
         },
-        "kind": {
-          "$ref": "#/definitions/CollectionKind"
+        "sourceCoverage": {
+          "$ref": "#/definitions/UseSourceCoverage"
         },
-        "taskAlias": {
-          "type": "string"
-        },
-        "turnAlias": {
-          "type": "string"
-        },
-        "count": {
+        "objectCount": {
           "$ref": "#/definitions/TimingMetric_uint64"
         },
-        "method": {
-          "type": "string"
+        "recordCount": {
+          "description": "Canonical rows, including replay and candidate evidence; not a dispatch count.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "unboundTargetRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unassignedSkillRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "unassignedMcpRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "coverage": {
+          "$ref": "#/definitions/UseCoverage"
         }
       },
       "additionalProperties": false,
       "required": [
-        "reference",
-        "kind",
-        "taskAlias",
-        "turnAlias",
-        "count",
-        "method"
+        "methodVersion",
+        "sourceCoverage",
+        "objectCount",
+        "recordCount",
+        "unboundTargetRecords",
+        "unassignedSkillRecords",
+        "unassignedMcpRecords",
+        "coverage"
       ]
     },
-    "CollectionKind": {
+    "UseSourceCoverage": {
       "type": "string",
       "enum": [
-        "turn_events",
-        "canonical_measurements",
-        "source_controls",
-        "native_boundary_index"
+        "complete",
+        "partial",
+        "unknown"
       ]
     },
     "TimingMetric_uint64": {
@@ -190,7 +208,88 @@
         "numeric_range",
         "no_candidates",
         "missing_batch_cycle",
-        "missing_repository_baseline"
+        "missing_repository_baseline",
+        "canonical_use_identity",
+        "canonical_use_records",
+        "unassigned_use_index",
+        "dispatch_not_proven",
+        "missing_target",
+        "missing_turn"
+      ]
+    },
+    "UseCoverage": {
+      "type": "object",
+      "properties": {
+        "dispatchGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "identityGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "targetGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "timeGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "associatedTurnGaps": {
+          "description": "Gaps among associated records; unassigned membership is separately reported below.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dispatchGaps",
+        "identityGaps",
+        "targetGaps",
+        "timeGaps",
+        "associatedTurnGaps"
+      ]
+    },
+    "ShareCollection": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/CollectionKind"
+        },
+        "taskAlias": {
+          "type": "string"
+        },
+        "turnAlias": {
+          "type": "string"
+        },
+        "count": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "method": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "kind",
+        "taskAlias",
+        "turnAlias",
+        "count",
+        "method"
+      ]
+    },
+    "CollectionKind": {
+      "type": "string",
+      "enum": [
+        "turn_events",
+        "canonical_measurements",
+        "canonical_operations",
+        "source_controls",
+        "native_boundary_index"
       ]
     },
     "SummaryAction": {
@@ -287,6 +386,9 @@
         },
         "messageRecords": {
           "$ref": "#/definitions/Capability"
+        },
+        "objectUses": {
+          "$ref": "#/definitions/Capability"
         }
       },
       "additionalProperties": false,
@@ -300,7 +402,8 @@
         "exploratoryGap",
         "commandLabels",
         "fileChanges",
-        "messageRecords"
+        "messageRecords",
+        "objectUses"
       ]
     },
     "Capability": {

@@ -97,7 +97,9 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
         import('./generated/validate-timing-request.js'), import('./generated/validate-timing-response.js'),
       ]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', 'Cancelled');
-      if (!input(request)) throw new CoreError('INVALID_ARGUMENT', 'Invalid timing request');
+      if (!input(request) || request.action === 'evidence' && (request.privacyProfile === 'share-v1'
+        || request.objectRef != null && (request.collection !== 'use_records' || !/^use:[0-9a-fA-F]{64}$/.test(request.objectRef))))
+        throw new CoreError('INVALID_ARGUMENT', 'Invalid timing request');
       const result = await transports.timing!(request, options);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', 'Cancelled');
       if (!output(result) || !matchesTiming(request, result)) throw new CoreError('PROTOCOL_ERROR', 'Invalid timing response');
@@ -187,6 +189,8 @@ function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
   const profile = request.privacyProfile ?? 'local';
   if (result.outputVersion !== 1 || result.action !== request.action || result.profile !== profile
     || result.methodVersion !== 'safe_event_turn_v1') return false;
+  if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 1
+    || 'totals' in result && result.totals.methodVersion !== 1) return false;
   if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
   if (request.action === 'summary' && profile === 'share-v1') {
     // Sharing deliberately omits local locating identities; core selection owns
@@ -198,7 +202,10 @@ function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
     || result.scope.threadId !== request.threadId || result.scope.turnId !== request.turnId
     || result.scope.wholeTurn !== true || result.scope.agentKind !== (request.scope?.agentKind ?? 'codex')
     || (request.scope?.sourceInstanceId != null && result.scope.sourceInstanceId !== request.scope.sourceInstanceId)) return false;
-  if (request.action === 'evidence') return 'rows' in result && result.snapshotId === request.snapshotId;
+  if (request.action === 'evidence') return 'rows' in result && result.snapshotId === request.snapshotId
+    && result.collection === (request.collection ?? 'turn_events')
+    && (result.collection !== 'use_records' || (result.objectRef ?? null) === (request.objectRef ?? null)
+      && (request.objectRef == null || result.rows.every(row => row.objectRef === request.objectRef)));
   return 'readView' in result && result.privacy.profile === profile
     && (request.snapshotId == null || result.readView.snapshotId === request.snapshotId);
 }

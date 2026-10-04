@@ -51,3 +51,17 @@ test('help requires no fabricated business request', () => {
   assert.deepEqual(parseTimingArgs(['--help']), { help: true, format: 'json' });
   assert.deepEqual(parseTimingArgs(['evidence', '--help', '--text']), { help: true, format: 'text' });
 });
+test('object evidence keeps the fixed view and validates collection-specific selection', () => {
+  const base = ['evidence', ...target, '--snapshot', 'fixed'];
+  const result = parseTimingArgs([...base, '--collection', 'use_records', '--object', 'object-1', '--cursor', 'opaque']);
+  assert.ok(!result.help && result.request.action === 'evidence');
+  assert.equal(result.request.collection, 'use_records'); assert.equal(result.request.objectRef, 'object-1');
+  assert.equal(result.request.snapshotId, 'fixed'); assert.deepEqual(result.request.cursor, { token: 'opaque' });
+  const objects = parseTimingArgs([...base, '--collection', 'use_objects']);
+  assert.ok(!objects.help && objects.request.action === 'evidence'); assert.equal(objects.request.collection, 'use_objects');
+  for (const args of [
+    [...base, '--object', 'object-1'], [...base, '--collection', 'use_objects', '--object', 'object-1'],
+    [...base, '--collection', 'arbitrary'], [...target, '--collection', 'use_objects'],
+    ['capabilities', '--collection', 'use_records'],
+  ]) assert.throws(() => parseTimingArgs(args), { code: 'INVALID_ARGUMENT' });
+});

@@ -182,7 +182,14 @@ fn full_local_metrics_and_share_aliases_are_independent_whitelists() {
     );
     assert_eq!(l.work.operation_candidates.basis, Basis::AdapterNotMapped);
     assert_eq!(l.context.active_context_occupancy.value, None);
-    assert_eq!(l.evidence.collections.len(), 4);
+    assert_eq!(l.evidence.collections.len(), 5);
+    let operations = l
+        .evidence
+        .collections
+        .iter()
+        .find(|entry| matches!(entry.kind, CollectionKind::CanonicalOperations))
+        .unwrap();
+    assert_eq!(operations.count.value, Some(0));
     assert!(
         l.time
             .native_wall_clock_ms
@@ -252,6 +259,8 @@ fn request_union_is_narrow_and_capabilities_need_no_snapshot() {
 fn evidence_pages_keep_whole_denominator_and_bind_target_and_snapshot() {
     let snapshot = make_snapshot(complete_events());
     let r = Request::Evidence {
+        collection: EvidenceSet::TurnEvents,
+        object_ref: None,
         thread_id: "thread-private".into(),
         turn_id: "turn-private".into(),
         snapshot_id: "live:private".into(),
@@ -1002,6 +1011,8 @@ fn fragment_navigation_groups_exact_event_pages_and_excludes_control_order() {
             let Response::Evidence(evidence) = query(
                 &snapshot,
                 &Request::Evidence {
+                    collection: EvidenceSet::TurnEvents,
+                    object_ref: None,
                     thread_id: "thread-private".into(),
                     turn_id: "turn-private".into(),
                     snapshot_id: "live:private".into(),

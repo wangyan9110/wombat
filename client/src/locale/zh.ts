@@ -957,7 +957,7 @@ export const zh = {
   "preview.rule-upgraded": "规则升级，无法比较",
   "preview.evidence-gap": "复查证据缺失",
   "cli.timing.summary": "  wombat timing [summary|evidence|capabilities]   查询整轮耗时和安全证据",
-  "cli.timing.help": "wombat timing [summary] --thread ID --turn ID [--root PATH] [--source ID] [--fresh|--cached] [--snapshot ID] [--share] [--json|--text]\nwombat timing evidence --thread ID --turn ID --snapshot ID [--limit 1..200] [--cursor TOKEN] [--root PATH] [--source ID] [--json|--text]\nwombat timing capabilities [--share] [--json|--text]\n\n默认输出一个 JSON 对象；--text 使用当前语言，--lang zh|en 选择语言。摘要覆盖整轮，不接受日期、Token、费用或分页过滤；证据页固定同一快照，默认 50 条。耗时查询不自动下载价表，也不采集配置、Hook 或账户。\n",
+  "cli.timing.help": "wombat timing [summary] --thread ID --turn ID [--root PATH] [--source ID] [--fresh|--cached] [--snapshot ID] [--share] [--json|--text]\nwombat timing evidence --thread ID --turn ID --snapshot ID [--limit 1..200] [--cursor TOKEN] [--collection turn_events|use_objects|use_records] [--object <object-ref>] [--root PATH] [--source ID] [--json|--text]\nwombat timing capabilities [--share] [--json|--text]\n\n默认输出一个 JSON 对象；--text 使用当前语言，--lang zh|en 选择语言。摘要覆盖整轮，不接受日期、Token、费用或分页过滤；证据页固定同一快照，默认 50 条；--object 仅适用于 use_records。耗时查询不自动下载价表，也不采集配置、Hook 或账户。\n",
   "cli.timing.error.invalid": "耗时查询参数无效；请使用 timing --help 查看可用参数。",
   "cli.timing.error.expired": "读取版本已过期或不可用；请重新查询摘要后使用其固定快照。",
   "cli.timing.error.corrupt": "固定快照的数据不完整或校验失败；现有数据仍保留。",
@@ -1110,4 +1110,6 @@ export const zh = {
   "preview.handoff-unavailable": "Codex 宿主不可用",
   "preview.account-unavailable": "账户不可读取",
   "preview.account-loading": "账户读取中",
+  "execution.useCount": "使用次数",
+  "execution.associatedUseCount": "已关联次数",
 } as const;

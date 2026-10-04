@@ -107,6 +107,20 @@
           "maximum": 200,
           "default": 50
         },
+        "collection": {
+          "default": "turn_events",
+          "allOf": [
+            {
+              "$ref": "#/definitions/EvidenceSet"
+            }
+          ]
+        },
+        "objectRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "privacyProfile": {
           "default": "local",
           "allOf": [
@@ -195,6 +209,14 @@
       "additionalProperties": false,
       "required": [
         "token"
+      ]
+    },
+    "EvidenceSet": {
+      "type": "string",
+      "enum": [
+        "turn_events",
+        "use_objects",
+        "use_records"
       ]
     }
   }

@@ -21,7 +21,7 @@ export function renderTimingResult(result: TimingResult): string {
     `${t('cli.timing.method')}: ${terminalText(result.methodVersion)}`];
   if (result.action === 'capabilities') {
     const labels = {
-      wallClock: 'cli.timing.cap.wallClock', nativeTtft: 'cli.timing.nativeTtft', firstContentRecordDelay: 'cli.timing.firstContentDelay',
+      objectUses: 'cli.timing.cap.objectUses', wallClock: 'cli.timing.cap.wallClock', nativeTtft: 'cli.timing.nativeTtft', firstContentRecordDelay: 'cli.timing.firstContentDelay',
       lifecycleIntervals: 'cli.timing.cap.lifecycleIntervals', contextPressure: 'cli.timing.cap.contextPressure',
       strictResponseGap: 'cli.timing.cap.strictResponseGap', exploratoryGap: 'cli.timing.cap.exploratoryGap',
       commandLabels: 'cli.timing.cap.commandLabels', fileChanges: 'cli.timing.cap.fileChanges', messageRecords: 'cli.timing.cap.messageRecords',
@@ -35,8 +35,15 @@ export function renderTimingResult(result: TimingResult): string {
   lines.push(`${t('cli.timing.target')}: ${target(result)}`);
   if (result.action === 'evidence') {
     lines.push(`${t('cli.timing.snapshot')}: ${terminalText(result.snapshotId)}`, `${t('cli.timing.total')}: ${measured(result.total)}`);
-    for (const row of result.rows) {
+    if (result.collection === 'turn_events') for (const row of result.rows) {
       lines.push(`${terminalText(row.reference)}\t${terminalText(row.recordKind)}\t${row.timestampMs ?? t('cli.timing.unknown')}\t${terminalText(row.phase ?? '')}`);
+      if (row.gapCodes.length) lines.push(`  ${row.gapCodes.map(terminalText).join(', ')}`);
+    }
+    else if (result.collection === 'use_objects') for (const row of result.rows) {
+      lines.push([row.objectRef, row.kind, row.state, row.path ?? row.server ?? '', row.project ?? '', `${t('execution.useCount')}: ${measured(row.useCount)}`, `${t('execution.associatedUseCount')}: ${measured(row.associatedUseCount)}`].map(terminalText).join('\t'));
+    }
+    else for (const row of result.rows) {
+      lines.push([row.reference, row.objectRef ?? '', row.kind ?? '', row.state, row.outcome, String(row.timestampMs ?? t('cli.timing.unknown')), row.timeBasis, row.tool ?? ''].map(terminalText).join('\t'));
       if (row.gapCodes.length) lines.push(`  ${row.gapCodes.map(terminalText).join(', ')}`);
     }
     if (result.nextCursor) lines.push(`${t('cli.timing.nextCursor')}: ${terminalText(result.nextCursor.token)}`);
@@ -56,6 +63,8 @@ export function renderTimingResult(result: TimingResult): string {
     `${t('cli.timing.samples')}: ${value(result.context.input.samples)}`,
     `${t('cli.timing.compactionRecords')}: ${value(result.context.compactionRecords)} / ${value(result.context.compactionTimeMs)}`,
     `${t('cli.timing.operations')}: ${value(result.work.operationCandidates)} / ${value(result.work.closedOperations)} / ${value(result.work.failedOperations)}`,
+    `${t('cli.timing.useObjects')}: ${measured('totals' in result.uses ? result.uses.totals.objectCount : result.uses.objectCount)}`,
+    `${t('cli.timing.useRecords')}: ${measured('totals' in result.uses ? result.uses.totals.recordCount : result.uses.recordCount)}`,
     `${t('cli.timing.source')}: ${terminalText(result.coverage.sourceStatus)}`,
     `${t('cli.timing.quality')}: ${t(result.quality.partial ? 'cli.timing.partial' : 'cli.timing.complete')}`);
   if (result.quality.reasonCodes.length) lines.push(result.quality.reasonCodes.map(terminalText).join(', '));

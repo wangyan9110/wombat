@@ -62,7 +62,14 @@ pub(crate) fn memory(
         }
     }
     crate::usage_app::summarize(&rows.iter().map(Arc::as_ref).collect::<Vec<_>>())?;
+    let mut unassigned_uses = BTreeMap::<String, UnassignedUseRecords>::new();
     for op in collected.operations {
+        if op.turn_id.as_deref().is_none_or(|id| id.is_empty()) {
+            unassigned_uses
+                .entry(op.thread_id.to_string())
+                .or_default()
+                .observe(&op)?;
+        }
         memory_turns
             .entry((
                 op.thread_id.to_string(),
@@ -100,6 +107,7 @@ pub(crate) fn memory(
         .map(|thread| {
             let turns = by_thread.remove(&thread.id).unwrap_or_default();
             ThreadEntry {
+                unassigned_uses: unassigned_uses.remove(&thread.id).unwrap_or_default(),
                 thread,
                 turns,
                 file: file_ref("live", &[]),

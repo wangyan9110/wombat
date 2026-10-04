@@ -68,7 +68,10 @@ fn status(basis: Basis) -> MetricStatus {
         Basis::NativeRecord
         | Basis::SafeEventCount
         | Basis::RequestInput
-        | Basis::SafeMessageRecord => MetricStatus::Observed,
+        | Basis::SafeMessageRecord
+        | Basis::CanonicalUseIdentity
+        | Basis::CanonicalUseRecords
+        | Basis::UnassignedUseIndex => MetricStatus::Observed,
         Basis::ResponseGapV1 => MetricStatus::Proxy,
         _ => MetricStatus::Derived,
     }
@@ -94,6 +97,7 @@ pub(super) fn capabilities() -> Capabilities {
         command_labels: capability(Support::Unavailable, Basis::AdapterNotMapped),
         file_changes: capability(Support::Unavailable, Basis::AdapterNotMapped),
         message_records: capability(Support::Partial, Basis::SafeMessageRecord),
+        object_uses: capability(Support::Partial, Basis::CanonicalUseIdentity),
     }
 }
 pub(super) fn time(

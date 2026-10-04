@@ -19,6 +19,8 @@ export type Request =
       scope?: Scope | null;
       cursor?: Cursor | null;
       limit?: number;
+      collection?: EvidenceSet & string;
+      objectRef?: string | null;
       privacyProfile?: PrivacyProfile & string;
       action: "evidence";
     }
@@ -28,6 +30,7 @@ export type Request =
     };
 export type Mode = "auto" | "fresh" | "cached";
 export type PrivacyProfile = "local" | "share-v1";
+export type EvidenceSet = "turn_events" | "use_objects" | "use_records";
 
 export interface Scope {
   sourceInstanceId?: string | null;

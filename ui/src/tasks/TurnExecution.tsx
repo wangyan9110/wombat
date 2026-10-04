@@ -6,7 +6,7 @@ import {QueryError} from '../Feedback.js';
 import {timestamp} from '../components.js';
 
 const phaseLabel=(phase?:string|null)=>t(phase==='started'?'execution.started':phase==='completed'?'execution.completed':phase==='failed'?'execution.failed':phase==='cancelled'?'execution.cancelled':phase==='running'?'execution.running':'execution.unknown');
-type Evidence=Extract<TimingResult,{action:'evidence'}>;
+type Evidence=Extract<TimingResult,{action:'evidence';collection:'turn_events'}>;
 export class TimingDetailReader {
  private aborts=new Map<string,AbortController>(); expired=false;
  constructor(private client:UsageClient,private snapshotId:string,private threadId:string,private turnId:string){}
@@ -19,7 +19,7 @@ export class TimingDetailReader {
    const common={snapshotId:this.snapshotId,threadId:this.threadId,turnId:this.turnId};
    const result=await this.client.timing(kind==='share'?{...common,action:'summary',privacyProfile:'share-v1',mode:'cached'}:{...common,action:'evidence',privacyProfile:'local',cursor,limit},{signal:abort.signal});
    if(abort.signal.aborted)throw new CoreError('CANCELLED','Cancelled');
-   if(kind==='share'&&(result.action!=='summary'||result.profile!=='share-v1')||kind==='evidence'&&(result.action!=='evidence'||result.snapshotId!==this.snapshotId||result.scope.threadId!==this.threadId||result.scope.turnId!==this.turnId))throw new CoreError('PROTOCOL_ERROR','Timing detail read identity mismatch');
+   if(kind==='share'&&(result.action!=='summary'||result.profile!=='share-v1')||kind==='evidence'&&(result.action!=='evidence'||result.collection!=='turn_events'||result.snapshotId!==this.snapshotId||result.scope.threadId!==this.threadId||result.scope.turnId!==this.turnId))throw new CoreError('PROTOCOL_ERROR','Timing detail read identity mismatch');
    return result;
   }catch(error){if(error instanceof CoreError&&error.code==='VIEW_EXPIRED')this.expired=true;throw error;}
  }
@@ -62,7 +62,7 @@ export function TurnExecution({client,summary,loading=false,unavailable=false,er
   lastRead.current={kind,cursor,limit};const identity=epoch.current;setBusy(true);setError(undefined);
   const outcome=await selection.current.read(kind,cursor,limit);
   if(epoch.current!==identity||outcome.superseded)return;
-  if(outcome.result){if(kind==='share'&&outcome.result.action==='summary'&&outcome.result.profile==='share-v1'){setShare(outcome.result);setCopy('');}else if(outcome.result.action==='evidence')setEvidence(outcome.result);}
+  if(outcome.result){if(kind==='share'&&outcome.result.action==='summary'&&outcome.result.profile==='share-v1'){setShare(outcome.result);setCopy('');}else if(outcome.result.action==='evidence'&&outcome.result.collection==='turn_events')setEvidence(outcome.result);}
   if(outcome.error){const code=outcome.error instanceof CoreError?outcome.error.code:'INTERNAL_ERROR';if(code!=='CANCELLED'){setError(code);setDetailExpired(code==='VIEW_EXPIRED');}}
   setBusy(false);
  };

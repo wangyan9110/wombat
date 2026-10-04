@@ -1,6 +1,8 @@
 //! Narrow timing protocol. Sharing has an independent whitelist; no source payloads.
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+mod uses;
+pub use uses::*;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -92,6 +94,9 @@ pub enum Request {
         #[schemars(range(min = 1, max = 200))]
         limit: usize,
         #[serde(default)]
+        collection: EvidenceSet,
+        object_ref: Option<String>,
+        #[serde(default)]
         privacy_profile: PrivacyProfile,
     },
     Capabilities {
@@ -136,6 +141,12 @@ pub enum Basis {
     NoCandidates,
     MissingBatchCycle,
     MissingRepositoryBaseline,
+    CanonicalUseIdentity,
+    CanonicalUseRecords,
+    UnassignedUseIndex,
+    DispatchNotProven,
+    MissingTarget,
+    MissingTurn,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -176,6 +187,7 @@ pub struct Capabilities {
     pub command_labels: Capability,
     pub file_changes: Capability,
     pub message_records: Capability,
+    pub object_uses: Capability,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -466,6 +478,7 @@ pub struct Privacy {
 pub enum CollectionKind {
     TurnEvents,
     CanonicalMeasurements,
+    CanonicalOperations,
     SourceControls,
     NativeBoundaryIndex,
 }
@@ -534,6 +547,7 @@ pub struct EvidenceIndex {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalResponse {
+    pub uses: LocalUses,
     pub output_version: u32,
     pub action: SummaryAction,
     pub method_version: String,
@@ -555,6 +569,7 @@ pub struct LocalResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShareResponse {
+    pub uses: UseTotals,
     pub basis_collections: Vec<ShareCollection>,
     pub output_version: u32,
     pub action: SummaryAction,
@@ -588,6 +603,7 @@ pub struct EvidenceRow {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EvidenceResponse {
+    pub collection: EventPageKind,
     pub output_version: u32,
     pub action: EvidenceAction,
     pub method_version: String,
@@ -613,6 +629,8 @@ pub enum Response {
     Local(Box<LocalResponse>),
     Share(Box<ShareResponse>),
     Evidence(EvidenceResponse),
+    UseObjects(UseObjectsResponse),
+    UseRecords(UseRecordsResponse),
     Capabilities(CapabilitiesResponse),
 }
 

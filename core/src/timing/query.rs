@@ -21,6 +21,7 @@ pub const MAX_SUMMARY_BYTES: usize = 256 * 1024;
 const MAX_CURSOR_BYTES: usize = 8 * 1024;
 const MAX_LOCATOR_BYTES: usize = 4096;
 mod navigation;
+mod uses;
 
 pub fn validate(request: &Request) -> Result<()> {
     let (thread, turn, snapshot, roots, scope) = match request {
@@ -48,6 +49,8 @@ pub fn validate(request: &Request) -> Result<()> {
             cursor,
             limit,
             privacy_profile,
+            collection,
+            object_ref,
         } => {
             if *privacy_profile != PrivacyProfile::Local
                 || *limit == 0
@@ -55,6 +58,12 @@ pub fn validate(request: &Request) -> Result<()> {
                 || cursor
                     .as_ref()
                     .is_some_and(|c| c.token.len() > MAX_CURSOR_BYTES)
+                || (object_ref.is_some() && *collection != EvidenceSet::UseRecords)
+                || object_ref.as_ref().is_some_and(|id| {
+                    !id.starts_with("use:")
+                        || id.len() != 68
+                        || !id.as_bytes()[4..].iter().all(u8::is_ascii_hexdigit)
+                })
             {
                 return invalid();
             }
@@ -284,6 +293,11 @@ fn query_impl(
             return Ok(Response::Local(Box::new(hit)));
         }
     }
+    if let Request::Evidence { collection, .. } = request
+        && *collection != EvidenceSet::TurnEvents
+    {
+        return uses::page(snapshot, target, local_scope, request, cancelled);
+    }
     if let Request::Evidence { cursor, limit, .. } = request {
         let cursor = cursor.as_ref().map(decode_cursor).transpose()?;
         let page = snapshot.event_page(
@@ -308,6 +322,7 @@ fn query_impl(
             })
             .collect::<Result<Vec<_>>>()?;
         return Ok(Response::Evidence(EvidenceResponse {
+            collection: EventPageKind::TurnEvents,
             output_version: OUTPUT_VERSION,
             action: EvidenceAction::Evidence,
             method_version: METHOD_VERSION.into(),
@@ -500,6 +515,69 @@ fn query_impl(
         }
     }
     let context = m::context(&a, &context_refs, fallback);
+    let object_uses = uses::summary(snapshot, target, evidence.as_ref(), profile, cancelled)?;
+    for (gap, basis) in [
+        (
+            object_uses.detail.reason == Basis::ResourceLimit,
+            Basis::ResourceLimit,
+        ),
+        (
+            object_uses
+                .totals
+                .coverage
+                .dispatch_gaps
+                .value
+                .is_some_and(|n| n > 0),
+            Basis::DispatchNotProven,
+        ),
+        (
+            object_uses
+                .totals
+                .coverage
+                .identity_gaps
+                .value
+                .is_some_and(|n| n > 0),
+            Basis::MissingIdentity,
+        ),
+        (
+            object_uses
+                .totals
+                .coverage
+                .target_gaps
+                .value
+                .is_some_and(|n| n > 0),
+            Basis::MissingTarget,
+        ),
+        (
+            object_uses
+                .totals
+                .coverage
+                .time_gaps
+                .value
+                .is_some_and(|n| n > 0),
+            Basis::MissingTime,
+        ),
+        (
+            object_uses
+                .totals
+                .unassigned_skill_records
+                .value
+                .is_none_or(|n| n > 0)
+                || object_uses
+                    .totals
+                    .unassigned_mcp_records
+                    .value
+                    .is_none_or(|n| n > 0),
+            Basis::MissingTurn,
+        ),
+    ] {
+        if gap {
+            quality.partial = true;
+            if !quality.reason_codes.contains(&basis) {
+                quality.reason_codes.push(basis);
+            }
+        }
+    }
     let mut time = m::time(&a, &turn_refs, fallback, native);
     if context.detail.reason == Basis::ResourceLimit
         || time.timeline.detail.reason == Basis::ResourceLimit
@@ -554,6 +632,7 @@ fn query_impl(
         time.native_ttft_ms.evidence_refs = vec!["collection:native_boundary_index".into()];
     }
     let mut local = LocalResponse {
+        uses: object_uses,
         output_version: OUTPUT_VERSION,
         action: SummaryAction::Summary,
         method_version: METHOD_VERSION.into(),
@@ -620,6 +699,12 @@ fn query_impl(
                         "reconciled_accounting_v1",
                     );
                     add(
+                        CollectionKind::CanonicalOperations,
+                        "canonical_operations",
+                        e.operations.len(),
+                        "canonical_object_use_v1",
+                    );
+                    add(
                         CollectionKind::SourceControls,
                         "source_controls",
                         e.controls.len(),
@@ -644,6 +729,14 @@ fn query_impl(
         },
     };
     check(cancelled)?;
+    if !fits(&local)? && (!local.uses.objects.is_empty() || local.uses.next_cursor.is_some()) {
+        // New detail cannot evict already verified timing/context facts.
+        uses::omit_detail(&mut local.uses, Basis::ResourceLimit);
+        local.quality.partial = true;
+        if !local.quality.reason_codes.contains(&Basis::ResourceLimit) {
+            local.quality.reason_codes.push(Basis::ResourceLimit);
+        }
+    }
     if !fits(&local)? {
         // Never publish prefix distributions. Retain independently observed native
         // scalars; all derived data becomes an explicit budget gap.
@@ -948,14 +1041,17 @@ fn evidence_row(event: &Arc<Event>) -> Result<EvidenceRow> {
     }
     Ok(row)
 }
-struct BoundedSize(usize);
+struct BoundedSize {
+    bytes: usize,
+    limit: usize,
+}
 impl Write for BoundedSize {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        self.0 = self
-            .0
+        self.bytes = self
+            .bytes
             .checked_add(bytes.len())
             .ok_or_else(|| std::io::Error::other("summary size"))?;
-        if self.0 > MAX_SUMMARY_BYTES {
+        if self.bytes > self.limit {
             return Err(std::io::Error::other("summary budget"));
         }
         Ok(bytes.len())
@@ -965,10 +1061,16 @@ impl Write for BoundedSize {
     }
 }
 fn fits(value: &impl serde::Serialize) -> Result<bool> {
-    let mut size = BoundedSize(0);
+    fits_limit(value, MAX_SUMMARY_BYTES)
+}
+fn fits_limit(value: &impl serde::Serialize, limit: usize) -> Result<bool> {
+    let mut size = BoundedSize {
+        bytes: 0,
+        limit: limit.min(MAX_SUMMARY_BYTES),
+    };
     match serde_json::to_writer(&mut size, value) {
         Ok(()) => Ok(true),
-        Err(_error) if size.0 > MAX_SUMMARY_BYTES => Ok(false),
+        Err(_error) if size.bytes > size.limit => Ok(false),
         Err(error) => Err(error.into()),
     }
 }

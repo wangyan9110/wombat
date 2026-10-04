@@ -23,7 +23,7 @@ async function fixture(patch: Partial<UsageClient> = {}) {
   const client: UsageClient = { query: async () => usage(), prices: forbidden, config: forbidden, optimize: forbidden,
     account: forbidden, handoff: forbidden, live: forbidden,
     timing: async request => request.action === 'capabilities' ? capabilityResult : request.action === 'evidence' ? {
-      outputVersion: 1, action: 'evidence', methodVersion: local.methodVersion, profile: 'local', snapshotId: request.snapshotId,
+      outputVersion: 1, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: request.snapshotId,
       scope: local.scope, total: { value: 0, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] }, rows: [],
     } : request.privacyProfile === 'share-v1' ? share : local, ...patch };
   const host = await startWebHost({ client, assets, roots: ['/synthetic/source'], projectRoots: ['/synthetic/project'], automaticPrices: false });
@@ -111,7 +111,7 @@ test('evidence preserves pagination and sharing returns only the safe branch', a
     requests.push(request);
     if (request.action === 'summary') return share;
     if (request.action !== 'evidence') return capabilityResult;
-    return { outputVersion: 1, action: 'evidence', methodVersion: local.methodVersion, profile: 'local',
+    return { outputVersion: 1, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local',
       snapshotId: request.snapshotId, scope: local.scope, total: { value: 3, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] }, rows: [], nextCursor: { token: 'synthetic-next' } };
   } });
   try {

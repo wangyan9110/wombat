@@ -269,6 +269,22 @@ pub(super) fn project(local: &LocalResponse) -> ShareResponse {
         })
         .collect();
     ShareResponse {
+        uses: UseTotals {
+            method_version: crate::usage_observations::METHOD_VERSION,
+            source_coverage: local.uses.totals.source_coverage,
+            object_count: a.metric(&local.uses.totals.object_count),
+            record_count: a.metric(&local.uses.totals.record_count),
+            unbound_target_records: a.metric(&local.uses.totals.unbound_target_records),
+            unassigned_skill_records: a.metric(&local.uses.totals.unassigned_skill_records),
+            unassigned_mcp_records: a.metric(&local.uses.totals.unassigned_mcp_records),
+            coverage: UseCoverage {
+                dispatch_gaps: a.metric(&local.uses.totals.coverage.dispatch_gaps),
+                identity_gaps: a.metric(&local.uses.totals.coverage.identity_gaps),
+                target_gaps: a.metric(&local.uses.totals.coverage.target_gaps),
+                time_gaps: a.metric(&local.uses.totals.coverage.time_gaps),
+                associated_turn_gaps: a.metric(&local.uses.totals.coverage.associated_turn_gaps),
+            },
+        },
         basis_collections,
         output_version: OUTPUT_VERSION,
         action: SummaryAction::Summary,

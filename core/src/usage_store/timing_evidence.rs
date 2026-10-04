@@ -63,6 +63,8 @@ pub struct TimingEvidence<'a> {
     pub measurements: Vec<Arc<Measurement>>,
     /// Canonical adapter operations; storage never re-pairs events or deduplicates them.
     pub operations: Vec<Arc<Operation>>,
+    /// Required same-generation writer observations; zero covers only collected records.
+    pub unassigned_uses: &'a super::UnassignedUseRecords,
     pub events: Vec<Arc<Event>>,
     pub controls: Vec<Arc<Event>>,
     pub domains: Vec<DomainCoverage<'a>>,
@@ -212,6 +214,7 @@ impl Snapshot {
         if owner.thread.source_instance_id != target.source {
             return Err(operation_error("INVALID_ARGUMENT", "轮次来源身份不匹配"));
         }
+        owner.unassigned_uses.check_version()?;
         meter.work(owner.turns.len().checked_ilog2().unwrap_or(0) as usize + 1)?;
         let turn = owner
             .turns
@@ -340,6 +343,7 @@ impl Snapshot {
             source,
             measurements: canonical.measurements,
             operations: canonical.operations,
+            unassigned_uses: &owner.unassigned_uses,
             events,
             controls,
             domains,

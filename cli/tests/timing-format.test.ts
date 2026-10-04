@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { locale } from '@wombat/client/locale';
 import { renderTimingResult, timingExitCode } from '../src/timing-format.js';
 import { local, share, capabilityResult } from './timing-fixtures.js';
+import type { TimingResult } from '@wombat/client';
 
 test('human timing preserves explicit zero unknown independent durations and concurrent interval measures', () => {
   locale.setLocale('en');
@@ -32,4 +33,24 @@ test('exit classification uses core quality without making missing optional capa
   assert.equal(timingExitCode(complete), 0); assert.equal(timingExitCode(capabilityResult), 0);
   for (const field of ['partial', 'running', 'censored'] as const) assert.equal(timingExitCode({ ...complete, quality: { ...complete.quality, [field]: true } }), 2);
   locale.setLocale('en'); assert.match(renderTimingResult(capabilityResult), /Total duration: Unavailable/);
+});
+test('object and record pages preserve unknown counts, failed uses and safe display text', () => {
+  locale.setLocale('en');
+  const zero = { value: 0, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] } as const;
+  const base = { outputVersion: 1, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const, snapshotId: local.readView.snapshotId,
+    scope: local.scope, totals: local.uses.totals, total: { ...zero, value: 1, evidenceRefs: [] }, nextCursor: { token: 'next' } };
+  const objects: TimingResult = { ...base, collection: 'use_objects', rows: [{
+    objectRef: 'object-1', kind: 'skill', state: 'used', path: '/synthetic/\u001b[31mSKILL.md', server: null, project: null,
+    associatedUseCount: { ...zero, value: 1, evidenceRefs: [] }, useCount: local.uses.totals.objectCount,
+    recordCount: { ...zero, value: 1, evidenceRefs: [] }, unassignedTurnRecords: { ...zero, evidenceRefs: [] }, coverage: local.uses.totals.coverage,
+  }] };
+  const text = renderTimingResult(objects);
+  assert.match(text, /object-1\tskill\tused/); assert.match(text, /Unknown/); assert.match(text, /1 · Source record/); assert.doesNotMatch(text, /\u001b/);
+  const records: TimingResult = { ...base, collection: 'use_records', objectRef: 'object-1', rows: [{
+    reference: 'use-1', objectRef: 'object-1', kind: 'skill_read', state: 'used', outcome: 'failed', timestampMs: null,
+    timeBasis: 'unknown', nativeDurationMs: null, tool: 'read', exitCode: 1, identityKnown: true,
+    replayOf: null, targetConflict: false, gapCodes: ['time_missing'],
+  }] };
+  assert.match(renderTimingResult(records), /use-1\tobject-1\tskill_read\tused\tfailed\tUnknown/);
+  assert.match(renderTimingResult(records), /time_missing/); assert.equal(timingExitCode(records), 0);
 });

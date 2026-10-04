@@ -45,6 +45,7 @@ pub struct ThreadEntry {
     pub thread: Thread,
     pub file: FileRef,
     pub turns: BTreeMap<String, TurnEntry>,
+    pub unassigned_uses: UnassignedUseRecords,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -98,6 +99,8 @@ mod query;
 mod tests;
 pub mod timing_evidence;
 mod timing_measurements;
+mod use_metadata;
+pub use use_metadata::UnassignedUseRecords;
 #[cfg(test)]
 mod watermark_tests;
 pub use files::{RefreshLock, load, save};

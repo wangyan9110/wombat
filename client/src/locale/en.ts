@@ -957,7 +957,7 @@ export const en = {
   "preview.rule-upgraded": "Rule upgraded, incomparable",
   "preview.evidence-gap": "Missing recheck evidence",
   "cli.timing.summary": "  wombat timing [summary|evidence|capabilities]   Query whole-turn timing and safe evidence",
-  "cli.timing.help": "wombat timing [summary] --thread ID --turn ID [--root PATH] [--source ID] [--fresh|--cached] [--snapshot ID] [--share] [--json|--text]\nwombat timing evidence --thread ID --turn ID --snapshot ID [--limit 1..200] [--cursor TOKEN] [--root PATH] [--source ID] [--json|--text]\nwombat timing capabilities [--share] [--json|--text]\n\nDefault output is one JSON object; --text uses the current language, and --lang zh|en selects it. Summaries cover the whole turn and accept no date, Token, cost, or pagination filters. Evidence pages retain one fixed snapshot, defaulting to 50 rows. Timing never automatically downloads prices or collects configuration, Hooks, or accounts.\n",
+  "cli.timing.help": "wombat timing [summary] --thread ID --turn ID [--root PATH] [--source ID] [--fresh|--cached] [--snapshot ID] [--share] [--json|--text]\nwombat timing evidence --thread ID --turn ID --snapshot ID [--limit 1..200] [--cursor TOKEN] [--collection turn_events|use_objects|use_records] [--object <object-ref>] [--root PATH] [--source ID] [--json|--text]\nwombat timing capabilities [--share] [--json|--text]\n\nDefault output is one JSON object; --text uses the current language, and --lang zh|en selects it. Summaries cover the whole turn and accept no date, Token, cost, or pagination filters. Evidence pages retain one fixed snapshot, defaulting to 50 rows; --object applies only to use_records. Timing never automatically downloads prices or collects configuration, Hooks, or accounts.\n",
   "cli.timing.error.invalid": "Invalid timing arguments; use timing --help for supported options.",
   "cli.timing.error.expired": "The read view expired or is unavailable; query the summary again and retain its fixed snapshot.",
   "cli.timing.error.corrupt": "The fixed snapshot is incomplete or failed validation; existing data is retained.",
@@ -1110,4 +1110,6 @@ export const en = {
   "preview.handoff-unavailable": "Codex host unavailable",
   "preview.account-unavailable": "Account unavailable",
   "preview.account-loading": "Account loading",
+  "execution.useCount": "Uses",
+  "execution.associatedUseCount": "Associated uses",
 } satisfies Record<keyof typeof zh, string>;
