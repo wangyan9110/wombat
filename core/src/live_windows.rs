@@ -181,7 +181,7 @@ impl Read for &Stream {
         let mut pipe = self.pipe.lock().unwrap();
         let result = self
             .runtime
-            .block_on(timeout(duration, pipe.read(output)))
+            .block_on(async { timeout(duration, pipe.read(output)).await })
             .map_err(|_| io::Error::from(io::ErrorKind::TimedOut))?;
         trace(format!("read result: {result:?}"));
         result
@@ -195,7 +195,7 @@ impl Write for Stream {
         let mut pipe = self.pipe.lock().unwrap();
         let result = self
             .runtime
-            .block_on(timeout(duration, pipe.write(input)))
+            .block_on(async { timeout(duration, pipe.write(input)).await })
             .map_err(|_| io::Error::from(io::ErrorKind::TimedOut))?;
         trace(format!("write result: {result:?}"));
         if let Ok(count) = result {
@@ -208,7 +208,7 @@ impl Write for Stream {
         let duration = remaining(self.write_deadline.get())?;
         let mut pipe = self.pipe.lock().unwrap();
         self.runtime
-            .block_on(timeout(duration, pipe.flush()))
+            .block_on(async { timeout(duration, pipe.flush()).await })
             .map_err(|_| io::Error::from(io::ErrorKind::TimedOut))?
     }
 }
