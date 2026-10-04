@@ -20,6 +20,7 @@ use std::{
 pub const MAX_SUMMARY_BYTES: usize = 256 * 1024;
 const MAX_CURSOR_BYTES: usize = 8 * 1024;
 const MAX_LOCATOR_BYTES: usize = 4096;
+mod navigation;
 
 pub fn validate(request: &Request) -> Result<()> {
     let (thread, turn, snapshot, roots, scope) = match request {
@@ -508,6 +509,25 @@ fn query_impl(
             quality.reason_codes.push(Basis::ResourceLimit);
         }
     }
+    let interval_pages = if profile == PrivacyProfile::Local {
+        navigation::build(
+            snapshot,
+            target,
+            &time.timeline,
+            evidence.as_ref().map(|e| e.events.as_slice()),
+            fallback,
+            cancelled,
+        )?
+    } else {
+        // Local cursor work and its budget are not part of a sharing computation.
+        navigation::unavailable(time.timeline.track_count.clone(), Basis::UnsupportedMethod)
+    };
+    if interval_pages.detail.reason == Basis::ResourceLimit {
+        quality.partial = true;
+        if !quality.reason_codes.contains(&Basis::ResourceLimit) {
+            quality.reason_codes.push(Basis::ResourceLimit);
+        }
+    }
     let mut work = m::work(&a, &turn_refs, fallback);
     if let Some(e) = &evidence {
         let count_origin = |origin| {
@@ -573,6 +593,7 @@ fn query_impl(
         quality,
         freshness,
         evidence: EvidenceIndex {
+            interval_pages,
             collections: {
                 let mut collections = Vec::new();
                 let mut add = |kind, name: &str, count: usize, method: &str| {
@@ -656,6 +677,8 @@ fn query_impl(
         local.context = m::context(&unavailable, &[], Some(Basis::ResourceLimit));
         local.work = m::work(&unavailable, &[], Some(Basis::ResourceLimit));
         local.evidence.refs.clear();
+        local.evidence.interval_pages =
+            navigation::unavailable(m::unavailable(Basis::ResourceLimit), Basis::ResourceLimit);
         local.quality.partial = true;
         if !local.quality.reason_codes.contains(&Basis::ResourceLimit) {
             local.quality.reason_codes.push(Basis::ResourceLimit);

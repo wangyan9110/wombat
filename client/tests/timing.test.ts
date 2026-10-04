@@ -50,7 +50,7 @@ const local: TimingLocalResult = {
     snapshotUnassignedTotal: count(), threadUnassignedTotal: count(), sourceStatus: 'unknown',
   },
   quality: { partial: true, running: false, censored: true, reasonCodes: [], factLimit: 100000, summaryLimitBytes: 262144 },
-  freshness: { status: 'fixed' }, evidence: { collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
+  freshness: { status: 'fixed' }, evidence: { intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
 };
 const share: TimingShareResult = {
   outputVersion: 1, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
@@ -146,4 +146,48 @@ test('HTTP timing uses its dedicated route and preserves cancellation and core f
   assert.deepEqual(await reader.timing!({ action: 'capabilities' }), capabilityResult);
   const failed = createHttpClient({ origin: 'http://127.0.0.1:1', token: 'synthetic', fetch: async () => new Response('{"type":"error","code":"VIEW_EXPIRED","message":"expired"}\n', { headers: { 'content-type': 'application/x-ndjson' } }) });
   await assert.rejects(failed.timing!(summary), { code: 'VIEW_EXPIRED' });
+});
+
+test('nonempty local fragment navigation enforces bounds and stays outside sharing contracts', async () => {
+  const refs = ['event:synthetic-endpoint'];
+  const page = { cursor: null, limit: 200, evidenceRefs: refs };
+  const entry = { intervalAlias: 'interval:1', pages: [page] };
+  const value = (n: number) => ({ ...count(), value: n, status: 'derived', basis: 'exact_event_page' });
+  const navigation = {
+    detail: { support: 'supported', reason: 'exact_event_page' }, candidateIntervalCount: value(1),
+    locatedIntervalCount: value(1), missingEventRefCount: value(0), pageCount: value(1), limitBytes: 65536, entries: [entry],
+  };
+  const response = (nav: unknown) => ({
+    ...local,
+    time: { ...local.time, timeline: {
+      ...local.time.timeline, presentation: 'timeline', detail: { support: 'supported', reason: 'lifecycle_union' },
+      entryCount: value(1), trackCount: value(1), identifiedIntervalCount: value(1), unclassifiedGapCount: value(0),
+      unlocatedIntervalCount: value(0), outsideWindowIntervalCount: value(0),
+      tracks: [{ intervalAlias: entry.intervalAlias, category: 'command', startMs: 0, endMs: 20, clipped: false, evidenceScope: 'event_records', evidenceRefs: refs }],
+    } },
+    evidence: { ...local.evidence, intervalPages: nav },
+  });
+  for (const cursor of [null, { token: 'opaque-token-for-mock' }]) {
+    const valid = response({ ...navigation, entries: [{ ...entry, pages: [{ ...page, cursor }] }] });
+    assert.equal(validateLocal(valid), true);
+    assert.equal(await client(valid).timing!(summary), valid);
+  }
+  for (const invalid of [
+    { ...navigation, entries: [{ ...entry, pages: Array.from({ length: 4 }, () => page) }] },
+    { ...navigation, entries: [{ ...entry, pages: [{ ...page, evidenceRefs: Array.from({ length: 4 }, (_, i) => `event:${i}`) }] }] },
+    { ...navigation, entries: Array.from({ length: 201 }, () => entry) },
+    ...[0, 199, 201].map(limit => ({ ...navigation, entries: [{ ...entry, pages: [{ ...page, limit }] }] })),
+  ]) {
+    const rejected = response(invalid);
+    assert.equal(validateLocal(rejected), false);
+    await assert.rejects(client(rejected).timing!(summary), { code: 'PROTOCOL_ERROR' });
+  }
+  for (const rejected of [
+    { ...share, intervalPages: navigation },
+    { ...share, evidence: { intervalPages: navigation } },
+    { ...share, time: { ...share.time, timeline: { ...share.time.timeline, intervalPages: navigation } } },
+  ]) {
+    assert.equal(validateShare(rejected), false);
+    await assert.rejects(client(rejected).timing!({ ...summary, privacyProfile: 'share-v1' }), { code: 'PROTOCOL_ERROR' });
+  }
 });

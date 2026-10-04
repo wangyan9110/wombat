@@ -21,6 +21,7 @@ export type Basis =
   | "missing_identity"
   | "missing_time"
   | "running_turn"
+  | "exact_event_page"
   | "boundary_conflict"
   | "source_partial"
   | "resource_limit"

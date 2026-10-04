@@ -374,6 +374,16 @@ fn native_fallback_reduces_complete_partition_including_final_conflict() {
     assert_eq!(l.time.timeline.entry_count.basis, Basis::ResourceLimit);
     assert_eq!(l.time.timeline.identified_interval_count.value, None);
     assert_eq!(
+        l.evidence.interval_pages.detail.reason,
+        Basis::ResourceLimit
+    );
+    assert_eq!(l.evidence.interval_pages.located_interval_count.value, None);
+    assert_eq!(
+        l.evidence.interval_pages.missing_event_ref_count.value,
+        None
+    );
+    assert!(l.evidence.interval_pages.entries.is_empty());
+    assert_eq!(
         l.time.timeline.unlocated_interval_count.basis,
         Basis::ResourceLimit
     );
@@ -859,4 +869,317 @@ fn timeline_numeric_range_drops_detail_without_unsafe_coordinates_or_false_zero(
         schema["definitions"]["Timeline"]["properties"]["tracks"]["maxItems"],
         200
     );
+}
+
+fn empty_message(offset: u64) -> Arc<Event> {
+    event(
+        offset,
+        None,
+        Payload::Message {
+            origin: MessageOrigin::AssistantVisible,
+            presence: ContentPresence::Empty,
+            native_id: None,
+            record_kind: MessageRecordKind::LegacySnapshot,
+            record_phase: Phase::Completed,
+            content_phase: ContentPhase::Unknown,
+        },
+    )
+}
+#[test]
+fn fragment_navigation_groups_exact_event_pages_and_excludes_control_order() {
+    let start = event(
+        1,
+        Some(1010),
+        Payload::Item {
+            item_kind: crate::session_events::ItemKind::Command,
+            native_id: Some("operation".into()),
+            phase: Phase::Started,
+            started_at_ms: None,
+            completed_at_ms: None,
+            duration: None,
+        },
+    );
+    let end = event(
+        399,
+        Some(1060),
+        Payload::Item {
+            item_kind: crate::session_events::ItemKind::Command,
+            native_id: Some("operation".into()),
+            phase: Phase::Completed,
+            started_at_ms: None,
+            completed_at_ms: None,
+            duration: None,
+        },
+    );
+    let together = event(
+        400,
+        Some(1020),
+        Payload::Item {
+            item_kind: crate::session_events::ItemKind::Command,
+            native_id: Some("together".into()),
+            phase: Phase::Started,
+            started_at_ms: None,
+            completed_at_ms: None,
+            duration: None,
+        },
+    );
+    let together_end = event(
+        401,
+        Some(1070),
+        Payload::Item {
+            item_kind: crate::session_events::ItemKind::Command,
+            native_id: Some("together".into()),
+            phase: Phase::Completed,
+            started_at_ms: None,
+            completed_at_ms: None,
+            duration: None,
+        },
+    );
+    let mut events = vec![
+        boundary(0, Some(1000), Phase::Started, None, None),
+        start.clone(),
+    ];
+    events.extend((2..399).map(empty_message));
+    events.extend([
+        end.clone(),
+        together.clone(),
+        together_end.clone(),
+        boundary(402, Some(1100), Phase::Completed, None, None),
+    ]);
+    let mut position = empty_message(200).position().clone();
+    position.ordinal = 1;
+    events.push(Arc::new(
+        Event::new(
+            position,
+            Some("thread-private".into()),
+            None,
+            EventTime::from_source(None).0,
+            vec![crate::session_events::Gap::SourcePartial],
+            Payload::Message {
+                origin: MessageOrigin::Unknown,
+                presence: ContentPresence::Unknown,
+                native_id: None,
+                record_kind: MessageRecordKind::Unknown,
+                record_phase: Phase::Unknown,
+                content_phase: ContentPhase::Unknown,
+            },
+        )
+        .unwrap(),
+    ));
+    events.reverse();
+    let snapshot = make_snapshot(events);
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let nav = &result.evidence.interval_pages;
+    assert_eq!(nav.detail.support, Support::Supported);
+    assert_eq!(nav.candidate_interval_count.value, Some(2));
+    assert_eq!(nav.located_interval_count.value, Some(2));
+    assert_eq!(nav.page_count.value, Some(3));
+    let operation = &nav.entries[0];
+    assert_eq!(
+        operation.interval_alias,
+        result.time.timeline.tracks[0].interval_alias
+    );
+    assert_eq!(operation.pages.len(), 2);
+    assert!(operation.pages[0].cursor.is_none());
+    assert_eq!(
+        operation.pages[0].evidence_refs,
+        [format!("event:{}", start.id())]
+    );
+    assert_eq!(
+        operation.pages[1].evidence_refs,
+        [format!("event:{}", end.id())]
+    );
+    assert_eq!(nav.entries[1].pages.len(), 1);
+    assert_eq!(
+        nav.entries[1].pages[0].evidence_refs,
+        [
+            format!("event:{}", together.id()),
+            format!("event:{}", together_end.id())
+        ]
+    );
+    for entry in &nav.entries {
+        for page in &entry.pages {
+            let Response::Evidence(evidence) = query(
+                &snapshot,
+                &Request::Evidence {
+                    thread_id: "thread-private".into(),
+                    turn_id: "turn-private".into(),
+                    snapshot_id: "live:private".into(),
+                    roots: vec![],
+                    scope: None,
+                    cursor: page.cursor.clone(),
+                    limit: page.limit,
+                    privacy_profile: PrivacyProfile::Local,
+                },
+            ) else {
+                panic!()
+            };
+            for reference in &page.evidence_refs {
+                assert!(evidence.rows.iter().any(|row| &row.reference == reference));
+            }
+        }
+    }
+    let shared = super::super::share::project(&result);
+    let encoded = serde_json::to_string(&shared).unwrap();
+    assert!(
+        !encoded.contains("intervalPages")
+            && !encoded.contains("cursor")
+            && !encoded.contains("token")
+    );
+    let schema = crate::dispatch("schema_timing_share_response", &serde_json::json!({})).unwrap();
+    assert!(schema["definitions"]["Cursor"].is_null());
+    assert!(schema["definitions"]["IntervalPages"].is_null());
+}
+#[test]
+fn fragment_navigation_duplicate_or_missing_event_ids_are_rejected_and_cancelled() {
+    let support = timed_item(1, "support", Some(1010), Some(1020));
+    let events = vec![
+        boundary(0, Some(1000), Phase::Started, None, None),
+        support.clone(),
+        boundary(2, Some(1100), Phase::Completed, None, None),
+    ];
+    let snapshot = make_snapshot(events.clone());
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let target = TurnTarget {
+        source: "source-private",
+        thread: "thread-private",
+        turn: "turn-private",
+    };
+    let mut duplicate = events.clone();
+    duplicate.push(support.clone());
+    let error = navigation::build(
+        &snapshot,
+        target,
+        &result.time.timeline,
+        Some(&duplicate),
+        None,
+        &AtomicBool::new(false),
+    )
+    .unwrap_err();
+    assert_eq!(error_code(error), "SNAPSHOT_CORRUPT");
+    let missing: Vec<_> = events
+        .into_iter()
+        .filter(|event| event.id() != support.id())
+        .collect();
+    let error = navigation::build(
+        &snapshot,
+        target,
+        &result.time.timeline,
+        Some(&missing),
+        None,
+        &AtomicBool::new(false),
+    )
+    .unwrap_err();
+    assert_eq!(error_code(error), "SNAPSHOT_CORRUPT");
+    let error = navigation::build(
+        &snapshot,
+        target,
+        &result.time.timeline,
+        Some(&[]),
+        None,
+        &AtomicBool::new(true),
+    )
+    .unwrap_err();
+    assert_eq!(error_code(error), "CANCELLED");
+}
+#[test]
+fn fragment_navigation_byte_budget_discards_all_locators_and_retains_counts() {
+    let mut events = vec![boundary(0, Some(1000), Phase::Started, None, None)];
+    events.extend((1..6000).map(|n| {
+        if n % 200 == 1 {
+            timed_item(
+                n,
+                &format!("i{n}"),
+                Some(1010 + n as i64 / 200),
+                Some(1011 + n as i64 / 200),
+            )
+        } else {
+            empty_message(n)
+        }
+    }));
+    events.push(boundary(
+        6000,
+        Some(1100),
+        Phase::Completed,
+        Some(150),
+        None,
+    ));
+    let mut snapshot = make_snapshot(events);
+    snapshot.manifest.snapshot_ref.snapshot_id = format!("live:{}", "x".repeat(1000));
+    let mut request = request(PrivacyProfile::Local);
+    if let Request::Summary { snapshot_id, .. } = &mut request {
+        *snapshot_id = Some(snapshot.manifest.snapshot_ref.snapshot_id.clone());
+    }
+    let result = local(query(&snapshot, &request));
+    let nav = result.evidence.interval_pages;
+    assert_eq!(nav.detail.support, Support::Unavailable);
+    assert_eq!(nav.detail.reason, Basis::ResourceLimit);
+    assert!(nav.entries.is_empty());
+    assert_eq!(nav.candidate_interval_count.value, Some(30));
+    assert_eq!(nav.located_interval_count.value, Some(30));
+    assert_eq!(nav.page_count.value, Some(30));
+    assert_eq!(nav.missing_event_ref_count.value, Some(0));
+    assert!(serde_json::to_vec(&nav).unwrap().len() <= navigation::LIMIT_BYTES);
+    assert_eq!(result.time.timeline.tracks.len(), 30);
+    assert_eq!(result.time.command.union_ms.value, Some(30));
+    assert_eq!(result.time.native_wall_clock_ms.value, Some(150));
+    assert!(result.quality.reason_codes.contains(&Basis::ResourceLimit));
+}
+
+#[test]
+fn fragment_navigation_known_zero_and_unknown_proof_remain_distinct() {
+    let snapshot = make_snapshot(complete_events());
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(
+        result.evidence.interval_pages.detail.reason,
+        Basis::NoCandidates
+    );
+    assert_eq!(
+        result
+            .evidence
+            .interval_pages
+            .candidate_interval_count
+            .value,
+        Some(0)
+    );
+    assert_eq!(
+        result.evidence.interval_pages.located_interval_count.value,
+        Some(0)
+    );
+    assert_eq!(
+        result.evidence.interval_pages.missing_event_ref_count.value,
+        Some(0)
+    );
+    let support = timed_item(1, "support", Some(1010), Some(1020));
+    let events = vec![
+        boundary(0, Some(1000), Phase::Started, None, None),
+        support,
+        boundary(2, Some(1100), Phase::Completed, None, None),
+    ];
+    let snapshot = make_snapshot(events.clone());
+    let mut timeline = local(query(&snapshot, &request(PrivacyProfile::Local)))
+        .time
+        .timeline;
+    timeline.tracks[0].evidence_scope = FragmentEvidence::Unavailable;
+    timeline.tracks[0].evidence_refs.clear();
+    let result = navigation::build(
+        &snapshot,
+        TurnTarget {
+            source: "source-private",
+            thread: "thread-private",
+            turn: "turn-private",
+        },
+        &timeline,
+        Some(&events),
+        None,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    assert_eq!(result.detail.support, Support::Partial);
+    assert_eq!(result.detail.reason, Basis::MissingIdentity);
+    assert_eq!(result.candidate_interval_count.value, Some(1));
+    assert_eq!(result.located_interval_count.value, Some(0));
+    assert_eq!(result.missing_event_ref_count.value, None);
+    assert_eq!(result.missing_event_ref_count.basis, Basis::MissingIdentity);
+    assert!(result.entries.is_empty());
 }

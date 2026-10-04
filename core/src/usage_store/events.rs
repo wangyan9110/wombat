@@ -495,6 +495,35 @@ impl Snapshot {
         }
         self.event_range(partition, 0, partition.count, budget, cancelled)
     }
+    /// Creates a local locator into this exact immutable partition without reading
+    /// event blocks. Offset zero uses the normal first-page request. Callers obtain
+    /// offsets from the already validated partition order, never analysis ordering.
+    pub(crate) fn event_cursor_at_offset(
+        &self,
+        target: &EventTarget,
+        offset: usize,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<EventCursor>> {
+        check_cancel(cancelled)?;
+        let partition = self.event_partition(target)?;
+        let total = partition.map_or(0, |partition| partition.count);
+        if offset >= total && offset != 0 {
+            return Err(operation_error("INVALID_ARGUMENT", "事件定位超出目标范围"));
+        }
+        if offset == 0 {
+            return Ok(None);
+        }
+        let mut cursor = EventCursor {
+            snapshot_id: self.manifest.snapshot_ref.snapshot_id.clone(),
+            target: target.clone(),
+            partition_hash: partition.unwrap().sha256.clone(),
+            next_offset: offset,
+            sha256: String::new(),
+        };
+        cursor.sha256 = cursor.digest()?;
+        check_cancel(cancelled)?;
+        Ok(Some(cursor))
+    }
     /// Evidence pagination bounds the selected page independently of whole-turn computation.
     pub fn event_page(
         &self,

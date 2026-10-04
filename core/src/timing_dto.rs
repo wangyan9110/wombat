@@ -128,6 +128,7 @@ pub enum Basis {
     MissingIdentity,
     MissingTime,
     RunningTurn,
+    ExactEventPage,
     BoundaryConflict,
     SourcePartial,
     ResourceLimit,
@@ -488,9 +489,41 @@ pub struct ShareCollection {
     pub count: Count,
     pub method: String,
 }
+/// Local navigation only: the sharing DTO has no evidence index or cursor type.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct IntervalPage {
+    pub interval_alias: String,
+    #[schemars(length(max = 3))]
+    pub pages: Vec<FragmentPage>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FragmentPage {
+    pub cursor: Option<Cursor>,
+    #[schemars(range(min = 200, max = 200))]
+    pub limit: usize,
+    #[schemars(length(max = 3))]
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct IntervalPages {
+    pub detail: Capability,
+    pub candidate_interval_count: Count,
+    pub located_interval_count: Count,
+    pub missing_event_ref_count: Count,
+    /// Sum of page locators over intervals, after merging each interval's same-page refs.
+    pub page_count: Count,
+    #[schemars(range(min = 65536, max = 65536))]
+    pub limit_bytes: usize,
+    #[schemars(length(max = 200))]
+    pub entries: Vec<IntervalPage>,
+}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EvidenceIndex {
+    pub interval_pages: IntervalPages,
     pub collections: Vec<EvidenceCollection>,
     pub available: bool,
     pub limit: usize,

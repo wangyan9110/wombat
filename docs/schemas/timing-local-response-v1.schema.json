@@ -279,6 +279,7 @@
         "missing_identity",
         "missing_time",
         "running_turn",
+        "exact_event_page",
         "boundary_conflict",
         "source_partial",
         "resource_limit",
@@ -1176,6 +1177,9 @@
     "EvidenceIndex": {
       "type": "object",
       "properties": {
+        "intervalPages": {
+          "$ref": "#/definitions/IntervalPages"
+        },
         "collections": {
           "type": "array",
           "items": {
@@ -1205,12 +1209,126 @@
       },
       "additionalProperties": false,
       "required": [
+        "intervalPages",
         "collections",
         "available",
         "limit",
         "snapshotId",
         "refs",
         "method"
+      ]
+    },
+    "IntervalPages": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "$ref": "#/definitions/Capability"
+        },
+        "candidateIntervalCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "locatedIntervalCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingEventRefCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "pageCount": {
+          "description": "Sum of page locators over intervals, after merging each interval's same-page refs.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "limitBytes": {
+          "type": "integer",
+          "minimum": 65536,
+          "maximum": 65536
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IntervalPage"
+          },
+          "maxItems": 200
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "detail",
+        "candidateIntervalCount",
+        "locatedIntervalCount",
+        "missingEventRefCount",
+        "pageCount",
+        "limitBytes",
+        "entries"
+      ]
+    },
+    "IntervalPage": {
+      "description": "Local navigation only: the sharing DTO has no evidence index or cursor type.",
+      "type": "object",
+      "properties": {
+        "intervalAlias": {
+          "type": "string"
+        },
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FragmentPage"
+          },
+          "maxItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "intervalAlias",
+        "pages"
+      ]
+    },
+    "FragmentPage": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 200
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "limit",
+        "evidenceRefs"
+      ]
+    },
+    "Cursor": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "maxLength": 8192
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "token"
       ]
     },
     "EvidenceCollection": {

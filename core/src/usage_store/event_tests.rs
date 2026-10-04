@@ -963,3 +963,65 @@ fn future_block_and_fact_fields_are_version_errors_before_current_shape_parsing(
         );
     }
 }
+
+#[test]
+fn local_offset_locators_read_exact_fixed_pages_without_traversal() {
+    let root = tempfile::tempdir().unwrap();
+    let input = facts(
+        (0..405)
+            .rev()
+            .map(|i| event(i, Some("thread"), Some("turn")))
+            .collect(),
+    );
+    let memory = live(root.path(), input.clone(), "live:locators");
+    let disk = save_at(root.path(), input.clone()).unwrap();
+    let next = save_at(root.path(), input).unwrap();
+    let target = EventTarget::turn("thread", "turn");
+    for snapshot in [&memory, &disk] {
+        assert!(
+            snapshot
+                .event_cursor_at_offset(&target, 0, &active())
+                .unwrap()
+                .is_none()
+        );
+        let cursor = snapshot
+            .event_cursor_at_offset(&target, 400, &active())
+            .unwrap()
+            .unwrap();
+        let page = snapshot
+            .event_page(&target, 200, Some(&cursor), budget(), &active())
+            .unwrap();
+        assert_eq!(offsets(&page.events), [400, 401, 402, 403, 404]);
+        assert_eq!(page.total, 405);
+        assert!(
+            snapshot
+                .event_cursor_at_offset(&target, 405, &active())
+                .is_err()
+        );
+        assert!(
+            snapshot
+                .event_cursor_at_offset(&EventTarget::turn("other", "turn"), 1, &active())
+                .is_err()
+        );
+        assert!(
+            snapshot
+                .event_cursor_at_offset(&target, 200, &AtomicBool::new(true))
+                .is_err()
+        );
+        assert!(
+            next.event_page(&target, 200, Some(&cursor), budget(), &active())
+                .is_err()
+        );
+        assert!(
+            snapshot
+                .event_page(
+                    &EventTarget::turn("thread", "other"),
+                    200,
+                    Some(&cursor),
+                    budget(),
+                    &active()
+                )
+                .is_err()
+        );
+    }
+}

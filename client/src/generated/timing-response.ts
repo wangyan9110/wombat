@@ -24,6 +24,7 @@ export type Basis =
   | "missing_identity"
   | "missing_time"
   | "running_turn"
+  | "exact_event_page"
   | "boundary_conflict"
   | "source_partial"
   | "resource_limit"
@@ -302,12 +303,49 @@ export interface QueryFreshness {
   errorCode?: string | null;
 }
 export interface EvidenceIndex {
+  intervalPages: IntervalPages;
   collections: EvidenceCollection[];
   available: boolean;
   limit: number;
   snapshotId: string;
   refs: string[];
   method: string;
+}
+export interface IntervalPages {
+  detail: Capability;
+  candidateIntervalCount: TimingMetricUint64;
+  locatedIntervalCount: TimingMetricUint64;
+  missingEventRefCount: TimingMetricUint64;
+  /**
+   * Sum of page locators over intervals, after merging each interval's same-page refs.
+   */
+  pageCount: TimingMetricUint64;
+  limitBytes: number;
+  /**
+   * @maxItems 200
+   */
+  entries: IntervalPage[];
+}
+/**
+ * Local navigation only: the sharing DTO has no evidence index or cursor type.
+ */
+export interface IntervalPage {
+  intervalAlias: string;
+  /**
+   * @maxItems 3
+   */
+  pages: [] | [FragmentPage] | [FragmentPage, FragmentPage] | [FragmentPage, FragmentPage, FragmentPage];
+}
+export interface FragmentPage {
+  cursor?: Cursor | null;
+  limit: number;
+  /**
+   * @maxItems 3
+   */
+  evidenceRefs: [] | [string] | [string, string] | [string, string, string];
+}
+export interface Cursor {
+  token: string;
 }
 export interface EvidenceCollection {
   reference: string;
@@ -373,9 +411,6 @@ export interface EvidenceRow {
   durationMs?: number | null;
   firstTokenMs?: number | null;
   gapCodes: string[];
-}
-export interface Cursor {
-  token: string;
 }
 export interface CapabilitiesResponse {
   outputVersion: number;

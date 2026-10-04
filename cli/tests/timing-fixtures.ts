@@ -41,7 +41,7 @@ export const local: TimingLocalResult = {
     snapshotUnassignedTotal: count(), threadUnassignedTotal: count(), sourceStatus: 'unknown',
   },
   quality: { partial: true, running: false, censored: true, reasonCodes: [], factLimit: 100000, summaryLimitBytes: 262144 },
-  freshness: { status: 'fixed' }, evidence: { collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
+  freshness: { status: 'fixed' }, evidence: { intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
 };
 export const share: TimingShareResult = {
   outputVersion: 1, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
