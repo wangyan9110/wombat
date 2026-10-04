@@ -144,6 +144,8 @@ pub(super) fn operation(
         if item.success.is_some_and(|r| r.get() == "false") && op.status.as_ref() != "declined" {
             op.status = "failed".into();
         }
+    } else if operation_kind == "command" {
+        op.work = Some(work::command(item, completed, report, &evidence));
     }
     op.server = item.server.as_deref().map(|s| safe_text(s).into());
     op.tool = item.tool.as_deref().map(|s| safe_text(s).into());

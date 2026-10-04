@@ -10,8 +10,10 @@ fn work(op: &Operation) -> &WorkObservation {
     op.work.as_ref().unwrap()
 }
 fn paths(op: &Operation) -> Option<&Vec<FilePathChange>> {
-    let WorkData::FileChange { changes } = &work(op).data;
-    changes.as_ref()
+    match &work(op).data {
+        WorkData::FileChange { changes } => changes.as_ref(),
+        _ => panic!("file observation expected"),
+    }
 }
 
 #[test]

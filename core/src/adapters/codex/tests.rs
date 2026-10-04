@@ -54,6 +54,7 @@ mod prefix_integrity;
 
 mod mcp;
 
+mod command_work;
 mod fork_graph;
 mod operations;
 mod work;

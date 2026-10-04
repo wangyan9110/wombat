@@ -25,8 +25,17 @@ fn required_work_mapping_rejects_old_parser_and_projection_before_payload_withou
     let saved_parser = crate::live_index::load_map(&db, &parser).unwrap();
     let saved_view = crate::live_index::load_map(&db, &format!("view:{key}")).unwrap();
     for (scope, original) in [(&projection, &saved_projection), (&parser, &saved_parser)] {
-        assert_eq!(original["workObservationVersion"], json!(1));
-        for header in [None, Some(json!(2))] {
+        assert_eq!(
+            original["workObservationVersion"],
+            json!(adapters::codex::incremental::WORK_OBSERVATION_VERSION)
+        );
+        for header in [
+            None,
+            Some(json!(1)),
+            Some(json!(
+                adapters::codex::incremental::WORK_OBSERVATION_VERSION + 1
+            )),
+        ] {
             crate::live_index::save_map(&db, &projection, &saved_projection).unwrap();
             crate::live_index::save_map(&db, &parser, &saved_parser).unwrap();
             let mut tampered = original.clone();
@@ -77,6 +86,58 @@ fn required_work_mapping_rejects_old_parser_and_projection_before_payload_withou
             }
         }
     }
+}
+
+#[test]
+fn failed_source_retains_command_metadata_in_new_view_and_restored_projection() {
+    use std::io::Write;
+    let root_a = tempfile::tempdir().unwrap();
+    let root_b = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    let path_a = source(root_a.path(), "command-a");
+    let path_b = source(root_b.path(), "command-b");
+    let row = json!({"type":"event_msg","payload":{"type":"item_completed","turn_id":"turn","item":{"type":"CommandExecution","id":"cmd","status":"failed","exit_code":1,"cwd":"file:///synthetic","source":"agent","parsed_cmd":[{"type":"read","path":"a/SKILL.md","cmd":"PRIVATE_COMMAND"},{"type":"read","path":"b/SKILL.md","cmd":"PRIVATE_COMMAND"}],"aggregated_output":"PRIVATE_OUTPUT"}}});
+    fs::OpenOptions::new()
+        .append(true)
+        .open(&path_a)
+        .unwrap()
+        .write_all((row.to_string() + "\n").as_bytes())
+        .unwrap();
+    let roots = vec![
+        root_a.path().to_string_lossy().into_owned(),
+        root_b.path().to_string_lossy().into_owned(),
+    ];
+    let key = source_key(&roots);
+    let mut db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    let mut caches = BTreeMap::new();
+    let initial = sync(&mut db, &key, &roots, false, None, &mut caches)
+        .unwrap()
+        .unwrap();
+    let before = initial.operation_facts().next().unwrap();
+    assert_eq!(before.status.as_ref(), "failed");
+    assert!(
+        matches!(&before.work.as_ref().unwrap().data,adapters::contract::WorkData::Command{parsed_commands:Some(paths),..} if paths.len()==2)
+    );
+    let id = sources(&[roots[0].clone()]).sources.remove(0).id;
+    invalidate_parser(&db, &id);
+    fs::OpenOptions::new()
+        .append(true)
+        .open(&path_b)
+        .unwrap()
+        .write_all(b"\n")
+        .unwrap();
+    let next = sync(&mut db, &key, &roots, false, Some(&initial), &mut caches)
+        .unwrap()
+        .unwrap();
+    let restored = restore(&db, &key, &roots).unwrap().unwrap();
+    assert_eq!(next.operation_facts().collect::<Vec<_>>(), vec![before]);
+    assert_eq!(restored.operation_facts().collect::<Vec<_>>(), vec![before]);
+    let saved: String = db
+        .query_row("SELECT group_concat(json(payload)) FROM entries", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert!(!saved.contains("PRIVATE_"));
 }
 fn source(root: &std::path::Path, id: &str) -> PathBuf {
     fs::create_dir_all(root.join("sessions")).unwrap();

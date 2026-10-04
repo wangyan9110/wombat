@@ -15,8 +15,8 @@ pub(crate) use watermarks::validate_watermarks;
 pub use watermarks::{SourceWatermark, WATERMARK_FORMAT_VERSION, WatermarkIssue, WatermarkState};
 pub(crate) use work::valid_work_path;
 pub use work::{
-    ChangeKind, FilePathChange, WORK_OBSERVATION_VERSION, WORK_PATH_BYTES, WORK_PATH_LIMIT,
-    WorkData, WorkGap, WorkObservation, WorkStage,
+    ChangeKind, CommandSource, FilePathChange, ParsedCommand, WORK_OBSERVATION_VERSION,
+    WORK_PATH_BYTES, WORK_PATH_LIMIT, WorkData, WorkGap, WorkObservation, WorkStage,
 };
 
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;

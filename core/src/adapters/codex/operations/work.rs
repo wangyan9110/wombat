@@ -5,6 +5,8 @@
 use super::*;
 use serde::de::{MapAccess, Visitor};
 use serde_json::value::RawValue;
+mod command;
+pub(super) use command::observe as command;
 
 #[derive(Default)]
 struct FileMap {
@@ -159,10 +161,42 @@ pub(super) fn merge(old: &mut Operation, incoming: &mut Operation, report: &mut 
         old.work = incoming.work.take();
         return;
     };
-    if previous.stage == WorkStage::Terminal && next.stage == WorkStage::Proposed {
+    if previous.gaps.contains(&WorkGap::ConflictingObservation) {
         return;
     }
-    if previous.gaps.contains(&WorkGap::ConflictingObservation) {
+    if matches!(
+        (&previous.data, &next.data),
+        (WorkData::Command { .. }, WorkData::Command { .. })
+    ) {
+        if command::merge(previous, next) {
+            issue(
+                report,
+                "operationWorkConflict",
+                "同一命令操作的来源元数据冲突",
+                incoming.evidence.first().cloned(),
+            );
+        }
+        return;
+    }
+    if std::mem::discriminant(&previous.data) != std::mem::discriminant(&next.data) {
+        previous.data = match previous.data {
+            WorkData::FileChange { .. } => WorkData::FileChange { changes: None },
+            WorkData::Command { .. } => WorkData::Command {
+                cwd: None,
+                source: None,
+                parsed_commands: None,
+            },
+        };
+        previous.gaps.push(WorkGap::ConflictingObservation);
+        issue(
+            report,
+            "operationWorkConflict",
+            "同一操作的来源工作类型冲突",
+            incoming.evidence.first().cloned(),
+        );
+        return;
+    }
+    if previous.stage == WorkStage::Terminal && next.stage == WorkStage::Proposed {
         return;
     }
     if previous.stage == WorkStage::Proposed && next.stage == WorkStage::Terminal {
@@ -171,8 +205,11 @@ pub(super) fn merge(old: &mut Operation, incoming: &mut Operation, report: &mut 
     }
     // Missing coverage can be completed by a same-stage explicit observation,
     // but an invalid or resource-limited observation must not be silently healed.
-    let WorkData::FileChange { changes: before } = &previous.data;
-    let WorkData::FileChange { changes: after } = &next.data;
+    let (WorkData::FileChange { changes: before }, WorkData::FileChange { changes: after }) =
+        (&previous.data, &next.data)
+    else {
+        return;
+    };
     if previous.gaps == [WorkGap::MissingChanges] && after.is_some() {
         old.work = incoming.work.take();
         return;
