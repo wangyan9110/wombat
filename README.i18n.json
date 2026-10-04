@@ -5,39 +5,39 @@
       "zh": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562",
       "en": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562"
     },
-    "/wombat-codex-usage-configuration": {
-      "zh": "365189cd9d06ab9c0c515e04bbbb97b28cbc3fc62e4a5f19bc7bc2eccc39c237",
-      "en": "acca23b73ceeaae7dbd885c8a7b86e76c40b26e4e3ff47bb39c071bdf7d45854"
+    "/wombat-make-ai-work-better": {
+      "zh": "a2efe8c86336f6763af0400baa6dd4f02c14de067665a2a14230d5a809e61a91",
+      "en": "9c25f98d094715163630533a0f62847aec0435ba5d9dd6e2b4dd114aff77fc57"
     },
-    "/wombat-codex-usage-configuration/what-wombat-helps-you-do": {
-      "zh": "9a012024959f78ad55ee6df082462a101ca69bdbcef212ba998e48a6d936a829",
-      "en": "20565dd1d2d43b2a63eaa36305bea81635b08b221d248b46791667cf095585fa"
+    "/wombat-make-ai-work-better/get-started": {
+      "zh": "d3b12f7c9f8f2a1e7f0e176c0c66917b4542f1867497a419934f68bbcd4b0290",
+      "en": "d4d5ba6c97ea51a04bde183ab8b770ba9af2f4e9a13f14b2dc9f267777206697"
     },
-    "/wombat-codex-usage-configuration/what-wombat-helps-you-do/know-what-needs-attention-in-your-setup": {
-      "zh": "11d6f27bb4debed07a94a940db03ec17c7c45e2f5b6724b6d7b744a9937d7ce9",
-      "en": "67894a4f036483dc73211748c4dc0857fc2beb60a8623c1f480bc7bcdcd569f9"
+    "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow": {
+      "zh": "441e2564bb5cd38f72b8d4d425905637667a482b9c412de51e730dc5c3294d74",
+      "en": "91b6a6e4bedda3381f0524130a8a3ae7cb5c79b2b6c9d838e8a356b9bd4a2d64"
     },
-    "/wombat-codex-usage-configuration/what-wombat-helps-you-do/see-your-usage-in-context": {
-      "zh": "575f0782f0e962b46007715ecc94030a729844a2270369be7e6f949ca50493ba",
-      "en": "eaddfd55ec5c36888084ef8d722e4b5c215441a2d02480eca2d1f5e457a9e956"
+    "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow/understand-your-codex-token-usage": {
+      "zh": "1b948ee0acedfb6a0c4f6972d864a138d0f8fea055c3669ee3bf20ab52bacb41",
+      "en": "dc3e7316d3a1bd0d5a9124c80715c64f24039c9b662c2ad7df109c7862143518"
     },
-    "/wombat-codex-usage-configuration/what-wombat-helps-you-do/check-whether-your-edits-resolved-an-issue": {
-      "zh": "22ae0ed8a19a2d023260b188c79e515ee04d950a5214abd94177705e91c2279b",
-      "en": "8e7ad3ad23ef460ad64b688f3a4e426f4eed70ae5558edfaf484ac6bae0c9ae6"
+    "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow/see-how-long-tasks-take-and-where-the-time-goes": {
+      "zh": "8914274555e2addaa54c4e4936e649e5f00bc21379501f8de8c4962c5badee8b",
+      "en": "13ef7f33efcf06d9b3a912f6ae2392e1f2b920ae0c9020098a4f0e5dbc28ff13"
     },
-    "/wombat-codex-usage-configuration/get-started": {
-      "zh": "f3eb2be066c2cbbf37edd90a66d31f975f0c8188eb1d11f986906aa3517b0ff6",
-      "en": "a55c3c3d851902f8666fe0036d54b0d8989f7f093f83dc87617f152f373ccbaf"
+    "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow/find-recommendations-backed-by-evidence": {
+      "zh": "6763bb02caad64371707c581f9b7e6ae2bb8eca774ceebc1c12bca99da3c6485",
+      "en": "c6192c2c8f6a7846dea5e7559c1a4e97efa61a45a4506e0d88380217a2e7b2d0"
     },
-    "/wombat-codex-usage-configuration/privacy-and-costs": {
-      "zh": "e05474a4b203d111e023b75ef9d0e905a3e91270913d786e8221cd7448cc64ab",
-      "en": "7a22a58ce1a9e00bcc3da6ae5e99aedc97ef1d65f8d58781d279590fa4eb3988"
+    "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow/send-work-to-codex-then-check-the-result": {
+      "zh": "97a5e3f9c3bbc25618be1e724ece68863647c711b84414615b9db5848d150378",
+      "en": "d9648e5b49ac4b030f7fd9a1c401e52d8edddbd67cef8020dc3bd6dfbc61492a"
     },
-    "/wombat-codex-usage-configuration/help-shape-wombat": {
-      "zh": "16b0502d7d59a3c2ac9bba2f06885b00c39a887d0b4b5b3caea04d6ecfa05e14",
-      "en": "90cf0d90afbfe0da6f9baa3dd26f2e22559e39710920a0c817372bd8586fa17b"
+    "/wombat-make-ai-work-better/help-shape-wombat": {
+      "zh": "b72555cda77427f0657a30e1e621e7f37aac939bd9f6a6ff61d0a720349faa1d",
+      "en": "96549d01c8c149499f4ef95b55be7c23e22baeb306cf1ade6010220b55bb2d99"
     },
-    "/wombat-codex-usage-configuration/license": {
+    "/wombat-make-ai-work-better/license": {
       "zh": "cde8bbb6126ec7c29da0dba23a26d83f906c3fb7b369eb68598e99d230c55abe",
       "en": "064b88a73ed7e3f451dc7dd5c94cfe8470755c734f4b4f8c0aaff576535d1cae"
     }
