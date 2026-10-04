@@ -42,10 +42,7 @@ test('cancelled handoff distinguishes before-queue failure from after-queue unce
       assert.equal(result.deliveries[0].status, queued ? 'unknown' : 'failed');
       assert.equal(result.deliveries[0].errorCode, queued ? 'HANDOFF_UNKNOWN' : 'CANCELLED');
       assert.equal((await calls()).filter(method => method === 'thread/queue/add').length, queued ? 1 : 0);
-      await until(async () => {
-        const events = (await readFile(native.lifecycle, 'utf8')).trim().split('\n').filter(Boolean).map(row => JSON.parse(row));
-        return events.filter(e => e.event === 'spawn').every(e => events.some(end => end.pid === e.pid && end.event === 'exit'));
-      });
+      await native.waitForExit();
       assert.ok(!(await readFile(native.lifecycle, 'utf8')).includes('delayedResponse'), 'cancellation ends the connection before the delayed response');
       const after = await client.optimize!({ ...base, action: 'list' });
       assert.equal(after.pending, before.pending); assert.equal(after.decisionRevision, before.decisionRevision);
@@ -64,10 +61,7 @@ test('cancelled handoff distinguishes before-queue failure from after-queue unce
     const result = await sending;
     assert.deepEqual(result.deliveries.map(d => [d.status, d.errorCode]), [['unknown', 'HANDOFF_UNKNOWN'], ['failed', 'CANCELLED']]);
     assert.equal((await calls()).filter(method => method === 'thread/queue/add').length, 1, 'remaining projects are not sent after cancellation');
-    await until(async () => {
-      const events = (await readFile(native.lifecycle, 'utf8')).trim().split('\n').filter(Boolean).map(row => JSON.parse(row));
-      return events.filter(e => e.event === 'spawn').every(e => events.some(end => end.pid === e.pid && end.event === 'exit'));
-    });
+    await native.waitForExit();
     assert.ok(!(await readFile(native.lifecycle, 'utf8')).includes('delayedResponse'));
   } finally {
     if (service && service.exitCode === null && service.signalCode === null) { const closed = once(service, 'close'); service.kill('SIGTERM'); await closed; }
