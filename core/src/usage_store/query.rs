@@ -12,6 +12,10 @@ impl Snapshot {
                 "价表已经更新，请重新同步后保存",
             ));
         }
+        let collected = self.live_collected()?;
+        save_with_prices(&product_home()?, collected, prices)
+    }
+    pub(super) fn live_collected(&self) -> Result<Collected> {
         let rows = self
             .live_rows
             .as_ref()
@@ -19,6 +23,7 @@ impl Snapshot {
         let turns = self.memory_turns.as_ref().unwrap();
         let collected = Collected {
             sources: self.manifest.sources.clone(),
+            watermarks: self.manifest.watermarks.clone(),
             issues: self.manifest.issues.clone(),
             threads: self
                 .manifest
@@ -39,7 +44,7 @@ impl Snapshot {
                 .flat_map(|t| t.operations.iter().cloned())
                 .collect(),
         };
-        save_with_prices(&product_home()?, collected, prices)
+        Ok(collected)
     }
     pub(crate) fn operation_facts(&self) -> impl Iterator<Item = &Arc<Operation>> {
         self.memory_turns

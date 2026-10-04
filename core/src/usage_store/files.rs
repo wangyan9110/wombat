@@ -69,6 +69,7 @@ pub(super) fn save_with_prices(
     collected: Collected,
     prices: crate::pricing_sync::Response,
 ) -> Result<Snapshot> {
+    validate_watermarks(&collected.watermarks)?;
     private_dir(root)?;
     let id = uuid::Uuid::new_v4().to_string();
     let generation = root.join("generations").join(&id);
@@ -174,6 +175,7 @@ pub(super) fn save_with_prices(
         price_revision: prices.catalog.revision,
         price_catalog_hash: prices.catalog_hash,
         sources: collected.sources,
+        watermarks: collected.watermarks,
         issues: collected.issues,
         ledger,
         events,
@@ -263,8 +265,25 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
     }
     super::events::check_index_version(raw["events"]["version"].as_u64())?;
+    if raw
+        .get("watermarks")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|rows| {
+            rows.iter().any(|row| {
+                row.get("formatVersion")
+                    .and_then(serde_json::Value::as_u64)
+                    .is_some_and(|v| v != u64::from(WATERMARK_FORMAT_VERSION))
+            })
+        })
+    {
+        return Err(operation_error(
+            "UNSUPPORTED_VERSION",
+            "不支持此来源水位版本",
+        ));
+    }
     let manifest: Manifest =
         serde_json::from_value(raw).map_err(|e| corrupt(format!("快照索引无效：{e}")))?;
+    validate_watermarks(&manifest.watermarks).map_err(|e| corrupt(format!("快照水位无效：{e}")))?;
     super::events::validate_index(&manifest.events)?;
     if manifest.snapshot_ref.snapshot_id != id {
         return Err(corrupt("快照身份不匹配"));

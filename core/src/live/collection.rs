@@ -13,50 +13,70 @@ pub(super) fn source_key(roots: &[String]) -> String {
 pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Option<Collected>> {
     let mut value = Collected::default();
     let mut paths = EvidencePaths::default();
+    let mut watermark_version = None;
     let mut strings = adapters::shared_strings::FactStrings::default();
-    let found =
-        crate::live_index::each(db, &format!("projection:{key}"), |field, _id, payload| {
-            macro_rules! rows {
-                ($name:ident) => {
-                    value.$name.push(serde_json::from_str(payload)?);
-                };
+    let found = crate::live_index::each(db, &format!("projection:{key}"), |field, id, payload| {
+        macro_rules! rows {
+            ($name:ident) => {
+                value.$name.push(serde_json::from_str(payload)?);
+            };
+        }
+        match field {
+            "watermarkVersion" => {
+                watermark_version = Some(serde_json::from_str::<u32>(payload)?);
             }
-            match field {
-                "sources" => {
-                    rows!(sources);
-                }
-                "threads" => {
-                    rows!(threads);
-                }
-                "turns" => {
-                    rows!(turns);
-                }
-                "measurements" => {
-                    rows!(measurements);
-                    if let Some(row) = value.measurements.last_mut() {
-                        let row = Arc::make_mut(row);
-                        paths.compact(&mut row.evidence);
-                        strings.measurement(row);
-                    }
-                }
-                "operations" => {
-                    rows!(operations);
-                    if let Some(row) = value.operations.last_mut() {
-                        let row = Arc::make_mut(row);
-                        paths.compact(&mut row.evidence);
-                        strings.operation(row);
-                    }
-                }
-                "events" => {
-                    rows!(events);
-                }
-                "issues" => {
-                    value.issues = serde_json::from_str(payload)?;
-                }
-                _ => anyhow::bail!("unsupported projection field: {field}"),
+            "watermarks" => {
+                rows!(watermarks);
+                let row = value.watermarks.last().expect("just appended watermark");
+                anyhow::ensure!(
+                    row.file_id == id && row.source_instance_id == key,
+                    "projection watermark identity mismatch"
+                );
             }
-            Ok(())
-        })?;
+            "sources" => {
+                rows!(sources);
+            }
+            "threads" => {
+                rows!(threads);
+            }
+            "turns" => {
+                rows!(turns);
+            }
+            "measurements" => {
+                rows!(measurements);
+                if let Some(row) = value.measurements.last_mut() {
+                    let row = Arc::make_mut(row);
+                    paths.compact(&mut row.evidence);
+                    strings.measurement(row);
+                }
+            }
+            "operations" => {
+                rows!(operations);
+                if let Some(row) = value.operations.last_mut() {
+                    let row = Arc::make_mut(row);
+                    paths.compact(&mut row.evidence);
+                    strings.operation(row);
+                }
+            }
+            "events" => {
+                rows!(events);
+            }
+            "issues" => {
+                value.issues = serde_json::from_str(payload)?;
+            }
+            _ => anyhow::bail!("unsupported projection field: {field}"),
+        }
+        Ok(())
+    })?;
+    if found {
+        if watermark_version != Some(WATERMARK_FORMAT_VERSION) {
+            return Err(operation_error(
+                "UNSUPPORTED_VERSION",
+                "不支持此投影水位格式",
+            ));
+        }
+        validate_watermarks(&value.watermarks)?;
+    }
     Ok(found.then_some(value))
 }
 
@@ -82,6 +102,7 @@ pub(super) fn sync(
     }
     let mut tx = db.transaction()?;
     let mut failures = BTreeMap::<String, SourceReport>::new();
+    let mut failure_watermarks = BTreeMap::<String, Vec<SourceWatermark>>::new();
     let mut changed = false;
     let mut epochs = BTreeMap::new();
     let mut updated = BTreeMap::new();
@@ -130,6 +151,32 @@ pub(super) fn sync(
                     source_instance_id: Some(source.id.clone()),
                     evidence: None,
                 });
+                // Source savepoint was rolled back: only previous committed file
+                // positions may be retained. This attempt has no captured length.
+                let at = chrono::Utc::now().to_rfc3339();
+                let watermarks = load_collected(&tx, &source.id)?
+                    .map(|v| v.watermarks)
+                    .or_else(|| {
+                        prior_view.map(|v| {
+                            v.manifest
+                                .watermarks
+                                .iter()
+                                .filter(|w| w.source_instance_id == source.id)
+                                .cloned()
+                                .collect()
+                        })
+                    })
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|w| {
+                        w.unavailable(
+                            WatermarkState::Failed,
+                            WatermarkIssue::SourceSyncFailed,
+                            &at,
+                        )
+                    })
+                    .collect();
+                failure_watermarks.insert(source.id.clone(), watermarks);
                 failures.insert(source.id.clone(), report);
                 None
             }
@@ -144,6 +191,19 @@ pub(super) fn sync(
                 &scope,
                 "sources",
                 value.sources.iter().map(|s| (s.source.id.as_str(), s)),
+            )?;
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "watermarkVersion",
+                "",
+                &WATERMARK_FORMAT_VERSION,
+            )?;
+            crate::live_index::replace_field(
+                &tx,
+                &scope,
+                "watermarks",
+                value.watermarks.iter().map(|w| (w.file_id.as_str(), w)),
             )?;
             macro_rules! save {
                 ($field:ident) => {
@@ -244,7 +304,12 @@ pub(super) fn sync(
         if let Some(failure) = failures.get(&source.id) {
             value.sources = vec![failure.clone()];
             value.issues = failure.issues.clone();
+            value.watermarks = failure_watermarks
+                .get(&source.id)
+                .cloned()
+                .unwrap_or_default();
         }
+        collected.watermarks.extend(value.watermarks);
         collected.sources.extend(value.sources);
         collected.issues.extend(value.issues);
         collected.threads.extend(value.threads);
@@ -279,7 +344,7 @@ pub(super) fn sync(
     crate::live_index::save_map(
         &tx,
         &format!("view:{key}"),
-        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"failures":failures,"createdAt":snapshot.manifest.snapshot_ref.created_at})
+        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"failures":failures,"failureWatermarks":failure_watermarks,"createdAt":snapshot.manifest.snapshot_ref.created_at})
             .as_object()
             .unwrap(),
     )?;
@@ -322,7 +387,16 @@ pub(super) fn restore(
         if let Some(failure) = failure {
             v.issues = failure.issues.clone();
             v.sources = vec![failure];
+            v.watermarks = serde_json::from_value(
+                prior
+                    .get("failureWatermarks")
+                    .and_then(|v| v.get(&source.id))
+                    .ok_or_else(|| anyhow::anyhow!("missing failure watermark observations"))?
+                    .clone(),
+            )?;
+            validate_watermarks(&v.watermarks)?;
         }
+        collected.watermarks.extend(v.watermarks);
         collected.sources.extend(v.sources);
         collected.issues.extend(v.issues);
         collected.threads.extend(v.threads);
@@ -337,3 +411,6 @@ pub(super) fn restore(
     }
     Ok(Some(Arc::new(snapshot)))
 }
+
+#[cfg(test)]
+mod watermark_tests;

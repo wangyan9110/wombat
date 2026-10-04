@@ -3,6 +3,8 @@ use super::*;
 #[derive(Default, Serialize, Deserialize)]
 pub(super) struct State {
     pub(super) event_generation: Option<String>,
+    /// Replacement identity seed; not an observed generation until a valid row exists.
+    pub(super) pending_event_generation: Option<String>,
     pub(super) thread: Option<String>,
     pub(super) turn: Option<String>,
     pub(super) model: ModelRef,
@@ -75,6 +77,25 @@ pub(super) fn read_file_from(
     mut checkpoint: Option<&mut incremental::Checkpoint>,
 ) {
     let evidence_path: Arc<str> = path.to_string_lossy().as_ref().into();
+    let file_id = crate::hash(evidence_path.as_bytes());
+    let first_issue = report.issues.len();
+    let observed_at = chrono::Utc::now().to_rfc3339();
+    let prior_offset = checkpoint.as_ref().map_or(0, |c| c.offset);
+    let prior_generation = checkpoint
+        .as_ref()
+        .and_then(|c| c.state.event_generation.clone());
+    let mut watermark = SourceWatermark {
+        format_version: WATERMARK_FORMAT_VERSION,
+        source_instance_id: source.id.clone(),
+        file_id: file_id.clone(),
+        generation: prior_generation.clone(),
+        committed_offset: prior_offset,
+        observed_bytes: None,
+        observed_at,
+        state: WatermarkState::Failed,
+        issue_codes: vec![WatermarkIssue::SourceUnreadable],
+    };
+    facts.watermarks.insert(file_id.clone(), watermark.clone());
     let mut file = match File::open(path) {
         Ok(file) => file,
         Err(_) => {
@@ -92,8 +113,12 @@ pub(super) fn read_file_from(
     };
     let before = file.metadata().ok();
     let length = before.as_ref().map_or(0, |m| m.len());
+    watermark.observed_bytes = before.as_ref().map(|m| m.len());
+    facts.watermarks.insert(file_id.clone(), watermark.clone());
     if length > context.max_bytes.saturating_sub(report.bytes_read) {
         issue(report, "resourceLimit", "日志文件超出剩余读取范围", None);
+        watermark.issue_codes = vec![WatermarkIssue::ResourceLimit];
+        facts.watermarks.insert(file_id.clone(), watermark);
         return;
     }
     // Freeze this read to the observed prefix; later appends belong to the next refresh.
@@ -109,6 +134,8 @@ pub(super) fn read_file_from(
         .map_or_else(State::default, |c| std::mem::take(&mut c.state));
     let mut line_number = checkpoint.as_ref().map_or(0, |c| c.line);
     let mut consumed = offset;
+    let mut newline_offset = offset;
+    let mut unclosed_record = false;
     let mut pending_tail = false;
     let mut valid_records = 0;
     loop {
@@ -139,6 +166,13 @@ pub(super) fn read_file_from(
                 }),
             );
             break;
+        }
+        if row.bytes().ends_with(b"\n") {
+            newline_offset = consumed + row.bytes().len() as u64;
+        } else {
+            // Direct reads keep accepting valid final JSON; watermark coverage still
+            // ends at the last newline, independently of those observed facts.
+            unclosed_record = true;
         }
         line_number += 1;
         consumed += row.bytes().len() as u64;
@@ -194,18 +228,22 @@ pub(super) fn read_file_from(
             "{:x}",
             Sha256::digest(row.bytes().strip_suffix(b"\n").unwrap_or(row.bytes()))
         );
+        let pending_generation = state.pending_event_generation.take();
         let generation = state
             .event_generation
             .get_or_insert_with(|| {
-                let physical = before.as_ref().map(incremental::physical_identity);
-                crate::hash(
-                    serde_json::to_vec(&(physical, &fingerprint)).expect("serializable identity"),
-                )
+                pending_generation.unwrap_or_else(|| {
+                    let physical = before.as_ref().map(incremental::physical_identity);
+                    crate::hash(
+                        serde_json::to_vec(&(physical, &fingerprint))
+                            .expect("serializable identity"),
+                    )
+                })
             })
             .clone();
         let position = crate::session_events::Position {
             source_instance_id: source.id.clone(),
-            file_id: crate::hash(evidence_path.as_bytes()),
+            file_id: file_id.clone(),
             generation,
             byte_offset: consumed - row.bytes().len() as u64,
             ordinal: 0,
@@ -244,6 +282,56 @@ pub(super) fn read_file_from(
     {
         issue(report, "sourceChanged", "日志在读取期间被替换或截断", None);
     }
+    if unclosed_record
+        && !report.issues[first_issue..]
+            .iter()
+            .any(|i| i.code == "incompleteTail")
+    {
+        issue(
+            report,
+            "incompleteTail",
+            "日志尾行缺少完整换行，保留已观察事实但读取覆盖不完整",
+            Some(EvidenceRef {
+                file: evidence_path,
+                line: line_number,
+            }),
+        );
+    }
+    let mut codes = Vec::new();
+    for issue in &report.issues[first_issue..] {
+        let code = WatermarkIssue::from_code(&issue.code);
+        if !codes.contains(&code) {
+            codes.push(code);
+        }
+    }
+    if (pending_tail || unclosed_record) && !codes.contains(&WatermarkIssue::IncompleteTail) {
+        codes.push(WatermarkIssue::IncompleteTail);
+    }
+    if context.is_cancelled() {
+        codes.push(WatermarkIssue::Cancelled);
+    }
+    if report.issues.len() >= 1000 && !codes.contains(&WatermarkIssue::ResourceLimit) {
+        codes.push(WatermarkIssue::ResourceLimit);
+    }
+    let failed = codes.iter().any(|c| {
+        matches!(
+            c,
+            WatermarkIssue::SourceChanged | WatermarkIssue::SourceUnreadable
+        )
+    });
+    watermark.issue_codes = codes;
+    watermark.state = if failed {
+        WatermarkState::Failed
+    } else if !watermark.issue_codes.is_empty() || newline_offset != length {
+        WatermarkState::Partial
+    } else {
+        WatermarkState::Complete
+    };
+    if !failed {
+        watermark.generation = state.event_generation.clone();
+        watermark.committed_offset = newline_offset;
+    }
+    facts.watermarks.insert(file_id, watermark);
     if let Some(checkpoint) = checkpoint {
         checkpoint.offset = consumed;
         checkpoint.line = line_number;

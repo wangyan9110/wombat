@@ -6,6 +6,7 @@ pub(crate) fn memory(
     prices: crate::pricing_sync::Response,
     prior: Option<&Snapshot>,
 ) -> Result<Snapshot> {
+    validate_watermarks(&collected.watermarks)?;
     let mut pool = super::price_pool::PricePool::new(&prices);
     let reusable = prior
         .filter(|s| s.manifest.price_catalog_hash == prices.catalog_hash)
@@ -118,6 +119,7 @@ pub(crate) fn memory(
         price_revision: prices.catalog.revision,
         price_catalog_hash: prices.catalog_hash,
         sources: collected.sources,
+        watermarks: collected.watermarks,
         issues: collected.issues,
         ledger: file_ref("live", &[]),
         events,

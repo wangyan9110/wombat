@@ -9,6 +9,10 @@ use std::{
     },
 };
 
+mod watermarks;
+pub(crate) use watermarks::validate_watermarks;
+pub use watermarks::{SourceWatermark, WATERMARK_FORMAT_VERSION, WatermarkIssue, WatermarkState};
+
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
@@ -171,6 +175,7 @@ pub struct Operation {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Collected {
+    pub watermarks: Vec<SourceWatermark>,
     pub sources: Vec<SourceReport>,
     pub threads: Vec<Thread>,
     pub turns: Vec<Turn>,
@@ -215,6 +220,7 @@ impl RunContext {
 }
 
 pub enum Fact {
+    Watermark(SourceWatermark),
     Thread(Thread),
     Turn(Turn),
     Measurement(Arc<Measurement>),
@@ -227,6 +233,7 @@ pub trait FactSink {
 impl FactSink for Collected {
     fn push(&mut self, fact: Fact) {
         match fact {
+            Fact::Watermark(value) => self.watermarks.push(value),
             Fact::Thread(value) => self.threads.push(value),
             Fact::Turn(value) => self.turns.push(value),
             Fact::Measurement(value) => self.measurements.push(value),

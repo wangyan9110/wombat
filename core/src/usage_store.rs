@@ -54,6 +54,7 @@ pub struct Manifest {
     pub price_revision: String,
     pub price_catalog_hash: String,
     pub sources: Vec<SourceReport>,
+    pub watermarks: Vec<SourceWatermark>,
     pub issues: Vec<Issue>,
     pub ledger: FileRef,
     pub events: EventIndex,
@@ -92,6 +93,8 @@ mod price_pool;
 mod query;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod watermark_tests;
 pub use files::{RefreshLock, load, save};
 use files::{bounded_read, corrupt, file_ref, product_home, safe_file, save_with_prices};
 #[cfg(test)]

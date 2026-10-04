@@ -3,6 +3,7 @@ use super::*;
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(super) struct Facts {
+    pub(super) watermarks: BTreeMap<String, SourceWatermark>,
     #[serde(skip)]
     pub(super) strings: super::super::shared_strings::FactStrings,
     pub(super) threads: BTreeMap<String, Thread>,
@@ -37,6 +38,7 @@ pub(super) struct Candidate {
 impl Facts {
     pub(super) fn fork_derived(&self, include_facts: bool) -> Self {
         Self {
+            watermarks: self.watermarks.clone(),
             events: self.events.clone(),
             threads: self.threads.clone(),
             turns: self.turns.clone(),

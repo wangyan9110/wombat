@@ -15,6 +15,7 @@ pub(super) struct Checkpoint {
     physical: String,
     prefix_sha256: String,
     issues: Vec<Issue>,
+    watermark: Option<SourceWatermark>,
 }
 
 pub(super) fn physical_identity(meta: &fs::Metadata) -> String {
@@ -343,11 +344,37 @@ pub(crate) fn sync_cached(
     }
     let scope = format!("parser:{}:{VERSION}:1", source.id);
     let previous = crate::live_index::load_map(db, &scope)?;
+    if !previous.is_empty()
+        && previous
+            .get("watermarkVersion")
+            .and_then(serde_json::Value::as_u64)
+            != Some(u64::from(WATERMARK_FORMAT_VERSION))
+    {
+        return Err(crate::dto::operation_error(
+            "UNSUPPORTED_VERSION",
+            "不支持此来源水位格式",
+        ));
+    }
     let mut checkpoints: BTreeMap<String, Checkpoint> = previous
         .get("checkpoints")
         .map(|v| serde_json::from_value(v.clone()))
         .transpose()?
         .unwrap_or_default();
+    for (path, cp) in &checkpoints {
+        let watermark = cp
+            .watermark
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("missing checkpoint watermark"))?;
+        watermark.validate()?;
+        anyhow::ensure!(
+            watermark.source_instance_id == source.id
+                && watermark.file_id == crate::hash(path.as_bytes())
+                && watermark.committed_offset == cp.offset
+                && watermark.generation == cp.state.event_generation,
+            "checkpoint watermark identity or position mismatch"
+        );
+    }
+    let observed_at = chrono::Utc::now().to_rfc3339();
     let title_stamp = fs::metadata(root.join("session_index.jsonl"))
         .ok()
         .map(|m| stamp(&m));
@@ -365,6 +392,10 @@ pub(crate) fn sync_cached(
         if let Some(cp) = cp
             && cp.stamp == stamp(&meta)
             && !verify
+            && cp
+                .watermark
+                .as_ref()
+                .is_some_and(|w| w.state != WatermarkState::Missing)
         {
             unchanged.insert(key, (cp.stamp.clone(), cp.offset, cp.prefix_sha256.clone()));
             continue;
@@ -389,6 +420,18 @@ pub(crate) fn sync_cached(
         .collect();
     // Removing a log is not evidence that its historical consumption was zero.
     for path in &missing {
+        let cp = checkpoints
+            .get_mut(path)
+            .expect("missing checkpoint exists");
+        if let Some(w) = &cp.watermark
+            && w.state != WatermarkState::Missing
+        {
+            cp.watermark = Some(w.unavailable(
+                WatermarkState::Missing,
+                WatermarkIssue::SourceMissing,
+                &observed_at,
+            ));
+        }
         issue(
             &mut report,
             "sourceMissing",
@@ -425,6 +468,15 @@ pub(crate) fn sync_cached(
                 .map(|generation| (path.clone(), generation))
         })
         .collect();
+    let pending_generations: BTreeMap<_, _> = checkpoints
+        .iter()
+        .filter_map(|(path, cp)| {
+            cp.state
+                .pending_event_generation
+                .clone()
+                .map(|generation| (path.clone(), generation))
+        })
+        .collect();
     if rebuild {
         // Cross-file ownership and late direct measurements require source-wide
         // reconciliation. Retain facts evidenced solely by now-missing files.
@@ -443,11 +495,12 @@ pub(crate) fn sync_cached(
     for path in dirty {
         let checkpoint = checkpoints.entry(path.clone()).or_default();
         if checkpoint.state.event_generation.is_none() {
-            checkpoint.state.event_generation = if replaced.contains(&path) {
-                Some(uuid::Uuid::new_v4().to_string())
+            if replaced.contains(&path) {
+                checkpoint.state.pending_event_generation = Some(uuid::Uuid::new_v4().to_string());
             } else {
-                generations.get(&path).cloned()
-            };
+                checkpoint.state.event_generation = generations.get(&path).cloned();
+                checkpoint.state.pending_event_generation = pending_generations.get(&path).cloned();
+            }
         }
         let before = fs::metadata(&path)?;
         let captured = if let Some((observed_stamp, captured)) = observations.get(&path) {
@@ -500,6 +553,17 @@ pub(crate) fn sync_cached(
         checkpoint.physical = physical_identity(&before);
         checkpoint.prefix_sha256 = checksums.committed;
         checkpoint.issues = report.issues.split_off(first);
+        let watermark = facts
+            .watermarks
+            .get(&crate::hash(path.as_bytes()))
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("missing read watermark"))?;
+        anyhow::ensure!(
+            watermark.committed_offset == checkpoint.offset,
+            "cursor and watermark differ"
+        );
+        watermark.validate()?;
+        checkpoint.watermark = Some(watermark);
     }
     if rebuild {
         // Missing files were retained before existing files were parsed. Restore
@@ -572,12 +636,20 @@ pub(crate) fn sync_cached(
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
-    let metadata = serde_json::json!({"checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
+    let metadata = serde_json::json!({"watermarkVersion": WATERMARK_FORMAT_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();
     facts.dirty_aliases.clear();
-    let mut result = Collected::default();
+    let mut result = Collected {
+        watermarks: checkpoints
+            .values()
+            .filter_map(|cp| cp.watermark.clone())
+            .collect(),
+        ..Collected::default()
+    };
+    // Parser replay restores event facts, not file observation metadata.
+    facts.watermarks.clear();
     // Direct response records require no cumulative/fork reconciliation. Preserve
     // the general path for cumulative source counters.
     let direct_only = facts.parents.is_empty() && facts.measurements.values().all(|v| v.direct);

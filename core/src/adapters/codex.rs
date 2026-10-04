@@ -9,6 +9,8 @@ mod skills;
 #[cfg(test)]
 mod tests;
 mod timing;
+#[cfg(test)]
+mod watermark_tests;
 mod wire;
 use operations::{empty_operation, operation};
 
@@ -222,6 +224,9 @@ fn finish_projection(mut facts: Facts, report: &mut SourceReport) -> Facts {
 }
 
 fn emit_facts(facts: Facts, sink: &mut dyn FactSink) {
+    for watermark in facts.watermarks.into_values() {
+        sink.push(Fact::Watermark(watermark));
+    }
     for thread in facts.threads.into_values() {
         sink.push(Fact::Thread(thread));
     }
