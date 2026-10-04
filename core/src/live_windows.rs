@@ -88,21 +88,30 @@ impl Listener {
             let mut pipe = first;
             loop {
                 if let Err(error) = pipe.connect().await {
+                    trace(format!("client connection failed: {error:?}"));
                     let _ = sender.try_send(Err(error));
                     break;
                 }
+                trace("client connected on accept task");
                 // Create the next instance before handing this one to the service so clients
                 // never observe a gap with no listening pipe instance.
                 let next = match create_pipe(&path, false, &security_descriptor) {
-                    Ok(next) => next,
+                    Ok(next) => {
+                        trace("next listener instance created");
+                        next
+                    }
                     Err(error) => {
+                        trace(format!("next listener creation failed: {error:?}"));
                         let _ = sender.try_send(Err(error));
                         break;
                     }
                 };
                 match sender.try_send(Ok(pipe)) {
                     Ok(()) | Err(mpsc::TrySendError::Full(_)) => pipe = next,
-                    Err(mpsc::TrySendError::Disconnected(_)) => break,
+                    Err(mpsc::TrySendError::Disconnected(_)) => {
+                        trace("accept task stopped after receiver closed");
+                        break;
+                    }
                 }
             }
         });

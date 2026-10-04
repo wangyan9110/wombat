@@ -61,6 +61,9 @@ try {
     timeout: 15_000,
     maxBuffer: 8 * 1024 * 1024,
   });
+  // spawnSync blocks delivery of the service's piped stderr events. Yield once so a failure
+  // includes the complete connection-stage diagnostics instead of only the startup message.
+  await delay(25);
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stdout + result.stderr + diagnostics);
   assert.equal(result.stderr, '');
