@@ -690,6 +690,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "percent-encoding"
+version = "2.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
+
+[[package]]
 name = "phf"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1254,6 +1260,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
 
 [[package]]
+name = "unicode-normalization"
+version = "0.1.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
+dependencies = [
+ "tinyvec",
+]
+
+[[package]]
 name = "unicode-width"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1520,6 +1535,7 @@ dependencies = [
  "memchr",
  "memmap2",
  "notify",
+ "percent-encoding",
  "pulldown-cmark",
  "rusqlite",
  "rust_decimal",
@@ -1528,9 +1544,11 @@ dependencies = [
  "serde-saphyr",
  "serde_json",
  "sha2",
+ "shlex",
  "tempfile",
  "tiktoken-rs",
  "toml_edit",
+ "unicode-normalization",
  "uuid",
  "widestring",
  "windows-sys 0.61.2",

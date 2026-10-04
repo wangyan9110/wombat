@@ -6,8 +6,8 @@
   },
   "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.",
   "lockfiles": {
-    "pnpm-lock.yaml": "2337b27cf1f9dc030e89d5084d5055ca554865da1e57be29ebb6df85f10bcb0b",
-    "core/Cargo.lock": "cc6834da17cf63f1d4acdb5acdbf0ee85ebaa8c29350110a44a755adc7a1344f"
+    "pnpm-lock.yaml": "74e7a5e7a3f614d74b447f2d6f7da4ffc6d75ea83dfa87668bf8c79f00e2824a",
+    "core/Cargo.lock": "e3aafa050306a5c65abd3bfe336d3808a99200611478c5f3bf7e1f19ba08430d"
   },
   "node": [
     {
@@ -221,6 +221,19 @@
     {
       "name": "@types/unist",
       "version": "3.0.3",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/ws",
+      "version": "8.18.2",
       "license": "MIT",
       "role": "development",
       "licenseSource": "installed package",
@@ -1467,6 +1480,19 @@
       ]
     },
     {
+      "name": "ws",
+      "version": "8.22.0",
+      "license": "MIT",
+      "role": "runtime",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef"
+        }
+      ]
+    },
+    {
       "name": "zwitch",
       "version": "2.0.4",
       "license": "MIT",
@@ -2636,6 +2662,20 @@
       ]
     },
     {
+      "name": "percent-encoding",
+      "version": "2.3.2",
+      "license": "MIT OR Apache-2.0",
+      "selectedLicense": "MIT",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "LICENSE-MIT",
+          "sha256": "b38f11f6096706e6de553dabe2a7ed142d59b6fa8c97e290c67496154745cdd5"
+        }
+      ]
+    },
+    {
       "name": "phf_shared",
       "version": "0.12.1",
       "license": "MIT",
@@ -3415,7 +3455,7 @@
       "license": "Zlib OR Apache-2.0 OR MIT",
       "selectedLicense": "MIT",
       "licenseSource": "locked crate package",
-      "enabledInBuild": false,
+      "enabledInBuild": true,
       "files": [
         {
           "name": "LICENSE-APACHE.md",
@@ -3520,6 +3560,24 @@
         {
           "name": "LICENSE-UNICODE",
           "sha256": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1"
+        }
+      ]
+    },
+    {
+      "name": "unicode-normalization",
+      "version": "0.1.25",
+      "license": "MIT OR Apache-2.0",
+      "selectedLicense": "MIT",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "COPYRIGHT",
+          "sha256": "23860c2a7b5d96b21569afedf033469bab9fe14a1b24a35068b8641c578ce24d"
+        },
+        {
+          "name": "LICENSE-MIT",
+          "sha256": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0"
         }
       ]
     },
@@ -4290,14 +4348,6 @@
       "version": "1.0.1",
       "declaredLicense": "MIT",
       "repository": "https://github.com/myrrlyn/tap",
-      "status": "locked_optional_not_enabled",
-      "noticeVerified": true
-    },
-    {
-      "name": "tinyvec",
-      "version": "1.13.3",
-      "declaredLicense": "Zlib OR Apache-2.0 OR MIT",
-      "repository": "https://github.com/Lokathor/tinyvec",
       "status": "locked_optional_not_enabled",
       "noticeVerified": true
     },

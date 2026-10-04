@@ -89,9 +89,6 @@
     "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
     "benchmark:live": "node --import tsx scripts/benchmark-live.ts"
   },
-  "dependencies": {
-    "string-width": "7.2.0"
-  },
   "devDependencies": {
     "@types/node": "26.0.0",
     "@wombat/cli": "workspace:*",
