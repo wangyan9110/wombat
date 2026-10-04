@@ -22,6 +22,26 @@ function fixture() {
   return { client, calls, revise: () => { revision = 'live:two'; }, intercept: (f: typeof intercept) => { intercept = f; } };
 }
 
+test('initial task results advance to the completed ledger while preserving the opened task', async t => {
+  const f = fixture();
+  const live = f.client.live!;
+  let initial = true;
+  f.client.live = async (request, options) => {
+    const response = await live(request, options);
+    response.result.freshness = { ...response.result.freshness!, initialScan: initial };
+    return response;
+  };
+  const w = new Workspace(f.client); t.after(() => w.stop());
+  const selected = { ...route(), page:'threads' as const, thread:'stable-task', search:'task' };
+  await w.navigate(selected); w.setReading(true);
+  assert.equal(w.getSnapshot().data?.freshness?.initialScan, true);
+  initial = false; f.revise(); await w.check();
+  assert.equal(w.getSnapshot().data?.list.snapshotRef.snapshotId, 'live:two');
+  assert.equal(w.getSnapshot().data?.route.thread, 'stable-task');
+  assert.equal(w.getSnapshot().data?.route.search, 'task');
+  assert.equal(w.getSnapshot().updatesAvailable, false);
+});
+
 test('timer observes new revisions, unchanged probes do not reload pages, and no query drains pagination', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const f = fixture(), w = new Workspace(f.client); t.after(() => w.stop());
@@ -159,7 +179,8 @@ test('expired browser credentials stop polling and cannot enter a retry loop', a
 
 test('configuration pages do not issue usage polls and evidence links retain their version', async t => {
   const f = fixture(), w = new Workspace(f.client); t.after(() => w.stop());
-  await w.navigate({ ...route(), page: 'config' });
+  await w.navigate({ ...route(), page: 'instructions' });
+  await w.navigate({ ...route(), page: 'extensions' });
   assert.equal(f.calls.length, 0);
   await w.navigate({ ...route(), page: 'threads', snapshot: 'live:one' });
   assert(f.calls.every(q => q.snapshotId === 'live:one'));

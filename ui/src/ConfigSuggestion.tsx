@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import type {OptimizeRequest,OptimizeResult,UsageClient} from '@wombat/client';
 import {t,reviewPresentation} from '@wombat/client/locale';
 import {QueryError} from './Feedback.js';
-import {routeSearch,type Route} from './state.js';
+import {linkedReturn,type Route} from './state.js';
 
 /** Walk pinned pages without retaining other objects or silently truncating the lookup. */
 export async function findConfigSuggestion(client:UsageClient,request:OptimizeRequest,itemId:string,signal:AbortSignal){
@@ -28,5 +28,5 @@ export function ConfigSuggestion({client,route,itemId,readView,navigate,refresh}
  if(state.error)return <QueryError error={state.error} code={state.code} retry={state.code==='VIEW_EXPIRED'?refresh:()=>setRetry(n=>n+1)}/>;
  if(!state.data)return null;
  const {suggestion,result,offset}=state.data,presentation=reviewPresentation(suggestion);
- return <section className="config-recommendation"><h3>{t('config.relatedSuggestion')}</h3><button className="link" onClick={()=>navigate({page:'optimize',optimizeView:result.readView??undefined,decisionRevision:result.decisionRevision,suggestion:suggestion.id,suggestionRecord:suggestion.recordId??undefined,optimizeGroup:'pending',optimizeCategory:undefined,optimizeOffset:offset,detailReturn:routeSearch({...route,detailReturn:undefined})})}>{presentation.title}</button><p className="note">{presentation.value}</p></section>;
+ return <section className="config-recommendation"><h3>{t('config.relatedSuggestion')}</h3><button className="link" onClick={()=>navigate({page:'optimize',optimizeView:result.readView??undefined,decisionRevision:result.decisionRevision,suggestion:suggestion.id,suggestionRecord:suggestion.recordId??undefined,optimizeGroup:'pending',optimizeCategory:undefined,optimizeOffset:offset,returnTo:linkedReturn(route)})}>{presentation.title}</button><p className="note">{presentation.value}</p></section>;
 }

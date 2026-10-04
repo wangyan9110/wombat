@@ -1,6 +1,6 @@
-import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useRef, useId, type ReactNode } from 'react';
 import type { UsageSummary, UsageResult } from '@wombat/client';
-import { locale,t } from '@wombat/client/locale';
+import { t } from '@wombat/client/locale';
 export const compact = (n: number | null | undefined) => n == null ? '—' : new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(n);
 export const currency = (n:number, decimals=4) => n>0&&n<10**-decimals?'<$'+(10**-decimals).toFixed(decimals):'$'+n.toFixed(decimals);
 export const amount = (s: UsageSummary, decimals=4) => s.measurementCount===0||s.price.status==='unknown'?t('webui.amountUnknown'):currency(Number(s.price.cost??s.price.knownCost),decimals)+(s.price.status==='partial'?'*':'');
@@ -13,7 +13,18 @@ export function CostNote({onBasis}:{onBasis:()=>void}) {return <div className="c
 export function Heading({title,sub,children}:{title:string;sub?:string;children?:ReactNode}){return <div className="page-heading"><div><h1>{title}</h1>{sub&&<p className="subtle">{sub}</p>}</div>{children}</div>;}
 export function Empty({title,copy,children}:{title:string;copy:string;children?:ReactNode}){return <section className="empty"><div className="empty-symbol" aria-hidden="true">◌</div><h2>{title}</h2><p>{copy}</p><div className="actions">{children}</div></section>;}
 export function Pagination({page,onPage}:{page:UsageResult['page'];onPage:(offset:number)=>void}){if(page.total<=page.limit)return null;return <div className="pagination"><span>{t('webui.page',{current:Math.floor(page.offset/page.limit)+1,total:Math.ceil(page.total/page.limit),count:page.total})}</span><div className="controls"><button disabled={!page.offset} onClick={()=>onPage(Math.max(0,page.offset-page.limit))}>{t('webui.previous')}</button><button disabled={page.nextOffset==null} onClick={()=>onPage(page.nextOffset!)}>{t('webui.next')}</button></div></div>;}
-export function Modal({title,onClose,children,drawer=false,restoreFocus}:{title:string;onClose:()=>void;children:ReactNode;drawer?:boolean;restoreFocus?:()=>void}){const {locale:language}=useSyncExternalStore(locale.subscribe,locale.getSnapshot);const ref=useRef<HTMLDialogElement>(null),restoreRef=useRef(restoreFocus);restoreRef.current=restoreFocus;useEffect(()=>{const trigger=document.activeElement;ref.current?.showModal();return()=>{if(trigger instanceof HTMLElement&&trigger.isConnected&&trigger!==document.body)trigger.focus();else restoreRef.current?.();};},[]);return <dialog className={drawer?'usage-drawer':undefined} aria-labelledby="dialog-title" ref={ref} onCancel={onClose} onClick={e=>{if(e.target===e.currentTarget)onClose();}}><div id="dialog-body"><div className="dialog-head"><h2 id="dialog-title">{title}</h2><button className="quiet" onClick={()=>locale.setLocale(language==='zh'?'en':'zh')}>{language==='zh'?'English':t('webui.languageChinese')}</button><button className="icon-button" aria-label={t('webui.close')} onClick={onClose}>✕</button></div>{children}</div></dialog>;}
+export function Modal({title,onClose,children,drawer=false,restoreFocus}:{title:string;onClose:()=>void;children:ReactNode;drawer?:boolean;restoreFocus?:()=>void}) {
+ const titleId=useId();
+ const ref=useRef<HTMLDialogElement>(null),restoreRef=useRef(restoreFocus);restoreRef.current=restoreFocus;
+ useEffect(()=>{
+  const trigger=document.activeElement,wide=window.matchMedia('(min-width: 1440px)'),dialog=ref.current;
+  const reserve=()=>document.body.classList.toggle('detail-reserved',!!document.querySelector('dialog[data-reserves-space="true"][open]'));
+  const show=()=>{if(!dialog)return;dialog.close();dialog.dataset.reservesSpace=String(drawer&&wide.matches);if(drawer&&wide.matches)dialog.show();else dialog.showModal();reserve();};
+  show();wide.addEventListener('change',show);
+  return()=>{wide.removeEventListener('change',show);dialog?.close();reserve();if(trigger instanceof HTMLElement&&trigger.isConnected&&trigger!==document.body)trigger.focus();else restoreRef.current?.();};
+ },[drawer]);
+ return <dialog className={drawer?'usage-drawer':undefined} aria-labelledby={titleId} ref={ref} onCancel={e=>{e.stopPropagation();onClose();}} onKeyDown={e=>{if(e.key==='Escape'&&!e.defaultPrevented&&e.target instanceof Element&&e.target.closest('dialog')===e.currentTarget&&e.currentTarget.dataset.reservesSpace==='true'){e.preventDefault();e.stopPropagation();onClose();}}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}><div className="dialog-body" data-view-scroll data-view-key={drawer?'drawer':'modal'}><div className="dialog-head"><h2 id={titleId}>{title}</h2><button className="icon-button" aria-label={t('webui.close')} onClick={onClose}>✕</button></div>{children}</div></dialog>;
+}
 export function Basis({summary:s,onPrices}:{summary:UsageSummary;onPrices:()=>void}) {
  return <>
   <p>{t('webui.costNote')}</p>

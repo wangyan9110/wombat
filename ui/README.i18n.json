@@ -10,16 +10,20 @@
       "en": "6c9d331f16add1b95e0bb16ed55516d1dd5842dddd036e48716ab1ba21cbc31b"
     },
     "/web-frontend/pages-and-implementation-boundaries": {
-      "zh": "bdf821e1fd0f4e75e233d04437bc40b51235ffbd72a58306c2dc8702055a6114",
-      "en": "3a5974668b77afb48198cb04bc20e8821887642911e9402593ff85923a7af14e"
+      "zh": "1a170faf67a5f1355f1b2942e8e93cc70fffce42612ea10c641699b451a724bc",
+      "en": "f58d08d2211a8fc4090d1de789a6d184000e8cf0310027ef1567a1c99aaf913e"
+    },
+    "/web-frontend/internal-responsibilities": {
+      "zh": "4033b71d33dd878327c5332d322252b1cde1e524be406dabec3a9d3fd64b4dcc",
+      "en": "edb18b9b340b1c451beb5c3f701522e5f1833a7f3b2e93df54ba4428c252af96"
     },
     "/web-frontend/state-and-queries": {
       "zh": "9891eea536e0ab7eae8a86cb4386a7ad05ee08ad6fb6c8dc9ba6397fb34f5dd2",
       "en": "0cf963794aa91a41176b013d6708158979539e4192c1aa7c9c91530b0500ac1c"
     },
     "/web-frontend/development-and-verification": {
-      "zh": "d3fe6b68f7bc4550c748619b0171946cd80b374bd9b8de10254f0191b19358cd",
-      "en": "ad4ffc53279310b51b7c7873a230f323b5b6f553b22c8fec8c946e47b333d73b"
+      "zh": "5c4f8282051df6e735feb571ef0fbc6bf05ac5caa818c894d7aad51af3deeea8",
+      "en": "5d2a471b783d790bd6ba3cd032c0443778a7274dd73e75ad612e9ed3d38ff2bc"
     }
   }
 }

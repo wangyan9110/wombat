@@ -7,7 +7,7 @@ export function configRequest(route: Route): ConfigRequest {
     action: 'list', readView: route.configView, snapshotId: route.configView ? undefined : route.snapshot,
     scope: { allTime:route.allTime||undefined,since: route.allTime?undefined:route.since, until: route.allTime?undefined:shiftDate(route.until, 1), timezone: route.timezone, project: route.project,
       agentKind: route.agent, sourceInstanceId: route.source, threadId: route.configThread },
-    kind: route.configKind, observation: route.configState, sort: route.configSort ?? 'tokens', search: route.configSearch,
+    kind: route.page==='instructions'?'rule':route.extensionKind, kinds:route.page==='extensions'?['skill','mcp','hook']:undefined, sort: route.page==='instructions'?'name':'activity', search: route.page==='instructions'?route.instructionSearch:route.extensionSearch,
     offset: route.configOffset ?? 0, limit: 30,
   };
 }

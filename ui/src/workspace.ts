@@ -5,7 +5,7 @@ import { readUsage, readUsagePage, scopeOf, type Route } from './state.js';
 export interface WorkspaceData { readAt?:string; overview: UsageResult; list: UsageResult; peak?: UsageResult; route: Route; freshness?:UsageResult['freshness']; priceUpdate?:UsageResult['priceUpdate'] }
 interface State { data?: WorkspaceData; loading: boolean; pending:boolean; waitingSince?:number; freshness?:UsageResult['freshness']; progress: string; error: string; renewed: boolean; updatesAvailable: boolean; errorCode?: string }
 export function workspaceKey(route: Route) {
-  return JSON.stringify({ ...route, turnView: undefined, turn: undefined, turnSort: undefined, turnOffset: undefined, periodSort: undefined });
+  return JSON.stringify({ ...route, turnView: undefined, turn: undefined, turnSort: undefined, turnOffset: undefined, periodSort: undefined, returnTo: undefined, eventsOffset:undefined, periodDetailOffset:undefined, relatedOffset:undefined });
 }
 
 /** Coordinates one visible workspace. Completed results are bounded and scoped to one version. */
@@ -31,7 +31,7 @@ export class Workspace {
   private clearTimer() { clearTimeout(this.timer); this.timer = undefined; }
   private schedule() {
     this.clearTimer();
-    if (this.client.live && !this.route?.snapshot && this.visible && !this.paused && this.route && !['prices', 'optimize', 'config'].includes(this.route.page))
+    if (this.client.live && !this.route?.snapshot && this.visible && !this.paused && this.route && !['prices', 'optimize', 'instructions', 'extensions'].includes(this.route.page))
       this.timer = setTimeout(() => { void this.check(); }, this.interval);
   }
   stop() { this.paused = true; this.clearTimer(); this.controller?.abort(); }
@@ -56,7 +56,7 @@ export class Workspace {
     this.clearTimer();
     this.controller?.abort();
     const route = this.route;
-    if (!route || ['prices', 'optimize', 'config'].includes(route.page)) {
+    if (!route || ['prices', 'optimize', 'instructions', 'extensions'].includes(route.page)) {
       this.controller = undefined;
       this.publish({ loading: false,pending:false,waitingSince:undefined, error: '',errorCode:undefined, progress: '' });
       return;
@@ -91,12 +91,12 @@ export class Workspace {
       const priceUpdate=!observe&&sameScope?this.state.data!.priceUpdate:metadata.priceUpdate;
       this.publish({pending:false});
       const snapshotId = metadata.snapshotRef.snapshotId;
-      if (background && !this.state.error && snapshotId !== this.state.data?.overview.snapshotRef.snapshotId && (this.reading || route.page === 'threads')) {
+      if (background && !this.state.data?.freshness?.initialScan && !this.state.error && snapshotId !== this.state.data?.overview.snapshotRef.snapshotId && (this.reading || route.page === 'threads')) {
         this.publish({ updatesAvailable: true }); return;
       }
       if (snapshotId !== this.version) { this.cache.clear(); this.version = snapshotId; }
       if (background && snapshotId === this.state.data?.overview.snapshotRef.snapshotId && !this.state.error) {
-        this.publish({data:{...this.state.data!,freshness,priceUpdate},freshness,waitingSince:undefined});return;
+        this.publish({data:{...this.state.data!,freshness,priceUpdate},freshness,waitingSince:freshness?.initialScan?this.state.waitingSince:undefined});return;
       }
       this.publish({ loading: true, error: '' });
       const overviewRequest: UsageRequest = { action: 'usage', scope, group: route.group, presentation: 'distribution',
@@ -111,7 +111,7 @@ export class Workspace {
       const max = overview.distribution?.maxTokens;
       const peak = route.page === 'usage' && max != null && !overview.items.some(item => item.kind === 'usage' && item.usage.tokens.total === max)
         ? await read({ ...overviewRequest, offset: 0, limit: 1, sort: 'tokens' }) : undefined;
-      if (!controller.signal.aborted) this.publish({ data: { overview, list, peak, route,freshness,priceUpdate,readAt:new Date().toISOString() },freshness, error: '', errorCode: undefined, updatesAvailable: false,pending:false,waitingSince:undefined });
+      if (!controller.signal.aborted) this.publish({ data: { overview, list, peak, route,freshness,priceUpdate,readAt:new Date().toISOString() },freshness, error: '', errorCode: undefined, updatesAvailable: false,pending:false,waitingSince:freshness?.initialScan?this.state.waitingSince??Date.now():undefined });
     };
     try {
       try { await run(probe || !sameScope); }
