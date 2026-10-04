@@ -118,6 +118,8 @@ jobs:
         run: corepack pnpm licenses:generate
       - name: Release gate
         run: corepack pnpm release:check
+      - name: Assemble and install the Windows archive
+        run: corepack pnpm github:pack -- --current-platform --reuse-build
 
   github-candidate:
     name: Assemble GitHub Release candidate

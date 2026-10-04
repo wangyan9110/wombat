@@ -1,9 +1,11 @@
 /** Extract and exercise the exact GitHub Release archive for the current platform. */
 import assert from 'node:assert/strict';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync, type ChildProcess} from 'node:child_process';
 import {appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {once} from 'node:events';
 import os from 'node:os';
 import path from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {hashFile, inventory} from './artifact-files.ts';
@@ -27,6 +29,16 @@ for (const item of set.assets) {
 }
 
 const scratch = mkdtempSync(path.join(os.tmpdir(), 'wombat-github-release-'));
+let service: ChildProcess | undefined;
+const stopService = async () => {
+  if (!service?.pid || service.exitCode !== null || service.signalCode !== null) return;
+  const exited = once(service, 'exit');
+  if (process.platform === 'win32') {
+    const killed = spawnSync('taskkill', ['/PID', String(service.pid), '/T', '/F'], {encoding: 'utf8', windowsHide: true});
+    assert.ifError(killed.error);
+  } else service.kill('SIGKILL');
+  await exited;
+};
 try {
   const releaseDirectory = path.dirname(setFile);
   const unpackedAt = performance.now();
@@ -55,6 +67,10 @@ try {
   };
   const query = (args: string[], status = 0) => JSON.parse(run(runtime, [cli, ...args, '--json'], status));
   assert.equal(query(['--version']).version, set.version);
+  service = spawn(core, ['--serve-usage'], {env, windowsHide: true, stdio: 'ignore'});
+  await once(service, 'spawn');
+  await delay(150);
+  assert.equal(service.exitCode, null, 'Installed shared service exited during startup');
   assert.equal(query(['usage', '--cached'], 1).error.code, 'NO_SNAPSHOT');
   const sessions = path.join(env.CODEX_HOME!, 'sessions'); mkdirSync(sessions, {recursive: true});
   const log = path.join(sessions, 'synthetic.jsonl');
@@ -71,11 +87,13 @@ try {
     assert.equal(JSON.parse(run(command, ['/d', '/s', '/c', `""${launcher}" --version --json"`])).version, set.version);
   } else assert.equal(JSON.parse(run(launcher, ['--version', '--json'])).version, set.version);
 
+  await stopService(); service = undefined;
   run(process.execPath, ['--test', fileURLToPath(new URL('../tests/e2e/web.test.ts', import.meta.url))], 0,
     {...env, WOMBAT_WEB_TEST_ENTRY: cli, WOMBAT_WEB_TEST_CORE: core, WOMBAT_WEB_TEST_NODE: runtime});
   console.log(JSON.stringify({version: set.version, source: set.source, target, runtime: run(runtime, ['--version']).trim(),
     archive: asset.archive, archiveBytes: asset.bytes, installedBytes: inventory(installed).reduce((total, file) => total + file.size, 0),
     extractMs: installMs, launcher: true, emptyAppPath: true, live: true, append: true, fixedSnapshot: true, web: true}));
 } finally {
+  await stopService();
   rmSync(scratch, {recursive: true, force: true, maxRetries: 20, retryDelay: 500});
 }
