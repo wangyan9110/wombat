@@ -54,12 +54,12 @@ pub(crate) fn context(r: Request) -> Result<Context> {
         .sources;
     let source_roots: BTreeSet<_> = sources
         .iter()
-        .filter_map(|s| std::fs::canonicalize(&s.root).ok())
+        .filter_map(|s| dunce::canonicalize(&s.root).ok())
         .collect();
     let home = std::env::var_os("CODEX_HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| crate::home().join(".codex"));
-    let native_home_selected = std::fs::canonicalize(home)
+    let native_home_selected = dunce::canonicalize(home)
         .ok()
         .is_some_and(|p| source_roots.contains(&p));
     let has_declarations =

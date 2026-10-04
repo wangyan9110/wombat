@@ -25,7 +25,7 @@ pub(super) fn has_declarations(sources: &BTreeSet<PathBuf>, projects: &[String])
         }));
     let mut used = 0;
     for (file, root) in candidates {
-        let Ok(path) = fs::canonicalize(file) else {
+        let Ok(path) = dunce::canonicalize(file) else {
             continue;
         };
         if !path.starts_with(root) {
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn no_declaration_does_not_start_native_and_state_alone_is_not_a_hook() {
         let dir = tempfile::tempdir().unwrap();
-        let root = fs::canonicalize(dir.path()).unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
         let sources = BTreeSet::from([root.clone()]);
         assert!(!has_declarations(&sources, &[]));
         fs::write(
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn plugin_preflight_requires_explicit_enablement() {
         let dir = tempfile::tempdir().unwrap();
-        let root = fs::canonicalize(dir.path()).unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
         let sources = BTreeSet::from([root.clone()]);
         for entry in [
             "",

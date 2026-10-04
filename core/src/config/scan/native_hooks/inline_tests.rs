@@ -4,7 +4,7 @@ use serde_json::json;
 #[test]
 fn inline_single_and_array_bind_exact_native_positions_without_unlisted_content() {
     let dir = tempfile::tempdir().unwrap();
-    let home = fs::canonicalize(dir.path()).unwrap();
+    let home = dunce::canonicalize(dir.path()).unwrap();
     let path = home.join("package/.codex-plugin/plugin.json");
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     let source = SourceInstance {

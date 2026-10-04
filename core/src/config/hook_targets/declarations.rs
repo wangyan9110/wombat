@@ -38,7 +38,7 @@ pub(super) fn read<'a>(
         if used >= 32 * 1024 * 1024 {
             break;
         }
-        let Ok(canonical) = fs::canonicalize(path) else {
+        let Ok(canonical) = dunce::canonicalize(path) else {
             continue;
         };
         if canonical != Path::new(path) || !roots.iter().any(|root| canonical.starts_with(root)) {

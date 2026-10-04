@@ -86,7 +86,7 @@ impl AgentAdapter for CodexAdapter {
             } else {
                 root
             };
-            let root = fs::canonicalize(&root).unwrap_or_else(|_| {
+            let root = dunce::canonicalize(&root).unwrap_or_else(|_| {
                 if root.is_absolute() {
                     root.clone()
                 } else {
@@ -268,7 +268,7 @@ fn list_files(
         issue(report, "resourceLimit", "日志目录超过深度上限", None);
         return;
     }
-    let canonical = match fs::canonicalize(directory) {
+    let canonical = match dunce::canonicalize(directory) {
         Ok(path) => path,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
         Err(_) => {

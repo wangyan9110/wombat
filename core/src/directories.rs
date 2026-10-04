@@ -67,14 +67,14 @@ fn identity(path: &str) -> Result<String> {
         use std::os::windows::fs::MetadataExt;
         Ok(crate::hash(format!(
             "{}:{}",
-            fs::canonicalize(path)?.to_string_lossy(),
+            dunce::canonicalize(path)?.to_string_lossy(),
             meta.creation_time()
         )))
     }
     #[cfg(not(any(unix, windows)))]
     {
         Ok(crate::hash(
-            fs::canonicalize(path)?.to_string_lossy().as_bytes(),
+            dunce::canonicalize(path)?.to_string_lossy().as_bytes(),
         ))
     }
 }
@@ -124,7 +124,7 @@ pub(crate) fn grants() -> Result<Vec<Grant>> {
     raw.into_iter()
         .map(|text| {
             let mut grant: Grant = serde_json::from_str(&text)?;
-            grant.status = if fs::canonicalize(&grant.path).ok().as_ref()
+            grant.status = if dunce::canonicalize(&grant.path).ok().as_ref()
                 == Some(&PathBuf::from(&grant.path))
                 && identity(&grant.path).ok().as_ref() == Some(&grant.directory_identity)
                 && fs::read_dir(&grant.path).is_ok()
@@ -149,7 +149,7 @@ pub fn dispatch(r: Request) -> Result<Response> {
     match r.action {
         Action::Authorize => {
             let path =
-                fs::canonicalize(r.path.as_ref().ok_or_else(|| {
+                dunce::canonicalize(r.path.as_ref().ok_or_else(|| {
                     crate::dto::operation_error("INVALID_ARGUMENT", "需要明确目录")
                 })?)?
                 .to_string_lossy()

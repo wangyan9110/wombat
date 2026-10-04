@@ -69,7 +69,7 @@ impl Inventory {
             self.issue("resourceLimited", dir);
             return;
         }
-        let canonical = match fs::canonicalize(dir) {
+        let canonical = match dunce::canonicalize(dir) {
             Ok(p) => p,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return,
             Err(_) => {

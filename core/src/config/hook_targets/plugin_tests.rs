@@ -7,7 +7,7 @@ use std::fs;
 fn native_expansion_is_contextual_ephemeral_and_requires_the_current_declaration() {
     let (dir, items, mut registry, projects) = fixture("python3 '${PLUGIN_ROOT}/private-tool.py'");
     let item = items.iter().find(|i| i.kind == Kind::Hook).unwrap();
-    let roots = [fs::canonicalize(dir.path())
+    let roots = [dunce::canonicalize(dir.path())
         .unwrap()
         .to_string_lossy()
         .into_owned()];

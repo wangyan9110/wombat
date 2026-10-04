@@ -76,7 +76,7 @@ pub(super) fn target_status(
                     continue;
                 }
                 match fs::symlink_metadata(&current) {
-                    Ok(_) => match fs::canonicalize(&current) {
+                    Ok(_) => match dunce::canonicalize(&current) {
                         Ok(path) => current = path,
                         Err(_) => return "referenceTargetUnreadable",
                     },
@@ -337,7 +337,7 @@ mod tests {
     #[test]
     fn explicit_links_keep_offsets_and_decode_paths_without_reading_examples() {
         let dir = tempfile::tempdir().unwrap();
-        let root = fs::canonicalize(dir.path()).unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
         fs::write(root.join("文件 space.md"), "Synthetic resource").unwrap();
         fs::create_dir(root.join("references")).unwrap();
         let text = "[存在](../%E6%96%87%E4%BB%B6%20space.md#anchor)\n\n[目录](../references/)\n\n[缺失](missing.md#anchor)\n\n![错误类型](../references/)\n\n[外部](https://example.invalid/missing.md) [片段](#missing)\n\n`[代码](missing-code.md)`\n\n```md\n[示例](example.md)\n```\n\n> [引用示例](quote.md)\n";
@@ -358,7 +358,7 @@ mod tests {
     #[test]
     fn dynamic_outside_and_budget_gaps_never_become_missing_or_passed() {
         let dir = tempfile::tempdir().unwrap();
-        let root = fs::canonicalize(dir.path()).unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
         let text = "[动态]($ROOT/file.md)\n\n[范围外](../../outside.md)\n";
         let result = assess(&root, text);
         assert!(!result.complete);
@@ -401,7 +401,7 @@ mod tests {
     fn symlink_boundaries_and_parent_components_follow_real_filesystem_semantics() {
         use std::os::unix::fs::symlink;
         let dir = tempfile::tempdir().unwrap();
-        let root = fs::canonicalize(dir.path()).unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
         let outside = tempfile::tempdir().unwrap();
         fs::create_dir(root.join("nested")).unwrap();
         fs::write(root.join("inside.md"), "Synthetic").unwrap();
@@ -439,7 +439,7 @@ mod tests {
     #[test]
     fn a_missing_parent_is_not_lexically_erased_into_a_present_resource() {
         let dir = tempfile::tempdir().unwrap();
-        let root = fs::canonicalize(dir.path()).unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
         fs::write(root.join("inside.md"), "Synthetic").unwrap();
         assert_eq!(
             target_status(

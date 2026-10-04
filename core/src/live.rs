@@ -116,7 +116,11 @@ fn directory() -> Result<PathBuf> {
 fn socket_path() -> Result<PathBuf> {
     Ok(PathBuf::from(format!(
         r"\\.\pipe\wombat-{}",
-        &crate::hash(fs::canonicalize(directory()?)?.to_string_lossy().as_bytes())[..24]
+        &crate::hash(
+            dunce::canonicalize(directory()?)?
+                .to_string_lossy()
+                .as_bytes()
+        )[..24]
     )))
 }
 #[cfg(unix)]
@@ -125,7 +129,7 @@ fn socket_path() -> Result<PathBuf> {
     // Unix-domain paths are short even when the product data directory is deeply nested.
     let parent = std::path::Path::new("/tmp").join(format!(
         "wombat-{}",
-        &crate::hash(fs::canonicalize(&root)?.to_string_lossy().as_bytes())[..24]
+        &crate::hash(dunce::canonicalize(&root)?.to_string_lossy().as_bytes())[..24]
     ));
     let mut builder = fs::DirBuilder::new();
     #[cfg(unix)]

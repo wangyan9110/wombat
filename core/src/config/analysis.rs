@@ -143,7 +143,7 @@ pub(super) fn analyze_authorized(
         if !allowed {
             continue;
         }
-        if !fs::canonicalize(path).is_ok_and(|p| p == path) {
+        if !dunce::canonicalize(path).is_ok_and(|p| p == path) {
             out.issue("staticAnalysisPathUnknown", &item.path);
             continue;
         }

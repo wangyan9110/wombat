@@ -3,7 +3,7 @@ use crate::{adapters::contract::SourceInstance, config::scan};
 use std::fs;
 pub(super) fn fixture(command: &str) -> (tempfile::TempDir, Vec<Item>, HookRegistry, Vec<String>) {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let source = root.join("source");
     fs::create_dir(&source).unwrap();
     let projects: Vec<_> = ["one", "two"]
@@ -71,7 +71,7 @@ fn target_checks_are_project_specific_and_existing_is_not_execution_success() {
     analyze(
         &items,
         &projects,
-        &[fs::canonicalize(dir.path())
+        &[dunce::canonicalize(dir.path())
             .unwrap()
             .to_string_lossy()
             .into_owned()],
@@ -99,7 +99,7 @@ fn target_checks_are_project_specific_and_existing_is_not_execution_success() {
     analyze(
         &items,
         &projects,
-        &[fs::canonicalize(dir.path())
+        &[dunce::canonicalize(dir.path())
             .unwrap()
             .to_string_lossy()
             .into_owned()],
@@ -119,7 +119,7 @@ fn disabled_is_explicit_but_untrusted_modified_omitted_and_dynamic_stay_unknown(
         analyze(
             &items,
             &projects,
-            &[fs::canonicalize(dir.path())
+            &[dunce::canonicalize(dir.path())
                 .unwrap()
                 .to_string_lossy()
                 .into_owned()],
@@ -142,7 +142,7 @@ fn disabled_is_explicit_but_untrusted_modified_omitted_and_dynamic_stay_unknown(
         analyze(
             &items,
             &projects,
-            &[fs::canonicalize(dir.path())
+            &[dunce::canonicalize(dir.path())
                 .unwrap()
                 .to_string_lossy()
                 .into_owned()],
@@ -157,7 +157,7 @@ fn disabled_is_explicit_but_untrusted_modified_omitted_and_dynamic_stay_unknown(
     analyze(
         &items,
         &projects,
-        &[fs::canonicalize(dir.path())
+        &[dunce::canonicalize(dir.path())
             .unwrap()
             .to_string_lossy()
             .into_owned()],
@@ -180,7 +180,7 @@ fn node_extension_fallback_changed_declaration_and_scope_escape_prevent_missing_
     analyze(
         &items,
         &projects,
-        &[fs::canonicalize(dir.path())
+        &[dunce::canonicalize(dir.path())
             .unwrap()
             .to_string_lossy()
             .into_owned()],
@@ -199,7 +199,7 @@ fn node_extension_fallback_changed_declaration_and_scope_escape_prevent_missing_
     analyze(
         &items,
         &projects,
-        &[fs::canonicalize(dir.path())
+        &[dunce::canonicalize(dir.path())
             .unwrap()
             .to_string_lossy()
             .into_owned()],
@@ -212,7 +212,7 @@ fn node_extension_fallback_changed_declaration_and_scope_escape_prevent_missing_
     let (dir, items, registry, projects) = fixture("python3 ../../outside.py");
     let mut allowed = projects.clone();
     allowed.push(
-        fs::canonicalize(dir.path().join("source"))
+        dunce::canonicalize(dir.path().join("source"))
             .unwrap()
             .to_string_lossy()
             .into_owned(),
@@ -232,7 +232,7 @@ fn incomplete_registry_siblings_do_not_discard_a_bound_positive_reference_fact()
     analyze(
         &items,
         &projects,
-        &[fs::canonicalize(dir.path())
+        &[dunce::canonicalize(dir.path())
             .unwrap()
             .to_string_lossy()
             .into_owned()],
@@ -259,7 +259,7 @@ fn filesystem_order_does_not_treat_file_parent_or_trailing_slash_as_a_valid_scri
         fs::write(Path::new(project).join("not-a-directory"), "file").unwrap();
         fs::write(Path::new(project).join("present.py"), "MUST_NOT_EXECUTE").unwrap();
     }
-    let roots = [fs::canonicalize(dir.path())
+    let roots = [dunce::canonicalize(dir.path())
         .unwrap()
         .to_string_lossy()
         .into_owned()];

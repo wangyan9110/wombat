@@ -16,12 +16,12 @@ pub(super) fn append(
     let home = std::env::var_os("CODEX_HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| crate::home().join(".codex"));
-    let Ok(home) = fs::canonicalize(home) else {
+    let Ok(home) = dunce::canonicalize(home) else {
         return;
     };
     let Some(source) = sources
         .iter()
-        .find(|s| fs::canonicalize(&s.root).ok().as_ref() == Some(&home))
+        .find(|s| dunce::canonicalize(&s.root).ok().as_ref() == Some(&home))
     else {
         return;
     };
@@ -89,7 +89,7 @@ fn append_selected(
             out.issue("outsideAuthorizedRoot", path);
             continue;
         };
-        if !fs::canonicalize(path).is_ok_and(|p| p == path) {
+        if !dunce::canonicalize(path).is_ok_and(|p| p == path) {
             out.issue("configUnreadable", path);
             continue;
         }
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn native_plugin_inventory_reads_once_and_keeps_only_registered_project_memberships() {
         let dir = tempfile::tempdir().unwrap();
-        let home = fs::canonicalize(dir.path()).unwrap();
+        let home = dunce::canonicalize(dir.path()).unwrap();
         let path = home.join("package/hooks/声明.json");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         let text = r#"{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"never-execute-private"},{"type":"command","command":"unlisted"}]}]}}"#;
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn additions_share_the_inventory_limit_without_rewriting_existing_identities() {
         let dir = tempfile::tempdir().unwrap();
-        let home = fs::canonicalize(dir.path()).unwrap();
+        let home = dunce::canonicalize(dir.path()).unwrap();
         let source = SourceInstance {
             id: "source".into(),
             agent_kind: "codex".into(),

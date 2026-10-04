@@ -12,7 +12,7 @@ fn forced_hash_bucket_collisions_still_compare_raw_bytes() {
 #[test]
 fn skill_body_positions_exclude_yaml_and_preserve_source_offsets() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let path = root.join("skills/check/SKILL.md");
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     let text = "---\nname: check\ndescription: Synthetic description\n---\n\n保留完整正文。\n\n保留完整正文。\n";
@@ -45,7 +45,7 @@ fn long_headings_are_shared_and_truncated_groups_are_not_complete() {
     assert_eq!(parsed.len(), 5000);
     assert!(Arc::ptr_eq(&parsed[0].context, &parsed[4999].context));
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let items = super::tests::files(&root, &[("AGENTS.md", &text)]);
     let result = analyze(&items, &[root.to_string_lossy().into()]);
     assert!(
@@ -64,7 +64,7 @@ fn long_headings_are_shared_and_truncated_groups_are_not_complete() {
 #[ignore = "release resource benchmark; run explicitly with fixed synthetic corpus"]
 fn fixed_corpus_resource_probe() {
     let dir = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(dir.path()).unwrap();
+    let root = dunce::canonicalize(dir.path()).unwrap();
     let path = root.join("AGENTS.md");
     let mut text = String::new();
     for n in 0..4000 {
