@@ -49,7 +49,8 @@ test('unknown tool outcomes agree in CLI/API, retain fixed views and survive ser
     const currentQuery = { ...query, snapshotId: second.snapshotRef.snapshotId };
     const after = await http.query(currentQuery); assert.deepEqual(states(after), ['completed', 'failed', 'unknown', 'unknown']);
     assert.deepEqual(states(await http.query(query)), states(before)); assert.equal(after.summary.tokens.total, 110);
-    const inventory = await http.config!({ kind: 'rule', scope: { allTime: true, project } });
+    const live = await http.live!({ query: { action: 'usage', scope: { allTime: true } }, mode: 'fresh' });
+    const inventory = await http.config!({ kind: 'rule', snapshotId: live.result.snapshotRef.snapshotId, scope: { allTime: true, project } });
     const item = inventory.items.find(i => i.path === path.join(project, 'AGENTS.md'))!;
     assert.equal(item.counts.fileReads, 4); assert.equal(item.counts.succeeded, 1); assert.equal(item.counts.failed, 1); assert.equal(item.counts.outcomeUnknown, 2); assert.equal(item.usage?.tokens.total, 110);
     service.kill('SIGTERM'); await once(service, 'exit'); service = spawn(binary, ['--serve-usage'], { stdio: 'ignore', env: process.env }); await once(service, 'spawn');
