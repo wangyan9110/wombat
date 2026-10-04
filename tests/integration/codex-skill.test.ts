@@ -55,7 +55,7 @@ test('installed runtime queries synthetic usage, fixed drill-down and configurat
     }
     const env = { ...process.env, WOMBAT_DATA_HOME: path.join(temp, 'data'), CODEX_HOME: source, WOMBAT_AUTO_PRICES: '0', WOMBAT_CORE_BIN: '' };
     const core = path.join(installed, 'runtime', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
-    service = spawn(core, ['--serve-usage'], { env, windowsHide: true, stdio: 'ignore' });
+    service = spawn(core, ['--serve-usage'], { cwd: temp, env, windowsHide: true, stdio: 'ignore' });
     await new Promise<void>((resolve, reject) => {
       const ready = () => { service!.off('error', failed); resolve(); };
       const failed = (error: Error) => { service!.off('spawn', ready); reject(error); };
@@ -83,7 +83,10 @@ test('installed runtime queries synthetic usage, fixed drill-down and configurat
     assert.equal(steps.items.filter((item: { kind: string }) => item.kind === 'measurement').length, 1);
     const configArgs = ['--root', source, '--project-root', project];
     const inventory = invoke(['optimize', 'inventory', ...configArgs]);
-    assert.ok(inventory.items.some((item: { path: string }) => item.path === skill));
+    assert.ok(
+      inventory.items.some((item: { path: string }) => item.path === skill),
+      `installed inventory did not include ${skill}: ${JSON.stringify(inventory.items.map((item: { path: string }) => item.path))}`,
+    );
     const suggestions = invoke(['optimize', 'list', ...configArgs, '--read-view', inventory.readView]);
     assert.ok(suggestions.suggestions.some((item: { item: { path: string }; findings: { rule: string }[] }) => item.item.path === skill && item.findings.some(finding => finding.rule === 'descriptionSize')));
     await stopService(service); service = undefined;
