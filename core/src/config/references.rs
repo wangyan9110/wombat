@@ -312,6 +312,7 @@ mod tests {
         let path = root.join(relative);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, text).unwrap();
+        let path = dunce::canonicalize(path).unwrap();
         let source = crate::adapters::contract::SourceInstance {
             id: "synthetic".into(),
             agent_kind: "codex".into(),
