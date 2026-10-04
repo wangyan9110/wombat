@@ -1,5 +1,6 @@
 //! Independent Codex rollout adapter. Only explicit identities merge facts.
 mod ancestry;
+mod event_projection;
 pub(crate) mod incremental;
 mod instructions;
 mod operations;
@@ -174,7 +175,13 @@ impl AgentAdapter for CodexAdapter {
     }
 }
 
-fn finish_facts(mut facts: Facts, root: &Path, report: &mut SourceReport, sink: &mut dyn FactSink) {
+fn finish_facts(facts: Facts, root: &Path, report: &mut SourceReport, sink: &mut dyn FactSink) {
+    let mut facts = finish_projection(facts, report);
+    read_titles(root, &mut facts, report);
+    emit_facts(facts, sink);
+}
+
+fn finish_projection(mut facts: Facts, report: &mut SourceReport) -> Facts {
     let parents = std::mem::take(&mut facts.parents);
     let forest = ancestry::ForkForest::new(&parents);
     if forest.unresolved > 0 {
@@ -201,7 +208,10 @@ fn finish_facts(mut facts: Facts, root: &Path, report: &mut SourceReport, sink: 
             );
         }
     }
-    read_titles(root, &mut facts, report);
+    facts
+}
+
+fn emit_facts(facts: Facts, sink: &mut dyn FactSink) {
     for thread in facts.threads.into_values() {
         sink.push(Fact::Thread(thread));
     }

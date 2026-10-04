@@ -50,6 +50,12 @@ pub(super) fn record(
     evidence: &EvidenceRef,
 ) {
     let Some(context) = &mut facts.event_context else {
+        issue(
+            report,
+            "missingEventContext",
+            "事件缺少来源位置，无法建立投影",
+            Some(evidence.clone()),
+        );
         return;
     };
     for gap in &context.gaps {
@@ -61,6 +67,7 @@ pub(super) fn record(
     context.position.ordinal += 1;
     match Event::new(position, thread, turn, context.time.clone(), gaps, payload) {
         Ok(event) => {
+            crate::adapters::codex::event_projection::apply(facts, &event, report);
             let id = event.id().to_owned();
             facts.dirty_events.insert(id.clone());
             facts.events.insert(id, Arc::new(event));
@@ -80,6 +87,12 @@ pub(in crate::adapters::codex) fn operation(
     report: &mut SourceReport,
 ) {
     let Some(context) = &facts.event_context else {
+        issue(
+            report,
+            "missingEventContext",
+            "事件缺少来源位置，无法建立投影",
+            operation.evidence.first().cloned(),
+        );
         return;
     };
     let phase = match operation.status.as_ref() {
@@ -124,6 +137,27 @@ pub(in crate::adapters::codex) fn measurement(
             cumulative: candidate.cumulative,
             interval_start: candidate.interval_start,
             fingerprint: candidate.fingerprint.clone(),
+        },
+        vec![],
+        report,
+        evidence,
+    );
+}
+
+pub(in crate::adapters::codex) fn ancestry(
+    facts: &mut Facts,
+    thread: &str,
+    parent_id: String,
+    report: &mut SourceReport,
+    evidence: &EvidenceRef,
+) {
+    record(
+        facts,
+        Some(thread.into()),
+        None,
+        SafePayload::Ancestry {
+            parent_id,
+            evidence: evidence.clone(),
         },
         vec![],
         report,

@@ -1,6 +1,8 @@
 //! Safe, versioned source facts. Source bodies cannot be represented in this model.
 //! Storage and projections share these identities; public query DTOs remain separate.
-use crate::adapters::contract::{MAX_SAFE_INTEGER, Measurement, Operation, Thread, Turn};
+use crate::adapters::contract::{
+    EvidenceRef, MAX_SAFE_INTEGER, Measurement, Operation, Thread, Turn,
+};
 use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -159,6 +161,10 @@ pub struct NativeDuration {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Payload {
+    Ancestry {
+        parent_id: String,
+        evidence: EvidenceRef,
+    },
     Thread {
         value: Thread,
     },
@@ -281,6 +287,10 @@ impl TryFrom<StoredEvent> for Event {
         let thread = value.thread_id.as_deref();
         let turn = value.turn_id.as_deref();
         match &value.payload {
+            Payload::Ancestry { parent_id, .. } => ensure!(
+                !parent_id.is_empty() && thread.is_some() && turn.is_none(),
+                "invalid ancestry identity"
+            ),
             Payload::Thread { value: fact } => ensure!(
                 thread == Some(fact.id.as_str())
                     && turn.is_none()

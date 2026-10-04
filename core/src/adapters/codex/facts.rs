@@ -141,6 +141,12 @@ impl Facts {
     pub(super) fn operation(&mut self, mut operation: Operation, report: &mut SourceReport) {
         self.strings.operation(&mut operation);
         timing::operation(self, &operation, report);
+    }
+    pub(super) fn project_operation(
+        &mut self,
+        mut operation: Operation,
+        report: &mut SourceReport,
+    ) {
         self.observe_operation(&operation);
         let aliases: Vec<_> = [operation.call_id.as_deref(), operation.item_id.as_deref()]
             .into_iter()

@@ -26,7 +26,7 @@ pub(super) fn process(
             let thread = facts.thread(source, upstream, time.as_deref(), p.cwd.as_deref());
             if let Some(parent) = p.forked_from_id.as_deref() {
                 let parent = stable_id(&["codex", &source.id, "thread", parent]);
-                facts.parents.insert(thread.clone(), parent);
+                timing::ancestry(facts, &thread, parent, report, &evidence);
             }
             state.thread = Some(thread);
         }
