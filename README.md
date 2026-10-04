@@ -17,7 +17,7 @@ This page describes the product direction. See the [distribution guide](docs/ref
 
 ## Get started
 
-**Development Preview: `v0.1.0-dev.2`.** This first public preview is intended for evaluation and feedback. Features, data formats, and commands may still change. The versioned installation URL below becomes available after the release workflow completes.
+**Development Preview: [`v0.1.0-dev.2`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-dev.2).** This first public preview is intended for evaluation and feedback. Features, data formats, and commands may still change.
 
 On macOS or Linux:
 

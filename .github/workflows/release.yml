@@ -3,16 +3,55 @@ on:
   push:
     tags: ['v*']
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  preflight:
+    name: Verify release source
+    if: ${{ github.event.repository.private == false }}
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a matching version, main ancestry and successful prior CI
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node -e 'const p=require("./package.json");if(process.env.GITHUB_REF_NAME!==`v${p.version}`)throw new Error(`tag ${process.env.GITHUB_REF_NAME} does not match package ${p.version}`)'
+          default_branch=$DEFAULT_BRANCH
+          git fetch --no-tags origin "+refs/heads/$default_branch:refs/remotes/origin/$default_branch"
+          git merge-base --is-ancestor "$GITHUB_SHA" "refs/remotes/origin/$default_branch" || {
+            echo "Tagged commit $GITHUB_SHA is not on $default_branch" >&2
+            exit 1
+          }
+          ci_url=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --branch "$default_branch" --event push --status success --limit 1 --json conclusion,status,url --jq '.[] | select(.status == "completed" and .conclusion == "success") | .url')
+          test -n "$ci_url" || {
+            echo "No successful CI push run found for $GITHUB_SHA on $default_branch" >&2
+            exit 1
+          }
+          release_error="$RUNNER_TEMP/wombat-release-lookup.txt"
+          if gh api --silent "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" 2>"$release_error"; then
+            echo "Release $GITHUB_REF_NAME already exists and will not be replaced" >&2
+            exit 1
+          elif ! grep -q 'HTTP 404' "$release_error"; then
+            cat "$release_error" >&2
+            exit 1
+          fi
+          echo "Prior CI: $ci_url"
+
   build:
     name: Build ${{ matrix.target }}
     if: ${{ github.event.repository.private == false }}
+    needs: preflight
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +165,10 @@ jobs:
     if: ${{ github.event.repository.private == false }}
     needs: verify
     runs-on: ubuntu-24.04
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -141,6 +184,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
+          draft: true
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
@@ -149,3 +193,7 @@ jobs:
             candidate/release-set.json
             install.sh
             install.ps1
+      - name: Publish the complete draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false

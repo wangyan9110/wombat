@@ -20,6 +20,7 @@ Follow [repository rules](../../../AGENTS.md), [development](../../../docs/devel
 |---|---|---|
 | Prepare version | `corepack pnpm release:prepare -- --version <version>` | Updates versions, current release docs, named bilingual records, and licenses; no commit/tag/publication |
 | Check preparation | `corepack pnpm release:prepare -- --check` | Fast version, pairing, license, and diff checks; not full release acceptance |
+| Pre-tag remote preflight | `corepack pnpm release:preflight -- --version <version>` | Requires current root READMEs, a clean `main`, exact `origin/main`, no existing tag/Release, a public unarchived repository, and successful CI for the exact commit; no mutation |
 | Local build | `corepack pnpm build` | Compiles core, client, Web, and CLI |
 | Startup probe without scanning | `corepack pnpm release:probe` | Starts the shared service with nonexistent source directories and reads capabilities to check process startup, sockets, and the CLI protocol; requires built dist/ |
 | Full release gate | `corepack pnpm release:check` | Formatting, Rust lint, build, types, contracts, product tests, licenses, repository rules, and public-source checks |
@@ -40,7 +41,7 @@ Packing runs release:check by default. Use --reuse-build only after gates passed
 
 ## Publish and verify
 
-Use v<version> matching package.json. The release workflow runs gates and native export on five platforms, assembles archives, then verifies the final files on each platform. Only after all pass does it create provenance and a Release containing the five archives, SHA256SUMS, release-set.json, and installers.
+Use v<version> matching package.json. Immediately before creating the tag, run `release:preflight` with that explicit version. It uses Git and the authenticated GitHub CLI to bind the release to a clean, pushed `main` commit and its successful CI run while rejecting reused identities. The tag workflow independently checks that the tagged commit belongs to the default branch and already passed CI. It then runs gates and native export on five platforms, assembles archives, verifies the final files on each platform, creates provenance, uploads every asset to a draft, and publishes that complete draft.
 
 Before publication present version, tag, commit, archives/hashes, verification, and coverage gaps. Without publication authorization stop at the candidate. Upload the exact validated files, not manually repacked variants. Do not bypass failed tagged workflows with replacement tags; fix and issue a new version without overwriting a published one.
 
@@ -54,10 +55,12 @@ Preview candidates increment dev.N. Moving to beta, RC, or stable requires the u
 2. Review the generated diff, especially stage, status, platform limits, and bilingual meaning, then run release:prepare --check. Tests read the current version from the root manifest rather than duplicate literals. The workflow derives Pre-release from the tag version.
 3. Private repositories use local gates and skip hosted builds. Public repositories use only free standard GitHub-hosted runners, without larger runners; retain intermediate Actions artifacts for one day.
 4. Run the complete release gate once after code/docs settle. After building, the gate runs release:probe with a capability request that does not scan sources, to isolate shared-service startup, socket, or protocol failures; subsequent product tests cover actual scanning. After failure, fix narrowly and retest affected paths. Rerun the full gate only when source, version, release scripts, lockfiles, or manifests change; release:prepare --check and release:probe cannot replace it.
-5. Commit/push the candidate. After repository publication, run five-platform CI on that commit. Only after it passes create/push the matching tag; its workflow rebuilds, assembles, verifies final installations, creates provenance, and publishes the Pre-release.
-6. Wait for completion, retrieve release-set/checksums, redownload and verify all five assets, then install the explicit version in an external clean prefix and run wombat update --check --version <version>.
+5. Commit/push the candidate. After repository publication, run five-platform CI on that commit. When it passes, run `corepack pnpm release:preflight -- --version <version>`; record its source and CI URL. Only then create/push the matching tag. Its workflow repeats source/CI checks, rebuilds, assembles, verifies final installations, creates provenance, uploads a complete draft, and publishes the Pre-release.
+6. Wait for completion, retrieve release-set/checksums, redownload and verify all five assets, verify archive attestations with `gh attestation verify <archive> --repo <owner/repository>`, then install the explicit version in an external clean prefix and run wombat update --check --version <version>.
 7. Record actual runs, hashes, platforms, and gaps in the task or Release results. Keep verification results with the Release or task; update an owning proposal only when its acceptance changes. Preserve failure evidence and use a new incremented preview version after fixes, never move public tags.
 
 ## Finish
 
 Use the distribution guide for supported targets and runtime prerequisites; do not infer musl, Windows ARM64, or old-system acceptance. Report version, commit, platforms, gates, archive hashes, installation/update evidence, whether publication actually occurred, and the user's installation command. Candidates in dist/github are not externally installable Releases. Clean isolated workspaces only when no longer needed and required ignored files are saved.
+
+The preflight follows GitHub's secure-use guidance: third-party Actions remain pinned to full commit SHAs, job permissions stay minimal, and verified assets are attached before a draft becomes public. GitHub artifact attestations bind archives to the hosted build, while SLSA recommends publishing and verifying provenance alongside release artifacts. Repository settings should enable immutable Releases and protect release tags when available; those server-side controls are inspected separately because the local preflight does not change GitHub settings.

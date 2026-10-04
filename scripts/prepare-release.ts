@@ -1,9 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { toolCommand } from './run-tool.ts';
+import { actionPinErrors, repositorySlug, rootReadmeReleaseErrors } from './release-policy.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -141,6 +142,31 @@ function run(program: string, args: string[], timeout = 120_000): void {
 
 function checkRepository(): void {
   const errors = consistencyErrors(root);
+  const pkg: unknown = JSON.parse(read(root, 'package.json'));
+  const packageRecord = typeof pkg === 'object' && pkg !== null && !Array.isArray(pkg) ? pkg : undefined;
+  const repositoryValue = packageRecord && 'repository' in packageRecord ? packageRecord.repository : undefined;
+  const repositoryUrl = typeof repositoryValue === 'string' ? repositoryValue
+    : typeof repositoryValue === 'object' && repositoryValue !== null && 'url' in repositoryValue
+      && typeof repositoryValue.url === 'string' ? repositoryValue.url : undefined;
+  const version = packageRecord && 'version' in packageRecord && typeof packageRecord.version === 'string'
+    ? packageRecord.version : undefined;
+  if (!repositoryUrl) errors.push('package.json repository URL is missing');
+  if (!version) errors.push('package.json version is missing');
+  if (repositoryUrl && version) {
+    try {
+      const repository = repositorySlug(repositoryUrl);
+      errors.push(...rootReadmeReleaseErrors({
+        english: read(root, 'README.md'), chinese: read(root, 'README.zh-CN.md'),
+      }, version, repository));
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+  const workflowRoot = path.join(root, '.github/workflows');
+  errors.push(...actionPinErrors(Object.fromEntries(
+    readdirSync(workflowRoot).filter(file => /\.ya?ml$/.test(file))
+      .map(file => [`.github/workflows/${file}`, readFileSync(path.join(workflowRoot, file), 'utf8')]),
+  )));
   if (errors.length) throw new Error(errors.join('\n'));
   run('corepack', ['pnpm', 'docs:i18n:check']);
   run('corepack', ['pnpm', 'licenses:check']);
