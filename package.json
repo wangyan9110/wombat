@@ -69,6 +69,7 @@
     "contracts:generate": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs",
     "contracts:check": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs --check",
     "skills:check": "node scripts/check-skills.mjs",
+    "skills:install": "node scripts/install-codex-skill.ts",
     "notes:check": "node scripts/check-decisions.mjs",
     "docs:budget": "node scripts/check-doc-budgets.mjs",
     "docs:i18n:check": "node scripts/check-doc-i18n.mjs",

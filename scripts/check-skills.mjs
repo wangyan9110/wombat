@@ -3,14 +3,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const skillsRoot = path.join(root, '.agents', 'skills');
+const skillRoots = ['.agents/skills', 'integrations/codex/skills'];
 const errors = [];
 let checked = 0;
 
-if (existsSync(skillsRoot)) {
+for (const relativeRoot of skillRoots) {
+  const skillsRoot = path.join(root, relativeRoot);
+  if (!existsSync(skillsRoot)) continue;
   for (const entry of readdirSync(skillsRoot, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const relative = `.agents/skills/${entry.name}/SKILL.md`;
+    const relative = `${relativeRoot}/${entry.name}/SKILL.md`;
     const file = path.join(skillsRoot, entry.name, 'SKILL.md');
     if (!existsSync(file)) {
       errors.push(`${relative}: missing skill instructions`);
