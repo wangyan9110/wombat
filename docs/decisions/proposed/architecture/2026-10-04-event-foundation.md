@@ -150,7 +150,11 @@ Codex 来源会追加、截断、替换或重放，不能声称 Wombat 得到不
 
 ## 考虑过的方案
 
-保留迁入正文中的取舍；跨专项共同的备选方案及其拒绝理由仍由[升级总方案](2026-10-04-codex-task-timing.md)统一维护。此次仅拆分文档归属，不改变既有技术选择。
+核心流处理优先复用 Rust 生态中成熟且与本地 JSONL/SQLite 约束相符的库。继续使用 `serde_json` 逐条解析完整 JSONL 记录，并复用现有有界行读取与 SQLite 事务路径；[serde_json 流反序列化器](https://docs.rs/serde_json/latest/serde_json/struct.StreamDeserializer.html)面向连续、自界定的 JSON 值，不能替代完整换行记录、未完成尾行和字节偏移检查点契约。现有读取器对普通行复用缓冲区，对超大行转存临时文件并映射读取；检查点与解析投影的实际正确性仍须按验收条件验证，不能由设计描述推定已经验收。`rusqlite` 事务在未显式提交时回滚，适合把事实、游标和投影置于同一提交边界；继续使用已选定的 SQLite 存储，不另加存储框架。参见 [rusqlite 事务文档](https://docs.rs/rusqlite/latest/rusqlite/struct.Transaction.html)。
+
+区间并集目前由领域代码负责身份冲突校验、窗口裁剪、同刻端点聚合和类别 mask 扫线；精确分位数按 Type 7 定义排序并插值。`rangemap` 的半开区间结构提供在线插入、移除和合并能力，可作为未来频繁增量更新场景的待测候选；它本身不定义 Wombat 的身份冲突、裁剪、类别 mask 或证据质量语义，因此当前不引入依赖。参见 [rangemap 文档](https://docs.rs/rangemap/latest/rangemap/)。`quantiles` 提供有内存界限的近似流式分位数算法，与精确 Type 7 输出契约不符；如未来考虑近似结果，必须先独立决定并记录精度语义及撤回行为，不能静默替换。参见 [quantiles 文档](https://docs.rs/quantiles/latest/quantiles/)。
+
+`differential-dataflow` 与 `timely` 支持动态增删更新及增量传播，但其数据流图、进度模型和并行计算成本超出当前单机本地日志、目标轮次查询和 SQLite 索引的需求；撤回及 fork 仍依赖 Wombat 的来源身份和祖先语义，框架不会替代这些规则。当前保留已有增量投影与撤回逻辑，不引入通用数据流平台。参见 [differential-dataflow 文档](https://docs.rs/differential-dataflow/latest/differential_dataflow/)及 [timely 文档](https://docs.rs/timely/latest/timely/)。区间扫线和 Type 7 插值足够小且定义明确，无需移植其他语言实现；若将来确无合适 Rust 库而必须移植成熟算法，应记录原始出处、许可证及独立合成真值验证。跨专项共同的其他备选方案仍由[升级总方案](2026-10-04-codex-task-timing.md)维护。
 
 ## 验收条件
 
