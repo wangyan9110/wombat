@@ -70,21 +70,24 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 `checks` 按对象和规则独立返回 hit/miss/insufficient/unsupported/error，附规则/内容版本和检查时间；未产生建议不代表所有规则通过。`ruleCatalog` 公布规则与证据基础。完整 Skill 正文/指令的明确 Markdown 本地链接和图片引用核验存在性及文件/目录类型，保留原始字节与行位置；锚点、外部链接及代码/引用块不参与。授权边界外、动态路径、权限或预算缺口返回证据不足；引用变化进入配置读取版本，旧版本结果保持固定。文件内容不执行，也不因缺少原生宿主证据推断有效加载或闲置。
 
-用户记录在 `user-v1/reviews.sqlite3`，独立事务、最多20,000事件，达到上限报错而不删除历史。索引重建保留用户决定。闲置、MCP故障及空间清理尚未支持。Wombat方案生成、批准应用、执行进度和恢复接口已移除，本机Codex交接仍在实施，见[实施状态](../project/status.md)。不暴露任意文件写入、shell或dispatch。
+用户记录在 `user-v1/reviews.sqlite3`，独立事务、最多20,000事件，达到上限报错而不删除历史。索引重建保留用户决定。闲置、MCP故障及空间清理尚未支持。Wombat方案生成、批准应用、执行进度和恢复接口已移除，本机Codex交接已接入，未完成验收，见[未完成提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)。不暴露任意文件写入、shell或dispatch。
 
 `core/src/preferences.rs` 生成[偏好请求](../schemas/preferences-request-v1.schema.json)与[响应](../schemas/preferences-response-v1.schema.json)，`UsageClient.preferences` 仅 get/set zh/en；私有原子文件为 `user-v1/language.json`，不接受任意路径或内容。Web 的语言优先级见[语言契约](../i18n/product.md)。
 
-当前规则使用static-config-v7。bodyTokenEstimate独立分词精确正文，payload=skillBody，含tokenizerVersion、method/contentHash及referenceEncodingOnly，所在configRevision/readView固定快照。bodyEstimateStatus公开未知/解析/资源缺口，旧缓存默认unknown；解析失败不写零。全文/正文各≤1MiB，两者输入都计入单轮8MiB预算。AGENTS.md>16,384B为产品提醒，Skill正文≥5,000为参考提醒，description501—1,024为产品提醒，>1,024为规范问题且不重复500提醒。ruleOverrides只允许agentsBytes正安全整数及descriptionCharacters 0..1024，ruleParameters返回默认/覆盖/固定线及授权当前配置适用边界；记录保留原规则，recheckRuleParameters保存复查规则。规范约束不可覆盖，正文未知不能复查通过。加载预算诊断/闲置/空间能力仍关闭，边界见[升级规格](../project/config-upgrade.md)。
+当前规则使用static-config-v7。bodyTokenEstimate独立分词精确正文，payload=skillBody，含tokenizerVersion、method/contentHash及referenceEncodingOnly，所在configRevision/readView固定快照。bodyEstimateStatus公开未知/解析/资源缺口，旧缓存默认unknown；解析失败不写零。全文/正文各≤1MiB，两者输入都计入单轮8MiB预算。AGENTS.md>16,384B为产品提醒，Skill正文≥5,000为参考提醒，description501—1,024为产品提醒，>1,024为规范问题且不重复500提醒。ruleOverrides只允许agentsBytes正安全整数及descriptionCharacters 0..1024，ruleParameters返回默认/覆盖/固定线及授权当前配置适用边界；记录保留原规则，recheckRuleParameters保存复查规则。规范约束不可覆盖，正文未知不能复查通过。加载预算诊断/闲置/空间能力仍关闭，边界见[优化闭环提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)。
 
 首次显式复查保存reviewBaseline：原始安全测量元数据，不含正文；后续复查保留基线并更新item。recheckRuleParameters记录实际复查参数。字节/码点需两端完整且当前；正文Token比较另须两端估算可用、方法/编码/载荷/分词器版本一致。仅展示文本变化，不将阈值差额或关联用量解释为节省。Web关联用量复用config evidence及usageRevision，日期不改变规则身份；CLI/Agent通过inventory evidence和turns读取同口径。
 
-static-config-v4新增完整块与显式副本证据，公开文件版本、原文字节/行位置、声明哈希、方向和变换，不返回正文；声明与资源边界见[规格](../project/startup-rules.md)。config capabilities可返回启动授权根与宿主复制用重启命令；不是扫描成功事实，也不提供执行接口。live freshness.errorCode公开存储错误；facets.discoveredThreadCount只表示快照内已发现任务元数据，不是日期筛选后的计量数。
+完整块与显式副本证据，公开文件版本、原文字节/行位置、声明哈希、方向和变换，不返回正文。config capabilities可返回启动授权根与宿主复制用重启命令；不是扫描成功事实，也不提供执行接口。live freshness.errorCode公开存储错误；facets.discoveredThreadCount只表示快照内已发现任务元数据，不是日期筛选后的计量数。
 
-static-config-v4的声明依据绑定来源实例、授权项目、声明路径/哈希、关系ID及种类；每条关系只有所有成员完整且适用条件已确认时才完成。标题或相对引用条件未知、声明消失、成员超限均为recheckUnavailable。相同声明文本不能替代其他项目的声明。
+声明依据绑定来源实例、授权项目、声明路径/哈希、关系ID及种类；每条关系只有所有成员完整且适用条件已确认时才完成。标题或相对引用条件未知、声明消失、成员超限均为recheckUnavailable。相同声明文本不能替代其他项目的声明。
 
 当前配置按本机规范路径、种类和原生键聚合物理对象，共享项目仅采集一次。authorizedProjects保留重叠根成员，project仅为展示归属；sourceContexts保留逐来源盘点身份、来源/版本及观察，sourceInstanceId仅为展示归属。来源筛选只计匹配事件；关联Token和金额仍用原账本并集。同一当前对象只产生一条建议，处理在所有匹配来源中一致，声明依据仍逐来源独立。操作只接受当前物理对象身份，不合并账本身份；文件在采集间改变版本时公开configContentChangedDuringScan并保留分项。
 
 reviews.sqlite3仅使用user_version=3：review_events保存独立决定与检查状态，review_parts共享不可变依据、item、baseline及检查事实，内部采用SQLite JSONB。按授权对象/项目/类别COUNT及LIMIT/OFFSET后解码页面；状态只读轻量元数据，全局复查逐个解码历史对象。仅初始化空数据库，未知布局或版本拒绝，不迁移或删除。4MiB页缓存、512页检查点及8MiB WAL保留目标不是硬上限。共享依据与分页理由见[决定](../decisions/implemented/architecture/2026-10-02-rule-review-integrity.md)。
+
+
+跨文件检查读取授权项目已有的 `.wombat/analysis.json`，格式见[生成 Schema](../schemas/analysis-declaration-v1.schema.json)。不创建声明或读取清单外文件；路径仅允许授权根内相对普通分量，双方须在完整当前清单内。chains仅用于Rule，identity-v1比较完整原文字节（含行尾），不证明原件正确或实际加载。单文件1MiB、单轮8MiB、32,768块、每组4,096位置、每对象256分支、输出证据2MiB；声明64KiB、256关系、每链2—64路径。超限公开缺口，不能完整复查通过；正文仅本轮有界驻留。
 
 ## 账户契约 v1
 

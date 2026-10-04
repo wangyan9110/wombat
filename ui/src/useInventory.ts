@@ -1,19 +1,12 @@
 import { useEffect,useRef,useState } from 'react';
 import type { ConfigRequest,ConfigResult,OptimizeSuggestion,UsageClient } from '@wombat/client';
 import { t } from '@wombat/client/locale';
+import {followInventory} from './config/readInventory.js';
 export function useInventory(client:UsageClient,request:ConfigRequest|undefined,allPages:boolean) {
   const key=JSON.stringify(request),[retry,setRetry]=useState(0),[state,setState]=useState<{key?:string;data?:ConfigResult;loading:boolean;error?:string;code?:string}>({loading:false});
   const active=useRef<AbortController|undefined>(undefined);
   useEffect(()=>{if(!key){setState({loading:false});return;}const c=new AbortController();active.current=c;setState(previous=>({...previous,key,data:previous.key===key?previous.data:undefined,loading:true,error:undefined,code:undefined}));
-    const read=async()=>{
-      if(!client.config)throw new Error(t('webui.unsupported'));
-      const r:ConfigRequest=JSON.parse(key),first=await client.config({...r,offset:allPages?0:r.offset,limit:allPages?200:r.limit},{signal:c.signal});
-      if(!allPages)return first;
-      const items=[...first.items];let offset=first.page.nextOffset;
-      while(offset!=null){if(items.length>=20_000)throw new Error(t('webui.partial'));const next=await client.config({...r,readView:first.readView,snapshotId:undefined,offset,limit:200},{signal:c.signal});items.push(...next.items);if(next.page.nextOffset!=null&&next.page.nextOffset<=offset)throw new Error(t('webui.failed'));offset=next.page.nextOffset;}
-      return {...first,items,page:{...first.page,offset:0,total:items.length,limit:items.length,nextOffset:null}};
-    };
-    void read().then(data=>{if(!c.signal.aborted)setState({key,data,loading:false});},e=>{if(!c.signal.aborted)setState(previous=>({...previous,key,error:e.message,code:e.code,loading:false}));});return()=>c.abort();
+    void followInventory(client,JSON.parse(key),allPages,c.signal,data=>{if(!c.signal.aborted)setState({key,data,loading:false});}).catch(e=>{if(!c.signal.aborted)setState(previous=>({...previous,key,error:e.message,code:e.code,loading:false}));});return()=>c.abort();
   },[client,key,allPages,retry]);
   return {...(state.key===key?state:{loading:!!key}),retry:()=>setRetry(n=>n+1),cancel:()=>{active.current?.abort();setState(previous=>({...previous,key,loading:false,error:t('webui.cancel'),code:'CANCELLED'}));}};
 }

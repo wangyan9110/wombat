@@ -35,17 +35,9 @@ pub(super) fn select_view(
         .entry(key.clone())
         .or_insert_with(|| Entry::new(roots));
     entry.touched = Instant::now();
-    entry.requested += 1;
-    let ticket = entry.requested;
+    let mut ticket = entry.completed;
     if selector.is_none() && request.mode != Mode::Cached {
-        entry.syncing = true;
-        entry.following = true;
-        jobs.try_send(Job {
-            ticket,
-            key: key.clone(),
-            verify: request.verify,
-        })
-        .map_err(|_| operation_error("UPDATE_BUSY", "同步请求队列已满，请稍后重试"))?;
+        ticket = scheduling::request(entry, &key, request.verify, jobs)?;
         let preview_at = Instant::now() + Duration::from_millis(250);
         let deadline = Instant::now()
             + Duration::from_secs(

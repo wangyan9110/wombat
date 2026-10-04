@@ -1,18 +1,15 @@
-# Rust 内核开发约定
+# Rust Core Instructions
 
-用户已确认：Rust 优先使用成熟库，内核算法应准确、高效且节制资源占用。
+Follow [root instructions](../AGENTS.md) and [architecture](../docs/development/architecture.en.md). This is a modular single crate; planned modules are not delivered capabilities.
 
-同时遵循[根目录约定](../AGENTS.md)与[架构设计](../docs/development/architecture.md)。当前为模块化单 crate；目标目录按功能逐步形成，未来存储/管理能力不视为已完成。
-
-- JSON/TOML 解析、Unicode 解码、时区和日期、哈希、临时文件、文件映射优先复用已有依赖。新增依赖先核实维护状态、适用性和许可证；不为小包装引入整套运行时。
-- `Cargo.lock` 固定版本，构建使用 `--locked`。自定义代码集中在 Wombat 业务判断和流程串联，不另写通用解析器或密码算法。
-- 有效日志不得因为单行过大而丢弃或截断哈希。输出正文不写入快照；临时文件采用私有、自动清理的机制。
-- 日期范围按记录时间及请求时区计算；路径判断按工作目录和路径组件处理，不用子串猜测项目归属。
-- 诊断必须区分已验证和无法识别的调用。无法可靠提取目标时不推断重复读取。
-- 产品层请求、范围、身份、状态和操作结果使用明确 DTO；Value 保留在来源开放字段。完整快照和扫描摘要分型，协议与快照版本分开，跨语言改动检查 TS 及当前快照。
-- 来源状态包含真实覆盖与新鲜度；目录深度/数量、配置尺寸限制与解析缺口不能静默标成功。来源身份、会话身份和物理文件路径不得混用，输出相同不等于账本事件重复。
-- 文件系统、子进程和平台行为集中管理，领域判断不引用 UI 框架。子进程退出/取消清理完整进程树，跨平台保证逐项验证。
-- 派生索引可重建，用户决定与检查历史必须持久保留，两者独立。内核只组织授权目标和证据，不应用或恢复来源文件；Codex 接受请求不代表问题解决，处理结果按规则重新检测。全局复查逐对象读取历史，避免全库正文或事件同时驻留。
-- 避免全量日志正文、全库事件或多份完整快照同时驻留。复杂度和资源上限必须在说明中如实列出，不能把 mmap 说成不占内存。
-- 新增索引与缓存先检查重复字段、共享事实和临时集合，明确查找/追加/重建复杂度及预算。磁盘证据区分数据库、WAL和退出后的文件长度，不能把WAL保留目标称为硬上限；节省空间不丢弃账本、覆盖证据、当前格式历史快照或不可重建用户记录。
-- 修改关键算法后，验证对应准确性样本；性能结论使用固定语料、release 构建并记录测量范围。检查 `cargo fmt` 和 `cargo clippy --locked --all-targets -- -D warnings`（在 core 目录执行或指定 manifest）。跨语言/CLI 测试先从仓库根目录执行 `corepack pnpm build` 更新 dist，再运行对应测试，避免测试旧内核。
+- Prefer existing maintained libraries for parsing, Unicode, dates/timezones, hashing, temporary files, and mapping. Check maintenance, suitability, and licenses for additions; avoid a runtime for a small wrapper.
+- Keep Cargo.lock fixed and build with --locked. Own Wombat domain logic, not generic parsers or cryptography.
+- Process valid large log lines completely, including hashes. Keep message bodies out of snapshots; temporary files must be private and automatically cleaned.
+- Compute dates using record times/requested timezone and projects using cwd/path components. Unresolved targets cannot establish repeated reads or verified tool calls.
+- Use explicit DTOs for requests, scope, identity, state, and results; reserve Value for open source fields. Separate complete snapshots from scan summaries, and protocol versions from snapshot versions.
+- Report coverage, freshness, resource limits, and parsing gaps. Source, conversation, and file identities differ; identical output does not prove duplicate ledger events.
+- Centralize filesystem/process/platform behavior, keep domain logic independent of UI, and clean complete subprocess trees on exit/cancellation. Verify each platform claim separately.
+- Persist decisions and check history independently of rebuildable indexes. Organize authorized targets/evidence without applying or restoring source files. Recheck handling outcomes; read global review history per object.
+- Avoid retaining whole log bodies, all events, or multiple complete snapshots. Document complexity/resource limits; mmap is not free memory.
+- For indexes/caches, inspect duplicated fields, shared facts, and temporary collections; state lookup/append/rebuild complexity and budgets. Distinguish database, WAL, and post-exit sizes. WAL retention targets are not hard limits; preserve ledger, coverage, current snapshots, and user records.
+- Test changed algorithms with focused accuracy/failure fixtures. Performance claims require fixed fixtures and release builds. Run cargo fmt and cargo clippy --locked --all-targets -- -D warnings in core or with its manifest. Cross-language/CLI tests require a root corepack pnpm build first.

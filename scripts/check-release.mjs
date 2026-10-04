@@ -15,13 +15,13 @@ const steps = [
   ['Rust formatting', cargo, ['fmt', '--manifest-path', 'core/Cargo.toml', '--', '--check']],
   ['Rust lint', cargo, ['clippy', '--locked', '--manifest-path', 'core/Cargo.toml', '--all-targets', '--', '-D', 'warnings']],
   ['Build', 'corepack', ['pnpm', 'build']],
+  ['Shared-service startup probe', 'corepack', ['pnpm', 'release:probe']],
   ['Types and module boundaries', 'corepack', ['pnpm', 'typecheck']],
   ['Generated contracts', 'corepack', ['pnpm', 'contracts:check']],
   ['Tests', 'corepack', ['pnpm', 'test']],
   ['Dependency licenses', 'corepack', ['pnpm', 'licenses:check']],
-  ['Repository rules', 'corepack', ['pnpm', 'repo:check']],
-  ['Public package contents', 'corepack', ['pnpm', 'public:check', '--package']],
-  ['Installed package', 'corepack', ['pnpm', 'package:check']],
+  // repo:check already includes public:check; keep this scan single-pass because it walks reachable history.
+  ['Repository and public-source rules', 'corepack', ['pnpm', 'repo:check']],
 ];
 for (const [label, program, args] of steps) {
   console.log(`\n=== ${label} ===`);
@@ -31,4 +31,4 @@ for (const [label, program, args] of steps) {
     process.exit(result.status || 1);
   }
 }
-console.log(`\nRelease checks passed on ${process.platform}/${process.arch}. No publication performed.`);
+console.log(`\nRelease checks passed on ${process.platform}/${process.arch}. Run github:pack to assemble and verify release archives. No publication performed.`);

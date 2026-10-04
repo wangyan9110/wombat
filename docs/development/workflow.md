@@ -2,21 +2,24 @@
 
 中文 | [English](workflow.en.md)
 
-以[首版方案](../project/specification.md)及[架构](architecture.md)为依据。产品只有用量与对话，CLI/Web 共用 Rust 操作、筛选、计量与价格。
+本页定义代码修改与验证流程。模块职责见[架构](architecture.md)，产品字段见[契约](contracts.md)，全仓约束见 [AGENTS.md](../../AGENTS.md)。
 
-## 实现边界
+## 代码规范
 
-- 新能力同时交付 Web 与无需 TTY 的 JSON 入口。DTO 在 Rust 定义，生成 Schema、TS 和运行时校验器；字段不得在两端独立维护。
-- Source adapter 归一化事实；计价、汇总、去重和项目归属不进入 Node。
-- 不依赖 ccusage 运行、构建、类型或测试。通用库按功能需要锁定依赖，独立合成真值是计量验收依据。
-- 原始来源只读；实时刷新遇到可补齐的缺价时默认下载官方价表，WOMBAT_AUTO_PRICES=0 可关闭。快照只保存白名单元数据；没有正文回放或任意执行接口。
-- 缺失、零、部分计价、未知必须分别保留。输出金额为十进制字符串，列表仅做显示舍入。
-- 日期范围包含 since、不包含 until；时区自然日、周一起始、跨天对话与轮次均按每条计量归日。
-- 修改前保留现有用户工作；删除旧代码不删除用户数据目录、身份登记和恢复材料。
-- 采用[独立模块边界](architecture.md)：根目录并列 `core/`、`client/`、`ui/`、`web/`、`cli/`。各模块独立声明依赖、构建和测试，只使用公开导出或协议；UI 经注入的 `UsageClient` 访问业务。类型检查同时检查跨模块导入边界。
-- npm 产品运行要求 Node.js 22+，源码工具要求26.4.0+；发行结构见[分发说明](../reference/distribution.md)。CLI 默认输出用量，Web 显式启动；不需要终端渲染或 FFI 启动参数。
+- 先找到业务归属和当前消费者，再选择实现；新增抽象、选项或兼容路径必须服务现有需求。跨模块只通过公开导出或协议。
+- 新能力同步交付 Web 和无 TTY 接口；公共 DTO 从 Rust 生成，修改时检查所有消费者及取消、错误和状态语义。
+- 在配置、文件、进程和网络入口校验不可信数据；同进程的已类型化值不重复模拟不可信输入。TypeScript 保持 strict；新增 any 或断言须说明无法收窄的原因，不以双重断言绕过校验。
+- 封闭联合按判别字段穷尽处理；开放来源值有明确的未知分支。默认值由拥有该选项的入口一次解析，配置错误在最早可确认处报告。
+- 授权与版本检查放在实际执行操作中，不能只靠页面禁用或包装层过滤；验证直接调用及其他入口也不能绕过。
+- 一次异步操作由一个控制器或事务管理。额外状态须有独立职责；完成、失败与取消都要结算。清理须有界等待子任务退出，迟到结果不能更新失效视图。
+- 持久提交成功后才发布状态或通知，失败保留已提交事实。缓存与展示从同一权威结果派生。
+- 在完整输出或保留值可知处执行资源限制，包含信封、元数据及多字节编码；覆盖最小值、精确边界和单块超限。
+- catch 只包围预期失败的操作；忽略错误必须解释原因并保留可观察失败。回调异常不能破坏无关请求或清理。
+- 注释写调用者需要的行为、失败、时机和所有权；理由链接决策，不复述代码或审阅过程。同一修改更新所属说明，局部改动不另建决策。
 
 ## 验证
+
+源码规则用 `corepack pnpm repo:check`，不依赖 dist；CI 在平台构建前运行。检查脚本按 [scripts/AGENTS.md](../../scripts/AGENTS.md)，范围选择用 [wombat-verify](../../.agents/skills/wombat-verify/SKILL.md)。上述语义规范由代码审阅和对应行为测试验证，静态检查不宣称覆盖所有规范。
 
 ```sh
 corepack pnpm build
@@ -27,12 +30,8 @@ corepack pnpm test
 ~/.cargo/bin/cargo clippy --locked --manifest-path core/Cargo.toml --all-targets -- -D warnings
 ```
 
-合成开发脚本在构建后运行：`node --import tsx scripts/benchmark-usage-v1.ts --output /tmp/wombat-query.json` 和 `node --import tsx scripts/benchmark-live.ts --output /tmp/wombat-live.json` 分别检查固定快照查询与实时索引。
+按改动选命令，完整链路执行全部。跨语言测试调用 dist，先构建；已通过且未受影响的检查不重复。产品行为修改至少覆盖真实装配入口的可观察结果，不能只用手工拼接 mock 证明交付；外部服务和非确定输入可以替换。计量使用[独立真值](adapters.md)，不以旧输出作为唯一依据。
 
-按改动选择对应测试，完整链路交付运行全部。跨语言测试调用 dist，必须先构建。独立真值覆盖 A01–A12；正确性不是“与旧输出一样”。Web 在浏览器验证交互、窄屏、取消与完整返回路径。性能须报告固定语料、release、冷暖查询、内核启动及峰值内存，不以局部解析代表整体。
+宿主、真实内核、浏览器及安装资产分别验证；Web 检查窄屏、取消、失败和返回路径。性能使用固定语料和 release，分别记录缓存、启动、耗时、峰值内存与结果一致性；基准入口见 package.json 的 benchmark 脚本。
 
-依赖变化审查并执行 `corepack pnpm licenses:generate`、`licenses:check`。发行验收执行 `corepack pnpm public:check --package` 与干净目录安装；其他平台未经实测不能宣称支持。只有实际通过的项目进入进度完成记录。
-
-## Web 优先迁移
-
-Tauri 2 已选，先交付 Web，TUI 产品代码已移除。边界与未完成项见[架构](architecture.md)。构建后执行 `node dist/wombat.js web`，更改后重建并重启；分别验证宿主、真实内核、浏览器与安装资产。
+依赖变化运行 `corepack pnpm licenses:generate` 和 `corepack pnpm licenses:check`。发行按[发行 Skill](../../.agents/skills/wombat-release/SKILL.md)和[分发说明](../reference/distribution.md)核验目标平台与干净安装。只报告本次实际验证，不以构建替代产品或平台验收。

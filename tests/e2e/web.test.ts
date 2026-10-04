@@ -21,10 +21,14 @@ test('built Web and CLI share Rust totals, drill-down, fixed versions and lifecy
   const root = path.join(dir, "source with ' quote"), data = path.join(dir, 'data');
   await mkdir(path.join(root, 'sessions'), { recursive: true });
   const timestamp = new Date(Date.now() - 86_400_000).toISOString();
+  // The read-observation window must not split this synthetic UTF-8 character.
+  const commandPrefix = '{cmd:"cat /synthetic/SKILL.md",note:"';
+  const unicodeCommand = `tools.exec_command(${commandPrefix}${'a'.repeat(2048 - commandPrefix.length - 1)}机"});`;
   const events = [
     { type: 'session_meta', payload: { id: 'synthetic-thread', cwd: '/synthetic/project', cli_version: '0.1.0' } },
     { type: 'turn_context', payload: { turn_id: 'synthetic-turn', model: 'gpt-5.4', model_provider: 'openai', effort: 'high' } },
     { type: 'event_msg', payload: { type: 'task_started', turn_id: 'synthetic-turn' } },
+    { type: 'response_item', payload: { type: 'custom_tool_call', name: 'exec', call_id: 'synthetic-unicode', input: unicodeCommand } },
     { type: 'event_msg', payload: { type: 'token_usage_record', thread_id: 'synthetic-thread', turn_id: 'synthetic-turn', response_id: 'synthetic-response', usage: { input_tokens: 100000, cached_input_tokens: 20000, cache_write_input_tokens: 0, output_tokens: 20000, reasoning_output_tokens: 3000, total_tokens: 120000 } } },
   ];
   await writeFile(path.join(root, 'sessions', 'synthetic.jsonl'), events.map(event => JSON.stringify({ timestamp, ...event })).join('\n') + '\n');

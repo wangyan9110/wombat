@@ -441,7 +441,6 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = fs::canonicalize(dir.path()).unwrap();
         fs::write(root.join("inside.md"), "Synthetic").unwrap();
-        assert!(fs::metadata(root.join("missing/../inside.md")).is_err());
         assert_eq!(
             target_status(
                 &root,

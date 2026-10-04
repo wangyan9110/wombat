@@ -4,38 +4,65 @@
 
 ## Current status
 
-The root workspace remains `private: true`; no public npm release has passed acceptance. The planned package is `@wangyan9110/wombat`, its command is `wombat`, and npm runtime requires Node.js 22 or newer; source tools require 26.4.0 or newer. README installation instructions remain explicitly planned for after publication. See the [support matrix](support-matrix.en.md) for platform acceptance.
+Wombat uses GitHub Releases as its only product distribution channel and does not publish an npm package. The root npm workspace stays `private: true` for source development. `v0.1.0-dev.2` is the first Development Preview and is distributed as a GitHub Pre-release. Preview features, data formats, and commands may change. Source tools require Node.js 26.4.0 or newer. User archives bundle a fixed Node.js 26.4.0 runtime, CLI/Web, and the local Rust core, so users do not install Node, npm, Rust, pnpm, or a compiler.
 
-## npm installation and release structure
+Release automation uses only free GitHub capabilities. GitHub-hosted builds stay disabled while the repository is private. After it becomes public, CI and tag releases use standard GitHub-hosted runners; paid larger runners are not used. Intermediate Actions artifacts expire after one day, while final archives become GitHub Release assets. Versions with a prerelease component create a Pre-release and do not occupy the stable `latest` endpoint.
 
-After publication, run `npm install -g @wangyan9110/wombat`, then `wombat web --open` or a CLI query. Users need only Node/npm, without Rust, pnpm, compilers or post-install download scripts. The main package bundles CLI dependencies and Web assets, without a Node runtime.
+## One-command installation and updates
 
-The main package contains no native core. Five platforms use exact `optionalDependencies`aliases to platform versions under the same package name: for example,`@wangyan9110/wombat-darwin-arm64` points to`npm:@wangyan9110/wombat@0.3.0-darwin-arm64`. npm os/cpu/libc filtering downloads only the local component; core resolution checks version, target and source commit. Omitted optional dependencies yield CORE_UNAVAILABLE and an`--include=optional`recovery command, without falling back to development binaries; unsupported targets fail explicitly. See the [decision](../decisions/implemented/architecture/2026-10-03-npm-platform-distribution.en.md) for version rules.
+macOS / Linux:
 
-`npm:pack -- --name @wangyan9110/wombat --native-dir native-artifacts`creates one main package, five platform versions and release-set.json with SHA-256 hashes. Native artifacts must share version/commit; cores and platform notices are checked. Windows checks the static CRT and compiler DLL imports.`--current-platform`creates local candidates only. `--reuse-build`still validates source/output fingerprints and runs actual installation; stale builds cannot be reused.
+```sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
+```
 
-Candidates use a temporary loopback registry for real npm global installation, asserting only main/local tarballs are downloaded. Live, append, fixed-snapshot and Web queries run with empty PATH, and missing optional dependencies are checked. Sources and data are synthetic and temporary. CI collects five platforms at one revision and installs the same final set on each target. Node 22 verifies the runtime minimum, with additional 24/26 coverage on macOS arm64. Configured CI does not establish target-machine acceptance.
+Specify a version for a Development Preview:
 
-Follow the [release Skill](../../.agents/skills/wombat-release/SKILL.md): publish five platform versions with explicit non-latest tags first, verify exact remote versions/integrity, then publish the main version last. No public release exists, and no prior-release migration is promised. See [progress](../project/progress.en.md) for passed local installation and unverified platforms.
+```sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.2
+```
 
-## GitHub description candidates
+Windows PowerShell:
 
-These candidates are ready for a later external update; they do not mean GitHub About or Topics have changed. The root `package.json` owns npm description and keywords, maintained separately from GitHub Topics.
+```powershell
+irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
+```
+
+For a Development Preview:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.2
+```
+
+The installer detects the local target, downloads `wombat-<target>.tar.gz` and `SHA256SUMS`, verifies the archive, and installs under `~/.local`. `WOMBAT_INSTALL_PREFIX` or `--prefix` changes the destination; `--version` selects a release; `--base-url` supports development candidates or controlled mirrors. The installer replaces only directories and commands carrying Wombat's management marker.
+
+After an installer-managed deployment, `wombat update` downloads and installs the latest stable Release. `wombat update --check` checks only, and `--version X.Y.Z` selects a version. Previews do not enter `latest`, so moving to a later preview requires an explicit version. Releases live in sibling directories. The updater verifies metadata, size, and SHA-256 before atomically switching `current.txt`. It never overwrites the running version, including on Windows, keeps the selected and previously running versions, and cleans older managed versions. Source builds and manually extracted archives have no installation pointer and are rejected explicitly.
+
+## GitHub Release structure
+
+Each version contains five archives: macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. Each archive contains only its platform's Rust core, bundled CLI/Web, Node.js 26.4.0 runtime, Wombat license, dependency license inventory, and Node runtime license. `release-set.json` binds version, source commit, source/build fingerprint, target, archive size, and SHA-256. `SHA256SUMS` supports installers and manual review.
+
+Each platform runs the release gate at the same commit and exports native artifacts. Assembly rejects mismatched version, commit, core, runtime, or notice hashes. All five platforms then extract the final archives and exercise version reporting, live usage, append handling, fixed snapshots, task queries, and Web without depending on system Node. A matching `v<package version>` tag creates the GitHub Release only after those checks pass and emits build provenance for platform archives. Builds and candidate preparation never upload by themselves.
+
+Prepare a local development candidate with:
+
+```sh
+corepack pnpm build
+corepack pnpm github:pack -- --current-platform --reuse-build --runtime-license /path/to/node/LICENSE
+```
+
+Use `--native-dir <artifacts>` for a full five-platform set. `--reuse-build` still checks source and output fingerprints and cannot reuse a stale build. Actual archive acceptance belongs to the corresponding Release/CI results; see the [release Skill](../../.agents/skills/wombat-release/SKILL.md) for operating steps.
+
+## GitHub description
+
+The About description is applied on GitHub, while the repository remains private. Topics are candidates for the public repository and have not been synchronized yet:
 
 ```json
 {
-  "about": "Review Codex tasks and token usage locally. Estimate API costs, check AGENTS.md and Skills, and view MCP entries and call attempts. Web app + CLI.",
-  "topics": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
+  "about": "Review Codex token usage and task timing locally. Estimate API costs, inspect AGENTS.md, Skills, MCP, and Hooks, and send evidence-backed recommendations to Codex.",
+  "topicsCandidate": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
   "summaryZh": "在本机回看 Codex 任务、追踪 Token 用量与 API 估算金额，检查 AGENTS.md 和 Skill 文件，盘点 MCP 配置及调用尝试记录。"
 }
 ```
 
-Claude Code, pi, automatic repair and subscription-allowance monitoring are not current capability labels; other agents remain planned. Source facts, static file checks, call attempts and runtime validity are distinct.
-
-## README and packaged materials
-
-Root READMEs keep relative image, language and documentation links. Each language has two screenshots, with the second inside a details disclosure. The four JPEGs are labelled design-prototype previews; the two SVGs provide light/dark logos. Only these six assets ship in the current package. Older images remain available to historical records but are excluded from the package. Screenshots do not establish product acceptance or savings.
-
-npm packaging calls `scripts/npm-readme.ts` only on staged copies to pin relative image, logo, language and documentation links to a public reference. Before publication, verify that a real public tag or commit contains the corresponding READMEs, images and documentation, then check unauthenticated access and npm rendering. Unauthenticated access and npm rendering have not been verified for these new materials. Committing and pushing source does not replace public-reference acceptance. Converter unit tests verify rewriting, not remote availability.
-
-Actual checks are recorded in [progress](../project/progress.en.md). Preparing candidates does not update GitHub descriptions or authorize publication.
+Claude Code, pi, automatic repair, and subscription-allowance monitoring are not current capability labels. Source facts, static checks, call attempts, and runtime validity remain distinct. Candidate preparation does not authorize repository visibility changes or Release creation.

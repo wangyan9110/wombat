@@ -67,6 +67,8 @@ struct Entry {
     following: bool,
     requested: u64,
     completed: u64,
+    pending: Option<SyncWork>,
+    running: Option<SyncWork>,
 }
 impl Entry {
     fn new(roots: Vec<String>) -> Self {
@@ -83,13 +85,18 @@ impl Entry {
             following: false,
             requested: 0,
             completed: 0,
+            pending: None,
+            running: None,
         }
     }
 }
 type Shared = Arc<(Mutex<BTreeMap<String, Entry>>, Condvar)>;
 struct Job {
-    ticket: u64,
     key: String,
+}
+#[derive(Clone, Copy)]
+struct SyncWork {
+    ticket: u64,
     verify: bool,
 }
 
@@ -147,6 +154,7 @@ pub fn endpoint() -> Result<Value> {
 mod collection;
 mod preview;
 mod query;
+mod scheduling;
 mod selection;
 mod transport;
 use collection::{restore, source_key, sources, sync};

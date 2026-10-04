@@ -4,7 +4,7 @@
 
 Status: proposed
 
-Research date: 2026-10-04. This public design defines the scope, architecture, and implementation units for expanding usage queries into objective timing data, for product and implementation readers. All numerical examples are synthetic. Propose a narrow `timing` query within existing task/turn details, without restoring a general diagnostic entry point. Timing queries, timing comparison, and evidence bundles remain unimplemented; all new commands, fields, and phases below are target designs. The [support matrix](../../../reference/support-matrix.en.md), [CLI guide](../../../guides/cli.en.md), and source code remain authoritative for current behavior.
+Research date: 2026-10-04. This public design defines the scope, architecture, and implementation units for expanding usage queries into objective timing data, for product and implementation readers. All numerical examples are synthetic. Propose a narrow `timing` query within existing task/turn details, without restoring a general diagnostic entry point. Timing queries, timing comparison, and evidence bundles remain unimplemented; all new commands, fields, and phases below are target designs. The [core reference](../../../../core/README.en.md), [CLI guide](../../../guides/cli.en.md), and source code remain authoritative for current behavior.
 
 ## Problem
 
@@ -396,7 +396,7 @@ Name                                 Uses
 
 ### 17. Implementation units and gates
 
-See the [upgrade task list](../../../project/event-upgrade.en.md) for execution order, 20 tasks, and current status. This section retains architectural delivery units and gates; track execution in the task list and implementation status.
+See “Task batches and acceptance” below for execution order and the 20 tasks. This proposal is the single owner of unfinished requirements and acceptance responsibilities.
 
 | Order | Delivery unit | Dependencies and completion gate |
 |---|---|---|
@@ -558,3 +558,105 @@ Unknown time does not establish server congestion, slow networks, server queues,
 Nonzero exits do not establish code defects. Repeated tests are not necessarily wasted work. Change-event counts are not net diff size. User messages do not automatically establish scope changes or wasted duration. Current configuration does not prove historical loading.
 
 Observational history cannot establish stable model speed multipliers, quality rankings, platform regressions, cost savings, or subscription-allowance causes. Complete reads, high coverage, or little unclassified time do not establish complete causality. The product can explain where recorded time went and what evidence is missing, but cannot assert a unique root cause without evidence.
+
+
+### Task batches and acceptance
+
+U01/U02 have [independent baseline evidence](../../../benchmarks/2026-10-04-event-upgrade-baseline.json) and frozen contracts. U03 shared-component previews still need production-interface wiring and duplicate removal. U04/U05 have partial safe-event mapping and accounting/operation projections, but metadata replay and complete mapping remain open. U06–U20 have not passed acceptance. Historical commits and test output do not replace individual completion gates.
+
+#### Scope and delivery principles
+
+This is a substantial upgrade across core, client, cli, web, and ui, covering event facts, index/snapshot formats, usage projections, rule assessments, and interactions rather than just a timing panel. Initial scope includes safe Codex events, fixed evidence views, existing accounting conservation, Skill/MCP use counts, timing metrics, rule adaptation, and equivalent CLI/Web delivery. Retain the modular monolith without a new service or general rule engine.
+
+Expanded compare/watch, semantic classification, new inactivity/duplicate-injection/connection-fault rules, other Agents, and Tauri are excluded. Accounts and pricing retain their existing responsibilities with version references as needed; unified logging does not require rewriting every domain. Unknown history stays unknown; current configuration cannot fill historical configuration gaps. Raw logs remain read-only, indexes reconstructible, and user decisions/recheck baselines independently protected.
+
+Default to one reviewable change per task. Closely coupled format-switch tasks may form an integration batch with responsibility-based commits. Each integration point must build and preserve existing entry points. Synthetic development comparisons may compare old and new results, but the product must not retain dual ledgers, legacy-format readers, or automatic migration. Update implementation status only when the corresponding evidence is complete.
+
+User steering on 2026-10-04: intermediate batches run only independent tests for added or affected modules. Integration, end-to-end tests, and full regression are deferred to the final batch (U19). Prototype design builds on the existing design and, following later steering, moves into shared repository components with mock-data previews; the public specification has no private-file dependencies. Baseline integration completed before this steering is historical evidence, not authorization to repeat it mid-upgrade.
+
+#### Task list
+
+U01–U02 are complete; U03 is consolidating prototypes; U04 is in progress; U05–U20 await implementation. Assign owners and add commit/PR and verification evidence during execution; this planning change creates no remote issues or additional chats. Dependencies describe integration prerequisites; pure algorithms can start with synthetic data once input contracts are defined.
+
+##### Batch one: baseline and design
+
+| ID / design stage | Task and primary ownership | Dependencies | Completion gate |
+|---|---|---|---|
+| U01 / D1, R1 | Current behavior and independent truth baseline; core tests and evidence | None | Pin source revision and synthetic corpus; enumerate accounting/rule expectations, known failures, and evidence gaps; record storage formats and user-record boundaries |
+| U02 / D1, D2, R2 | Event, evidence-view, and identity contracts; core | U01 | Specify event/operation identities, source generations, watermarks, time/gaps, observation revisions, and rule dependencies; reconcile format versions and user-record protection |
+| U03 / D0 | Turn and rule page prototypes; design specification and synthetic prototype | U02 | Wide/narrow, bilingual, complete/missing/running scenarios; five journeys, assessment/decision presentation, screenshot critique, and presentation-field mapping |
+
+##### Batch two: event foundation and persistence
+
+| ID / design stage | Task and primary ownership | Dependencies | Completion gate |
+|---|---|---|---|
+| U04 / D1 | Codex logs to safe events; core/adapters, session_events | U02 | Current and supported historical shapes, valid large lines/partial tails, source identity, and native fields; body/argument/output isolation |
+| U05 / D1 | Derive existing Measurement/Operation from events; core | U04 | Independent truth for Tokens, cache subcategories, fork replay, cumulative reconciliation, and pricing association; parse each source once |
+| U06 / D2 | Transactional event index, cursors, and projections; core/live_index | U05 | Append, restart, cancellation, source failure, truncation/replacement, late correction, and cold-rebuild equivalence; no partial-version commits |
+| U07 / D2, D4 | Fixed-view selection and snapshots; core/live, usage_store | U06 | Shard references/hashes, same-version queries, expiry, cached no-scan, initial-preview isolation; reject unknown formats while preserving directories |
+| U08 / R2 | Configuration measurements and host observations in evidence views; core/config | U06, U02 | Preserve independent source/scope/time; bodies read only in authorized collection analysis; rules consume safe versioned inputs |
+
+##### Batch three: metrics and rules
+
+| ID / design stage | Task and primary ownership | Dependencies | Completion gate |
+|---|---|---|---|
+| U09 / D3 | Skill/MCP usage projections; core shared statistics | U05, U07 | Three same-turn uses count as three; start/result count once; include failures, exclude catalogs/declarations; disclose unknown ownership/time and duplicate-evidence gaps |
+| U10 / D3 | Pure timing, coverage, and context algorithms; core/timing | U02; integrate after U05, U07 | Union/exclusive coverage conservation, native scalar versus observed interval, historical windows and quantile truth, resource limits, sharing allowlist |
+| U11 / R1 | Independent rule evaluation; core/optimize | U02 | Reuse static algorithms; every rule directly returns five assessment outcomes; isolate failures and derive suggestions from hits |
+| U12 / R2 | Rule inputs and dependency updates; core/config, optimize | U08, U09, U11 | Reuse counts across inventory/rules/follow-up; fixed cutoff; correct invalidation for configuration, windows, and late events; unrelated appends preserve static judgments |
+| U13 / R2 | Finding identity, decisions, and rechecks; core/optimize/reviews, store | U12, U07 | Separate finding/assessment identity; missing evidence never proves resolution, upgrades never claim comparability; rebuilding preserves decisions/reasons/baselines without widening scope |
+
+##### Batch four: interfaces and user entry points
+
+| ID / design stage | Task and primary ownership | Dependencies | Completion gate |
+|---|---|---|---|
+| U14 / D4, R3 | Generated DTOs and restricted transports; core, client, web host | U03, U07, U09, U10; rules additionally need U12, U13 | Version-bound live/fixed-snapshot, assessment/evidence interfaces; consistent authorization, cancellation, errors, and budgets; timing never implicitly collects configuration or fetches prices |
+| U15 / D5, R3 | CLI text and JSON; cli, client/locale | Corresponding U14 interfaces | Non-TTY queries, states/evidence pagination, exit/cancellation, bilingual equivalence; missing values never zero |
+| U16 / D5 | Integrated turn detail; ui | U03, U14 timing/usage interfaces | Reuse summary; timeline/list fallback, Skill/MCP, evidence and sharing; browser acceptance for group refresh, focus/return, and late responses |
+| U17 / R3 | Rule assessment and recheck pages; ui | U03, U14 rule interfaces | Separate facts/decisions; evidence gaps, version changes, keep/redisplay/recheck journeys in both languages and narrow layouts |
+
+##### Batch five: module verification closure
+
+| ID / design stage | Task and primary ownership | Dependencies | Completion gate |
+|---|---|---|---|
+| U18 / D5, R3 | Changed-module verification closure | U15, U16, U17 | Collect targeted independent module evidence and fix gaps; use synthetic or mocked inputs for UI/CLI tests; no integration or end-to-end tests in intermediate batches |
+
+##### Batch six: final integration and delivery
+
+| ID / design stage | Task and primary ownership | Dependencies | Completion gate |
+|---|---|---|---|
+| U19 / D2, D5, R3 | Final integration, failures, and resource acceptance; all modules | U18 | Build then run integration/end-to-end and full regression; same-version CLI/HTTP/Web, user records, privacy, browser/platform checks; release fixed-corpus cold/append/rebuild time, space/WAL and peak memory, with result equivalence |
+| U20 / Overall delivery | Current documentation and upgrade evidence; docs and release preparation | U18, U19 | Align support matrix, contracts, operation instructions, format rejection/recollection, and progress with code; update delivered decision status while retaining unfinished scope; bind artifacts/install evidence to platforms, without automatic publication or global installation |
+
+#### Execution order and milestones
+
+Start U01 → U02, then U03 prototypes and U04 event adaptation. U10 and U11 can proceed independently on stable contracts and synthetic data; U06/U07 are critical fixed-view dependencies. U14 timing/usage interfaces can be accepted first, with rule interfaces waiting for U12/U13. Coordinate edits to shared contract files; parallelizable tasks do not imply unconstrained concurrent editing. These dependencies do not mean parallel agents or work branches have been started.
+
+| Milestone | Required work | User value |
+|---|---|---|
+| M0 Executable design | U01—U03 | Contracts have truth fixtures, pages can be walked through, storage/history protection is explicit |
+| M1 Reliable data foundation | U04—U08 | Changing logs are collected correctly, existing usage is conserved, fixed views can be rebuilt |
+| M2 Correct metrics and rules | U09—U13 | Counts, timing, and rules have evidence while decision/recheck boundaries remain intact |
+| M3 Modules ready | U14—U18 | Entry-point implementation and independent module tests complete; integrated acceptance pending |
+| M4 Upgrade delivered | U19—U20 | Resource costs are verifiable and documentation/acceptance boundaries are complete |
+
+Early prototype or static-rule refactoring completion cannot bypass event-storage and accounting-consistency gates. U18 consolidates independent module evidence; U19 fills integration gaps only in the final batch. Do not mechanically rerun checks unaffected by later changes.
+
+#### Risks and completion records
+
+Prioritize three risks: duplicate/missing accounting contributions after source replacement; incorrectly associating historical usage with current configuration; and storage/identity changes affecting user decisions. U02 must define verifiable protection before switching formats. Deliver source limitations as gaps rather than adding unauthorized collection to fill them.
+
+On closure, record scope, commit/PR, actual verification commands/results, corpus/build revisions, and remaining boundaries. Synthetic material can be public; real-log self-test output stays outside the repository. Documentation runs repo:check and diff checks; Rust and cross-language changes follow applicable repository gates; dependency changes add license review. Verify platforms, browsers, performance, and installation separately, never assuming untested items pass. Estimate overall effort after U01/U02 clarify field and storage impacts rather than promising a schedule upfront.
+
+
+#### Frozen input contracts
+
+- Event keys combine source identity, file generation, complete-record byte offset, and typed-fact ordinal within that record. Appends retain the generation; truncation or a changed consumed prefix starts a new generation and replaces that source contribution. Paths and session identities are distinct.
+- Operation keys prefer source, reliable session/turn, and native call identity; starts, results, and streaming updates share the key. Without native identity, retain event-level candidates; do not merge by name, nearby time, or equal output. Existing accounting deduplication handles proven fork inheritance; independent calls stay separate.
+- Each commit fixes source generations, complete-line end offsets, and parser/projection versions. Incomplete trailing lines do not advance watermarks. Events, cursors, and projections commit together; cancellation or failure cannot publish half a version. Per-file watermarks do not prove a simultaneous directory-wide observation.
+- Occurrence time, observation time, native duration, and precision remain separate; missing values stay unknown. Rule inputs bind configuration content version, event projection version, host observation scope/time, method version, parameters, and evaluation cutoff; invalidate only related dependencies.
+- The next format uses rollout-6, live-v2/DB4, usage-v4/schema4, and protocol2 from design section 14. Preserve old index directories and explicit old snapshots and reject mixed reads. Preserve user-v1/reviews.sqlite3 independently; rebuilding neither opens its write transaction nor clears decisions, reasons, or baselines. Post-switch preservation checks belong to final integration.
+
+#### Remaining implementation boundaries
+
+U03 follows U14/U16/U17 to wire production interfaces and migrate every page and state, then remove the corresponding standalone prototypes after verification. U04/U05 still require thread/turn metadata replay and complete source mapping; external metadata such as titles must not be assumed to be covered by events. U06/U08 must cover middle-of-file rewrites in large logs, rebuilding loaded indexes from events, per-source watermarks, event shards, and query budgets; first/last boundary probes or whole-event-file reads do not satisfy acceptance. The live protocol still needs to move from protocol1 to protocol2. User-decision preservation, full-path checks, and performance acceptance remain in the final stage.

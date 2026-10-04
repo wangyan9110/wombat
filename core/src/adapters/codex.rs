@@ -28,6 +28,16 @@ use wire::*;
 pub const VERSION: &str = "codex-rollout-6";
 pub struct CodexAdapter;
 
+#[cfg(test)]
+fn test_absolute(path: &str) -> String {
+    let path = path.trim_start_matches('/');
+    if cfg!(windows) {
+        format!("C:/{path}")
+    } else {
+        format!("/{path}")
+    }
+}
+
 impl AgentAdapter for CodexAdapter {
     fn descriptor(&self) -> AdapterDescriptor {
         AdapterDescriptor {

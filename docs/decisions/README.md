@@ -2,50 +2,42 @@
 
 中文 | [English](README.en.md)
 
-决策记录保存代码和当前说明无法承载的理由：要解决的问题、选择的办法、真实考虑过的替代方案，以及代价和验证依据。它不是任务清单或产品现状的唯一来源；当前行为仍由源码、契约和[支持矩阵](../reference/support-matrix.md)确认。
+本目录只维护选择的理由、实际考虑过的替代方案、代价及必须保留的验证责任。当前行为归属模块 README 或技术参考；决策中只保留解释取舍所需的事实并链接其归属，不复制接口、默认值清单或验收台账。
 
-## 创建与状态
+## 何时记录
 
-项目决策统一放在 `docs/decisions/`，供所有维护者查阅；Agent 的可重复工作步骤放在 `.agents/skills/`，适用目录的长期约束放在 `AGENTS.md`。
+仅当代码、测试和现有文档无法解释长期决策理由时，才在同一改动中新增或更新记录。先搜索并更新已有归属记录即可满足要求，不另建重复记录。机械或局部改动，包括局部 UI 展示和交互调整，予以豁免。不得为了补齐模板虚构备选方案。
 
-- `proposed/<类别>/YYYY-MM-DD-主题.md` 记录尚未交付的决定，状态写 `Status: proposed`。
-- `implemented/<类别>/YYYY-MM-DD-主题.md` 记录已交付的决定，状态写 `Status: implemented`，事实随代码更新。
-- `rejected/<类别>/YYYY-MM-DD-主题.md` 保留仍能避免重复错误的被否决提案，状态写 `Status: rejected`。
+反转一个决定时新建记录并双向链接，不能把旧决定改写成相反结论。新记录同时核对旧记录是完全还是部分被取代；部分取代时标明已替代部分和仍有效的理由。
 
-类别限于 `architecture`、`product` 和 `process`。中文主文件同目录配对 `.en.md` 与 `.i18n.json`，按[双语流程](../i18n/README.md)确认。新建记录的标准是理由有长期价值；机械和局部改动无需记录。
+未完成需求、方案及验收条件只维护在对应 proposed 决策，不另建产品规格或实施状态表。已有实现只链接模块说明、技术参考及测试。验收结果留在任务、CI 或必要的证据附件；实施后将验收条件转为实际影响和验证依据，不保留规划清单。
+
+## 状态与查找
+
+路径为 `<状态>/<类别>/YYYY-MM-DD-主题.md`；日期是首次提出日期，类别限于 architecture、product、process。目录就是状态索引，不另维护逐条清单。
+
+- [proposed/](proposed/)：未完成或部分实施的方案，不因局部交付整体标完成。
+- [implemented/](implemented/)：已落地的决定；引用路径和机制随实现更新，不追加修改流水。
+- `rejected/`：被否决的提案，状态行附简短原因；只有能避免合理的重复错误时才保留。
+
+中文、英文及 `.i18n.json` 作为一组移动或删除，并修复所有引用。移动状态时同步修改 Status 与正文结构；双语流程见[配对说明](../i18n/README.md)。
+
+## 合并与删除
+
+完全被取代的记录可合并到当前决定；删除前必须保留独有的动机、替代方案、后果、验证责任和未覆盖边界，不能只依赖 Git 历史保存理由。部分取代的记录保留并交叉链接，不按篇幅、年龄或数量配额删减。
+
+Wombat 暂不增加冻结归档目录和归档清单。仍指导开发的记录继续维护；无独有理由的机械记录删除；其余按上述合并条件判断。历史测试输出由任务、CI 和 Git 追溯，不继续抄写到决定中。
 
 ## 内容与验证
 
-标题和语言切换链接之后写状态。提案包含“问题、方案、考虑过的方案、验收条件”；已实施记录包含“问题、决定、考虑过的方案、影响与验证”；被否决记录保留提案正文，并在状态行写简短否决理由。替代方案只能写实际讨论过的选择，不补造理由。执行 `corepack pnpm notes:check` 检查路径、状态和结构，双语配对由 `corepack pnpm docs:i18n:check` 检查。
+标题、语言切换之后写 `Status: proposed`、`Status: implemented` 或 `Status: rejected — 原因`。正文按状态使用以下章节：
 
-## 记录索引
-
-| 状态 | 决策 |
+| 状态 | 必需章节 |
 |---|---|
-| implemented | [独立计量与来源适配](implemented/architecture/2026-09-30-independent-accounting.md) |
-| implemented | [不可变快照](implemented/architecture/2026-09-30-snapshot-storage.md) |
-| implemented | [产品语言边界](implemented/architecture/2026-09-30-localization.md) |
-| implemented | [日周月默认范围](implemented/product/2026-09-30-report-ranges.md) |
-| implemented | [仓库规则与双语确认](implemented/process/2026-09-30-repository-guidance.md) |
-| proposed | [Codex 任务耗时数据调研与技术方案](proposed/architecture/2026-10-04-codex-task-timing.md) |
-| proposed | [实时用量完整方案（部分交付）](proposed/architecture/2026-09-30-live-usage.md) |
-| proposed | [GUI 与 CLI 及 CLI+Web 技术路线调研](proposed/architecture/2026-10-01-gui-technical-routes.md) |
-| implemented | [缺价触发官方价格检查](implemented/architecture/2026-09-30-automatic-prices.md) |
-| implemented | [报表分布与完整范围查询](implemented/product/2026-09-30-report-distribution.md) |
-| implemented | [跨平台 npm 与本地通信](implemented/architecture/2026-09-30-portable-npm.md) |
-| implemented | [本地 Web 与共享前端](implemented/architecture/2026-10-01-local-web.md) |
-| implemented | [移除 TUI 产品与工具](implemented/architecture/2026-10-01-remove-tui.md) |
-| implemented | [Rust 实时查询与故障隔离](implemented/architecture/2026-10-01-rust-live-query.md) |
-| proposed | [四入口 Web 与配置使用分析技术方案](proposed/architecture/2026-10-01-config-analysis-web.md) |
-| implemented | [只读配置与复合读取版本](implemented/architecture/2026-10-01-config-inventory.md) |
-| implemented | [配置测量与人工处理记录](implemented/architecture/2026-10-02-config-reviews.md) |
-| implemented | [紧凑实时索引与替换算法](implemented/architecture/2026-10-02-compact-live-index.md) |
-| implemented | [首次运行与有界静态规则](implemented/architecture/2026-10-02-startup-static-rules.md) |
-| implemented | [物理配置身份与完整复查](implemented/architecture/2026-10-02-rule-review-integrity.md) |
-| implemented | [npm按平台安装预编译内核](implemented/architecture/2026-10-03-npm-platform-distribution.md) |
-| implemented | [未发布首版仅维护当前格式](implemented/architecture/2026-10-03-current-format-only.md) |
-| implemented | [简化本机Codex交接与独立账户](implemented/architecture/2026-10-03-native-codex-handoff.md) |
-| implemented | [首次扫描的临时任务视图](implemented/architecture/2026-10-04-initial-task-preview.md) |
-| implemented | [按项目绑定原生Hook注册观察](implemented/architecture/2026-10-04-hook-registry-observation.md) |
-| implemented | [MCP调用身份与分叉重放](implemented/architecture/2026-10-04-mcp-runtime-evidence.md) |
-| implemented | [从已观察记录持续发现项目](implemented/architecture/2026-10-04-observed-project-discovery.md) |
+| proposed | 问题、方案、考虑过的方案、验收条件 |
+| implemented | 问题、决定、考虑过的方案、影响与验证 |
+| rejected | 问题、方案、考虑过的方案；保留提案正文 |
+
+implemented 使用现在时说明仍有效的决定；被替代部分明确为历史选择。路径、名称和机制可以更新，原动机和取舍不能事后重写。实现完成后把计划改为实际后果，不保留实施清单。
+
+`corepack pnpm notes:check` 验证路径、日期、状态及章节；`corepack pnpm docs:check` 同时检查结构、双语和引用。检查不能判断备选方案是否真实或取代是否完整，这些由审阅确认。

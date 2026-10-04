@@ -15,6 +15,34 @@ fn view() -> View {
     }
 }
 #[test]
+fn provisional_inventory_keeps_syncing_distinct_from_committed_partial_coverage() {
+    let root = tempfile::tempdir().unwrap();
+    for (issue, expected) in [
+        (crate::adapters::codex::preview::ISSUE, "syncing"),
+        ("syntheticCoverageGap", "partial"),
+    ] {
+        let mut collected = crate::adapters::contract::Collected::default();
+        collected.issues.push(crate::adapters::contract::Issue {
+            code: issue.into(),
+            message: "synthetic".into(),
+            source_instance_id: None,
+            evidence: None,
+        });
+        let snapshot = crate::usage_store::memory(
+            collected,
+            "live:test:one".into(),
+            crate::pricing_sync::current_at(root.path()).unwrap(),
+            None,
+        )
+        .unwrap();
+        let mut v = view();
+        v.snapshot = Some(Arc::new(snapshot));
+        v.history_status = "fixed".into();
+        let result = execute(Request::default(), "config:test".into(), &v).unwrap();
+        assert_eq!(result.coverage.history_status, expected);
+    }
+}
+#[test]
 fn views_expire_explicitly_and_store_is_bounded() {
     let mut store = Store::default();
     let (first, _) = store.insert(view());

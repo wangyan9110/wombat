@@ -2,24 +2,24 @@
   "version": 2,
   "sections": {
     "/decision-note-report-defaults-follow-grouping-granularity": {
-      "zh": "1780233a973ec4c00519ef9e66250a5367dcbf77d919e30f2b0aff90203e184b",
-      "en": "048adbeece9d64e68d22cc094499fad4bfd4533cec905424b86db515f6ae85d0"
+      "zh": "3d6731bb4973d7cbc1264280065be8fd68ec28032aae3cadd72a04eed1c2036f",
+      "en": "056178b0d29e1e623b04e2b17e8a2822c2110c4a9aaf23961c3b32b55ad7f2ba"
     },
     "/decision-note-report-defaults-follow-grouping-granularity/problem": {
       "zh": "be4016b193cf11c12b7ddbb17c9bf819c9977825e1de239dfc2b9f15abc188f6",
       "en": "7abf5ce307b988a6bcf1819aa0c5f00f60edf13f469ac3636cc32e7098f4e8cb"
     },
     "/decision-note-report-defaults-follow-grouping-granularity/decision": {
-      "zh": "98f8abf243413b8a8b3b87bf15cf270cc5f1745226a5f06fd31554f79f208318",
-      "en": "3ae4892ced811c4fcefe4d6a5811fe10855d9125a88fccb76b23ed14ceff0c68"
+      "zh": "4588f8106ea918a956bf6eb14535107aa33e5fb457584ec19429ea9d5675ca08",
+      "en": "55a615494a6622b50e8bc34d373e32fb19758756308eb1d6ad68755ce9428565"
     },
     "/decision-note-report-defaults-follow-grouping-granularity/alternatives-considered": {
       "zh": "db8097f7b5f835593db7b5081858c3df15ef5fe32302cc57b61c422100806004",
       "en": "93dcbb7c53f7eb4e77fea0b2939d8498a77936de4cd51dc3fb1f14e53521ade7"
     },
     "/decision-note-report-defaults-follow-grouping-granularity/impact-and-verification": {
-      "zh": "3cf9bdd325970774a25e576a03a000dc3439cccf971ac92ca64d0aaf06f39591",
-      "en": "c334d0fb1f5550f5996fce9afbaf0653b90cfdd2e0a16b9bce7c0018babcb385"
+      "zh": "6aff25b05ac54af093a1873aa48d7accc66383f439c658b903ae43a3b41d9eea",
+      "en": "020b9c7c1e8e80e3bf12fdbe0e7105f6bb60c95c7f0cb55067a305ee0a293bf4"
     }
   }
 }

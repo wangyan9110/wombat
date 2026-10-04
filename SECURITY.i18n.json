@@ -6,16 +6,16 @@
       "en": "92d3467084cc5c7914570d061b4c97662cc19635213be71824294274974de424"
     },
     "/security/supported-versions": {
-      "zh": "4f87d680285329f58485952716584088e87dcf2b4dae7164f5e5d886de7223b2",
-      "en": "59f363013019706a02d21f2c0eee25ff00dd583f3dce6ee925600fc206c30097"
+      "zh": "08b5e75d52fed1576fc9662e4134698b45638e9430dd397b813ec1655eae9953",
+      "en": "eecf9412147bb9f03fe253e7f2a3b1412fe4a35f2c8526f65c1faef5f788ebe3"
     },
     "/security/reporting-a-vulnerability": {
-      "zh": "5466a5cf4d5794e0ef54121ecad69dd10a392001be3e9bcbd9c18d81024c0d12",
-      "en": "a4643701f5846e97ba84d82f3d9cc5395e612a0d9584de52dfedcf3c583d2cd2"
+      "zh": "9339d94d3ee82ac947322645f1ad426e213b30a50a151f0eb622a8aa78b395b0",
+      "en": "2c09cc4444627ae78f1c3c03238e9a3cd8aec11ff962d0fb2c90e28a0229cdad"
     },
     "/security/release-requirements": {
-      "zh": "f4c1ab590c5c4f2c5417de3d0df8608b0117b1e035c78f3446d8156011992f6e",
-      "en": "cae5d73ad78576e6880e0844d27ba4f0a4ca12ec5acd3ee03671d7cf9290a252"
+      "zh": "2a1c076ff123ca941b6c1c550e9945f1ace336af86e6b2f7da41bab483438a33",
+      "en": "dff4f425befdc9323c5ca55d33519a0ec14b09afd271d4c296373123732c1a51"
     }
   }
 }

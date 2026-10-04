@@ -2,32 +2,28 @@
   "version": 2,
   "sections": {
     "/wombat-architecture": {
-      "zh": "ea176d7aa559058c3ea2a3d90dde0d22985f912dfaf02ac95d0c0cd291bb3c76",
-      "en": "cdcb9521b4706d6805838a9243ba2b9d44ea3745984bb23136da610dd3e24bc0"
+      "zh": "6abe00246d2ac5c60658ed2e08c25338845f4e77d57cb6e8b566de1b3297543d",
+      "en": "538b679a834e3392c57af57332d9f4378527eab60c3f04ae9782899d85d5aff5"
     },
     "/wombat-architecture/data-flow": {
       "zh": "f3d50ef603c7d029feccd2525ac4d8d4adc4d5dbb77d2da5afef5fec06405d8b",
       "en": "28a598b035fcef6728d9b87dab8fe37d1d5bb1264f7b5ece72420c53628ed6fa"
     },
     "/wombat-architecture/modules": {
-      "zh": "9a86297bcd6036e47cdfa17649762c462ce2557c2284d2958a9c1aa0e518de87",
-      "en": "0ffceb8e2d7888de92c230debafabf18ae1fe1e49b86ec15a7219e876c8c2118"
+      "zh": "d5f79145b8e565f2e094130e3d3ce4e942a1f8935289e90abe19eaddd814ef48",
+      "en": "e315354853b811e58d1cb2cd576a771d9b6130594d60cc5bdd44ddae6598a0be"
     },
-    "/wombat-architecture/web-host-and-lifecycle": {
-      "zh": "6d0f1a7e26dad4b9f7a2da66760dcf0f71faecd170b0cb3acf393efc2c66b8a4",
-      "en": "1257a56af8210702b70f9801e4b4246cadfdc446e8b6c9961cc4c8747315a14d"
+    "/wombat-architecture/host-and-service-responsibilities": {
+      "zh": "0d6d5dcf9da4813e7cc7f60bc9017eafe2599b72612d4970837527e7e09900da",
+      "en": "89b21205284ad477db509f062a9decf25f60beac4588628ca69757ff3f728967"
     },
-    "/wombat-architecture/identity-and-accounting": {
-      "zh": "71a9b862fd1de889f01a1f64e94e3cee976457c1eba133f36d1235045e648919",
-      "en": "6b699ea16cbb27828792b4c99a32598910d3f9b430c3063f1ed919c3efe01ae5"
+    "/wombat-architecture/domain-and-persistence": {
+      "zh": "e971727d70d3967cad6cd67bbe7522768a5403f3888b6ee8488e37a92d815aae",
+      "en": "cd112a2531aaa3404580151980a48c2a93628b7085c3130ad6d8fa0ebd7eee9a"
     },
-    "/wombat-architecture/storage-and-failures": {
-      "zh": "f659147ee60a3dc0ad7cbb8f7b685eaa911a82315f50e5f8b6e110d9e4bfa11b",
-      "en": "68ea1af3d1df0245f55203278096be763ab081859e316fc657d44d82dbf52dbb"
-    },
-    "/wombat-architecture/build-and-verification": {
-      "zh": "599b9d38e5562aa24a1b77d59b54669bf38e84f4a6323d5a08b52661e021a76c",
-      "en": "65a9efbba2d4cb97400416878464406987744df09905a4b88d9689701f585abf"
+    "/wombat-architecture/development-entry-points": {
+      "zh": "9e1e1d1fa9025319b22fdcd16c6ab87cccc1ee6d7abc3310799f7920e8017130",
+      "en": "34911db8c214d55022fa7ad2590092cac8ad105736258ae5b646568492211069"
     }
   }
 }

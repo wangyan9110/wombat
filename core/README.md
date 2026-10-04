@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-`wombat-core` 读取本机 Agent 记录，生成不可变快照，并为用量与对话查询提供同一业务口径。当前生产来源为 Codex；具体支持范围见[支持矩阵](../docs/reference/support-matrix.md)。
+`wombat-core` 读取本机 Agent 记录，生成不可变快照，并为用量与对话查询提供同一业务口径。当前生产来源为 Codex；具体支持范围见[来源适配参考](../docs/development/adapters.md)。
 
 ## 入口与职责
 
@@ -26,3 +26,13 @@
 ## 限制与验证
 
 默认刷新只读来源日志，写入限于产品数据目录。无价、缺失、部分来源失败与资源上限需保持可见；详细责任和故障边界见[架构](../docs/development/architecture.md)与[内核约定](AGENTS.md)。修改算法或存储时运行对应合成真值、格式和 clippy 检查；跨语言测试先重建内核。
+
+## 存储与服务生命周期
+
+默认数据目录为 macOS `~/Library/Application Support/Wombat`、Windows `%LOCALAPPDATA%/Wombat`、Linux `XDG_DATA_HOME/wombat` 或 `~/.local/share/wombat`；`WOMBAT_DATA_HOME` 可覆盖。快照位于 `usage-v4/`，索引位于 `live-v2/`；不替换旧 `latest.json`。
+
+刷新持有进程文件锁，先写私有 generation、分片与哈希，再提交 manifest 并原子更新 latest；取消不发布半份快照。单源失败保留独立回执，全部失败保留旧 latest。源日志按本次长度读取，多文件不声称原子一致。只支持当前格式，未知版本拒绝，不自动迁移或清空。
+
+实时索引以整数键和 JSONB 同事务保存事实、游标和投影；相同投影及计价共享，边界见[索引决定](../docs/decisions/implemented/architecture/2026-10-02-compact-live-index.md)。截断/替换重建，文件消失保留贡献并标 partial；来源独立回滚，全部失败保留旧版。固定查询及缓存按版本/范围隔离；逐响应追加跳过累计归并，轮次借用事实。仍需全量遍历及重建，持久 MVCC、数据库聚合和长期规模目标未交付。
+
+快照不含消息正文、完整命令参数或工具输出，来源数据不作为指令。本机内核按需服务仍使用私有 Unix socket / 所有者专用 Windows 命名管道，无有效配置读取版本时，最后调用后约15秒退出；HTTP 只存在于显式启动的 Web 宿主。尚无永久监控或 HTML 报告导出。

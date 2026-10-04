@@ -1,10 +1,9 @@
-# 客户端开发约定
+# Client Instructions
 
-本目录同时遵循[根目录约定](../AGENTS.md)及[开发约定](../docs/development/workflow.md)。包的公开入口与限制见[客户端说明](README.md)。
+Follow [root instructions](../AGENTS.md) and the [delivery workflow](../docs/development/workflow.en.md). Public entries and limitations belong in the [module README](README.en.md).
 
-- `src/generated/` 的 TS 类型、Schema 校验器由 Rust DTO 生成，修改源头后运行契约生成；不得手改生成文件来改变公共语义。
-- `src/index.ts` 保持可注入、无 Node 和终端依赖；`src/node/` 独立管理内核路径、子进程取消、超时、输出上限及清理。跨模块只使用公开包导出。
-- 请求与响应在可信边界校验；协议版本、操作类型和错误码保持与 Rust 契约一致。不将未知字段或失败响应伪装成成功。
-- 修改生成边界时先构建内核与客户端，再运行客户端测试、类型检查及对应真实内核集成测试；不能让测试读旧 `dist`。
-
-- `src/http/` 只做浏览器传输；沿用生成契约和取消/进度，不导入 Node，不另写业务 DTO。
+- Generate src/generated/ TS types, schemas, and validators from Rust DTOs. Change the source, never generated files to alter public semantics.
+- Keep src/index.ts injectable and free of Node/terminal dependencies. src/node/ owns core paths, subprocess cancellation, timeouts, output bounds, and cleanup.
+- Validate requests/responses at trust boundaries. Match Rust protocol versions, operations, and error codes; never disguise unknown fields or failures as success.
+- For generated-contract changes, rebuild core/client before client tests, typechecks, and real-core integration tests. Do not test stale dist.
+- src/http/ owns browser transport only, using generated contracts and shared cancellation/progress. No Node imports or separate business DTOs.

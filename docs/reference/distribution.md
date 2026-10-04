@@ -4,38 +4,65 @@
 
 ## 当前状态
 
-根工作区保持`private: true`，当前没有已验收的公开 npm 发行。计划包名为`@wangyan9110/wombat`，命令为`wombat`，npm运行要求Node.js 22或更新，源码工具要求26.4.0或更新。README中的安装方式仍标为发布后的计划，平台验收以[支持矩阵](support-matrix.md)为准。
+Wombat 以 GitHub Releases 为唯一产品分发渠道，不发布 npm 包。根工作区的 npm 包保持 `private: true`，只用于源码开发。`v0.1.0-dev.2` 是首个 Development Preview，通过 GitHub Pre-release 分发；预览版可能调整功能、数据格式和命令。源码工具要求 Node.js 26.4.0 或更新版本，用户安装包已内置固定的 Node.js 26.4.0、CLI/Web 和本机 Rust 内核，无需另装 Node、npm、Rust、pnpm 或编译器。
 
-## npm 安装与发行结构
+发行自动化只使用 GitHub 的免费能力：仓库私有期间不启动 GitHub 托管构建，公开后 CI 和标签发行使用标准 GitHub 托管运行器，不使用收费的 larger runner。Actions 中间产物只保留 1 天，最终归档进入 GitHub Release。带预发行段的版本创建 Pre-release，不占用 `latest` 稳定版入口。
 
-发布后执行`npm install -g @wangyan9110/wombat`，再执行`wombat web --open`或CLI查询。用户只需Node/npm；无需Rust、pnpm、编译器或安装后的下载脚本。主包打包CLI依赖与Web静态资产，不携带Node运行时。
+## 一键安装与升级
 
-主包不含原生内核。五个平台分别通过`optionalDependencies`的精确别名安装同一包名的平台版本，例如`@wangyan9110/wombat-darwin-arm64`指向`npm:@wangyan9110/wombat@0.3.0-darwin-arm64`。npm的os/cpu/libc筛选仅下载本机组件；内核解析核对版本、平台和来源提交。跳过可选依赖明确返回CORE_UNAVAILABLE及`--include=optional`恢复命令，不回退开发二进制；不支持的平台明确拒绝。版本规则见[决策](../decisions/implemented/architecture/2026-10-03-npm-platform-distribution.md)。
+macOS / Linux：
 
-`npm:pack -- --name @wangyan9110/wombat --native-dir native-artifacts`生成一个主包、五个平台版本及带SHA-256的release-set.json。原生产物须同版本/提交，内核和平台许可库存均校验；Windows检查静态CRT和编译器DLL导入。`--current-platform`仅生成本机候选。`--reuse-build`仍校验源码与构建产物指纹并执行真实安装；不能复用过期构建。
+```sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
+```
 
-候选通过临时loopback registry执行真实npm全局安装，核对仅下载主包/本机平台包，在空PATH下运行实时、追加、固定快照与Web查询，并验证缺失可选依赖。测试使用合成来源和临时数据目录。CI汇总五个平台同一源码，再逐平台安装这一组候选；Node22为最低运行验证，macOS arm64额外覆盖24/26。配置了CI不等于已在目标机器验收。
+开发者预览版须指定版本，例如：
 
-按[发行Skill](../../.agents/skills/wombat-release/SKILL.md)先发布五个平台版本并使用明确的非latest标签，确认远端精确版本及完整性后，最后发布主版本。当前没有公开发布，不提供旧发行迁移承诺。已通过的本机安装与未验证的平台记录见[进度](../project/progress.md)。
+```sh
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.2
+```
 
-## GitHub 简介候选
+Windows PowerShell：
 
-以下是待外部应用的候选，不代表GitHub About或Topics已经更新。npm的description和keywords由根`package.json`管理，与GitHub Topics分别维护。
+```powershell
+irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
+```
+
+开发者预览版：
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.2
+```
+
+安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。`WOMBAT_INSTALL_PREFIX` 或 `--prefix` 可改安装位置；`--version` 可安装指定版本；`--base-url` 供开发候选或受控镜像验收。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
+
+通过安装器部署后，执行 `wombat update` 下载并安装最新稳定 Release；`wombat update --check` 只检查，`--version X.Y.Z` 安装指定版本。预览版不会进入 `latest`，升级到后续预览版时须显式指定版本。版本保存在并列目录，校验元数据、文件大小和 SHA-256 后原子切换 `current.txt`。正在运行的旧版本不会被覆盖，适用于 Windows 的占用规则；升级器保留当前和上一运行版本，并清理更早的受管版本。源码构建或手工解压副本不带安装指针，升级命令会明确拒绝。
+
+## GitHub Release 结构
+
+每个版本包含五个平台归档：macOS arm64/x64、Linux glibc arm64/x64、Windows x64。每份归档只包含对应平台的 Rust 内核、打包后的 CLI/Web、Node.js 26.4.0 运行时、Wombat 许可、依赖许可库存和 Node 运行时许可。`release-set.json` 绑定版本、源码提交、源码/构建指纹、平台、归档大小及 SHA-256；`SHA256SUMS` 供安装器和人工复核。
+
+各平台在同一提交上运行发行门禁并导出原生产物。汇总作业拒绝版本、提交、内核、运行时或许可哈希不一致的输入；随后五个平台分别解压最终归档，在不依赖系统 Node 的条件下验证版本、实时用量、追加记录、固定快照、任务查询和 Web。`v<package version>` 标签通过全部验证后才创建 GitHub Release，并为平台归档生成构建来源证明。构建和候选准备本身不会上传或发布。
+
+本机开发候选使用：
+
+```sh
+corepack pnpm build
+corepack pnpm github:pack -- --current-platform --reuse-build --runtime-license /path/to/node/LICENSE
+```
+
+完整五平台候选使用 `--native-dir <artifacts>`。`--reuse-build` 仍校验源码与构建产物指纹，不能复用过期构建。当前归档的实际验收以对应 Release/CI 结果为准，发行步骤见[发行 Skill](../../.agents/skills/wombat-release/SKILL.md)。
+
+## GitHub 简介
+
+About 描述已应用到 GitHub；仓库仍为私有。Topics 是公开前待应用的候选，当前 GitHub Topics 尚未同步：
 
 ```json
 {
-  "about": "Review Codex tasks and token usage locally. Estimate API costs, check AGENTS.md and Skills, and view MCP entries and call attempts. Web app + CLI.",
-  "topics": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
+  "about": "Review Codex token usage and task timing locally. Estimate API costs, inspect AGENTS.md, Skills, MCP, and Hooks, and send evidence-backed recommendations to Codex.",
+  "topicsCandidate": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
   "summaryZh": "在本机回看 Codex 任务、追踪 Token 用量与 API 估算金额，检查 AGENTS.md 和 Skill 文件，盘点 MCP 配置及调用尝试记录。"
 }
 ```
 
-当前能力不使用Claude Code、pi、自动修复或订阅额度监控作为标签；其他Agent仍是计划。来源事实、静态文件检查、调用尝试和运行时有效性不能混用。
-
-## README 与包内材料
-
-根README保留相对图片、双语和文档链接，每种语言两张图，第二张在详情折叠内。四张JPEG是注明来源类型的设计原型预览；两份SVG分别供浅色与深色Logo使用。包清单仅包含这六份资产，旧图仍供历史记录引用，但不随当前包分发。图片不作为正式产品验收或收益证据。
-
-npm打包只在暂存副本调用`scripts/npm-readme.ts`，把相对图片、Logo和双语/文档链接固定到公共引用。发布前须核对真实已公开的标签或提交包含对应README、图片与文档，并验证无需登录的访问和npm渲染。当前新物料的免登录访问和npm渲染尚未核验；源码提交和推送不代替公开引用验收，转换器单元测试仅证明链接改写，不证明远端资源存在。
-
-实际检查记录见[进度](../project/progress.md)；候选准备不更新GitHub简介，也不代表发布授权。
+当前能力不使用 Claude Code、pi、自动修复或订阅额度监控作为标签；其他 Agent 仍是计划。来源事实、静态文件检查、调用尝试和运行时有效性不能混用。准备候选不授权公开仓库或创建 Release。

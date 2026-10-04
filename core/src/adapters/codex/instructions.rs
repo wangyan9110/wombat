@@ -82,8 +82,9 @@ mod tests {
 
     #[test]
     fn native_metadata_selects_only_instruction_content_and_absolute_paths() {
+        let project = test_absolute("project");
         let value = json!({"type":"message","role":"user","content":[
-            {"type":"input_text","text":"# AGENTS.md instructions for /project\n\n<INSTRUCTIONS>\nprivate\n</INSTRUCTIONS>"},
+            {"type":"input_text","text":format!("# AGENTS.md instructions for {project}\n\n<INSTRUCTIONS>\nprivate\n</INSTRUCTIONS>")},
             {"type":"input_text","text":"# AGENTS.md instructions for /not-environment"}
         ],"internal_chat_message_metadata_passthrough":{"turn_id":"turn","content_item_kinds":["agents_md.instructions","environments.environment_context"]}});
         let encoded = value.to_string();
@@ -103,7 +104,10 @@ mod tests {
         assert!(content[0].text.as_deref().unwrap().starts_with(HEADER));
         let found = loads(&payload).unwrap();
         assert_eq!(found.turn_id.as_deref(), Some("turn"));
-        assert_eq!(found.paths, ["/project/AGENTS.md"]);
+        assert_eq!(
+            found.paths,
+            [Path::new(&project).join("AGENTS.md").to_string_lossy()]
+        );
     }
 
     #[test]

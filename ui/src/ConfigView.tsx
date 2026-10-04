@@ -14,6 +14,7 @@ export { configRequest } from './useConfig.js';
 
 import { ConfigDetail } from './config/ConfigDetail.js';
 import { issueText } from './config/presentation.js';
+import {inventoryPending} from './config/readInventory.js';
 export function ConfigView({ client, route, navigate, pin, projects, refresh }: {
   client: UsageClient; route: Route; navigate: (patch: Partial<Route>) => void;
   pin: (view: string) => void; projects: (paths: string[]) => void; refresh: () => void;
@@ -30,7 +31,7 @@ export function ConfigView({ client, route, navigate, pin, projects, refresh }: 
   useEffect(() => {
     if (!query.data) return;
     projectRef.current(query.data.authorizedProjects);
-    if (!route.configView && query.data.readView) pinRef.current(query.data.readView);
+    if (!inventoryPending(query.data) && query.data.coverage.historyStatus !== 'unavailable' && query.data.readView !== route.configView && query.data.readView) pinRef.current(query.data.readView);
   }, [query.data, route.configView]);
   const result = query.data;
   const update = (patch: Pick<ConfigRequest, 'search' | 'kind'>) => navigate({ ...('search' in patch ? { [instructions ? 'instructionSearch' : 'extensionSearch']: patch.search ?? undefined } : {}), ...('kind' in patch ? { extensionKind: patch.kind === 'rule' ? undefined : patch.kind ?? undefined } : {}), configOffset: 0, configId: undefined, suggestion: undefined, evidenceOffset: 0 });
@@ -40,10 +41,11 @@ export function ConfigView({ client, route, navigate, pin, projects, refresh }: 
   return <>
     {!route.configId && !route.suggestion && returnRoute(route) && <p className="read-notice"><button className="link" onClick={() => navigate(returnRoute(route)!)}>{t('webui.back')}</button></p>}
     <Heading title={t(instructions ? 'webui.instructions' : 'webui.extensions')} sub={t(instructions ? 'config.instructionsScopeNote' : 'config.extensionsScopeNote')}>
-      <button onClick={query.loading ? query.cancel : refresh}>{t(query.loading ? 'webui.cancel' : 'config.refresh')}</button>
+      <button onClick={query.loading || query.data && inventoryPending(query.data) && !query.error ? query.cancel : refresh}>{t(query.loading || query.data && inventoryPending(query.data) && !query.error ? 'webui.cancel' : 'config.refresh')}</button>
     </Heading>
     {route.configThread && <p className="read-notice">{t('config.threadFilter')} <button onClick={() => navigate({ configThread: undefined, configId: undefined, configOffset: 0, evidenceOffset: 0 })}>{t('config.clearThread')}</button></p>}
     {query.loading && <p role="status">{t('webui.loading')}</p>}
+    {query.data && inventoryPending(query.data) && !query.error && <p role="status" className="read-notice">{t('config.historyPreparing')}</p>}
     {query.error && <QueryError error={query.error} code={query.code} retry={query.code === 'VIEW_EXPIRED' || query.code === 'NOT_FOUND' ? refresh : query.retry} />}
     {result && <>
       <div className="config-toolbar">

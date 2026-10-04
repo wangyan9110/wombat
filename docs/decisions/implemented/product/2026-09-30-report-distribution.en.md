@@ -4,7 +4,7 @@
 
 Status: implemented
 
-Update (2026-10-01): terminal-specific behavior below is historical after [TUI removal](../architecture/2026-10-01-remove-tui.en.md). Current Web scope and navigation follow the [frontend contract](../../../../ui/README.en.md); shared core query semantics remain authoritative.
+The [contract](../../../development/contracts.en.md) owns field semantics; the [frontend guide](../../../../ui/README.en.md) owns current Web navigation.
 
 ## Problem
 
@@ -12,14 +12,14 @@ Distribution bars, shares, and peaks must describe the entire filtered range. Ag
 
 ## Decision
 
-The core calculates distribution metadata, token share, and costShare before pagination, shared by CLI/TUI. Cost shares use the complete range's priced subtotal; unknown costs are not zero and a zero denominator returns absence. Unpriced tokens count unknown-price components per measurement without counting reasoning tokens again; missing component facts return absence.
+The core calculates distribution metadata, token share, and costShare before pagination, shared by CLI/Web. Cost shares use the complete range's priced subtotal; unknown costs are not zero and a zero denominator returns absence. Unpriced tokens count unknown-price components per measurement without counting reasoning tokens again; missing component facts return absence.
 
-Explicit usage presentation distribution or details pages by period, with details retaining every model/effort row in selected periods. Omitting presentation retains row pagination for existing callers and candidate queries. Threads sort by threadUsage; matchedUsage describes only the selected fragment, and turns retain complete records. TUI owns metric, presentation, and navigation state and queries generated contracts without aggregating hidden pages.
+Explicit usage presentation distribution or details pages by period, with details retaining every model/effort row in selected periods. Omitting presentation retains row pagination for row-oriented and candidate queries. matchedUsage and threadUsage preserve the selected fragment and complete-task usage separately; the current query contract defines sorting. The presentation entry owns metric, presentation, and navigation state and queries generated contracts without aggregating hidden pages.
 
 ## Alternatives considered
 
-Aggregating the current page in TUI was considered, but cannot provide hidden-page maxima, tied peaks, or denominators, so metadata covers the entire range. Retaining row pagination for every query was also considered, but explicit details would split period groups. Optional presentation distinguishes pagination units while preserving existing queries.
+Aggregating the current page in the UI was considered, but cannot provide hidden-page maxima, tied peaks, or denominators, so metadata covers the entire range. Retaining row pagination for every query was also considered, but explicit details would split period groups. Optional presentation distinguishes pagination units to support different query purposes.
 
 ## Impact and verification
 
-This is an optional v3 field extension. Rust DTOs generate TS/Schema and validators, with no added dependencies. Synthetic queries verify unchanged scales and shares across pages, complete detail groups, unpriced components, and full-thread links. See [progress](../../../project/progress.en.md) for bilingual native rendering and actual terminal verification, and [contracts](../../../development/contracts.en.md) for field semantics.
+Rust DTOs generate TS/Schema and validators without new dependencies. Synthetic queries verify stable scales and shares across pages, intact detail groups, unpriced components, and full-thread associations. Retired terminal rendering tests do not establish current-entry acceptance.

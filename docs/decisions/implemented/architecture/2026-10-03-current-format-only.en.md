@@ -22,4 +22,4 @@ Keeping read-only legacy readers and transactional migration retains branching a
 
 ## Impact and verification
 
-Earlier development layouts may no longer be readable. Current clean installation and complete journeys still require verification before public release. Checks cover current-format reopening, exact amounts, unsupported layouts with records retained, current-page round trips and generation/approval/recovery. Actual runs are recorded in [progress](../../../project/progress.en.md); historical tests or builds do not replace current acceptance.
+Earlier development layouts may no longer be readable. Current clean installation and complete journeys still require verification before public release. Checks cover current-format reopening, exact amounts, unsupported layouts with records retained, current-page round trips and generation/approval/recovery. Actual runs are recorded in verification records retained in Git history; historical tests or builds do not replace current acceptance.

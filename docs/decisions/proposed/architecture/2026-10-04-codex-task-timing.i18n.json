@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/decision-note-codex-task-timing-research-and-technical-design": {
-      "zh": "f987f56e8ac598c2e0b83a48c3423e598878367864d0ff6a498a5e48af5c2290",
-      "en": "6153fc1bbe0ad88f36e69365ceee15e609ecbdae3dfb8d77936a9270a7b73c2d"
+      "zh": "77dba0beacde55316474ecc5b922c60db2511e7fb2ed43b427835c6b03ed1327",
+      "en": "c562ac0672c6330e59c73f5602eb8a686def35ce6c97df745b65f66f1f115ef8"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/problem": {
       "zh": "7d70e57f90e4732b7a903796692be49641e554dbb912d2ce324e66a782faf466",
@@ -102,8 +102,8 @@
       "en": "014487ed6b776764be6ac18249279f67559de7a17e51c0e4ad9febede42244d9"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/proposal/17-implementation-units-and-gates": {
-      "zh": "0333737b5036aada5bf259d065a070df9b951f74e80b33f1b169121e61e4c4a1",
-      "en": "d8b7ce9a4e0795d8b532723772872a4d45b09fa7e216bc35682f8c5d669d60a1"
+      "zh": "1ee5e4ba39307ac7a7f8b0491f25f325f231329e3b15379d6500e45ab345f75b",
+      "en": "1a02532aed0da3b0db29692d9f5866a219bd235a740ddeb5df3863a6f3ee5d11"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/proposal/18-unified-session-event-facts-and-multiple-projections": {
       "zh": "666c23ab66c81a52335f6799e7772ec7474dad811c571961d0441bc40b16c9b0",
@@ -156,6 +156,58 @@
     "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/unsupported-conclusions": {
       "zh": "145c542b1a27a7e4c7a65c67d096988f692b82f626249f6fe7fad18b9af25a46",
       "en": "de9947ec08523184ca1dc64c67f79d04d6c5be9eeaafafb8ae8092c721fc5711"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance": {
+      "zh": "9ddec2d14a887bcaaf57bfa3cbb58aba362bc2f54ab2b5dae2b04f90dffb0e4b",
+      "en": "964adf80ef7fd8bdc993a4a60a633dfb68c3fa82576ac6504dcee5eb2529342b"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/scope-and-delivery-principles": {
+      "zh": "9154a6acfbe5cff4cf46aa5ce145190d8f529f1452fe4b223f21a926ed8310cf",
+      "en": "f4ea574cc99477cc4491d79d2400665ed210e8c998a97a858508dcf1bc2959ec"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/task-list": {
+      "zh": "bb09ac55f899c52e781cf2d39279fea34caeb7f71a47b0810a31c66278e7a7b2",
+      "en": "104436536269a78bb12036ea1c0476724a5760809bd92c4319b6719b332cd1e5"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/task-list/batch-one-baseline-and-design": {
+      "zh": "4662c7cf2f8da45a7750a0171a91a2f19c9c84f02683edd204506e6dda677e58",
+      "en": "cfc458cd751f865e712ad59b5465680f14c890b3a23d9f62a3680935d5aa5344"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/task-list/batch-two-event-foundation-and-persistence": {
+      "zh": "0eeb42ab7546349f34ed8e112da50cfa74bd20962e21da059b61df9206aa07aa",
+      "en": "be547af8a0b52e13f5e260175e746a0015b32a7d698fab5cd58c6c5ce3eac6d5"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/task-list/batch-three-metrics-and-rules": {
+      "zh": "8f263c7e40329ffb36fab52fe4dede08f8e7a7b99f45d90699202036340681cc",
+      "en": "3ebd3f07e3c387d51a36633795f985bae94f0463ba0ca337efef66e90be39e59"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/task-list/batch-four-interfaces-and-user-entry-points": {
+      "zh": "810ba4cea66bbfb4bbfa37a642c43a21127b977016e61bf67bfef78fe13d903e",
+      "en": "081d8002983b072624d1f0b3a19e90afb7966c1f64074a7c49a1b69273b148a9"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/task-list/batch-five-module-verification-closure": {
+      "zh": "05b1fc5700aac59da2c120f26398eff88fd1df4e9cfbf62a9a34452a0cec8873",
+      "en": "c97ee71d7a3fdf11660bf65a5d95895d675464a8fbe35eecefc576bcebda9bae"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/task-list/batch-six-final-integration-and-delivery": {
+      "zh": "9103dcfc86aa307247e540cc463ff0e0b58e0d7c8f0e6dc2ea374e6f983aa620",
+      "en": "d2890c386f375ce25deb9e0c91cda4aa4badd4f4a5da6274a07cbf47d4d6e0f1"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/execution-order-and-milestones": {
+      "zh": "ceff4b3d3f51a368a28887cdfdf1713abcdef1954bb19221af8e874b88e399cb",
+      "en": "26da572ac3a3dfd3a219fa28b0a1a54e7f412fb4f943dd4c64c95e9414e47121"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/risks-and-completion-records": {
+      "zh": "c3057fec0ed12135e98e1dc19c77240813ad406690cff04b70cb95cdc0b42616",
+      "en": "150df2aae57841b861f3ecdd3274b9dd0e999c1e76b4c8c60a636e4b6afb976d"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/frozen-input-contracts": {
+      "zh": "8f259b8c09cbb91ea75420b8e20b982793ea0b7dd311fb0002b56203e90bff1e",
+      "en": "0c3b3c04c5064dd449c4cbb786c7a6d575aa20cca7cd1b0bdd79b4c5f3899238"
+    },
+    "/decision-note-codex-task-timing-research-and-technical-design/acceptance-criteria/task-batches-and-acceptance/remaining-implementation-boundaries": {
+      "zh": "33d1c068896462608efeeb6e1075aea8e189fc380363489e3019b5aff05197ee",
+      "en": "0f7a69e4db13b6d01fec8aa4d8c619526cdb3b9e81571ce25ec4ad88cabb900a"
     }
   }
 }

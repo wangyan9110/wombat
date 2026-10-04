@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, chmod, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, chmod, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -85,8 +85,9 @@ test('v1 core cancellation terminates a child that ignores SIGTERM', async () =>
 });
 test('v1 version works without a core or local package paths at runtime', async () => {
   const result = await run(['--version', '--json'], { WOMBAT_CORE_BIN: '/synthetic/missing-core' });
+  const expectedVersion = JSON.parse(await readFile('package.json', 'utf8')).version;
   assert.equal(result.code, 0);
-  assert.deepEqual(JSON.parse(result.stdout), { outputVersion: 3, name: 'Wombat', version: '0.3.0' });
+  assert.deepEqual(JSON.parse(result.stdout), { outputVersion: 3, name: 'Wombat', version: expectedVersion });
 });
 test('built CLI SIGINT returns CANCELLED and reaps an uncooperative core', { skip: process.platform === 'win32' }, async () => {
   const core = await mockCore("process.on('SIGTERM',()=>{});process.stdin.resume();setInterval(()=>{},1000);console.error(JSON.stringify({stage:'ready-'+process.pid}));");

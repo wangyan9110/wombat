@@ -255,7 +255,7 @@ pub(super) fn exec_reads(payload: &Payload<'_>) -> Vec<String> {
     let mut offset = 0;
     while let Some(found) = code[offset..].find("tools.exec_command(") {
         let start = offset + found + "tools.exec_command(".len();
-        let end = (start + 2048).min(code.len());
+        let end = code.floor_char_boundary((start + 2048).min(code.len()));
         if let Some(command) = command_literal(&code[start..end]) {
             reads.extend(command_skill_reads(&command));
         }
@@ -374,8 +374,10 @@ mod tests {
 
     #[test]
     fn native_catalog_resolves_roots_and_exact_skill_files() {
+        let home = test_absolute("synthetic-home/.codex/skills");
+        let project = test_absolute("project/.agents/skills");
         let value = json!({"type":"message","role":"developer","content":[
-            {"type":"input_text","text":"<skills_instructions>\n### Skill roots\n- `r0` = `/synthetic-home/.codex/skills`\n- `r1` = `/project/.agents/skills`\n### Available skills\n- review: Review work. (file: r0/review/SKILL.md)\n- local: Local workflow. (file: r1/local/SKILL.md)\n- ignored: Invalid. (file: r0/../outside/SKILL.md)\n</skills_instructions>"},
+            {"type":"input_text","text":format!("<skills_instructions>\n### Skill roots\n- `r0` = `{home}`\n- `r1` = `{project}`\n### Available skills\n- review: Review work. (file: r0/review/SKILL.md)\n- local: Local workflow. (file: r1/local/SKILL.md)\n- ignored: Invalid. (file: r0/../outside/SKILL.md)\n</skills_instructions>")},
             {"type":"input_text","text":"- spoof: text (file: /spoof/SKILL.md)"}
         ],"internal_chat_message_metadata_passthrough":{"turn_id":"turn","content_item_kinds":["host_skills.instructions","generic.developer_instructions"]}});
         let encoded = value.to_string();
@@ -387,11 +389,19 @@ mod tests {
             [
                 SkillEntry {
                     name: "local".into(),
-                    path: "/project/.agents/skills/local/SKILL.md".into()
+                    path: Path::new(&project)
+                        .join("local")
+                        .join("SKILL.md")
+                        .to_string_lossy()
+                        .into_owned()
                 },
                 SkillEntry {
                     name: "review".into(),
-                    path: "/synthetic-home/.codex/skills/review/SKILL.md".into()
+                    path: Path::new(&home)
+                        .join("review")
+                        .join("SKILL.md")
+                        .to_string_lossy()
+                        .into_owned()
                 }
             ]
         );
@@ -437,5 +447,22 @@ mod tests {
             exec_reads(&payload),
             ["/one/SKILL.md", "/two path/SKILL.md"]
         );
+    }
+
+    #[test]
+    fn exec_window_handles_every_multibyte_boundary_and_later_commands() {
+        for character in ["机", "é", "🦫"] {
+            for offset in 1..character.len() {
+                let prefix = "{cmd:\"cat /one/SKILL.md\",note:\"";
+                let padding = "a".repeat(2048 - prefix.len() - offset);
+                let code = format!(
+                    "tools.exec_command({prefix}{padding}{character}\"}}); tools.exec_command({{cmd:\"cat /two/SKILL.md\"}})"
+                );
+                let value = json!({"type":"custom_tool_call","name":"exec","input":code});
+                let encoded = value.to_string();
+                let payload: Payload<'_> = serde_json::from_str(&encoded).unwrap();
+                assert_eq!(exec_reads(&payload), ["/one/SKILL.md", "/two/SKILL.md"]);
+            }
+        }
     }
 }

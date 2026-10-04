@@ -24,6 +24,10 @@ Database aggregation and persistent MVCC could further reduce full-history rebui
 
 ## Impact and verification
 
-Public DTOs are unchanged. Regressions cover healthy-source progress, failed-source retention, all-source failure, restart and recovery; cache bounds, response ownership and revision isolation; existing adapter fixtures compare full scans, increments, restarts, corrections and retractions. Performance uses the same release synthetic corpus and records latency, peak memory and conservation; see [progress](../../../project/progress.en.md).
+Public DTOs are unchanged. Regressions cover healthy-source progress, failed-source retention, all-source failure, restart and recovery; cache bounds, response ownership and revision isolation; existing adapter fixtures compare full scans, increments, restarts, corrections and retractions. Performance uses the same release synthetic corpus and records latency, peak memory and conservation; see verification records retained in Git history.
 
 Appends still traverse some full-history safe facts and rebuild memory indices; uncached filters still aggregate. This is not constant time or memory. Roots share one sync worker; this change removes cached restoration blocking ready queries. macOS verification does not establish Windows/Linux acceptance.
+
+## Local transport tradeoff
+
+Consolidated from the retired npm distribution note: the shared service uses private Unix sockets and Windows named pipes rather than becoming an HTTP server. Loopback TCP adds port-discovery and authentication boundaries. Platform IPC can restrict access to the same user but still needs identity, lock, timeout, and cleanup checks. Windows pipes reject remote clients and use a current-user DACL; lock waits must not bypass connection deadlines or nonblocking waits. Startup locking, synchronization work, fixed-view caching, and idle exit share one service lifecycle. Successful installation or compilation does not replace Windows multiprocess and failure validation.

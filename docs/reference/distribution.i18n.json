@@ -6,20 +6,20 @@
       "en": "d99ba0b07e0d43125d5ec35537687379a4abe305afaca4a1f1df49a7cf699b14"
     },
     "/distribution-status-and-public-descriptions/current-status": {
-      "zh": "72360034058c259a64638e5103c4e72c3c85e9f005e982467d9812d3de7c4258",
-      "en": "54e798e5bec473fe3815e83b40de404d02cbefa6efdf73d1ae834bad42500cdc"
+      "zh": "a3ba9d00492241e83de33bd752dcc5f39c231620a2529bbfb015e01c13e18c3f",
+      "en": "c98eb229d888c756540eb9a92b9f538299745d3ef39fa7cb49417d12f8a7eeb5"
     },
-    "/distribution-status-and-public-descriptions/npm-installation-and-release-structure": {
-      "zh": "184389c69e5eada0473c881ff2183afb7ece324d32fc379ee141a3915c70f8ec",
-      "en": "f3b7c2efd28f23bb25c25b28d5b68de1beddc951dc37a94f4922dfe64081a833"
+    "/distribution-status-and-public-descriptions/one-command-installation-and-updates": {
+      "zh": "14695348839b4b007d58f2289f03205fc149bddd627520abe9fc389d9db40153",
+      "en": "5fdc9a1d8565ce19e19ec227eed8591740eb091c94bd84fb602fe061c1b50600"
     },
-    "/distribution-status-and-public-descriptions/github-description-candidates": {
-      "zh": "f172b73b5bb4d1605bf1931c93665d9b77b05f6e44fcd2c2e0b9166c46ed7402",
-      "en": "8d555671a1c5439de1697095487db46c2fbaf60fa514d9dd80e2c9cd35f42ca2"
+    "/distribution-status-and-public-descriptions/github-release-structure": {
+      "zh": "c36760c416a375e31fd9ede37de0954c801062c6df8edd8dcc232b06326aa294",
+      "en": "e367f539efe00d6f284e8e445144bf9c9c7051ce64b906b342eb6acfe393e241"
     },
-    "/distribution-status-and-public-descriptions/readme-and-packaged-materials": {
-      "zh": "5a0dbdff0d869a95aab99f1f280f36bea2e57c397a66d12ea07029945f40fa23",
-      "en": "6056ca768bcb0f20cd5f069f9215e30ed9d41b535b798ec4693aac1b49459b21"
+    "/distribution-status-and-public-descriptions/github-description": {
+      "zh": "073f8b69f2f91cff962e02506ec1bdbcbcd0962abc1bd6f77cfacc8483191ba7",
+      "en": "0c9839a83ffba4e224b395268afdf90575dd6b8bd1e67183832823d53d0cf9c1"
     }
   }
 }

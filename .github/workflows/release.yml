@@ -1,0 +1,151 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    if: ${{ github.event.repository.private == false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15, target: darwin-arm64 }
+          - { runner: macos-15-intel, target: darwin-x64 }
+          - { runner: ubuntu-24.04, target: linux-x64 }
+          - { runner: ubuntu-24.04-arm, target: linux-arm64 }
+          - { runner: windows-2025, target: win32-x64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      WOMBAT_AUTO_PRICES: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - name: Validate tag and install locked tools
+        run: |
+          node -e 'const p=require("./package.json");if(process.env.GITHUB_REF_NAME!==`v${p.version}`)throw new Error(`tag ${process.env.GITHUB_REF_NAME} does not match package ${p.version}`)'
+          npm install --global corepack@0.33.0 --force
+          corepack pnpm install --frozen-lockfile
+          rustup component add rustfmt clippy
+          cargo fetch --locked --manifest-path core/Cargo.toml
+      - name: Inventory native dependencies on this target
+        if: matrix.target != 'darwin-arm64'
+        run: corepack pnpm licenses:generate
+      - name: Run release gate and export platform payload
+        run: |
+          corepack pnpm release:check
+          corepack pnpm native:export
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-${{ matrix.target }}
+          path: dist/native-artifacts/
+          if-no-files-found: error
+          retention-days: 1
+
+  assemble:
+    name: Assemble release archives
+    if: ${{ github.event.repository.private == false }}
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: native-*
+          path: native-artifacts
+          merge-multiple: true
+      - name: Assemble archives
+        run: |
+          npm install --global corepack@0.33.0 --force
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm build
+          corepack pnpm github:pack -- --native-dir native-artifacts --reuse-build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-candidate
+          path: dist/github/
+          if-no-files-found: error
+          retention-days: 1
+
+  verify:
+    name: Verify release on ${{ matrix.target }}
+    if: ${{ github.event.repository.private == false }}
+    needs: assemble
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15, target: darwin-arm64 }
+          - { runner: macos-15-intel, target: darwin-x64 }
+          - { runner: ubuntu-24.04, target: linux-x64 }
+          - { runner: ubuntu-24.04-arm, target: linux-arm64 }
+          - { runner: windows-2025, target: win32-x64 }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.4.0'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-candidate
+          path: candidate
+      - run: node scripts/verify-github-release.ts --set candidate/release-set.json
+
+  publish:
+    name: Publish GitHub Release
+    if: ${{ github.event.repository.private == false }}
+    needs: verify
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-candidate
+          path: candidate
+      - name: Attest release archives
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: candidate/wombat-*.tar.gz
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            candidate/wombat-*.tar.gz
+            candidate/SHA256SUMS
+            candidate/release-set.json
+            install.sh
+            install.ps1

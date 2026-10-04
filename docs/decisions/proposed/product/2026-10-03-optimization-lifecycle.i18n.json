@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence": {
+      "zh": "94e0517d9e90b3bdd925fe554469f2502b4df3126a44c7a17e07b70cc4c32898",
+      "en": "5bcd744c74f648504b3f5553822a378203793493be7f9bc2f63189ccd876b181"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/problem": {
+      "zh": "c20a98d1ad0947ce203a0239117a87996e9d5a45cdeee5e0e8788fd1ab9a984b",
+      "en": "853cdf60e8a77ba96f5f096a8fc09f2745b719e8195e5d8510ec00f0993cc0b6"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal": {
+      "zh": "72f1f324d1eaca695b6ef8b5adc0362f2acdb6a66b34e8d46d923758e4db428e",
+      "en": "e2ccaa3a52f2942ea16820c577a01282540ab0e4a840cf7854d7fbf0e7d3a1bd"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/runtime-observations-and-content-evidence": {
+      "zh": "2963dabe726d3865f34299a6cd296af2a7658978bb05328606d48b32f0f81ba5",
+      "en": "5df794ca55faa84b04b20c01c6f1569388fb3c1fe2b2150206561176b145720d"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/continuous-observation-and-resource-candidates": {
+      "zh": "5ce3202ded24a6c5ffcf1b45998d8a570dfa6971c9d6745ef8a8f25536d54404",
+      "en": "f5d0eb686c812a064f40917ef64897c892ff4b6fe10d044bb8d880910c91844a"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/natural-adoption-and-usage-reconciliation": {
+      "zh": "fdf43d6e172baddb5779bf65e0c4b145cb05bcf8633f97f8f3a040f7d0804523",
+      "en": "394d42590501352a3abb038b6fd97cd7d8c4f4b2713e49a4449101b4e027a4a9"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/complete-product-journeys": {
+      "zh": "404c3025122040d084ff64d608da6246fba377b610dc6d32bcff0b666307284d",
+      "en": "2d5d138bb51025f80fdfb922ffe4c72bd0184b376dbd2c91cf2a53b01914f797"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/alternatives-considered": {
+      "zh": "ffca08edd1d4ee22e5aeb9056ea45e17cf24a37f2651159993586db057dbad0e",
+      "en": "12706281e6f15f0c7aa43b778fdc02e5d2e14294fb6c3103b6fdd48b24c89fa1"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/acceptance-criteria": {
+      "zh": "d431bb69620014ec67d83afe5ac04a88eefd77def00aa98195494cbd545c7129",
+      "en": "f463c313861877e1ce1fcd86e0b80dc970595b9e7f9663d382de48908944706b"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/risks": {
+      "zh": "9ab2b9d595ebec40e42679d9b01783f80e5fe3c6f44292cda1e75cd30dec9d28",
+      "en": "57c20c57e9ada50c0512e66b284db58cbe6912542a65e5a8d29b0173be75bb79"
+    }
+  }
+}

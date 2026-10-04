@@ -89,6 +89,13 @@ pub(super) fn config_query(
         let (snapshot, status) = match selected {
             Ok((snapshot, freshness)) => (Some(snapshot), freshness.status),
             Err(error) if request.snapshot_id.is_some() => return Err(error),
+            Err(error)
+                if error
+                    .downcast_ref::<crate::dto::OperationError>()
+                    .is_some_and(|error| error.code == "SYNC_PENDING") =>
+            {
+                (None, "syncing".into())
+            }
             Err(_) => (None, "unavailable".into()),
         };
         let view = crate::config::prepare_observed(&request, snapshot, status, native)?;

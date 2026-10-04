@@ -39,6 +39,7 @@ pub fn serve() -> Result<()> {
         let _ = dirty_tx.try_send(());
     })?;
     let worker = std::thread::spawn(move || -> Result<()> {
+        let mut lifecycle = scheduling::WorkerLifecycle::new(Arc::clone(&worker_state));
         let mut db = crate::live_index::open(&root.join("index.sqlite")).ok();
         let mut watched = std::collections::BTreeSet::new();
         let mut caches = BTreeMap::new();
@@ -55,7 +56,8 @@ pub fn serve() -> Result<()> {
                     .iter()
                     .filter(|(key, e)| {
                         job.as_ref().is_some_and(|j| &j.key == *key)
-                            || e.following
+                            || e.pending.is_none()
+                                && e.following
                                 && e.touched.elapsed() < Duration::from_secs(15)
                                 && (dirty
                                     || e.checked.is_none()
@@ -68,12 +70,18 @@ pub fn serve() -> Result<()> {
                         (
                             key.clone(),
                             e.roots.clone(),
-                            job.as_ref().is_some_and(|j| j.key == *key && j.verify),
+                            job.as_ref().is_some_and(|j| j.key == *key),
                         )
                     })
                     .collect()
             };
-            for (key, roots, verify) in work {
+            for (key, roots, queued) in work {
+                let work = {
+                    let mut entries = worker_state.0.lock().unwrap();
+                    scheduling::begin(entries.get_mut(&key).unwrap(), queued)
+                };
+                let Some(work) = work else { continue };
+                let verify = work.verify;
                 if db.is_none() {
                     match crate::live_index::open(&root.join("index.sqlite")) {
                         Ok(opened) => db = Some(opened),
@@ -83,13 +91,8 @@ pub fn serve() -> Result<()> {
                             entry.error_code = Some(crate::live_index::failure_code(&error));
                             entry.error = Some(error.to_string());
                             entry.last_sync = Instant::now();
-                            entry.syncing = false;
                             entry.checked = Some(chrono::Utc::now().to_rfc3339());
-                            if let Some(job) = &job
-                                && job.key == key
-                            {
-                                entry.completed = job.ticket;
-                            }
+                            scheduling::finish(entry, work);
                             worker_state.1.notify_all();
                             continue;
                         }
@@ -144,12 +147,7 @@ pub fn serve() -> Result<()> {
                 let entry = entries.get_mut(&key).unwrap();
                 entry.attempt += 1;
                 entry.last_sync = Instant::now();
-                if let Some(job) = &job
-                    && job.key == key
-                {
-                    entry.completed = job.ticket;
-                }
-                entry.syncing = false;
+                scheduling::finish(entry, work);
                 match outcome {
                     Ok(view) => {
                         if let Some(view) = view {
@@ -177,11 +175,15 @@ pub fn serve() -> Result<()> {
         if let Some(db) = db {
             db.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
         }
+        lifecycle.completed();
         Ok(())
     });
     let mut last_client = Instant::now();
     let active = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     loop {
+        if worker.is_finished() && active.load(std::sync::atomic::Ordering::Relaxed) == 0 {
+            break;
+        }
         match listener.accept() {
             Ok((mut stream, _)) => {
                 last_client = Instant::now();

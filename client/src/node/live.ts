@@ -57,8 +57,12 @@ export async function queryLive(request: ProductRequest, options: QueryOptions, 
       if (!['ENOENT', 'ECONNREFUSED'].includes((error as NodeJS.ErrnoException).code ?? '') || Date.now() >= deadline) throw error;
       if (!started) {
         // This shared service owns its lifecycle. Never attach it to caller process-tree cleanup.
-        const child = spawn(binaryPath(config.binaryPath), ['--serve-usage'], { detached: true, windowsHide: true, stdio: 'ignore' });
-        child.on('error', () => {}); child.unref(); started = true;
+        const binary = binaryPath(config.binaryPath);
+        const script = /\.[cm]js$/.test(binary);
+        const child = spawn(script ? process.execPath : binary, script ? [binary, '--serve-usage'] : ['--serve-usage'], { detached: true, windowsHide: true, stdio: 'ignore' });
+        started = true;
+        const retry = () => { started = false; };
+        child.once('error', retry); child.once('exit', retry); child.unref();
       }
       try { await delay(75, undefined, { signal: options.signal }); }
       catch { throw new CoreError('CANCELLED', '已取消'); }

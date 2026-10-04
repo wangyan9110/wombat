@@ -4,7 +4,7 @@
 
 Status: implemented
 
-Update (2026-10-01): terminal-specific behavior below is historical after [TUI removal](../architecture/2026-10-01-remove-tui.en.md). Current Web scope and navigation follow the [frontend contract](../../../../ui/README.en.md); shared core query semantics remain authoritative.
+The [CLI guide](../../../guides/cli.en.md) owns current query ranges and the [frontend guide](../../../../ui/README.en.md) owns Web navigation. This note retains the rationale for shared date defaults without maintaining retired terminal behavior.
 
 ## Problem
 
@@ -12,7 +12,7 @@ The seven-day default applied to all groups. The terminal also copied response d
 
 ## Decision
 
-The shared core selects thirty days for daily reports, the current month plus five preceding months for weekly reports, and the current month plus eleven preceding months for monthly reports, through today in the selected timezone. Explicit dates, complete-thread and undated scopes take precedence. The terminal preserves implicit request dates and displays resolved response dates; “Follow report” restores automatic ranges; changing TUI periods also restores them while retaining model and project filters.
+The shared core resolves daily, weekly, and monthly defaults into bounded windows ending today in the selected timezone; the [CLI guide](../../../guides/cli.en.md) owns exact ranges. Explicit dates and complete-thread or undated scopes take precedence. Resolved response dates must not permanently replace implicit requests with explicit conditions.
 
 ## Alternatives considered
 
@@ -20,4 +20,4 @@ Only the current week/month limits comparison with preceding periods; all histor
 
 ## Impact and verification
 
-This changes the default range of daily/weekly/monthly requests without dates, without changing collection, snapshots or protocol fields. Fixed date boundaries, synthetic CLI ledgers, native interactions and PTY switching cover verification. Execution results belong in the [progress log](../../../project/progress.en.md).
+The choice affects only default ranges for requests without dates, not collection or fixed snapshots. Verify timezone boundaries, explicit-date precedence, shared CLI queries, and current Web date intent; historical terminal tests do not establish current Web behavior.

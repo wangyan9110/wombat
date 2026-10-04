@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-按读者任务进入文档。当前行为以源码、技术参考和实现证据为准；规格与提案表达目标，历史结果只解释对应构建。
+按读者任务进入文档。当前行为以源码、技术参考和实现证据为准；未完成提案表达目标，历史结果只解释对应构建。
 
 ## 使用指南 · guides
 
@@ -12,7 +12,6 @@
 
 ## 技术参考 · reference
 
-- [支持矩阵](reference/support-matrix.md)：当前来源、平台、能力与限制。
 - [分发与公开简介](reference/distribution.md)：未发行状态、GitHub简介候选和README资产边界。
 - [价格口径](reference/pricing.md)：官方依据、金额政策、未知值与显式更新。
 - [隐私与数据边界](reference/privacy.md)：本地读写、正文白名单与公开材料。
@@ -24,21 +23,11 @@
 - [多入口开发流程](development/workflow.md)：同一业务能力的交付与验证。
 - [契约](development/contracts.md)：Rust 源头、生成类型、版本与格式。
 - [来源适配验收](development/adapters.md)：独立真值、归属及故障用例。
-- [四入口 Web 与配置分析提案](decisions/proposed/architecture/2026-10-01-config-analysis-web.md)：共享 Rust 契约、配置证据、版本与分期验收；部分交付，剩余阶段仍待验收。
-- [Codex 任务耗时数据调研与技术方案](decisions/proposed/architecture/2026-10-04-codex-task-timing.md)：客观事实、区间重叠、上下文代理、能力缺口与隐私边界；尚未实施。
 - [贡献说明](../CONTRIBUTING.zh-CN.md)提供仓库操作入口。
 
-## 项目状态 · project
-
-- [首版规格](project/specification.md)维护需求与验收条件。
-- [Codex Skill 产品方案](project/codex-skill.md)维护任务流程、CLI能力对照与本机安装边界。
-- [配置测量与人工处理升级](project/config-upgrade.md)维护追加规格与边界。
-- [首次运行与确定性规则升级](project/startup-rules.md)维护启动状态与静态规则规格、A/B开发拆分及仍待实施的条件性能力。
-- [实施状态](project/status.md)维护当前交付和剩余验收。
-- [路线图](project/roadmap.md)维护后续候选方向。
-- [进度与验证](project/progress.md)索引带日期的结果；原始合成证据在 [benchmarks](benchmarks/)。旧命令和旧截图不代表当前产品。
-
 ## 决策与文档维护
+
+未完成需求、方案和验收条件统一在 [proposed 决策](decisions/proposed/)；已交付行为查所属模块与技术参考，运行结果查测试、CI 或必要证据。
 
 [决策目录](decisions/README.md)保存长期理由、替代方案和代价，并区分 proposed、implemented、rejected。已有文档整理时，有用的取舍提炼为决策；当前操作留在指南，过时和重复段落删除，验证结果保留日期与范围。
 
