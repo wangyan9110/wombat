@@ -421,7 +421,7 @@ fn cursors_bind_view_source_turn_collection_object_and_method() {
 fn timed_data(operations: Vec<Arc<Operation>>) -> Collected {
     use crate::session_events::{Event, LifecycleKind, Payload, Phase, Position, Time};
     let mut collected = data(operations);
-    collected.measurements.push(Arc::new(serde_json::from_value(serde_json::json!({"id":"measurement","agentKind":"codex","sourceInstanceId":"source","threadId":"thread","turnId":"turn","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":50,"input":50},"requestScoped":true,"sequence":1,"evidence":[]})).unwrap()));
+    collected.measurements.push(Arc::new(serde_json::from_value(serde_json::json!({"id":"measurement","agentKind":"codex","sourceInstanceId":"source","threadId":"thread","turnId":"turn","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":50,"input":50},"pricingContextConflict":false,"requestScoped":true,"sequence":1,"evidence":[]})).unwrap()));
     for (offset, phase, time, duration) in [
         (1, Phase::Started, "2026-10-04T00:00:00Z", None),
         (2, Phase::Completed, "2026-10-04T00:00:01Z", Some(1000)),

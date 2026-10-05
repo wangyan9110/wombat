@@ -213,17 +213,30 @@ pub(super) fn process(
             state.break_context();
             state.thread = owner.clone();
         }
+        let new_turn = explicit_turn.is_some() && explicit_turn != state.turn;
+        let (model, effort, mut conflict) = context_fields(&p);
+        context::inherit_conflicts(
+            &model,
+            effort.as_deref(),
+            if event == "thread_settings_applied" || new_turn {
+                &state.thread_context_conflicts
+            } else {
+                &state.context_conflicts
+            },
+            &mut conflict,
+        );
         if let Some(turn) = explicit_turn {
             state.turn = Some(turn);
         }
-        let (model, effort, conflict) = context_fields(&p);
         state.model = model;
         state.effort = effort;
+        state.context_conflicts = conflict.clone();
         if event == "thread_settings_applied" {
             state.thread_model = state.model.clone();
             state.thread_effort = state.effort.clone();
+            state.thread_context_conflicts = state.context_conflicts.clone();
         }
-        if conflict {
+        if !conflict.is_empty() {
             issue(
                 report,
                 "contextConflict",
@@ -248,6 +261,7 @@ pub(super) fn process(
             if event == "task_started" && state.turn.as_deref() != Some(&new_turn) {
                 state.model = state.thread_model.clone();
                 state.effort = state.thread_effort.clone();
+                state.context_conflicts = state.thread_context_conflicts.clone();
             }
             state.turn = Some(new_turn);
             if event == "task_started" {
@@ -258,6 +272,7 @@ pub(super) fn process(
             state.turn = None;
             state.model = state.thread_model.clone();
             state.effort = state.thread_effort.clone();
+            state.context_conflicts = state.thread_context_conflicts.clone();
         }
         return;
     }
@@ -446,7 +461,7 @@ pub(super) fn direct_measurement(
     let interval_start = cumulative
         .zip(tokens.total)
         .and_then(|(a, b)| a.checked_sub(b));
-    let (model, effort) = measurement_context(
+    let (model, effort, conflicts) = measurement_context(
         p,
         state,
         owner.as_ref() == state.thread.as_ref(),
@@ -468,6 +483,9 @@ pub(super) fn direct_measurement(
                 model,
                 reasoning_effort: effort.map(Into::into),
                 tokens,
+                pricing_context_conflict: conflicts
+                    .iter()
+                    .any(|field| *field != crate::session_events::MeasurementContextField::Effort),
                 request_scoped: true,
                 reported_cost: reported_cost(p.cost),
                 service_tier: p.service_tier.as_deref().map(safe_text),
@@ -480,6 +498,7 @@ pub(super) fn direct_measurement(
             interval_start,
             fingerprint,
         },
+        &conflicts,
         report,
     );
 }
@@ -597,7 +616,7 @@ pub(super) fn legacy_measurement(
             &state.ordinal.to_string(),
         ])
     };
-    let (model, effort) = measurement_context(
+    let (model, effort, conflicts) = measurement_context(
         p,
         state,
         owner.as_ref() == state.thread.as_ref(),
@@ -624,6 +643,9 @@ pub(super) fn legacy_measurement(
                 model,
                 reasoning_effort: effort.map(Into::into),
                 tokens,
+                pricing_context_conflict: conflicts
+                    .iter()
+                    .any(|field| *field != crate::session_events::MeasurementContextField::Effort),
                 request_scoped,
                 reported_cost: reported_cost(p.cost),
                 service_tier: p.service_tier.as_deref().map(safe_text),
@@ -636,6 +658,7 @@ pub(super) fn legacy_measurement(
             interval_start,
             fingerprint,
         },
+        &conflicts,
         report,
     );
 }

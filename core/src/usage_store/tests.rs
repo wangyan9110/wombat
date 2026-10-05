@@ -47,6 +47,7 @@ fn fixture() -> Collected {
             total: Some(110),
             raw_input: Some(100),
         },
+        pricing_context_conflict: false,
         request_scoped: true,
         reported_cost: None,
         service_tier: None,
@@ -93,6 +94,7 @@ fn equal_prices_share_storage_without_merging_measurements_or_distinct_inputs() 
             &row.fact.tokens,
             &PricingContext {
                 request_scoped: row.fact.request_scoped,
+                model_conflicted: row.fact.pricing_context_conflict,
             },
             &prices.catalog,
             &prices.catalog_hash,

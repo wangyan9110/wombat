@@ -9,6 +9,8 @@ pub(super) struct State {
     pub(super) turn: Option<String>,
     pub(super) model: ModelRef,
     pub(super) effort: Option<String>,
+    pub(super) context_conflicts: Vec<crate::session_events::MeasurementContextField>,
+    pub(super) thread_context_conflicts: Vec<crate::session_events::MeasurementContextField>,
     pub(super) thread_model: ModelRef,
     pub(super) thread_effort: Option<String>,
     pub(super) previous: Option<TokenUsage>,
@@ -23,6 +25,8 @@ impl State {
         self.turn = None;
         self.model = ModelRef::default();
         self.effort = None;
+        self.context_conflicts.clear();
+        self.thread_context_conflicts.clear();
         self.thread_model = ModelRef::default();
         self.thread_effort = None;
         self.previous = None;

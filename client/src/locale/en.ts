@@ -1330,6 +1330,7 @@ export const en = {
   "usage.unpricedCountUnavailable": "Some usage is not priced; its token count is not available",
   "usage.priceReason.inconsistentTokenCounts": "Token records conflict, so their cost was not calculated.",
   "usage.priceReason.unverifiedModel": "The recorded model could not be matched to an available price entry.",
+  "usage.priceReason.modelContextConflict": "Model or provider records conflict, so applicable rates cannot be determined; token records are retained.",
   "usage.priceReason.requestContextUnknown": "The applicable context pricing tier could not be determined; token records are retained.",
   "usage.priceReason.catalogPriceMissing": "The available catalog has no rate for some usage.",
   "usage.priceReason.input": "Some uncached input is not priced; counts, rates, or pricing conditions may be missing.",

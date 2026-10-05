@@ -185,9 +185,13 @@ pub(in crate::adapters::codex) fn operation(
 pub(in crate::adapters::codex) fn measurement(
     facts: &mut Facts,
     candidate: &Candidate,
+    context_conflicts: &[crate::session_events::MeasurementContextField],
     report: &mut SourceReport,
 ) {
-    let value = &candidate.measurement;
+    let mut value = candidate.measurement.clone();
+    if !context_conflicts.is_empty() {
+        super::super::context::clear_fields(Arc::make_mut(&mut value), context_conflicts);
+    }
     let Some(evidence) = value.evidence.first() else {
         return;
     };
@@ -197,6 +201,7 @@ pub(in crate::adapters::codex) fn measurement(
         value.turn_id.as_deref().map(str::to_owned),
         SafePayload::Measurement {
             value: value.clone(),
+            context_conflicts: context_conflicts.to_vec(),
             direct: candidate.direct,
             cumulative: candidate.cumulative,
             interval_start: candidate.interval_start,

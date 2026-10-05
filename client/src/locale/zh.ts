@@ -1330,6 +1330,7 @@ export const zh = {
   "usage.unpricedCountUnavailable": "部分用量尚未计价，未计价 Token 数量未提供",
   "usage.priceReason.inconsistentTokenCounts": "Token 记录相互矛盾，未据此计算金额。",
   "usage.priceReason.unverifiedModel": "未能将记录中的模型与可用价表对应。",
+  "usage.priceReason.modelContextConflict": "模型或提供商记录存在冲突，无法确定适用价格；Token 记录仍保留。",
   "usage.priceReason.requestContextUnknown": "无法确定适用的上下文价格档位，已保留 Token 记录。",
   "usage.priceReason.catalogPriceMissing": "可用价表缺少部分用量的价格。",
   "usage.priceReason.input": "部分普通输入尚未计价；记录可能缺少数量、价格或适用条件。",

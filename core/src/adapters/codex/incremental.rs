@@ -10,6 +10,8 @@ use std::time::UNIX_EPOCH;
 pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 2;
 /// Canonical operation outcome mapping, including persistent conflict evidence.
 pub(crate) const OPERATION_OBSERVATION_VERSION: u32 = 1;
+/// Measurement context conflict markers require explicit source observation headers.
+pub(crate) const MEASUREMENT_OBSERVATION_VERSION: u32 = 1;
 pub(crate) use crate::adapters::contract::WORK_OBSERVATION_VERSION;
 
 #[derive(Default, Serialize, Deserialize)]
@@ -400,6 +402,11 @@ pub(crate) fn sync_cached(
                 "不支持此来源消息观察映射",
             ),
             (
+                "measurementObservationVersion",
+                MEASUREMENT_OBSERVATION_VERSION,
+                "不支持此来源计量观察映射",
+            ),
+            (
                 "watermarkVersion",
                 WATERMARK_FORMAT_VERSION,
                 "不支持此来源水位格式",
@@ -707,7 +714,19 @@ pub(crate) fn sync_cached(
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
-    let metadata = serde_json::json!({"operationObservationVersion": OPERATION_OBSERVATION_VERSION, "eventObservationVersion": crate::session_events::EVENT_VERSION, "titleObservationVersion": crate::session_events::title_observations::TITLE_OBSERVATION_VERSION, "watermarkVersion": WATERMARK_FORMAT_VERSION, "messageObservationVersion": MESSAGE_OBSERVATION_VERSION, "workObservationVersion": WORK_OBSERVATION_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
+    let metadata = serde_json::json!({
+        "operationObservationVersion": OPERATION_OBSERVATION_VERSION,
+        "eventObservationVersion": crate::session_events::EVENT_VERSION,
+        "titleObservationVersion": crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+        "watermarkVersion": WATERMARK_FORMAT_VERSION,
+        "messageObservationVersion": MESSAGE_OBSERVATION_VERSION,
+        "measurementObservationVersion": MEASUREMENT_OBSERVATION_VERSION,
+        "workObservationVersion": WORK_OBSERVATION_VERSION,
+        "checkpoints": checkpoints,
+        "missing": missing,
+        "titleStamp": title_stamp,
+        "sourceVersions": report.source_versions
+    });
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();
@@ -820,7 +839,7 @@ mod sharing_tests {
     }
 
     fn row(id: &str, total: u64) -> Arc<Measurement> {
-        Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
+        Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"pricingContextConflict":false,"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
     }
     #[test]
     fn ordered_sharing_preserves_corrections_missing_and_foreign_facts() {

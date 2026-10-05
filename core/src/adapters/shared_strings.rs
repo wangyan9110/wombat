@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn sharing_preserves_serialized_facts_and_prior_revision() {
-        let original = serde_json::json!({"id":"m","agentKind":"codex","sourceInstanceId":"s","threadId":"t","turnId":"u","grain":"response","timePrecision":"unknown","model":{"raw":"same","provider":"provider","apiProvider":"different","pricingModel":"same"},"tokens":{"total":100},"requestScoped":true,"sequence":1,"evidence":[]});
+        let original = serde_json::json!({"id":"m","agentKind":"codex","sourceInstanceId":"s","threadId":"t","turnId":"u","grain":"response","timePrecision":"unknown","model":{"raw":"same","provider":"provider","apiProvider":"different","pricingModel":"same"},"tokens":{"total":100},"pricingContextConflict":false,"requestScoped":true,"sequence":1,"evidence":[]});
         let mut first: Measurement = serde_json::from_value(original).unwrap();
         let expected = serde_json::to_value(&first).unwrap();
         let mut second = first.clone();

@@ -104,6 +104,16 @@ impl Time {
     }
 }
 
+/// Field-level contradictions in one source measurement, separate from time/identity gaps.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum MeasurementContextField {
+    Model,
+    Provider,
+    ApiProvider,
+    Effort,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Gap {
@@ -219,6 +229,8 @@ pub enum Payload {
     /// Preserve source accounting inputs before cross-file deduplication and reconciliation.
     Measurement {
         value: Arc<Measurement>,
+        #[serde(rename = "contextConflicts")]
+        context_conflicts: Vec<MeasurementContextField>,
         direct: bool,
         cumulative: Option<u64>,
         interval_start: Option<u64>,
@@ -384,12 +396,42 @@ impl TryFrom<StoredEvent> for Event {
                 thread == Some(fact.thread_id.as_str()) && turn == Some(fact.id.as_str()),
                 "turn event scope mismatch"
             ),
-            Payload::Measurement { value: fact, .. } => ensure!(
-                thread == fact.thread_id.as_deref()
-                    && turn == fact.turn_id.as_deref()
-                    && fact.source_instance_id.as_ref() == value.position.source_instance_id,
-                "measurement event scope mismatch"
-            ),
+            Payload::Measurement {
+                value: fact,
+                context_conflicts,
+                ..
+            } => {
+                ensure!(
+                    thread == fact.thread_id.as_deref()
+                        && turn == fact.turn_id.as_deref()
+                        && fact.source_instance_id.as_ref() == value.position.source_instance_id,
+                    "measurement event scope mismatch"
+                );
+                ensure!(
+                    context_conflicts.len() <= 4
+                        && context_conflicts
+                            .iter()
+                            .enumerate()
+                            .all(|(index, field)| !context_conflicts[..index].contains(field)),
+                    "invalid measurement context conflict flags"
+                );
+                ensure!(
+                    fact.pricing_context_conflict
+                        == context_conflicts
+                            .iter()
+                            .any(|field| *field != MeasurementContextField::Effort),
+                    "measurement pricing conflict flag mismatch"
+                );
+                ensure!(
+                    context_conflicts.iter().all(|field| match field {
+                        MeasurementContextField::Model => fact.model.raw.is_none(),
+                        MeasurementContextField::Provider => fact.model.provider.is_none(),
+                        MeasurementContextField::ApiProvider => fact.model.api_provider.is_none(),
+                        MeasurementContextField::Effort => fact.reasoning_effort.is_none(),
+                    }),
+                    "conflicting measurement context must be unknown"
+                );
+            }
             Payload::Operation { value: fact, .. } => {
                 ensure!(
                     thread == Some(fact.thread_id.as_ref()) && turn == fact.turn_id.as_deref(),

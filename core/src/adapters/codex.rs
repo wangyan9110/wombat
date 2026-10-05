@@ -1,5 +1,6 @@
 //! Independent Codex rollout adapter. Only explicit identities merge facts.
 mod ancestry;
+mod context;
 mod event_projection;
 pub(crate) mod incremental;
 mod instructions;

@@ -449,7 +449,7 @@ fn cache_hits_refresh_freshness_and_remain_snapshot_owned() {
 #[test]
 fn canonical_input_type7_and_masks_reach_production_query() {
     let mut collected = data(complete_events());
-    collected.measurements = [100u64, 500u64].into_iter().enumerate().map(|(i, input)| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":input},"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
+    collected.measurements = [100u64, 500u64].into_iter().enumerate().map(|(i, input)| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":input},"pricingContextConflict":false,"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
     let root = tempfile::tempdir().unwrap();
     let snapshot = usage_store::memory(
         collected,
@@ -625,7 +625,7 @@ fn identity_time_and_content_conflicts_keep_specific_reasons() {
 #[test]
 fn excessive_context_detail_preserves_full_distribution_and_explains_omission() {
     let mut collected = data(complete_events());
-    collected.measurements = (0..33).map(|i| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":i},"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
+    collected.measurements = (0..33).map(|i| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":i},"pricingContextConflict":false,"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
     let root = tempfile::tempdir().unwrap();
     let snapshot = usage_store::memory(
         collected,

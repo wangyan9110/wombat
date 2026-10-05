@@ -1,7 +1,7 @@
 use super::*;
 use crate::session_events::Payload as SafePayload;
 
-fn replay(collected: &Collected) -> (Collected, SourceReport) {
+pub(super) fn replay(collected: &Collected) -> (Collected, SourceReport) {
     let mut facts = Facts::default();
     let mut report = collected.sources[0].clone();
     report.issues.clear();

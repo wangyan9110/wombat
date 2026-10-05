@@ -7,7 +7,7 @@ fn measurement(id: &str, input: Option<u64>, scoped: bool) -> Measurement {
         "threadId":"thread", "turnId":"turn", "grain":"response",
         "timePrecision":"millisecond", "model":{"raw":"model"},
         "reasoningEffort":"high", "tokens":{"rawInput":input,"input":10,"cacheRead":90},
-        "requestScoped":scoped,"sequence":0,"evidence":[]
+        "pricingContextConflict":false,"requestScoped":scoped,"sequence":0,"evidence":[]
     }))
     .unwrap()
 }
@@ -82,6 +82,7 @@ fn measured(offset: u64, value: Measurement) -> Arc<Event> {
         offset,
         0,
         Payload::Measurement {
+            context_conflicts: vec![],
             value: Arc::new(value),
             direct: true,
             cumulative: None,
@@ -207,6 +208,7 @@ fn missing_time_unassigned_gap_and_file_boundary_break_continuation() {
             Time::from_source(Some("2026-10-04T00:00:00Z")).0,
             vec![],
             Payload::Measurement {
+                context_conflicts: vec![],
                 value: Arc::new(measurement("other", Some(100), true)),
                 direct: true,
                 cumulative: None,

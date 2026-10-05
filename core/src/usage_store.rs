@@ -53,6 +53,7 @@ pub struct Manifest {
     pub schema_version: u32,
     pub event_observation_version: u32,
     pub message_observation_version: u32,
+    pub measurement_observation_version: u32,
     pub operation_observation_version: u32,
     pub title_observation_version: u32,
     pub title_observations: Vec<crate::session_events::title_observations::TitleObservation>,

@@ -24,6 +24,7 @@ fn row(tokens: TokenUsage) -> PricedMeasurement {
             model,
             reasoning_effort: None,
             tokens,
+            pricing_context_conflict: false,
             request_scoped: true,
             reported_cost: None,
             service_tier: None,
@@ -166,6 +167,7 @@ fn collect(rows: &[serde_json::Value]) -> Vec<PricedMeasurement> {
                 &measurement.tokens,
                 &crate::pricing::PricingContext {
                     request_scoped: measurement.request_scoped,
+                    model_conflicted: measurement.pricing_context_conflict,
                 },
             );
             PricedMeasurement {

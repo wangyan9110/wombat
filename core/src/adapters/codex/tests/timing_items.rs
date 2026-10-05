@@ -191,7 +191,10 @@ fn measurement_events_preserve_conflicting_source_candidates_before_reconciliati
         .iter()
         .filter_map(|e| match e.payload() {
             SafePayload::Measurement {
-                value, fingerprint, ..
+                context_conflicts: _,
+                value,
+                fingerprint,
+                ..
             } => Some((value, fingerprint)),
             _ => None,
         })

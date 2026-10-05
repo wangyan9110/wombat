@@ -124,6 +124,8 @@ pub(crate) fn memory(
         event_observation_version: crate::session_events::EVENT_VERSION,
         message_observation_version:
             crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
+        measurement_observation_version:
+            crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
         operation_observation_version:
             crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
         title_observation_version:

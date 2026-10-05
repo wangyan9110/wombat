@@ -25,6 +25,7 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
         match field {
             "operationObservationVersion"
             | "messageObservationVersion"
+            | "measurementObservationVersion"
             | "workObservationVersion"
             | "eventObservationVersion"
             | "titleObservationVersion" => {}
@@ -135,6 +136,10 @@ fn validate_message_mapping(db: &rusqlite::Connection, key: &str) -> Result<()> 
             (
                 "messageObservationVersion",
                 adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
+            ),
+            (
+                "measurementObservationVersion",
+                adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
             ),
         ] {
             if crate::live_index::scalar(db, &scope, field)?.and_then(|value| value.as_u64())
@@ -294,6 +299,13 @@ pub(super) fn sync(
                 "messageObservationVersion",
                 "",
                 &adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
+            )?;
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "measurementObservationVersion",
+                "",
+                &adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
             )?;
             crate::live_index::put(
                 &tx,

@@ -64,6 +64,10 @@ fn memory_and_fixed_views_keep_safe_observations() {
             crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION
         );
         assert_eq!(
+            snapshot.manifest.measurement_observation_version,
+            crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION
+        );
+        assert_eq!(
             snapshot.manifest.title_observations,
             facts.title_observations
         );
@@ -149,8 +153,14 @@ fn fixed_unknown_or_missing_observation_headers_reject_before_payload_and_preser
     let path = snapshot.directory.join("manifest.json");
     let original = fs::read(&path).unwrap();
     let base: serde_json::Value = serde_json::from_slice(&original).unwrap();
+    let latest = fs::read(root.path().join("latest.json")).unwrap();
+    let event_path = snapshot
+        .directory
+        .join(&snapshot.manifest.events.partitions[0].chunks[0].file.file);
+    let event_bytes = fs::read(&event_path).unwrap();
     for field in [
         "operationObservationVersion",
+        "measurementObservationVersion",
         "eventObservationVersion",
         "titleObservationVersion",
         "titleObservations",
@@ -170,9 +180,12 @@ fn fixed_unknown_or_missing_observation_headers_reject_before_payload_and_preser
             "UNSUPPORTED_VERSION"
         );
         assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::read(root.path().join("latest.json")).unwrap(), latest);
+        assert_eq!(fs::read(&event_path).unwrap(), event_bytes);
     }
     for field in [
         "operationObservationVersion",
+        "measurementObservationVersion",
         "eventObservationVersion",
         "titleObservationVersion",
     ] {
@@ -180,6 +193,7 @@ fn fixed_unknown_or_missing_observation_headers_reject_before_payload_and_preser
         changed[field] = serde_json::json!(99);
         changed["titleObservations"] = serde_json::json!({"future":"unsupported payload"});
         fs::write(&path, serde_json::to_vec(&changed).unwrap()).unwrap();
+        let before = fs::read(&path).unwrap();
         assert_eq!(
             crate::live_index::failure_code(
                 &load_at(
@@ -191,6 +205,9 @@ fn fixed_unknown_or_missing_observation_headers_reject_before_payload_and_preser
             ),
             "UNSUPPORTED_VERSION"
         );
+        assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::read(root.path().join("latest.json")).unwrap(), latest);
+        assert_eq!(fs::read(&event_path).unwrap(), event_bytes);
     }
     fs::write(&path, original).unwrap();
     assert!(

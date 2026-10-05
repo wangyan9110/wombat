@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn required_operation_and_work_mappings_reject_before_payload_without_mutation() {
+fn required_operation_work_and_measurement_mappings_reject_before_payload_without_mutation() {
     use std::io::Write;
     let root_a = tempfile::tempdir().unwrap();
     let root_b = tempfile::tempdir().unwrap();
@@ -32,6 +32,10 @@ fn required_operation_and_work_mappings_reject_before_payload_without_mutation()
         (
             "operationObservationVersion",
             adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
+        ),
+        (
+            "measurementObservationVersion",
+            adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
         ),
     ] {
         for (scope, original) in [(&projection, &saved_projection), (&parser, &saved_parser)] {

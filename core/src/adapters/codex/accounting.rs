@@ -1,10 +1,15 @@
 //! Direct and cumulative accounting reconciliation preserves missing and conflicting facts.
 use super::*;
 impl Facts {
-    pub(super) fn measurement(&mut self, mut candidate: Candidate, report: &mut SourceReport) {
+    pub(super) fn measurement(
+        &mut self,
+        mut candidate: Candidate,
+        context_conflicts: &[crate::session_events::MeasurementContextField],
+        report: &mut SourceReport,
+    ) {
         self.strings
             .measurement(Arc::make_mut(&mut candidate.measurement));
-        timing::measurement(self, &candidate, report);
+        timing::measurement(self, &candidate, context_conflicts, report);
     }
     pub(super) fn project_measurement(&mut self, candidate: Candidate, report: &mut SourceReport) {
         self.dirty_measurements
@@ -85,6 +90,7 @@ impl Facts {
                 conflicts,
                 &format!("{prefix}:apiProvider"),
             );
+            old.pricing_context_conflict |= incoming.pricing_context_conflict || model_conflict;
             if model_conflict {
                 issue(
                     report,

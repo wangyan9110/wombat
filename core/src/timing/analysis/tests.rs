@@ -301,7 +301,7 @@ fn zero_duration_is_known_and_absent_categories_are_unknown() {
 }
 fn measurement(id: &str, thread: &str, turn: &str) -> Arc<Measurement> {
     Arc::new(serde_json::from_value(serde_json::json!({
-        "id":id,"agentKind":"codex","sourceInstanceId":"source", "threadId":thread,"turnId":turn,"grain":"response","timePrecision":"millisecond","model":{"raw":"model"},"tokens":{"rawInput":0},"requestScoped":true,"sequence":0,"evidence":[]
+        "id":id,"agentKind":"codex","sourceInstanceId":"source", "threadId":thread,"turnId":turn,"grain":"response","timePrecision":"millisecond","model":{"raw":"model"},"tokens":{"rawInput":0},"pricingContextConflict":false,"requestScoped":true,"sequence":0,"evidence":[]
     })).unwrap())
 }
 #[test]
@@ -755,6 +755,7 @@ fn context_analysis(control: Arc<Event>) -> Analysis {
             10,
             Some(10),
             Payload::Measurement {
+                context_conflicts: vec![],
                 value: first.clone(),
                 direct: true,
                 cumulative: None,
@@ -768,6 +769,7 @@ fn context_analysis(control: Arc<Event>) -> Analysis {
             30,
             Some(30),
             Payload::Measurement {
+                context_conflicts: vec![],
                 value: second.clone(),
                 direct: true,
                 cumulative: None,
@@ -827,6 +829,7 @@ fn unassigned_source_breaks_stop_context_continuation_without_adding_payload_sam
             first_token_ms: None,
         },
         Payload::Measurement {
+            context_conflicts: vec![],
             value: Arc::new(unassigned_sample),
             direct: true,
             cumulative: None,

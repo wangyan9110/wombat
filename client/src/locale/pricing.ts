@@ -5,6 +5,7 @@ export function pricingIssueText(code: string): string {
   switch (code) {
     case 'inconsistentTokenCounts': return t('usage.priceReason.inconsistentTokenCounts');
     case 'unverifiedModel': return t('usage.priceReason.unverifiedModel');
+    case 'modelContextConflict': return t('usage.priceReason.modelContextConflict');
     case 'requestContextUnknown': return t('usage.priceReason.requestContextUnknown');
     case 'catalogPriceMissing': return t('usage.priceReason.catalogPriceMissing');
     case 'inputPriceUnknown': return t('usage.priceReason.input');

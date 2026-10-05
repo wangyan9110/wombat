@@ -28,6 +28,8 @@ Only current public contracts and data formats are maintained; unknown formats a
 
 Recorded native total input remains available when cache breakdowns are missing. Cache-hit rates use recorded input and cache reads from the same measurements; contradictory categories suppress the ratio, and category sums do not restore conflicting native input.
 
+Measurement observations retain field-specific model, provider, API-provider, and reasoning-effort conflicts through inheritance, append, and replay. Price-relevant conflicts preserve tokens but prevent model-rate selection; reasoning-effort conflicts alone do not prevent pricing. Tiered prices require recorded request input, without reconstructing it from potentially conflicting categories. Parser state, projections, and fixed snapshots require measurement observation mapping version 1; incompatible headers reject reuse while preserving original data.
+
 Default refresh reads source logs without changing them and writes only to the product data directory. Unpriced or missing values, partial source failures, and resource limits remain visible; the [architecture](../docs/development/architecture.en.md) and [core rules](AGENTS.md) describe ownership and failure boundaries. After algorithm or storage changes, run the relevant synthetic expectations, formatting, and clippy checks; rebuild the core before cross-language tests.
 
 ## Storage and service lifecycle

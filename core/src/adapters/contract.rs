@@ -147,6 +147,8 @@ pub struct Measurement {
     pub model: ModelRef,
     pub reasoning_effort: Option<Arc<str>>,
     pub tokens: TokenUsage,
+    /// Explicit model/provider contradictions cannot be treated as absent price context.
+    pub pricing_context_conflict: bool,
     pub request_scoped: bool,
     pub reported_cost: Option<String>,
     pub service_tier: Option<String>,

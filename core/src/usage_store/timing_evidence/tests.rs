@@ -2,7 +2,7 @@
 use super::*;
 use crate::session_events::{Gap, LifecycleKind, Payload, Phase, Time};
 fn fact() -> Arc<Measurement> {
-    Arc::new(serde_json::from_value(serde_json::json!({ "id":"fact", "agentKind":"codex", "sourceInstanceId":"source", "threadId":"thread", "turnId":"turn", "grain":"response", "timePrecision":"unknown", "model":{}, "tokens":{}, "requestScoped":true, "sequence":1, "evidence":[] })).unwrap())
+    Arc::new(serde_json::from_value(serde_json::json!({ "id":"fact", "agentKind":"codex", "sourceInstanceId":"source", "threadId":"thread", "turnId":"turn", "grain":"response", "timePrecision":"unknown", "model":{}, "tokens":{}, "pricingContextConflict":false,"requestScoped":true, "sequence":1, "evidence":[] })).unwrap())
 }
 fn event(offset: u64, thread: Option<&str>, turn: Option<&str>, gap: bool) -> Arc<Event> {
     Arc::new(

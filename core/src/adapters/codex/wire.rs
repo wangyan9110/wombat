@@ -1,4 +1,5 @@
 use super::*;
+use crate::session_events::MeasurementContextField;
 use serde_json::value::RawValue;
 
 #[derive(Deserialize)]
@@ -275,7 +276,9 @@ pub(super) fn subtract(new: &TokenUsage, old: Option<&TokenUsage>) -> TokenUsage
     }
 }
 
-pub(super) fn context_fields(p: &Payload<'_>) -> (ModelRef, Option<String>, bool) {
+pub(super) fn context_fields(
+    p: &Payload<'_>,
+) -> (ModelRef, Option<String>, Vec<MeasurementContextField>) {
     #[derive(Deserialize)]
     struct Collaboration<'a> {
         #[serde(borrow)]
@@ -327,7 +330,15 @@ pub(super) fn context_fields(p: &Payload<'_>) -> (ModelRef, Option<String>, bool
             pricing_model: None,
         },
         effort,
-        mconflict || econflict || pconflict || aconflict,
+        [
+            (MeasurementContextField::Model, mconflict),
+            (MeasurementContextField::Provider, pconflict),
+            (MeasurementContextField::ApiProvider, aconflict),
+            (MeasurementContextField::Effort, econflict),
+        ]
+        .into_iter()
+        .filter_map(|(field, conflict)| conflict.then_some(field))
+        .collect(),
     )
 }
 pub(super) fn measurement_context(
@@ -335,8 +346,8 @@ pub(super) fn measurement_context(
     state: &State,
     same_owner: bool,
     turn: Option<&str>,
-) -> (ModelRef, Option<String>) {
-    let (explicit_model, explicit_effort, _) = context_fields(p);
+) -> (ModelRef, Option<String>, Vec<MeasurementContextField>) {
+    let (explicit_model, explicit_effort, mut conflicts) = context_fields(p);
     let same_turn = state.turn.is_none() || state.turn.as_deref() == turn;
     let current_model = if same_turn {
         &state.model
@@ -348,15 +359,31 @@ pub(super) fn measurement_context(
     } else {
         &state.thread_effort
     };
+    if same_owner {
+        context::inherit_conflicts(
+            &explicit_model,
+            explicit_effort.as_deref(),
+            if same_turn {
+                &state.context_conflicts
+            } else {
+                &state.thread_context_conflicts
+            },
+            &mut conflicts,
+        );
+    }
     let model = ModelRef {
-        raw: explicit_model
-            .raw
-            .or_else(|| same_owner.then(|| current_model.raw.clone()).flatten()),
-        provider: explicit_model
-            .provider
-            .or_else(|| same_owner.then(|| current_model.provider.clone()).flatten()),
+        raw: explicit_model.raw.or_else(|| {
+            (same_owner && !conflicts.contains(&MeasurementContextField::Model))
+                .then(|| current_model.raw.clone())
+                .flatten()
+        }),
+        provider: explicit_model.provider.or_else(|| {
+            (same_owner && !conflicts.contains(&MeasurementContextField::Provider))
+                .then(|| current_model.provider.clone())
+                .flatten()
+        }),
         api_provider: explicit_model.api_provider.or_else(|| {
-            same_owner
+            (same_owner && !conflicts.contains(&MeasurementContextField::ApiProvider))
                 .then(|| current_model.api_provider.clone())
                 .flatten()
         }),
@@ -364,6 +391,11 @@ pub(super) fn measurement_context(
     };
     (
         model,
-        explicit_effort.or_else(|| same_owner.then(|| current_effort.clone()).flatten()),
+        explicit_effort.or_else(|| {
+            (same_owner && !conflicts.contains(&MeasurementContextField::Effort))
+                .then(|| current_effort.clone())
+                .flatten()
+        }),
+        conflicts,
     )
 }

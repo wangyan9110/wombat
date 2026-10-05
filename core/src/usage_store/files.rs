@@ -180,6 +180,8 @@ pub(super) fn save_with_prices(
         event_observation_version: crate::session_events::EVENT_VERSION,
         message_observation_version:
             crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
+        measurement_observation_version:
+            crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
         operation_observation_version:
             crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
         title_observation_version:
@@ -301,6 +303,16 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
         return Err(operation_error(
             "UNSUPPORTED_VERSION",
             "不支持此操作结果观察映射",
+        ));
+    }
+    if raw["measurementObservationVersion"].as_u64()
+        != Some(u64::from(
+            crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
+        ))
+    {
+        return Err(operation_error(
+            "UNSUPPORTED_VERSION",
+            "不支持此计量观察映射",
         ));
     }
     super::events::check_index_version(raw["events"]["version"].as_u64())?;

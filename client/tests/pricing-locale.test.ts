@@ -7,7 +7,7 @@ test('pricing explanations distinguish count conflicts, unmatched models, tiers 
   try {
     for (const language of ['zh', 'en'] as const) {
       locale.setLocale(language);
-      const codes = ['inconsistentTokenCounts', 'unverifiedModel', 'requestContextUnknown', 'catalogPriceMissing',
+      const codes = ['inconsistentTokenCounts', 'unverifiedModel', 'modelContextConflict', 'requestContextUnknown', 'catalogPriceMissing',
         'inputPriceUnknown', 'cacheReadPriceUnknown', 'cacheCreatePriceUnknown', 'outputPriceUnknown'];
       const explanations = codes.map(pricingIssueText);
       assert.equal(new Set(explanations).size, codes.length);
