@@ -21,33 +21,21 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 
 Wombat 支持 macOS、Linux 和 Windows，无需开发工具或 API Key。
 
-1. 安装 Wombat。在 macOS 或 Linux 中执行：
+1. 安装并打开 Wombat。在 macOS 或 Linux 中执行：
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --open
    ```
 
    在 Windows PowerShell 中执行：
 
    ```powershell
-   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Open
    ```
 
-2. 打开一个新终端，再启动 Wombat。在 macOS 或 Linux 中执行：
+2. Wombat 会开始读取本机记录。终端会输出本机访问地址，并在浏览器中打开。首次读取完成前，可以先查看已发现的任务。
 
-   ```sh
-   wombat web --open
-   ```
-
-   在 Windows PowerShell 中执行：
-
-   ```powershell
-   wombat web --open
-   ```
-
-3. Wombat 会自动开始读取本机记录。终端会输出本机访问地址，并在浏览器中打开。首次读取完成前，可以先查看已发现的任务。
-
-打开新终端后仍无法使用 Wombat 时，查看[分发说明](docs/reference/distribution.md)中的安装帮助。浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」并选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
+安装未完成时，查看[分发说明](docs/reference/distribution.md)中的安装帮助。浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」并选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
 
 ### 更新 Wombat
 

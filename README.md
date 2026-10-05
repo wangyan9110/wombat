@@ -21,33 +21,21 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 Wombat supports macOS, Linux, and Windows. No development tools or API key are required.
 
-1. Install Wombat. On macOS or Linux, run:
+1. Install and open Wombat. On macOS or Linux, run:
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --open
    ```
 
    On Windows PowerShell, run:
 
    ```powershell
-   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Open
    ```
 
-2. Open a new terminal, then start Wombat. On macOS or Linux, run:
+2. Wombat starts reading local records. The terminal prints a local URL, and the browser opens that address. You can view discovered tasks before the initial read finishes.
 
-   ```sh
-   wombat web --open
-   ```
-
-   On Windows PowerShell, run:
-
-   ```powershell
-   wombat web --open
-   ```
-
-3. Wombat automatically starts reading local records. The terminal prints a local URL, and the browser opens that address. You can view discovered tasks before the initial read finishes.
-
-If Wombat is still unavailable after you open a new terminal, see the installation help in the [distribution guide](docs/reference/distribution.en.md). If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources** and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
+If installation does not complete, see the installation help in the [distribution guide](docs/reference/distribution.en.md). If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources** and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
 
 ### Update Wombat
 

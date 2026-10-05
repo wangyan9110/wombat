@@ -1,18 +1,28 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 const installer = readFileSync(new URL('../install.sh', import.meta.url), 'utf8');
+const windowsInstaller = readFileSync(new URL('../install.ps1', import.meta.url), 'utf8');
 const functionMatch = installer.match(/(configure_path\(\) \{[\s\S]*?\n\})\nconfigure_path\n/);
 const functionSource = functionMatch?.[1];
 assert(functionSource, 'install.sh must expose the tested configure_path function');
+const startMatch = installer.match(/(start_app\(\) \{[\s\S]*?\n\})\nstart_app\n/);
+const startSource = startMatch?.[1];
+assert(startSource, 'install.sh must expose the tested start_app function');
 
 test('POSIX installer retries every download error over HTTP/1.1', () => {
   assert.match(installer, /curl -fL --http1\.1 --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 15/);
   assert.equal(installer.match(/^download "\$base\//gm)?.length, 2);
+});
+
+test('installers expose an explicit install-and-open option', () => {
+  assert.match(installer, /--open\) open_app=1/);
+  assert.match(windowsInstaller, /\[switch\]\$Open/);
+  assert.match(windowsInstaller, /& \$launcher web --open/);
 });
 
 function exercise(home: string, shell: string, modifyPath: boolean, prefix = path.join(home, '.local')): string {
@@ -24,7 +34,7 @@ function exercise(home: string, shell: string, modifyPath: boolean, prefix = pat
   }});
 }
 
-test('POSIX installer adds the default bin directory once to the active shell profile', t => {
+test('POSIX installer adds the default bin directory once to the active shell profile', {skip: process.platform === 'win32'}, t => {
   const home = mkdtempSync(path.join(os.tmpdir(), 'wombat-install-path-'));
   t.after(() => rmSync(home, {recursive: true, force: true}));
   exercise(home, '/bin/zsh', true); exercise(home, '/bin/zsh', true);
@@ -33,10 +43,24 @@ test('POSIX installer adds the default bin directory once to the active shell pr
   assert.match(profile, /export PATH="\$HOME\/\.local\/bin:\$PATH"/);
 });
 
-test('POSIX installer respects path opt-out and does not edit profiles for custom prefixes', t => {
+test('POSIX installer respects path opt-out and does not edit profiles for custom prefixes', {skip: process.platform === 'win32'}, t => {
   const home = mkdtempSync(path.join(os.tmpdir(), 'wombat-install-path-'));
   t.after(() => rmSync(home, {recursive: true, force: true}));
   assert.match(exercise(home, '/bin/bash', false), /Add .* to PATH/);
   assert.match(exercise(home, '/bin/bash', true, path.join(home, 'custom')), /Add .* to PATH/);
   assert.throws(() => readFileSync(path.join(home, '.bashrc'), 'utf8'), /ENOENT/);
+});
+
+test('POSIX open option starts the installed launcher with the Web command', {skip: process.platform === 'win32'}, t => {
+  const home = mkdtempSync(path.join(os.tmpdir(), 'wombat-install-open-'));
+  t.after(() => rmSync(home, {recursive: true, force: true}));
+  const launcher = path.join(home, 'wombat'), output = path.join(home, 'args');
+  const temporaryDownload = path.join(home, 'download'); mkdirSync(temporaryDownload);
+  writeFileSync(launcher, `#!/bin/sh\nprintf '%s\\n' "$*" > "${output}"\n`); chmodSync(launcher, 0o755);
+  const script = path.join(home, 'open-test.sh'); writeFileSync(script, `${startSource}\nstart_app\n`);
+  execFileSync('sh', [script], {env: {PATH: '/usr/bin:/bin', launcher, open_app: '0', tmp: temporaryDownload}});
+  assert.equal(existsSync(output), false);
+  execFileSync('sh', [script], {env: {PATH: '/usr/bin:/bin', launcher, open_app: '1', tmp: temporaryDownload}});
+  assert.equal(readFileSync(output, 'utf8'), 'web --open\n');
+  assert.equal(existsSync(temporaryDownload), false);
 });

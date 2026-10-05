@@ -34,7 +34,7 @@ irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version PREVIEW_VERSION
 ```
 
-安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。安装器会将默认命令目录加入用户的 shell 配置或 Windows 用户 `PATH`；macOS/Linux 使用 `--no-modify-path`，Windows 使用 `-NoModifyPath`，可关闭这项修改。macOS/Linux 使用 `WOMBAT_INSTALL_PREFIX` 或 `--prefix` 修改安装位置，使用 `--version` 选择版本，使用 `--base-url` 验收开发候选或受控镜像；对应的 Windows 参数是 `-Prefix`、`-Version` 和 `-BaseUrl`。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
+安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。macOS/Linux 加上 `--open`，Windows 加上 `-Open`，可在安装后启动 Wombat。安装器会将默认命令目录加入用户的 shell 配置或 Windows 用户 `PATH`；macOS/Linux 使用 `--no-modify-path`，Windows 使用 `-NoModifyPath`，可关闭这项修改。macOS/Linux 使用 `WOMBAT_INSTALL_PREFIX` 或 `--prefix` 修改安装位置，使用 `--version` 选择版本，使用 `--base-url` 验收开发候选或受控镜像；对应的 Windows 参数是 `-Prefix`、`-Version` 和 `-BaseUrl`。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
 
 通过安装器部署后，执行 `wombat update` 下载并安装最新稳定 Release；`wombat update --check` 只检查，`--version X.Y.Z` 安装指定版本。预览版不会进入 `latest`，升级到后续预览版时须显式指定版本。版本保存在并列目录，校验元数据、文件大小和 SHA-256 后原子切换 `current.txt`。正在运行的旧版本不会被覆盖，适用于 Windows 的占用规则；升级器保留当前和上一运行版本，并清理更早的受管版本。源码构建或手工解压副本不带安装指针，升级命令会明确拒绝。
 

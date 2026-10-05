@@ -2,7 +2,8 @@ param(
   [string]$Version = "latest",
   [string]$Prefix = "$HOME\.local",
   [string]$BaseUrl = "",
-  [switch]$NoModifyPath
+  [switch]$NoModifyPath,
+  [switch]$Open
 )
 $ErrorActionPreference = "Stop"
 
@@ -69,7 +70,6 @@ set /p WOMBAT_RELEASE=<"%~dp0..\lib\wombat\current.txt"
   Set-Content -Path $launcher -Value $launcherText
   $installedVersion = (& $launcher --version --json | ConvertFrom-Json).version
   Write-Host "Installed Wombat $installedVersion for $target"
-  Write-Host "Command: $launcher"
   if (-not $NoModifyPath) {
     $normalizedBin = [IO.Path]::GetFullPath($binDir).TrimEnd('\')
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -91,4 +91,9 @@ set /p WOMBAT_RELEASE=<"%~dp0..\lib\wombat\current.txt"
 }
 finally {
   if (Test-Path $temp) { Remove-Item -Recurse -Force $temp }
+}
+if ($Open) {
+  Write-Host "Starting Wombat..."
+  & $launcher web --open
+  if ($LASTEXITCODE -ne 0) { throw "Wombat exited with code $LASTEXITCODE" }
 }
