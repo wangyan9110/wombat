@@ -17,7 +17,7 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。
 
 ## 开始使用
 
-**正式版：[`v0.1.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0)。**
+**正式版：[`v0.1.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.1)。**
 
 Wombat 支持 macOS、Linux 和 Windows，无需开发工具或 API Key。
 

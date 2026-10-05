@@ -1,12 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {nativeTargets} from './native-platforms.ts';
-import {renderReleaseNotes, validateReleaseSet} from './generate-release-notes.ts';
+import {parseReleaseNotesArgs, renderReleaseNotes, validateReleaseSet} from './generate-release-notes.ts';
 
 const set = {
   format: 1 as const, version: '0.1.0', source: 'a'.repeat(40), sourceSha256: 'b'.repeat(64), candidateOnly: false,
   targets: [...nativeTargets], assets: nativeTargets.map(target => ({target, archive: `wombat-${target}.tar.gz`, sha256: 'c'.repeat(64), bytes: 10})),
 };
+test('release notes accept package-script argument forwarding and reject missing or unknown options', () => {
+  const args = ['--set', 'release-set.json', '--output', 'notes.md'];
+  for (const argv of [args, ['--', ...args]]) {
+    assert.deepEqual(parseReleaseNotesArgs(argv), {set: 'release-set.json', output: 'notes.md'});
+  }
+  assert.throws(() => parseReleaseNotesArgs(['--', '--set', 'release-set.json']), /Usage:/);
+  assert.throws(() => parseReleaseNotesArgs(['--', ...args, '--unknown']), /Unknown option/);
+});
 test('renders complete English stable release notes from verified release facts', () => {
   const notes = renderReleaseNotes({version: '0.1.0', summary: 'Stable summary.', highlights: ['One'], knownLimitations: ['Limit']}, set, 'owner/repo', 'v0.1.0-beta.1');
   assert.match(notes, /# Wombat v0\.1\.0/); assert.match(notes, /install\.sh \| sh\n/);

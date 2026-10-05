@@ -196,6 +196,8 @@ jobs:
         with:
           subject-path: candidate/wombat-*.tar.gz
       - name: Generate English release notes from the verified candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           npm install --global corepack@0.33.0 --force
           corepack pnpm release:notes -- --set candidate/release-set.json --output candidate/RELEASE_NOTES.md

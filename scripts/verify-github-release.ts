@@ -14,10 +14,10 @@ import {releaseNodeVersion, type GitHubReleaseSet} from './github-release.ts';
 import {nodeRuntimeBinary} from './native-platforms.ts';
 import {repositorySlug} from './release-policy.ts';
 import {toolCommand} from './run-tool.ts';
-import {previousReleaseTag} from './release-history.ts';
+import {previousReleaseTag, readPublishedReleaseTags} from './release-history.ts';
 import {updateInstalled} from '../cli/src/update-cli.ts';
 
-const {values} = parseArgs({options: {set: {type: 'string'}}});
+const {values} = parseArgs({args: process.argv.slice(2).filter(arg => arg !== '--'), options: {set: {type: 'string'}}});
 assert(values.set, '--set is required');
 const setFile = path.resolve(values.set);
 const set: GitHubReleaseSet = JSON.parse(readFileSync(setFile, 'utf8'));
@@ -47,12 +47,6 @@ async function within<T>(work: Promise<T>, timeoutMs: number, label: string): Pr
   } finally {
     if (timer) clearTimeout(timer);
   }
-}
-function priorReleaseTags(): string[] {
-  const result = spawnSync('git', ['tag', '--merged', 'HEAD', '--sort=-creatordate'],
-    {encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024});
-  assert.ifError(result.error); assert.equal(result.status, 0, result.stderr);
-  return result.stdout.split(/\r?\n/).filter(Boolean);
 }
 function validatePublishedRelease(directory: string, tag: string, targetArchive: string): boolean {
   try {
@@ -145,7 +139,7 @@ try {
   } else assert.equal(JSON.parse(run(launcher, ['--version', '--json'])).version, set.version);
 
   stage('previous-release download and clean install');
-  const previousTag = previousReleaseTag(priorReleaseTags(), set.version);
+  const previousTag = previousReleaseTag(readPublishedReleaseTags(repository), set.version);
   assert(previousTag, `No previous public release tag is available for the ${set.version} upgrade test`);
   stage(`selected ${previousTag} as the preceding public release`);
   const previousArchive = `wombat-${target}.tar.gz`;

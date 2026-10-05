@@ -3,7 +3,8 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { checkedSourceRevision, currentNativeTarget, nativeBinary, nativeNotices, nodeRuntimeBinary, nodeRuntimeNotice, resolveNodeRuntimeLicense, sha256 } from './native-platforms.ts';
 import { releaseNodeVersion } from './github-release.ts';
-const { values } = parseArgs({ options: { output: { type: 'string', default: 'dist/native-artifacts' }, 'runtime-license': {type: 'string'} } });
+const { values } = parseArgs({ args: process.argv.slice(2).filter(arg => arg !== '--'),
+  options: { output: { type: 'string', default: 'dist/native-artifacts' }, 'runtime-license': {type: 'string'} } });
 import {checkBuild} from './build-identity.ts';
 checkBuild(process.cwd());
 const target = currentNativeTarget();

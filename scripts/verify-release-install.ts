@@ -12,7 +12,8 @@ const steps: Array<[string, string, string[]]> = [
   ['Initial scan and language regressions', process.execPath, ['--import', 'tsx', '--test',
     '--test-name-pattern=real CLI refresh, usage, threads, turns and steps conserve|language changes presentation',
     'tests/e2e/cli-blackbox.test.ts']],
-  ['Managed update regressions', process.execPath, ['--import', 'tsx', '--test', 'cli/tests/update.test.ts']],
+  ['Managed installation diagnostics and update regressions', process.execPath, ['--import', 'tsx', '--test',
+    'cli/tests/doctor.test.ts', 'cli/tests/update.test.ts']],
   ['Package, install, upgrade and Web acceptance', 'corepack', ['pnpm', 'github:pack', '--', '--current-platform', '--reuse-build']],
 ];
 for (const [label, program, args] of steps) {

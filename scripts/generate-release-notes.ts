@@ -1,11 +1,10 @@
-import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 import type {GitHubReleaseSet} from './github-release.ts';
 import {nativeTargets} from './native-platforms.ts';
-import {previousReleaseTag} from './release-history.ts';
+import {previousReleaseTag, readPublishedReleaseTags} from './release-history.ts';
 import {repositorySlug} from './release-policy.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -42,14 +41,20 @@ export function renderReleaseNotes(input: ReleaseNotesInput, set: GitHubReleaseS
   return `# Wombat ${tag}\n\n${input.summary}\n\n## Highlights\n\n${list(input.highlights)}\n\n## Install or update\n\nmacOS and Linux:\n\n\`\`\`sh\ncurl -fsSL https://raw.githubusercontent.com/${repository}/main/install.sh${installSuffix}\n\`\`\`\n\nWindows PowerShell:\n\n\`\`\`powershell\n${windowsCommand}\n\`\`\`\n\nUpdate an installer-managed copy:\n\n\`\`\`sh\n${update}\n\`\`\`\n\nSupported archives: ${set.targets.join(', ')}.\n\n## Known limitations\n\n${list(input.knownLimitations)}\n\n## Verification and security\n\nAll five archives were built and exercised on their target platforms from commit \`${set.source}\`. Installers and updates verify the published size and SHA-256 digest before switching versions. GitHub provides build provenance attestations for the platform archives. Wombat reads local sources without changing them; network behavior and native handoff follow the documented privacy boundaries.\n\n## Feedback and changes\n\nReport problems in [GitHub Issues](https://github.com/${repository}/issues). Private security reports should follow the [security policy](https://github.com/${repository}/security/policy).\n\n${compare}\n`;
 }
 
-function main(): void {
-  const {values} = parseArgs({options: {set: {type: 'string'}, output: {type: 'string'}}});
+export function parseReleaseNotesArgs(argv: string[]): {set: string; output: string} {
+  const {values} = parseArgs({args: argv.filter(arg => arg !== '--'),
+    options: {set: {type: 'string'}, output: {type: 'string'}}});
   if (!values.set || !values.output) throw new Error('Usage: corepack pnpm release:notes -- --set <release-set.json> --output <notes.md>');
+  return {set: values.set, output: values.output};
+}
+
+function main(): void {
+  const values = parseReleaseNotesArgs(process.argv.slice(2));
   const set = JSON.parse(readFileSync(path.resolve(values.set), 'utf8')) as GitHubReleaseSet;
   const input = JSON.parse(readFileSync(path.join(root, 'scripts/release-notes', `${set.version}.json`), 'utf8')) as ReleaseNotesInput;
   const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')) as {repository: string | {url: string}};
   const repository = repositorySlug(typeof pkg.repository === 'string' ? pkg.repository : pkg.repository.url);
-  const tags = execFileSync('git', ['tag', '--merged', 'HEAD', '--sort=-version:refname'], {cwd: root, encoding: 'utf8'}).split(/\r?\n/);
+  const tags = readPublishedReleaseTags(repository);
   const notes = renderReleaseNotes(input, set, repository, previousReleaseTag(tags, set.version));
   if (/\b(?:TODO|TBD|NEXT_PREVIEW_VERSION)\b/.test(notes)) throw new Error('Generated release notes contain an unresolved placeholder');
   writeFileSync(path.resolve(values.output), notes);
