@@ -117,6 +117,8 @@ jobs:
           path: native-artifacts
           merge-multiple: true
       - name: Assemble archives
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
@@ -163,7 +165,9 @@ jobs:
         run: |
           npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
-      - run: node scripts/verify-github-release.ts --set candidate/release-set.json
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/verify-github-release.ts --set candidate/release-set.json
 
   publish:
     name: Publish GitHub Release

@@ -19,10 +19,10 @@ const {values} = parseArgs({args: process.argv.slice(2).filter(arg => arg !== '-
 if (Boolean(values['native-dir']) === values['current-platform'])
   throw new Error('Choose --native-dir <five-platform-artifacts> or --current-platform');
 
-function run(program: string, args: string[], cwd = root, stream = false): string {
+function run(program: string, args: string[], cwd = root, stream = false, timeout = 900_000): string {
   const result = spawnSync(...toolCommand(program, args), stream
-    ? {cwd, stdio: 'inherit', timeout: 900_000}
-    : {cwd, encoding: 'utf8', timeout: 900_000, maxBuffer: 16 * 1024 * 1024});
+    ? {cwd, stdio: 'inherit', timeout}
+    : {cwd, encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024});
   if (result.error || result.status !== 0)
     throw new Error(`${program}: ${result.error?.message ?? result.stderr ?? result.status}`);
   return typeof result.stdout === 'string' ? result.stdout : '';
@@ -108,6 +108,6 @@ for (const target of targets) {
 set.assets.sort((a, b) => a.target.localeCompare(b.target));
 writeFileSync(path.join(output, 'release-set.json'), JSON.stringify(set, null, 2) + '\n');
 writeFileSync(path.join(output, 'SHA256SUMS'), set.assets.map(asset => `${asset.sha256}  ${asset.archive}`).join('\n') + '\n');
-run(process.execPath, [path.join(root, 'scripts', 'verify-github-release.ts'), '--set', path.join(output, 'release-set.json')], root, true);
+run(process.execPath, [path.join(root, 'scripts', 'verify-github-release.ts'), '--set', path.join(output, 'release-set.json')], root, true, 1_800_000);
 checkBuild(root);
 console.log(`GitHub Release candidate: ${output}\n${set.assets.length} platform archive(s), checksums, and clean extraction verified. No upload performed.`);
