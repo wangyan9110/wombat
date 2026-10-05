@@ -63,6 +63,20 @@ test('stopping a detail reader prevents late evidence from completing after a ta
 test('execution preview renders the production loading entry without an alternate fake input model',async()=>{
  const {ExecutionPreview}=await import('../src/preview/execution.js');const html=renderToStaticMarkup(createElement(ExecutionPreview,{scenario:'complete'}));assert.match(html,/role="status"/);assert.match(html,/execution/);assert.doesNotMatch(html,/<strong>10000 ms<\/strong>/);
 });
+test('execution preview validates full snapshot metadata and commits a fixed turn group through the public client',async()=>{
+ const {createExecutionPreviewClient}=await import('../src/preview/execution.js');const {TurnReadGroup}=await import('../src/useTiming.js');
+ const request={action:'turns',snapshotId:'preview:2',threadId:'preview-task',scope:{allTime:true,timezone:'UTC'}} as const;
+ for(const scenario of ['complete','running','missing','dense','cancelled','interrupted','failed','empty'] as const){
+  const client=createExecutionPreviewClient(scenario),usage=await client.query(request);
+  assert.deepEqual(usage.snapshotRef,{...usageFixture(request,scenario).snapshotRef,snapshotId:'preview:2'});
+  const group=new TurnReadGroup(client);await group.read(request,'preview-turn');const state=group.getSnapshot();
+  assert.equal(state.errorCode,undefined);assert.equal(state.loading,false);assert.equal(state.usage?.snapshotRef.snapshotId,'preview:2');
+  if(scenario==='empty')assert.equal(state.summary,undefined);else assert.equal(state.summary?.readView.snapshotId,'preview:2');
+  group.stop();
+ }
+ const failed=new TurnReadGroup(createExecutionPreviewClient('error'));await failed.read(request,'preview-turn');
+ assert.equal(failed.getSnapshot().errorCode,'SOURCE_UNREADABLE');assert.equal(failed.getSnapshot().summary,undefined);failed.stop();
+});
 test('switching from a pending located interval to an unlocatable interval invalidates and aborts the old read',async()=>{
  const {TimingDetailSelection}=await import('../src/tasks/TurnExecution.js');let release!:()=>void,signal:AbortSignal|undefined;const calls:unknown[]=[];const timing=previewTiming('complete');
  const reader=new TimingDetailReader({query:async q=>usageFixture(q,'complete'),timing:async(q,options)=>{calls.push(q);signal=options?.signal;await new Promise<void>(resolve=>{release=resolve;});return timing(q);}},'preview:fixed','preview-task','preview-turn');
