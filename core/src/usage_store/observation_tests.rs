@@ -55,16 +55,30 @@ fn memory_and_fixed_views_keep_safe_observations() {
     let old = save_at(root.path(), facts.clone()).unwrap();
     let fixed = load_at(root.path(), Some(&old.manifest.snapshot_ref.snapshot_id)).unwrap();
     for snapshot in [&live, &old, &fixed] {
+        let manifest = serde_json::to_value(&snapshot.manifest).unwrap();
+        for &kind in crate::observation_versions::ObservationHeaderSet::Snapshot.kinds() {
+            assert_eq!(manifest[kind.field()], serde_json::json!(kind.current()));
+        }
+        assert!(manifest.get("observationVersions").is_none());
         assert_eq!(
-            snapshot.manifest.message_observation_version,
+            snapshot
+                .manifest
+                .observation_versions
+                .message_observation_version,
             crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION
         );
         assert_eq!(
-            snapshot.manifest.operation_observation_version,
+            snapshot
+                .manifest
+                .observation_versions
+                .operation_observation_version,
             crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION
         );
         assert_eq!(
-            snapshot.manifest.measurement_observation_version,
+            snapshot
+                .manifest
+                .observation_versions
+                .measurement_observation_version,
             crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION
         );
         assert_eq!(

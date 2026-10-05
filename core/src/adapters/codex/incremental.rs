@@ -375,48 +375,29 @@ pub(crate) fn sync_cached(
     if crate::live_index::has_scope(db, &scope)? {
         // Reject an unavailable mapping before materializing any future parser
         // payload, whose shape may be beyond this version's JSON decoding limits.
-        for (field, version, message) in [
-            (
-                "operationObservationVersion",
-                OPERATION_OBSERVATION_VERSION,
-                "不支持此操作结果观察映射",
-            ),
-            (
-                "eventObservationVersion",
-                crate::session_events::EVENT_VERSION,
-                "不支持此事件观察格式",
-            ),
-            (
-                "titleObservationVersion",
-                crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
-                "不支持此标题观察格式",
-            ),
-            (
-                "workObservationVersion",
-                WORK_OBSERVATION_VERSION,
-                "不支持此来源工作观察映射",
-            ),
-            (
-                "messageObservationVersion",
-                MESSAGE_OBSERVATION_VERSION,
-                "不支持此来源消息观察映射",
-            ),
-            (
-                "measurementObservationVersion",
-                MEASUREMENT_OBSERVATION_VERSION,
-                "不支持此来源计量观察映射",
-            ),
-            (
-                "watermarkVersion",
-                WATERMARK_FORMAT_VERSION,
+        crate::observation_versions::ObservationHeaderSet::Parser.validate_index(
+            |field| crate::live_index::scalar(db, &scope, field),
+            |kind| match kind {
+                crate::observation_versions::ObservationKind::Operation => {
+                    "不支持此操作结果观察映射"
+                }
+                crate::observation_versions::ObservationKind::Event => "不支持此事件观察格式",
+                crate::observation_versions::ObservationKind::Title => "不支持此标题观察格式",
+                crate::observation_versions::ObservationKind::Work => "不支持此来源工作观察映射",
+                crate::observation_versions::ObservationKind::Message => "不支持此来源消息观察映射",
+                crate::observation_versions::ObservationKind::Measurement => {
+                    "不支持此来源计量观察映射"
+                }
+            },
+        )?;
+        if crate::live_index::scalar(db, &scope, "watermarkVersion")?
+            .and_then(|value| value.as_u64())
+            != Some(u64::from(WATERMARK_FORMAT_VERSION))
+        {
+            return Err(crate::dto::operation_error(
+                "UNSUPPORTED_VERSION",
                 "不支持此来源水位格式",
-            ),
-        ] {
-            if crate::live_index::scalar(db, &scope, field)?.and_then(|value| value.as_u64())
-                != Some(u64::from(version))
-            {
-                return Err(crate::dto::operation_error("UNSUPPORTED_VERSION", message));
-            }
+            ));
         }
     }
     let previous = crate::live_index::load_map(db, &scope)?;
@@ -714,19 +695,15 @@ pub(crate) fn sync_cached(
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
-    let metadata = serde_json::json!({
-        "operationObservationVersion": OPERATION_OBSERVATION_VERSION,
-        "eventObservationVersion": crate::session_events::EVENT_VERSION,
-        "titleObservationVersion": crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+    let mut metadata = serde_json::json!({
         "watermarkVersion": WATERMARK_FORMAT_VERSION,
-        "messageObservationVersion": MESSAGE_OBSERVATION_VERSION,
-        "measurementObservationVersion": MEASUREMENT_OBSERVATION_VERSION,
-        "workObservationVersion": WORK_OBSERVATION_VERSION,
         "checkpoints": checkpoints,
         "missing": missing,
         "titleStamp": title_stamp,
         "sourceVersions": report.source_versions
     });
+    crate::observation_versions::ObservationHeaderSet::Parser
+        .write_json(metadata.as_object_mut().expect("metadata is an object"));
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();

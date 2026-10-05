@@ -42,16 +42,18 @@ impl TitleObservation {
     }
 }
 
-pub(crate) fn check_headers(raw: &serde_json::Value) -> Result<()> {
-    if raw["eventObservationVersion"].as_u64() != Some(u64::from(super::EVENT_VERSION))
-        || raw["titleObservationVersion"].as_u64() != Some(u64::from(TITLE_OBSERVATION_VERSION))
-        || raw
-            .get("titleObservations")
-            .and_then(serde_json::Value::as_array)
-            .is_none()
+pub(crate) fn check_rows(raw: &serde_json::Value) -> Result<()> {
+    if raw
+        .get("titleObservations")
+        .and_then(serde_json::Value::as_array)
+        .is_none()
         || raw["titleObservations"].as_array().is_some_and(|rows| {
-            rows.iter()
-                .any(|row| row["version"].as_u64() != Some(u64::from(TITLE_OBSERVATION_VERSION)))
+            rows.iter().any(|row| {
+                row["version"].as_u64()
+                    != Some(u64::from(
+                        crate::observation_versions::ObservationKind::Title.current(),
+                    ))
+            })
         })
     {
         return Err(crate::dto::operation_error(

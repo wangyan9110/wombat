@@ -175,17 +175,10 @@ pub(super) fn save_with_prices(
     if !by_thread.is_empty() {
         return Err(operation_error("INVALID_FACTS", "存在没有对话元数据的记录"));
     }
+    let observation_versions = crate::observation_versions::SnapshotObservationVersions::current();
     let manifest = Manifest {
         schema_version: 4,
-        event_observation_version: crate::session_events::EVENT_VERSION,
-        message_observation_version:
-            crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
-        measurement_observation_version:
-            crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
-        operation_observation_version:
-            crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
-        title_observation_version:
-            crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+        observation_versions,
         title_observations: collected.title_observations,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,
@@ -284,37 +277,17 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     if raw["schemaVersion"] != 4 {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
     }
-    if raw["messageObservationVersion"].as_u64()
-        != Some(u64::from(
-            crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
-        ))
-    {
-        return Err(operation_error(
-            "UNSUPPORTED_VERSION",
-            "不支持此消息观察映射",
-        ));
-    }
-    crate::session_events::title_observations::check_headers(&raw)?;
-    if raw["operationObservationVersion"].as_u64()
-        != Some(u64::from(
-            crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
-        ))
-    {
-        return Err(operation_error(
-            "UNSUPPORTED_VERSION",
-            "不支持此操作结果观察映射",
-        ));
-    }
-    if raw["measurementObservationVersion"].as_u64()
-        != Some(u64::from(
-            crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
-        ))
-    {
-        return Err(operation_error(
-            "UNSUPPORTED_VERSION",
-            "不支持此计量观察映射",
-        ));
-    }
+    crate::observation_versions::ObservationHeaderSet::Snapshot.validate_json(&raw, |kind| {
+        use crate::observation_versions::ObservationKind;
+        match kind {
+            ObservationKind::Event | ObservationKind::Title => "不支持此快照来源观察格式",
+            ObservationKind::Message => "不支持此消息观察映射",
+            ObservationKind::Operation => "不支持此操作结果观察映射",
+            ObservationKind::Measurement => "不支持此计量观察映射",
+            ObservationKind::Work => "不支持此快照来源观察格式",
+        }
+    })?;
+    crate::session_events::title_observations::check_rows(&raw)?;
     super::events::check_index_version(raw["events"]["version"].as_u64())?;
     super::native_boundary::check_versions(&raw["events"])?;
     super::use_metadata::check_headers(&raw)?;

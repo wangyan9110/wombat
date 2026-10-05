@@ -12,6 +12,7 @@ mod live_index;
 #[cfg(windows)]
 mod live_windows;
 mod log_io;
+pub(crate) mod observation_versions;
 mod optimize;
 pub mod optimize_dto;
 pub mod preferences;

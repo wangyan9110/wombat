@@ -119,17 +119,10 @@ pub(crate) fn memory(
         return Err(operation_error("INVALID_FACTS", "存在没有对话元数据的记录"));
     }
     let (events, live_events) = super::events::memory_events(collected.events)?;
+    let observation_versions = crate::observation_versions::SnapshotObservationVersions::current();
     let manifest = Manifest {
         schema_version: 4,
-        event_observation_version: crate::session_events::EVENT_VERSION,
-        message_observation_version:
-            crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
-        measurement_observation_version:
-            crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
-        operation_observation_version:
-            crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
-        title_observation_version:
-            crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+        observation_versions,
         title_observations: collected.title_observations,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,

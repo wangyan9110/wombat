@@ -116,41 +116,10 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
 fn validate_message_mapping(db: &rusqlite::Connection, key: &str) -> Result<()> {
     let scope = format!("projection:{key}");
     if crate::live_index::has_scope(db, &scope)? {
-        for (field, version) in [
-            (
-                "operationObservationVersion",
-                adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
-            ),
-            (
-                "eventObservationVersion",
-                crate::session_events::EVENT_VERSION,
-            ),
-            (
-                "titleObservationVersion",
-                crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
-            ),
-            (
-                "workObservationVersion",
-                adapters::codex::incremental::WORK_OBSERVATION_VERSION,
-            ),
-            (
-                "messageObservationVersion",
-                adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
-            ),
-            (
-                "measurementObservationVersion",
-                adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
-            ),
-        ] {
-            if crate::live_index::scalar(db, &scope, field)?.and_then(|value| value.as_u64())
-                != Some(u64::from(version))
-            {
-                return Err(operation_error(
-                    "UNSUPPORTED_VERSION",
-                    "不支持此投影来源观察映射",
-                ));
-            }
-        }
+        crate::observation_versions::ObservationHeaderSet::Projection.validate_index(
+            |field| crate::live_index::scalar(db, &scope, field),
+            |_| "不支持此投影来源观察映射",
+        )?;
     }
     Ok(())
 }
@@ -286,34 +255,10 @@ pub(super) fn sync(
                 "",
                 &WATERMARK_FORMAT_VERSION,
             )?;
-            crate::live_index::put(
-                &tx,
-                &scope,
-                "operationObservationVersion",
-                "",
-                &adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
-            )?;
-            crate::live_index::put(
-                &tx,
-                &scope,
-                "messageObservationVersion",
-                "",
-                &adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
-            )?;
-            crate::live_index::put(
-                &tx,
-                &scope,
-                "measurementObservationVersion",
-                "",
-                &adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION,
-            )?;
-            crate::live_index::put(
-                &tx,
-                &scope,
-                "workObservationVersion",
-                "",
-                &adapters::codex::incremental::WORK_OBSERVATION_VERSION,
-            )?;
+            for &kind in crate::observation_versions::ObservationHeaderSet::Projection.kinds() {
+                let version = kind.current();
+                crate::live_index::put(&tx, &scope, kind.field(), "", &version)?;
+            }
             crate::live_index::replace_field(
                 &tx,
                 &scope,
@@ -330,20 +275,6 @@ pub(super) fn sync(
                     )?;
                 };
             }
-            crate::live_index::put(
-                &tx,
-                &scope,
-                "eventObservationVersion",
-                "",
-                &crate::session_events::EVENT_VERSION,
-            )?;
-            crate::live_index::put(
-                &tx,
-                &scope,
-                "titleObservationVersion",
-                "",
-                &crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
-            )?;
             crate::live_index::replace_field(
                 &tx,
                 &scope,

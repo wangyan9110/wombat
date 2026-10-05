@@ -51,11 +51,8 @@ pub struct ThreadEntry {
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub schema_version: u32,
-    pub event_observation_version: u32,
-    pub message_observation_version: u32,
-    pub measurement_observation_version: u32,
-    pub operation_observation_version: u32,
-    pub title_observation_version: u32,
+    #[serde(flatten)]
+    pub(crate) observation_versions: crate::observation_versions::SnapshotObservationVersions,
     pub title_observations: Vec<crate::session_events::title_observations::TitleObservation>,
     pub snapshot_ref: SnapshotRef,
     pub price_revision: String,
