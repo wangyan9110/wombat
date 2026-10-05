@@ -25,8 +25,8 @@ Node 客户端和本地服务使用协议 2，并隔离接口地址与服务锁�
 
 `@wombat/client/http` 导出 `createHttpClient({ origin, token })`，实现同一 `UsageClient`，校验结果并保留进度、取消和错误。浏览器不直接访问内核；仅向本机宿主发送窄操作。
 
-本地 Web 宿主已实现 `/api/timing`；范围和版本授权见 [Web 宿主](../web/README.md)。CLI 已提供耗时摘要、证据和能力查询，见[CLI 指南](../docs/guides/cli.md)；耗时 UI 尚未实现，真实内核与浏览器联调尚未验收。
+本地 Web 宿主已实现 `/api/timing`；范围和版本授权见 [Web 宿主](../web/README.md)。CLI 已提供耗时摘要、证据和能力查询，见[CLI 指南](../docs/guides/cli.md)；共享耗时 UI 已接入；真实内核与浏览器联调尚未验收。
 
-`UsageClient.config` 提供配置测量和证据，`optimize` 提供静态建议、用户记录和人工复查，`preferences` 只读取/保存 zh/en。三者由 Rust 生成 v1 契约，Node/HTTP 并列实现；详见[公共契约](../docs/development/contracts.md)。
+`UsageClient.config` 提供配置测量和证据，`optimize` 提供静态建议、用户记录和人工复查，`preferences` 只读取/保存 zh/en。配置对象和后续观察携带共用的类型化 `useBasis`，保留固定范围、方法、来源完整性、五维覆盖，以及不可用与已知零次的区别。`@wombat/client/locale` 为 CLI/UI 解释这些字段，不重算次数或推断历史采用。三者由 Rust 生成 v1 契约，Node/HTTP 并列实现；详见[公共契约](../docs/development/contracts.md)。
 
 `createNodeClient({automaticPrices:false})`只关闭客户端的自动补价装饰，显式prices操作仍可用。CLI实时查询默认保留原行为；Web使用此原始客户端并由宿主持有后台补价生命周期。

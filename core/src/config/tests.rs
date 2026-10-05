@@ -169,7 +169,7 @@ fn declarations_and_catalogs_do_not_count_or_keep_cached_used_observations() {
     ]);
     let result = execute(uses_request(), "config:uses".into(), &v).unwrap();
     let item = &result.items[0];
-    assert_eq!(item.usage_count, None);
+    assert_eq!(item.usage_count, Some(0));
     assert_eq!(item.observation, Observation::Unknown);
     assert_eq!(item.counts.file_reads, 0);
     assert_eq!((item.related_turns, item.related_tasks), (0, 0));
@@ -567,5 +567,110 @@ fn replay_missing_time_is_visible_in_both_orders_and_only_window_count_is_unknow
         };
         let filtered = execute(request, "config:time-replay-window".into(), &v).unwrap();
         assert_eq!(filtered.items[0].usage_count, None);
+    }
+}
+
+#[test]
+fn public_use_basis_binds_the_scalar_to_fixed_scope_and_unknown_coverage() {
+    for (mut op, expected) in [
+        (
+            use_operation("known", "skillRead", "failed"),
+            UseBasisStatus::Observed,
+        ),
+        (
+            use_operation("candidate", "skillRead", "completed"),
+            UseBasisStatus::Unknown,
+        ),
+    ] {
+        if expected == UseBasisStatus::Unknown {
+            op.name = "read_skill_file".into();
+        }
+        let v = use_view(vec![op]);
+        let mut request = uses_request();
+        request.scope.thread_id = Some("thread".into());
+        let result = execute(request, "config:basis".into(), &v).unwrap();
+        let item = &result.items[0];
+        let basis = item.use_basis.as_ref().unwrap();
+        assert_eq!(basis.method_version, 2);
+        assert_eq!(basis.status, expected);
+        assert_eq!(basis.captured_at, v.checked);
+        assert_eq!(basis.snapshot_id, result.usage_revision);
+        assert_eq!(basis.scope.source_instance_ids, ["source"]);
+        assert_eq!(basis.scope.thread_id.as_deref(), Some("thread"));
+        assert_eq!(basis.scope.window, UseWindow::AllHistory);
+        assert_eq!(basis.time_basis, UseTimeBasis::SourceOperationTime);
+        assert_eq!(basis.source_completeness, UseSourceCompleteness::Unknown);
+        assert_eq!(
+            basis.coverage.dispatch_gaps,
+            Some(u64::from(expected == UseBasisStatus::Unknown))
+        );
+        assert_eq!(
+            item.usage_count,
+            (expected == UseBasisStatus::Observed).then_some(1)
+        );
+    }
+}
+#[test]
+fn public_use_basis_preserves_known_zero_and_unavailable_is_not_zero_coverage() {
+    let mut v = use_view(vec![]);
+    let result = execute(uses_request(), "config:zero".into(), &v).unwrap();
+    assert_eq!(result.items[0].usage_count, Some(0));
+    assert_eq!(
+        result.items[0].use_basis.as_ref().unwrap().status,
+        UseBasisStatus::Observed
+    );
+    v.snapshot = None;
+    let result = execute(Request::default(), "config:unavailable".into(), &v).unwrap();
+    assert_eq!(result.items[0].usage_count, None);
+    let basis = result.items[0].use_basis.as_ref().unwrap();
+    assert_eq!(basis.status, UseBasisStatus::Unavailable);
+    assert_eq!(basis.coverage.identity_gaps, None);
+    assert_eq!(
+        basis.scope.window,
+        UseWindow::DateWindow {
+            since: "2026-09-02".into(),
+            until: "2026-10-02".into(),
+            timezone: "UTC".into()
+        }
+    );
+}
+
+#[test]
+fn catalog_time_and_unselected_project_time_do_not_pollute_public_use_basis() {
+    for kind in ["skillAvailable", "skillRead"] {
+        let mut op = use_operation("outside", kind, "completed");
+        op.timestamp = None;
+        let mut v = use_view(vec![op]);
+        Arc::get_mut(v.snapshot.as_mut().unwrap())
+            .unwrap()
+            .manifest
+            .sources
+            .push(crate::adapters::contract::SourceReport {
+                source: crate::adapters::contract::SourceInstance {
+                    id: "source".into(),
+                    agent_kind: "codex".into(),
+                    root: "/synthetic".into(),
+                },
+                adapter_version: "synthetic".into(),
+                source_versions: vec![],
+                capabilities: Default::default(),
+                status: "complete".into(),
+                files_read: 1,
+                bytes_read: 1,
+                issues: vec![],
+            });
+        let mut request = Request::default();
+        if kind == "skillRead" {
+            let project = "/synthetic/selected";
+            v.projects.push(project.into());
+            request.scope.project = Some(project.into());
+        }
+        let result = execute(request, "config:scope".into(), &v).unwrap();
+        let item = &result.items[0];
+        assert_eq!(item.usage_count, Some(0));
+        let basis = item.use_basis.as_ref().unwrap();
+        assert_eq!(basis.coverage.time_gaps, Some(0));
+        assert_eq!(basis.status, UseBasisStatus::Observed);
+        assert_eq!(basis.source_completeness, UseSourceCompleteness::Complete);
     }
 }

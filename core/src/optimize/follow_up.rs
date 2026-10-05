@@ -108,6 +108,34 @@ pub(super) fn observe(
             after: suggestion.checked_at.clone(),
             observed_at: view.checked.clone(),
             observed_records: None,
+            use_basis: Some(usage_observations::basis(
+                None,
+                if suggestion.item.kind == Kind::Rule {
+                    crate::config_dto::UseUnit::RuleRead
+                } else {
+                    crate::config_dto::UseUnit::ObjectUse
+                },
+                crate::config_dto::UseScope {
+                    source_instance_ids: item
+                        .unwrap_or(&suggestion.item)
+                        .source_ids()
+                        .filter(|id| source.is_none_or(|source| source == *id))
+                        .map(str::to_owned)
+                        .collect::<BTreeSet<_>>()
+                        .into_iter()
+                        .collect(),
+                    project: suggestion.scope_project.clone(),
+                    thread_id: None,
+                    agent_kind: None,
+                    window: crate::config_dto::UseWindow::FollowUp {
+                        after: suggestion.checked_at.clone(),
+                        through: view.checked.clone(),
+                    },
+                },
+                &view.checked,
+                view.snapshot.as_deref(),
+                true,
+            )),
             last_record_at: None,
             usage_revision: view
                 .snapshot
@@ -340,6 +368,22 @@ pub(super) fn observe(
         }
     }
     for (index, projection) in projections.iter().enumerate() {
+        if !contexts[index].available {
+            continue;
+        }
+        let basis = out[index]
+            .use_basis
+            .as_ref()
+            .expect("fixed observation basis");
+        out[index].use_basis = Some(usage_observations::basis(
+            Some(projection),
+            basis.unit.clone(),
+            basis.scope.clone(),
+            &view.checked,
+            view.snapshot.as_deref(),
+            true,
+        ));
+        out[index].observed_records = projection.count(true);
         match projection.count(true) {
             None => out[index].status = FollowUpStatus::Unavailable,
             Some(0) => {}

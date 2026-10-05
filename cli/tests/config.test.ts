@@ -34,3 +34,15 @@ test('product reminder overrides cannot change specification thresholds',async()
  assert.deepEqual(parseOptimizeArgs(['list','--agents-bytes','20000','--description-characters','1024']).request.ruleOverrides,{agentsBytes:20000,descriptionCharacters:1024});
  for(const args of [['--agents-bytes','0'],['--description-characters','1025'],['--description-characters','-1'],['--body-tokens','10000']])assert.throws(()=>parseOptimizeArgs(args));
 });
+
+test('config text uses the core basis to distinguish known zero, missing history and identity gaps', async () => {
+  const { configUseBasisLines } = await import('../src/config-cli.js');
+  const { locale } = await import('@wombat/client/locale');
+  const saved=locale.getSnapshot().locale;
+  const item = {kind:'skill',usageCount:0,counts:{fileReads:0},useBasis:{methodVersion:2,status:'observed',unit:'object_use',capturedAt:'2026-10-04T02:00:00Z',snapshotId:'synthetic',scope:{sourceInstanceIds:['synthetic'],project:'/synthetic\nproject',threadId:null,agentKind:null,window:{kind:'all_history'}},timeBasis:'source_operation_time',coverage:{dispatchGaps:0,identityGaps:0,targetGaps:0,timeGaps:0,turnGaps:0},sourceCompleteness:'partial'}} as import('@wombat/client').ConfigItem;
+  try {for(const language of ['zh','en'] as const){locale.setLocale(language);
+    const known=configUseBasisLines(item);assert.match(known[0],/: 0$/);assert.ok(known.every(line=>!line.includes('\n')));assert.match(known.join(' '),/采集部分完整|collection partially complete/);
+    const unknown=configUseBasisLines({...item,useBasis:{...item.useBasis!,status:'unknown',coverage:{identityGaps:1}}});assert.match(unknown[0],/未知|Unknown/);assert.doesNotMatch(unknown[0],/: 0$/);
+    const unavailable=configUseBasisLines({...item,useBasis:null});assert.match(unavailable[0],/未知|Unknown/);assert.match(unavailable.join(' '),/没有|No fixed/);
+  }}finally{locale.setLocale(saved);}
+});

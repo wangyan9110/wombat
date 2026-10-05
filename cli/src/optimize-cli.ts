@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { CoreError, type OptimizeRequest } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText } from '@wombat/client/locale';
+import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText, useBasisPresentation } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 export function parseOptimizeArgs(argv: string[]) {
   const request: OptimizeRequest={action:'list'}, roots:string[]=[], projects:string[]=[], seen=new Set<string>();
@@ -55,6 +55,7 @@ export async function runOptimizeCli(argv:string[]):Promise<number>{
         process.stdout.write(`  ${presentation.value}\n  ${presentation.metricText??`${presentation.metric??'—'} ${presentation.label}`}\n`);
         for(const f of s.findings)process.stdout.write(`  ${reviewFindingCount(f)??`${reviewFindingLabel(f.rule)}${f.observed==null?'':` ${f.observed}${f.threshold==null?'':` / ${f.threshold}`}`}`}\n  ${reviewFindingNote(f.rule,s.item.project??undefined)}\n`);
         const followUp=result.followUps.find(o=>o.recordId===s.recordId&&o.suggestionId===s.id);
+        if(followUp){const basis=useBasisPresentation(followUp.useBasis);for(const line of [basis.summary,...basis.notes,...basis.details])process.stdout.write(`  ${terminalText(line)}\n`);}
         if(followUp)process.stdout.write(`  ${t('optimize.awaitingFollowUp')}\n  ${followUpText(followUp)}\n  ${t('optimize.followUp.note')}\n`);
       }
       for(const check of result.checks??[])process.stdout.write(`${reviewFindingLabel(check.rule)}\t${t(`optimize.check.${check.outcome}`)}\n`);

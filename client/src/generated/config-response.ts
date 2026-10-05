@@ -3,6 +3,25 @@
 export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
 export type Kind = "rule" | "skill" | "mcp" | "hook";
 export type Observation = "used" | "loaded_only" | "unknown";
+export type UseBasisStatus = "observed" | "unknown" | "unavailable";
+export type UseUnit = "object_use" | "rule_read" | "rule_load_or_read";
+export type UseWindow =
+  | {
+      kind: "all_history";
+    }
+  | {
+      since: string;
+      until: string;
+      timezone: string;
+      kind: "date_window";
+    }
+  | {
+      after: string;
+      through: string;
+      kind: "follow_up";
+    };
+export type UseTimeBasis = "source_operation_time";
+export type UseSourceCompleteness = "complete" | "partial" | "unknown";
 export type HookRegistryStatus = "unavailable" | "partial" | "observed";
 export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
 export type HookHandler = "command" | "mcpTool" | "prompt" | "agent";
@@ -154,6 +173,7 @@ export interface Item {
   bodyTokenEstimate?: ContentEstimate | null;
   bodyEstimateStatus: string;
   usageCount?: number | null;
+  useBasis?: UseBasis | null;
   lastRecordAt?: string | null;
   observation: Observation;
   counts: Counts;
@@ -204,6 +224,37 @@ export interface SkillDiagnostic {
   column?: number | null;
   current?: string | null;
   expected?: string | null;
+}
+export interface UseBasis {
+  methodVersion: number;
+  status: UseBasisStatus;
+  unit: UseUnit;
+  /**
+   * Observer cutoff, distinct from individual event times and source dispatch.
+   */
+  capturedAt: string;
+  snapshotId?: string | null;
+  scope: UseScope;
+  timeBasis: UseTimeBasis;
+  coverage: UseCoverage;
+  /**
+   * Completeness of selected source reports, not proof of all native use mechanisms.
+   */
+  sourceCompleteness: UseSourceCompleteness;
+}
+export interface UseScope {
+  sourceInstanceIds: string[];
+  project?: string | null;
+  threadId?: string | null;
+  agentKind?: string | null;
+  window: UseWindow;
+}
+export interface UseCoverage {
+  dispatchGaps?: number | null;
+  identityGaps?: number | null;
+  targetGaps?: number | null;
+  timeGaps?: number | null;
+  turnGaps?: number | null;
 }
 export interface Evidence {
   id: string;

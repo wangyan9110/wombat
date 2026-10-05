@@ -59,6 +59,7 @@ fn view() -> View {
                 diagnostics: vec![],
             }),
             usage_count: None,
+            use_basis: None,
             last_record_at: None,
             observation: Observation::Unknown,
             counts: Counts::default(),

@@ -503,6 +503,7 @@ pub struct FollowUpObservation {
     pub after: String,
     pub observed_at: String,
     pub observed_records: Option<u64>,
+    pub use_basis: Option<crate::config_dto::UseBasis>,
     pub last_record_at: Option<String>,
     pub usage_revision: Option<String>,
     pub absence_observable: bool,

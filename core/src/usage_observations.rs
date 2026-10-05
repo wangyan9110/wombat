@@ -330,3 +330,64 @@ impl Projection {
 
 #[cfg(test)]
 mod tests;
+
+/// Publish the same projection used for the scalar count; unavailable coverage is not zero.
+pub(crate) fn basis(
+    projection: Option<&Projection>,
+    unit: crate::config_dto::UseUnit,
+    scope: crate::config_dto::UseScope,
+    captured_at: &str,
+    snapshot: Option<&crate::usage_store::Snapshot>,
+    time_filtered: bool,
+) -> crate::config_dto::UseBasis {
+    use crate::config_dto::{
+        UseBasis, UseBasisStatus, UseCoverage, UseSourceCompleteness, UseTimeBasis,
+    };
+    let source_completeness = snapshot.map_or(UseSourceCompleteness::Unknown, |snapshot| {
+        if scope.source_instance_ids.is_empty() {
+            return UseSourceCompleteness::Unknown;
+        }
+        let mut partial = false;
+        for id in &scope.source_instance_ids {
+            let Some(report) = snapshot
+                .manifest
+                .sources
+                .iter()
+                .find(|report| &report.source.id == id)
+            else {
+                return UseSourceCompleteness::Unknown;
+            };
+            partial |= report.status != "complete" || !report.issues.is_empty();
+        }
+        if partial {
+            UseSourceCompleteness::Partial
+        } else {
+            UseSourceCompleteness::Complete
+        }
+    });
+    let gap =
+        |get: fn(&Coverage) -> usize| projection.map(|projection| get(&projection.coverage) as u64);
+    UseBasis {
+        method_version: METHOD_VERSION,
+        status: match projection {
+            None => UseBasisStatus::Unavailable,
+            Some(projection) if projection.count(time_filtered).is_some() => {
+                UseBasisStatus::Observed
+            }
+            Some(_) => UseBasisStatus::Unknown,
+        },
+        unit,
+        captured_at: captured_at.into(),
+        snapshot_id: snapshot.map(|snapshot| snapshot.manifest.snapshot_ref.snapshot_id.clone()),
+        scope,
+        time_basis: UseTimeBasis::SourceOperationTime,
+        coverage: UseCoverage {
+            dispatch_gaps: gap(|coverage| coverage.dispatch_gaps),
+            identity_gaps: gap(|coverage| coverage.identity_gaps),
+            target_gaps: gap(|coverage| coverage.target_gaps),
+            time_gaps: gap(|coverage| coverage.time_gaps),
+            turn_gaps: gap(|coverage| coverage.turn_gaps),
+        },
+        source_completeness,
+    }
+}

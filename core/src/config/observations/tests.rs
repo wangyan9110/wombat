@@ -52,6 +52,7 @@ fn item() -> Item {
         body_token_estimate: None,
         body_estimate_status: "unknown".into(),
         usage_count: None,
+        use_basis: None,
         last_record_at: None,
         observation: Observation::Unknown,
         counts: Counts::default(),

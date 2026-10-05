@@ -1,3 +1,4 @@
+import { UseBasis } from './UseBasis.js';
 import { useState } from 'react';
 import type { ConfigResult, OptimizeSuggestion, UsageClient } from '@wombat/client';
 import { t, relatedActivityText, eventStatusLabel, reviewFindingLabel } from '@wombat/client/locale';
@@ -18,9 +19,10 @@ export function ReviewUsage({client,suggestion,readView,route,navigate,refresh}:
 export function RelatedUsageContent({result,route,navigate,onPage}:{result:ConfigResult;route:Route;navigate:(r:Partial<Route>)=>void;onPage:(n:number)=>void}) {
  const item=result.items[0],historyAvailable=['current','fixed','partial'].includes(result.coverage.historyStatus);
  const uses=item?.kind==='mcp'||item?.kind==='skill';
- const records=uses?item?.usageCount:item?.counts.fileReads;
+ const records=item?.useBasis&&item.useBasis.status!=='observed'?null:uses?item?.usageCount:item?.counts.fileReads;
  const rows=result.evidence;
  return <><dl className="review-metrics"><div><dt>{t(uses?'config.activity':'config.reads')}</dt><dd>{historyAvailable&&records!=null?t(uses?'config.usesCount':'config.fileReadsCount',{count:records}):'—'}</dd></div><div><dt>{t('optimize.relatedTokens')}</dt><dd><Token value={item?.usage?.tokens.total}/></dd></div><div><dt>{t(item?.usage?.price.status==='unknown'?'webui.amountUnknown':'optimize.relatedCost')}</dt><dd>{item?.usage&&item.usage.price.status!=='unknown'?amount(item.usage):'—'}</dd></div></dl><p className="note">{t('optimize.relatedSummary')}</p>
+ {item&&item.kind!=='hook'&&<UseBasis basis={item.useBasis}/>}
  {!historyAvailable?<p className="read-notice">{t('optimize.historyUnavailable')}</p>:records===0?<p>{t('optimize.noAssociation')}</p>:null}
  {historyAvailable&&records==null&&<p className="note">{t('config.coverageNote')}</p>}
  {result.coverage.status==='partial'&&<p className="note">{t('optimize.historyIncomplete')}</p>}

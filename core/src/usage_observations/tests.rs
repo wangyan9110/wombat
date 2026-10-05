@@ -289,3 +289,70 @@ fn scoped_replay_registry_checks_off_target_aliases_without_retaining_unrelated_
     );
     assert_eq!(conflicts, BTreeSet::from([("thread", "selected")]));
 }
+
+#[test]
+fn public_basis_source_completeness_uses_selected_reports_and_never_zeros_missing_coverage() {
+    use crate::config_dto::*;
+    let scope = UseScope {
+        source_instance_ids: vec!["selected".into()],
+        project: None,
+        thread_id: None,
+        agent_kind: None,
+        window: UseWindow::AllHistory,
+    };
+    let temp = tempfile::tempdir().unwrap();
+    let mut snapshot = crate::usage_store::memory(
+        Default::default(),
+        "live:basis".into(),
+        crate::pricing_sync::current_at(temp.path()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let report = |id: &str, status: &str| crate::adapters::contract::SourceReport {
+        source: crate::adapters::contract::SourceInstance {
+            id: id.into(),
+            agent_kind: "codex".into(),
+            root: "/synthetic".into(),
+        },
+        adapter_version: "synthetic".into(),
+        source_versions: vec![],
+        capabilities: Default::default(),
+        status: status.into(),
+        files_read: 0,
+        bytes_read: 0,
+        issues: vec![],
+    };
+    snapshot.manifest.sources = vec![
+        report("selected", "complete"),
+        report("unrelated", "failed"),
+    ];
+    let projection = Projection::default();
+    for (status, expected) in [
+        ("complete", UseSourceCompleteness::Complete),
+        ("partial", UseSourceCompleteness::Partial),
+    ] {
+        snapshot.manifest.sources[0].status = status.into();
+        let value = basis(
+            Some(&projection),
+            UseUnit::ObjectUse,
+            scope.clone(),
+            "2026-10-01T00:00:00Z",
+            Some(&snapshot),
+            false,
+        );
+        assert_eq!(value.source_completeness, expected);
+        assert_eq!(value.status, UseBasisStatus::Observed);
+        assert_eq!(value.coverage.target_gaps, Some(0));
+    }
+    let value = basis(
+        None,
+        UseUnit::ObjectUse,
+        scope,
+        "2026-10-01T00:00:00Z",
+        None,
+        false,
+    );
+    assert_eq!(value.status, UseBasisStatus::Unavailable);
+    assert_eq!(value.coverage.dispatch_gaps, None);
+    assert_eq!(value.source_completeness, UseSourceCompleteness::Unknown);
+}

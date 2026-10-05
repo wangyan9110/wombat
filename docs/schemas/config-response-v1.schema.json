@@ -651,6 +651,16 @@
           "minimum": 0,
           "maximum": 9007199254740991
         },
+        "useBasis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UseBasis"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "lastRecordAt": {
           "type": [
             "string",
@@ -915,6 +925,238 @@
       },
       "required": [
         "code"
+      ]
+    },
+    "UseBasis": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "status": {
+          "$ref": "#/definitions/UseBasisStatus"
+        },
+        "unit": {
+          "$ref": "#/definitions/UseUnit"
+        },
+        "capturedAt": {
+          "description": "Observer cutoff, distinct from individual event times and source dispatch.",
+          "type": "string"
+        },
+        "snapshotId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "$ref": "#/definitions/UseScope"
+        },
+        "timeBasis": {
+          "$ref": "#/definitions/UseTimeBasis"
+        },
+        "coverage": {
+          "$ref": "#/definitions/UseCoverage"
+        },
+        "sourceCompleteness": {
+          "description": "Completeness of selected source reports, not proof of all native use mechanisms.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/UseSourceCompleteness"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "status",
+        "unit",
+        "capturedAt",
+        "scope",
+        "timeBasis",
+        "coverage",
+        "sourceCompleteness"
+      ]
+    },
+    "UseBasisStatus": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "unknown",
+        "unavailable"
+      ]
+    },
+    "UseUnit": {
+      "type": "string",
+      "enum": [
+        "object_use",
+        "rule_read",
+        "rule_load_or_read"
+      ]
+    },
+    "UseScope": {
+      "type": "object",
+      "properties": {
+        "sourceInstanceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "threadId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agentKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "window": {
+          "$ref": "#/definitions/UseWindow"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sourceInstanceIds",
+        "window"
+      ]
+    },
+    "UseWindow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all_history"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "Inclusive local date since, exclusive local date until, in the recorded timezone.",
+          "type": "object",
+          "properties": {
+            "since": {
+              "type": "string"
+            },
+            "until": {
+              "type": "string"
+            },
+            "timezone": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "date_window"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "since",
+            "until",
+            "timezone"
+          ]
+        },
+        {
+          "description": "Exclusive source-operation time after, inclusive captured observer time through.",
+          "type": "object",
+          "properties": {
+            "after": {
+              "type": "string"
+            },
+            "through": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "follow_up"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "after",
+            "through"
+          ]
+        }
+      ]
+    },
+    "UseTimeBasis": {
+      "type": "string",
+      "enum": [
+        "source_operation_time"
+      ]
+    },
+    "UseCoverage": {
+      "type": "object",
+      "properties": {
+        "dispatchGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "identityGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "targetGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "turnGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    },
+    "UseSourceCompleteness": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "unknown"
       ]
     },
     "Evidence": {

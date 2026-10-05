@@ -438,7 +438,7 @@ fn native_multiple_read_candidates_and_reliable_target_conflicts_share_unknown_c
         vec![thread("thread", "source", Some("/project"))],
     );
     for row in observe(&suggestions, &v, None) {
-        assert_eq!(row.observed_records, None);
+        assert_eq!(row.observed_records, Some(0));
         assert_eq!(row.status, FollowUpStatus::NoObservedRecords);
     }
     let a = operation("canonical", "skillRead", &first);
@@ -480,4 +480,49 @@ fn replay_unknown_time_cannot_depend_on_first_record_order_inside_follow_up_wind
         assert_eq!(out[0].status, FollowUpStatus::Unavailable);
         assert_eq!(out[0].observed_records, None);
     }
+}
+
+#[test]
+fn follow_up_basis_retains_original_after_and_captured_cutoff_without_dispatch_claims() {
+    use crate::config_dto::{UseBasisStatus, UseTimeBasis, UseUnit, UseWindow};
+    let object = item("rule", Kind::Rule);
+    let mut op = operation("missing-time", "tool", &object);
+    op.timestamp = None;
+    for operations in [vec![], vec![op]] {
+        let v = single(&object, operations.clone());
+        let output = observe(&[suggestion(&object)], &v, Some("source"));
+        let basis = output[0].use_basis.as_ref().unwrap();
+        assert_eq!(basis.method_version, 2);
+        assert_eq!(basis.unit, UseUnit::RuleRead);
+        assert_eq!(basis.captured_at, CUTOFF);
+        assert_eq!(basis.snapshot_id, output[0].usage_revision);
+        assert_eq!(
+            basis.scope.window,
+            UseWindow::FollowUp {
+                after: AFTER.into(),
+                through: CUTOFF.into()
+            }
+        );
+        assert_eq!(basis.scope.source_instance_ids, ["source"]);
+        assert_eq!(basis.time_basis, UseTimeBasis::SourceOperationTime);
+        if operations.is_empty() {
+            assert_eq!(output[0].observed_records, Some(0));
+            assert_eq!(basis.status, UseBasisStatus::Observed);
+        } else {
+            assert_eq!(output[0].observed_records, None);
+            assert_eq!(basis.status, UseBasisStatus::Unknown);
+            assert_eq!(basis.coverage.time_gaps, Some(1));
+        }
+    }
+    let mut v = single(&object, vec![]);
+    v.snapshot = None;
+    let output = observe(&[suggestion(&object)], &v, None);
+    assert_eq!(
+        output[0].use_basis.as_ref().unwrap().coverage.turn_gaps,
+        None
+    );
+    assert_eq!(
+        output[0].use_basis.as_ref().unwrap().status,
+        UseBasisStatus::Unavailable
+    );
 }

@@ -161,3 +161,5 @@ export { observedCount, inventoryRecordState, sourceReadLabel } from "./observat
 export function configEvidenceLabel(type: string): string {
   switch(type){case 'instruction_load':return t('config.instruction_load');case 'skill_available':return t('config.skill_available');case 'skill_use':return t('config.skill_use');case 'file_read':return t('config.file_read');case 'tool_call':return t('config.tool_call');case 'resource_read':return t('config.resource_read');default:return t('webui.unknown');}
 }
+
+export { useBasisPresentation, type PublicUseBasis } from "./use-basis.js";

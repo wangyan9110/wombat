@@ -66,6 +66,18 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
     // Cached inventory metadata cannot carry a prior query's historical use state.
     for item in &mut items {
         item.usage_count = None;
+        item.use_basis = Some(usage_observations::basis(
+            None,
+            if item.kind == Kind::Rule {
+                UseUnit::RuleLoadOrRead
+            } else {
+                UseUnit::ObjectUse
+            },
+            use_scope(item, &scope),
+            &view.checked,
+            view.snapshot.as_deref(),
+            scope.all_time != Some(true),
+        ));
         item.counts = Counts::default();
         item.observation = Observation::Unknown;
         item.last_record_at = None;
@@ -195,6 +207,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             .collect::<Vec<_>>();
         let mut unassigned_sources = BTreeSet::<String>::new();
         let mut unassigned_skill_sources = BTreeSet::<String>::new();
+        let mut unassigned_rule_sources = BTreeSet::<String>::new();
         let conflicts = usage_observations::target_conflicts(
             || snapshot.operation_facts().map(AsRef::as_ref),
             |op| {
@@ -287,6 +300,21 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             {
                 unassigned_skill_sources.insert(thread.source_instance_id.clone());
             }
+            if reads.as_ref().is_some_and(|reads| {
+                reads.unbound
+                    || reads
+                        .paths
+                        .iter()
+                        .any(|raw| reads.resolve(raw, thread.project.as_deref()).is_none())
+            }) && (in_time(op.timestamp.as_deref(), &scope, tz)
+                || usage_observations::time_basis(op) == TimeBasis::Unknown)
+                && scope
+                    .project
+                    .as_ref()
+                    .is_none_or(|project| thread.project.as_ref() == Some(project))
+            {
+                unassigned_rule_sources.insert(thread.source_instance_id.clone());
+            }
             if read_paths.is_empty() {
                 read_paths.insert(String::new());
             }
@@ -360,7 +388,17 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                     continue;
                 }
                 let n = candidates[0];
-                if usage_observations::time_basis(op) == TimeBasis::Unknown {
+                let projection_evidence = !skill_available
+                    && (reads.is_some()
+                        || use_kind.is_some()
+                        || instruction_load && items[n].kind == Kind::Rule);
+                if projection_evidence
+                    && scope
+                        .project
+                        .as_ref()
+                        .is_none_or(|project| thread.project.as_ref() == Some(project))
+                    && usage_observations::time_basis(op) == TimeBasis::Unknown
+                {
                     item_uses[n].note_time_gap(op);
                 }
                 if let Some(identity) = usage_observations::operation_identity(op)
@@ -535,7 +573,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 }
                 item_rows[n].extend(&indices);
                 item_tasks[n].insert(thread.id.clone());
-                if observed_use {
+                if observed_use || item.kind == Kind::Rule {
                     item_uses[n].observe_with_time_accounted(op);
                 }
                 if let Some(u) = &op.turn_id {
@@ -579,9 +617,15 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 {
                     projection.coverage.target_gaps += 1;
                 }
-                item.usage_count = projection
-                    .count(scope.all_time != Some(true))
-                    .filter(|count| *count > 0);
+                item.usage_count = if snapshot.is_live()
+                    && matches!(
+                        view.history_status.as_str(),
+                        "current" | "fixed" | "partial"
+                    ) {
+                    projection.count(scope.all_time != Some(true))
+                } else {
+                    None
+                };
                 item.related_turns = projection.related_turns();
                 item.related_tasks = projection.related_tasks();
                 for (gap, code) in [
@@ -602,6 +646,43 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                         });
                     }
                 }
+            }
+            if item.kind == Kind::Rule
+                && item
+                    .source_ids()
+                    .any(|source| unassigned_rule_sources.contains(source))
+            {
+                item_uses[n].coverage.target_gaps += 1;
+            }
+            if item.kind != Kind::Hook
+                && snapshot.is_live()
+                && matches!(
+                    view.history_status.as_str(),
+                    "current" | "fixed" | "partial"
+                )
+            {
+                item.use_basis = Some(usage_observations::basis(
+                    Some(&item_uses[n]),
+                    if item.kind == Kind::Rule {
+                        UseUnit::RuleLoadOrRead
+                    } else {
+                        UseUnit::ObjectUse
+                    },
+                    {
+                        let mut selected = use_scope(item, &scope);
+                        if let Some(id) = &scope.thread_id {
+                            selected.source_instance_ids.retain(|source| {
+                                threads
+                                    .get(id.as_str())
+                                    .is_some_and(|thread| &thread.source_instance_id == source)
+                            });
+                        }
+                        selected
+                    },
+                    &view.checked,
+                    Some(snapshot),
+                    scope.all_time != Some(true),
+                ));
             }
             item.usage = usage(&item_rows[n].iter().map(|i| ledger[*i]).collect::<Vec<_>>())?;
             union.extend(item_rows[n].iter().copied());
@@ -717,4 +798,33 @@ fn catalog_occurrence(operation: &crate::adapters::contract::Operation) -> Strin
 
 fn normalized_operation_path(path: Option<&str>, project: Option<&str>) -> Option<String> {
     usage_observations::normalized_path(path?, project)
+}
+
+fn use_scope(item: &Item, scope: &Scope) -> UseScope {
+    UseScope {
+        source_instance_ids: item
+            .source_ids()
+            .filter(|id| {
+                scope
+                    .source_instance_id
+                    .as_deref()
+                    .is_none_or(|source| source == *id)
+            })
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
+        project: scope.project.clone(),
+        thread_id: scope.thread_id.clone(),
+        agent_kind: scope.agent_kind.clone(),
+        window: if scope.all_time == Some(true) {
+            UseWindow::AllHistory
+        } else {
+            UseWindow::DateWindow {
+                since: scope.since.clone().expect("normalized date scope"),
+                until: scope.until.clone().expect("normalized date scope"),
+                timezone: scope.timezone.clone().expect("normalized timezone"),
+            }
+        },
+    }
 }

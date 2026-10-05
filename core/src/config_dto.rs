@@ -1,7 +1,9 @@
 //! Read-only configuration analysis. Counts are evidence, never exclusive cost attribution.
 use crate::usage_app_dto::{Page, UsageSummary};
+mod use_basis;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+pub use use_basis::*;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -131,6 +133,7 @@ pub struct Item {
     pub body_token_estimate: Option<ContentEstimate>,
     pub body_estimate_status: String,
     pub usage_count: Option<u64>,
+    pub use_basis: Option<UseBasis>,
     pub last_record_at: Option<String>,
     pub observation: Observation,
     pub counts: Counts,
