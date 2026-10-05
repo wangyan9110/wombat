@@ -93,8 +93,9 @@ chmod 755 "$launcher"
 installed_version=$("$launcher" --version --json | "$destination/runtime/node" -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).version))')
 echo "Installed Wombat $installed_version for $target"
 configure_path() {
-  case ":${PATH:-}:" in
-    *":$bin_dir:"*) return ;;
+  case "${PATH:-}" in
+    "$bin_dir"|"$bin_dir:"*) path_was_active=1 ;;
+    *) path_was_active=0; PATH="$bin_dir${PATH:+:$PATH}"; export PATH ;;
   esac
   if [ "$modify_path" -eq 1 ] && [ "$prefix" = "$HOME/.local" ]; then
     shell_path=${SHELL:-}
@@ -121,9 +122,9 @@ esac' ;;
     mkdir -p "${profile%/*}"
     if [ ! -f "$profile" ] || ! grep -Fq '# Wombat PATH' "$profile"; then
       printf '\n%s\n' "$path_lines" >> "$profile"
+      echo "Added $bin_dir to PATH in $profile."
     fi
-    echo "Added $bin_dir to PATH in $profile."
-  else
+  elif [ "$path_was_active" -eq 0 ]; then
     echo "Add $bin_dir to PATH for future commands."
   fi
 }

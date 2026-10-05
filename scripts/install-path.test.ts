@@ -26,7 +26,7 @@ test('installers expose an explicit install-and-open option', () => {
 });
 
 function exercise(home: string, shell: string, modifyPath: boolean, prefix = path.join(home, '.local')): string {
-  const script = `${functionSource}\nconfigure_path\n`;
+  const script = `${functionSource}\nconfigure_path\nprintf 'ACTIVE_PATH=%s\\n' "$PATH"\n`;
   const file = path.join(home, 'path-test.sh'); writeFileSync(file, script);
   return execFileSync('sh', [file], {encoding: 'utf8', env: {
     HOME: home, SHELL: shell, PATH: '/usr/bin:/bin', bin_dir: path.join(prefix, 'bin'), prefix,
@@ -37,7 +37,8 @@ function exercise(home: string, shell: string, modifyPath: boolean, prefix = pat
 test('POSIX installer adds the default bin directory once to the active shell profile', {skip: process.platform === 'win32'}, t => {
   const home = mkdtempSync(path.join(os.tmpdir(), 'wombat-install-path-'));
   t.after(() => rmSync(home, {recursive: true, force: true}));
-  exercise(home, '/bin/zsh', true); exercise(home, '/bin/zsh', true);
+  const output = exercise(home, '/bin/zsh', true); exercise(home, '/bin/zsh', true);
+  assert.ok(output.includes(`ACTIVE_PATH=${path.join(home, '.local', 'bin')}:`));
   const profile = readFileSync(path.join(home, '.zshrc'), 'utf8');
   assert.equal(profile.match(/# Wombat PATH/g)?.length, 1);
   assert.match(profile, /export PATH="\$HOME\/\.local\/bin:\$PATH"/);
