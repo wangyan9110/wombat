@@ -144,6 +144,7 @@ export function eventStatusLabel(status: string): string {
   switch(status){case 'completed':case 'succeeded':return t('event.completed');case 'observed':return t('config.skillUsed');case 'failed':return t('event.failed');case 'cancelled':case 'canceled':return t('event.cancelled');case 'running':return t('common.running');case 'interrupted':return t('common.interrupted');case 'unknown':return t('webui.unknown');default:return status;}
 }
 export function followUpText(observation: import('../client.js').OptimizeResult['followUps'][number]): string {
+  if(observation.useBasis?.status==='partial'&&observation.observedRecords!=null)return t('optimize.followUp.partialRecords',{count:observation.observedRecords});
   switch(observation.status){
     case 'no_observed_records':return t('optimize.followUp.noRecords');
     case 'version_unknown':return observation.observedRecords!=null&&observation.observedRecords>0?t('optimize.followUp.versionUnknown',{count:observation.observedRecords}):t('optimize.followUp.unavailable');
@@ -162,7 +163,7 @@ export function configEvidenceLabel(type: string): string {
   switch(type){case 'instruction_load':return t('config.instruction_load');case 'skill_available':return t('config.skill_available');case 'skill_use':return t('config.skill_use');case 'file_read':return t('config.file_read');case 'tool_call':return t('config.tool_call');case 'resource_read':return t('config.resource_read');default:return t('webui.unknown');}
 }
 
-export { useBasisPresentation, type PublicUseBasis } from "./use-basis.js";
+export { useBasisCount, useBasisPresentation, type PublicUseBasis } from "./use-basis.js";
 
 /** Explain core assessment reason codes without interpreting unknown source details. */
 export function assessmentReason(code: string): string {

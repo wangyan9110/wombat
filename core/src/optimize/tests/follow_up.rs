@@ -104,10 +104,10 @@ fn follow_up_observes_only_canonical_associations_after_recheck_in_the_authorize
     s.scope_project = Some(a.to_string_lossy().into());
     let result = observe(&[s.clone()], &v, None);
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].status, FollowUpStatus::Unavailable);
-    assert_eq!(result[0].observed_records, None);
+    assert_eq!(result[0].status, FollowUpStatus::VersionUnknown);
+    assert_eq!(result[0].observed_records, Some(3));
     let unknown = result[0].use_basis.as_ref().unwrap();
-    assert_eq!(unknown.status, UseBasisStatus::Unknown);
+    assert_eq!(unknown.status, UseBasisStatus::Partial);
     assert_eq!(unknown.source_completeness, UseSourceCompleteness::Complete);
     assert_eq!(unknown.scope.project.as_deref(), Some(a.to_str().unwrap()));
     assert_eq!(unknown.scope.source_instance_ids, vec![source.clone()]);
@@ -252,8 +252,8 @@ fn mcp_follow_up_requires_unambiguous_ownership_across_the_whole_inventory() {
     // The competing declaration has no handling record and is outside the requested page.
     s.scope_project = Some(projects[0].to_string_lossy().into());
     let ambiguous = observe(&[s.clone()], &v, None);
-    assert_eq!(ambiguous[0].status, FollowUpStatus::Unavailable);
-    assert_eq!(ambiguous[0].observed_records, None);
+    assert_eq!(ambiguous[0].status, FollowUpStatus::NoObservedRecords);
+    assert_eq!(ambiguous[0].observed_records, Some(0));
     assert_eq!(ambiguous[0].last_record_at, None);
     s.scope_project = Some(projects[1].to_string_lossy().into());
     let known = observe(&[s.clone()], &v, None);
@@ -261,8 +261,8 @@ fn mcp_follow_up_requires_unambiguous_ownership_across_the_whole_inventory() {
     assert_eq!(known[0].observed_records, Some(1));
     s.scope_project = None;
     let unscoped = observe(&[s.clone()], &v, None);
-    assert_eq!(unscoped[0].status, FollowUpStatus::Unavailable);
-    assert_eq!(unscoped[0].observed_records, None);
+    assert_eq!(unscoped[0].status, FollowUpStatus::VersionUnknown);
+    assert_eq!(unscoped[0].observed_records, Some(1));
     s.scope_project = Some(projects[1].to_string_lossy().into());
     // Distinct historical cutoffs for one physical object do not create ownership ambiguity.
     let mut earlier = s.clone();

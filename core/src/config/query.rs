@@ -401,18 +401,19 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 {
                     item_uses[n].note_time_gap(op);
                 }
+                if !in_time(op.timestamp.as_deref(), &scope, tz) {
+                    continue;
+                }
                 if let Some(identity) = usage_observations::operation_identity(op)
                     && !seen.insert((identity, n))
                 {
-                    continue;
-                }
-                if !in_time(op.timestamp.as_deref(), &scope, tz) {
                     continue;
                 }
                 if usage_observations::operation_identity(op)
                     .is_some_and(|identity| conflicts.contains(&identity))
                 {
                     item_uses[n].coverage.target_gaps += 1;
+                    continue;
                 }
                 let item = &mut items[n];
                 if reads.as_ref().is_some_and(|reads| reads.candidate) {
@@ -522,7 +523,8 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                     }
                     "file_read"
                 } else {
-                    item.counts.file_reads += 1;
+                    item.counts.file_reads +=
+                        u64::from(usage_observations::operation_identity(op).is_some());
                     if op.status.as_ref() == "completed" {
                         item.observation = Observation::LoadedOnly;
                     }
@@ -560,7 +562,8 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                             context.observation = Observation::Used;
                         }
                     } else {
-                        context.counts.file_reads += 1;
+                        context.counts.file_reads +=
+                            u64::from(usage_observations::operation_identity(op).is_some());
                         if op.status.as_ref() == "completed" {
                             context.observation = Observation::LoadedOnly;
                         }
@@ -622,7 +625,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                         view.history_status.as_str(),
                         "current" | "fixed" | "partial"
                     ) {
-                    projection.count(scope.all_time != Some(true))
+                    Some(projection.observed_count())
                 } else {
                     None
                 };

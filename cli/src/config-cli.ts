@@ -1,6 +1,6 @@
 import { CoreError, type ConfigRequest, type ConfigItem } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { t, useBasisPresentation, configEvidenceLabel, eventStatusLabel } from '@wombat/client/locale';
+import { t, useBasisCount, useBasisPresentation, configEvidenceLabel, eventStatusLabel } from '@wombat/client/locale';
 import path from 'node:path';
 import { terminalText } from './display-text.js';
 
@@ -84,6 +84,6 @@ export async function runConfigCli(argv: string[]): Promise<number> {
 
 export function configUseBasisLines(item: ConfigItem): string[] {
   const basis = useBasisPresentation(item.useBasis);
-  const count = item.useBasis?.status === 'observed' ? item.kind === 'rule' ? item.counts.fileReads : item.usageCount : null;
-  return [`${t(item.kind === 'rule' ? 'useBasis.ruleLoadOrRead' : 'useBasis.objectUse')}: ${count ?? t('webui.unknown')}`, basis.summary, ...basis.notes, ...basis.details].map(terminalText);
+  const count = useBasisCount(item.kind === 'rule' ? item.counts.fileReads : item.usageCount, item.useBasis);
+  return [...(count == null ? [] : [`${t(item.kind === 'rule' ? 'useBasis.ruleLoadOrRead' : 'useBasis.objectUse')}: ${count}`]), basis.summary, ...basis.notes, ...basis.details].map(terminalText);
 }

@@ -372,10 +372,15 @@
           ]
         },
         "associatedUseCount": {
-          "$ref": "#/definitions/TimingMetric_uint64"
+          "description": "Exact count in the positively associated canonical set; coverage explains local gaps.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
         },
         "useCount": {
-          "description": "Membership gaps make the whole-turn count unknown, even if associated uses are exact.",
+          "description": "Complete turn count is unavailable when association or unassigned-membership evidence has gaps.",
           "allOf": [
             {
               "$ref": "#/definitions/TimingMetric_uint64"

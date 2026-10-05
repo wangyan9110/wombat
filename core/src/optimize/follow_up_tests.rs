@@ -111,10 +111,21 @@ fn suggestion(object: &Item) -> Suggestion {
         record_kind: None,
     }
 }
-fn assert_unknown(object: &Item, operations: Vec<Operation>) {
+fn assert_partial(object: &Item, operations: Vec<Operation>, expected: u64) {
     let out = observe(&[suggestion(object)], &single(object, operations), None);
-    assert_eq!(out[0].status, FollowUpStatus::Unavailable);
-    assert_eq!(out[0].observed_records, None);
+    assert_eq!(
+        out[0].status,
+        if expected > 0 {
+            FollowUpStatus::VersionUnknown
+        } else {
+            FollowUpStatus::NoObservedRecords
+        }
+    );
+    assert_eq!(out[0].observed_records, Some(expected));
+    assert_eq!(
+        out[0].use_basis.as_ref().unwrap().status,
+        crate::config_dto::UseBasisStatus::Partial
+    );
     assert!(!out[0].absence_observable);
 }
 
@@ -152,13 +163,13 @@ fn known_dispatches_retries_and_canonical_replays_share_projection_count() {
 }
 
 #[test]
-fn candidates_and_anonymous_actual_reads_keep_count_unknown() {
+fn candidates_and_anonymous_actual_reads_preserve_partial_observed_count() {
     let object = item("skill", Kind::Skill);
     let known = operation("known", "skillRead", &object);
     let mut candidate = operation("wrapper", "skillRead", &object);
     candidate.name = "read_skill_file".into();
-    assert_unknown(&object, vec![candidate.clone()]);
-    assert_unknown(&object, vec![known.clone(), candidate]);
+    assert_partial(&object, vec![candidate.clone()], 0);
+    assert_partial(&object, vec![known.clone(), candidate], 1);
     let mut anonymous = operation("hash", "skillRead", &object);
     anonymous.call_id = None;
     let out = observe(
@@ -166,8 +177,8 @@ fn candidates_and_anonymous_actual_reads_keep_count_unknown() {
         &single(&object, vec![known, anonymous]),
         None,
     );
-    assert_eq!(out[0].status, FollowUpStatus::Unavailable);
-    assert_eq!(out[0].observed_records, None);
+    assert_eq!(out[0].status, FollowUpStatus::VersionUnknown);
+    assert_eq!(out[0].observed_records, Some(1));
     // This is a known observation time, not proof of a complete count/content version.
     assert!(out[0].last_record_at.is_some());
 }
@@ -185,7 +196,7 @@ fn missing_and_invalid_times_are_not_assigned_to_follow_up_window() {
             let known = operation("known", op_kind, &object);
             let mut undated = operation("undated", op_kind, &object);
             undated.timestamp = timestamp;
-            assert_unknown(&object, vec![known, undated]);
+            assert_partial(&object, vec![known, undated], 1);
         }
     }
 }
@@ -253,7 +264,7 @@ fn rule_reads_are_independent_semantics_with_shared_reliable_identity() {
     assert_eq!(out[0].observed_records, Some(2));
     let mut anonymous = operation("hash", "tool", &object);
     anonymous.call_id = None;
-    assert_unknown(&object, vec![anonymous]);
+    assert_partial(&object, vec![anonymous], 0);
     let skill = item("skill", Kind::Skill);
     let mut native = operation("native", "skillRead", &skill);
     native.name = "native_load".into();
@@ -278,11 +289,11 @@ fn generic_unknown_read_does_not_pollute_skill_but_explicit_skill_read_does() {
     );
     let out = observe(&suggestions, &v, None);
     assert_eq!(out[0].observed_records, Some(1));
-    assert_eq!(out[1].status, FollowUpStatus::Unavailable);
+    assert_eq!(out[1].status, FollowUpStatus::NoObservedRecords);
     unknown.kind = "skillRead".into();
-    assert_unknown(&skill, vec![known.clone(), unknown.clone()]);
+    assert_partial(&skill, vec![known.clone(), unknown.clone()], 1);
     unknown.name = "read_skill_file".into();
-    assert_unknown(&skill, vec![known, unknown]);
+    assert_partial(&skill, vec![known, unknown], 1);
 }
 
 #[test]
@@ -312,12 +323,12 @@ fn source_and_project_filters_do_not_import_unrelated_gaps() {
     );
     assert_eq!(
         observe(&[s.clone()], &v, Some("other"))[0].status,
-        FollowUpStatus::NoObservedRecords
+        FollowUpStatus::Unavailable
     );
     s.scope_project = None;
     assert_eq!(
         observe(&[s], &v, None)[0].status,
-        FollowUpStatus::Unavailable
+        FollowUpStatus::VersionUnknown
     );
 }
 
@@ -341,12 +352,12 @@ fn mcp_ownership_outside_page_is_project_bound_and_cutoffs_do_not_create_owners(
     let mut s = suggestion(&global);
     assert_eq!(
         observe(&[s.clone()], &v, None)[0].status,
-        FollowUpStatus::Unavailable
+        FollowUpStatus::VersionUnknown
     );
     s.scope_project = Some("/project".into());
     assert_eq!(
         observe(&[s.clone()], &v, None)[0].status,
-        FollowUpStatus::Unavailable
+        FollowUpStatus::NoObservedRecords
     );
     s.scope_project = Some("/other".into());
     let mut earlier = s.clone();
@@ -357,7 +368,7 @@ fn mcp_ownership_outside_page_is_project_bound_and_cutoffs_do_not_create_owners(
 }
 
 #[test]
-fn mcp_catalogs_are_excluded_but_unresolved_targets_remain_unknown() {
+fn mcp_catalogs_are_excluded_but_unresolved_targets_remain_partial() {
     let object = item("mcp", Kind::Mcp);
     let mut discovery = operation("catalog", "mcpDiscovery", &object);
     discovery.server = None;
@@ -374,7 +385,7 @@ fn mcp_catalogs_are_excluded_but_unresolved_targets_remain_unknown() {
     for kind in ["mcpTool", "mcpResource", "mcpUnclassified", "mcpConflict"] {
         let mut unknown = operation("gap", kind, &object);
         unknown.server = None;
-        assert_unknown(&object, vec![actual.clone(), unknown]);
+        assert_partial(&object, vec![actual.clone(), unknown], 1);
     }
 }
 
@@ -405,11 +416,15 @@ fn unavailable_bases_and_unverified_records_never_claim_absence() {
     let out = observe(&[s], &v, None);
     assert_eq!(out[0].status, FollowUpStatus::Unavailable);
     assert_eq!(out[0].observed_records, None);
+    assert_eq!(
+        out[0].use_basis.as_ref().unwrap().status,
+        crate::config_dto::UseBasisStatus::Unavailable
+    );
     assert!(!out[0].absence_observable);
 }
 
 #[test]
-fn native_multiple_read_candidates_and_reliable_target_conflicts_share_unknown_counts() {
+fn native_read_candidates_and_target_conflicts_preserve_partial_zero_counts() {
     let first = item("first", Kind::Skill);
     let mut second = item("second", Kind::Skill);
     second.path = "/synthetic/second/SKILL.md".into();
@@ -423,8 +438,8 @@ fn native_multiple_read_candidates_and_reliable_target_conflicts_share_unknown_c
         vec![thread("thread", "source", Some("/project"))],
     );
     for row in observe(&suggestions, &v, None) {
-        assert_eq!(row.observed_records, None);
-        assert_eq!(row.status, FollowUpStatus::Unavailable);
+        assert_eq!(row.observed_records, Some(0));
+        assert_eq!(row.status, FollowUpStatus::NoObservedRecords);
     }
     let crate::adapters::contract::WorkData::Command { source, .. } =
         &mut native.work.as_mut().unwrap().data
@@ -450,8 +465,8 @@ fn native_multiple_read_candidates_and_reliable_target_conflicts_share_unknown_c
             vec![thread("thread", "source", Some("/project"))],
         );
         for row in observe(&suggestions, &v, None) {
-            assert_eq!(row.observed_records, None);
-            assert_eq!(row.status, FollowUpStatus::Unavailable);
+            assert_eq!(row.observed_records, Some(0));
+            assert_eq!(row.status, FollowUpStatus::NoObservedRecords);
         }
     }
 }
@@ -462,8 +477,8 @@ fn native_rule_read_without_a_skill_path_is_dispatch_unknown_not_observed_rule_u
     let mut op = operation("native-rule", "command", &object);
     op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"AGENTS.md"}]},"gaps":[]})).unwrap());
     let out = observe(&[suggestion(&object)], &single(&object, vec![op]), None);
-    assert_eq!(out[0].observed_records, None);
-    assert_eq!(out[0].status, FollowUpStatus::Unavailable);
+    assert_eq!(out[0].observed_records, Some(0));
+    assert_eq!(out[0].status, FollowUpStatus::NoObservedRecords);
 }
 
 #[test]
@@ -477,8 +492,8 @@ fn replay_unknown_time_cannot_depend_on_first_record_order_inside_follow_up_wind
         vec![missing.clone(), known.clone()],
     ] {
         let out = observe(&[suggestion(&object)], &single(&object, operations), None);
-        assert_eq!(out[0].status, FollowUpStatus::Unavailable);
-        assert_eq!(out[0].observed_records, None);
+        assert_eq!(out[0].status, FollowUpStatus::VersionUnknown);
+        assert_eq!(out[0].observed_records, Some(1));
     }
 }
 
@@ -492,7 +507,7 @@ fn follow_up_basis_retains_original_after_and_captured_cutoff_without_dispatch_c
         let v = single(&object, operations.clone());
         let output = observe(&[suggestion(&object)], &v, Some("source"));
         let basis = output[0].use_basis.as_ref().unwrap();
-        assert_eq!(basis.method_version, 2);
+        assert_eq!(basis.method_version, 3);
         assert_eq!(basis.unit, UseUnit::RuleRead);
         assert_eq!(basis.captured_at, CUTOFF);
         assert_eq!(basis.snapshot_id, output[0].usage_revision);
@@ -509,8 +524,8 @@ fn follow_up_basis_retains_original_after_and_captured_cutoff_without_dispatch_c
             assert_eq!(output[0].observed_records, Some(0));
             assert_eq!(basis.status, UseBasisStatus::Observed);
         } else {
-            assert_eq!(output[0].observed_records, None);
-            assert_eq!(basis.status, UseBasisStatus::Unknown);
+            assert_eq!(output[0].observed_records, Some(0));
+            assert_eq!(basis.status, UseBasisStatus::Partial);
             assert_eq!(basis.coverage.time_gaps, Some(1));
         }
     }
@@ -525,4 +540,31 @@ fn follow_up_basis_retains_original_after_and_captured_cutoff_without_dispatch_c
         output[0].use_basis.as_ref().unwrap().status,
         UseBasisStatus::Unavailable
     );
+}
+
+#[test]
+fn partial_follow_up_keeps_two_uses_and_one_unassigned_record_without_claiming_adoption() {
+    let object = item("mcp", Kind::Mcp);
+    let first = operation("first", "mcpTool", &object);
+    let second = operation("second", "mcpResource", &object);
+    let mut unknown = operation("unassigned", "mcpUnclassified", &object);
+    unknown.server = None;
+    unknown.timestamp = None;
+    let out = observe(
+        &[suggestion(&object)],
+        &single(
+            &object,
+            vec![first.clone(), first, second, unknown.clone(), unknown],
+        ),
+        None,
+    );
+    assert_eq!(out[0].observed_records, Some(2));
+    assert_eq!(out[0].status, FollowUpStatus::VersionUnknown);
+    let basis = out[0].use_basis.as_ref().unwrap();
+    assert_eq!(basis.status, crate::config_dto::UseBasisStatus::Partial);
+    assert_eq!(basis.coverage.target_gaps, Some(1));
+    // Both limitations describe the same unassigned canonical operation; they
+    // are separate dimensions rather than an additive unassigned-record total.
+    assert_eq!(basis.coverage.time_gaps, Some(1));
+    assert!(!out[0].absence_observable);
 }

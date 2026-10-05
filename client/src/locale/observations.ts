@@ -1,4 +1,5 @@
 import type { ConfigItem, ConfigResult, UsageResult } from '../client.js';
+import { useBasisCount } from './use-basis.js';
 import { t } from './index.js';
 
 type Coverage = ConfigResult['coverage'];
@@ -13,7 +14,9 @@ export function inventoryRecordState(item: ConfigItem, coverage: Coverage): { ki
   if (item.lastRecordAt && (item.kind === 'rule' || item.observation === 'used')) return { kind: 'time' };
   const reads = item.kind === 'rule';
   const event = reads ? 'file_read' : item.kind === 'skill' ? 'skill_invocation' : item.kind === 'hook' ? 'hook_execution' : 'tool_call';
-  const count = observedCount(reads ? item.counts.fileReads : item.usageCount, coverage, event);
+  const rawCount = reads ? item.counts.fileReads : item.usageCount;
+  const count = item.useBasis ? useBasisCount(rawCount, item.useBasis) : observedCount(rawCount, coverage, event);
+  if (item.useBasis?.status === 'partial') return { kind: 'unknown', text: t('config.partialRecords'), hint: t('useBasis.partialObservation') };
   if (count === 0 && item.observation !== 'loaded_only') return { kind: 'absent', text: t(reads ? 'config.noReads' : 'config.noUse'), hint: t(reads ? 'config.noReadsDates' : 'config.noUseDates') };
   return {
     kind: 'unknown',

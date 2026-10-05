@@ -60,7 +60,7 @@ export function renderTimingResult(result: TimingResult): string {
       if (row.gapCodes.length) lines.push(`  ${row.gapCodes.map(terminalText).join(', ')}`);
     }
     else if (result.collection === 'use_objects') for (const row of result.rows) {
-      lines.push([row.objectRef, row.kind, row.state, row.path ?? row.server ?? '', row.project ?? '', `${t('execution.useCount')}: ${measured(row.useCount)}`, `${t('execution.associatedUseCount')}: ${measured(row.associatedUseCount)}`].map(terminalText).join('\t'));
+      lines.push([row.objectRef, row.kind, row.state, row.path ?? row.server ?? '', row.project ?? '', `${t('execution.associatedUseCount')}: ${measured(row.associatedUseCount)}`, ...(row.useCount.value == null ? [t('execution.useWholeCountUnavailable', { reason: timingMissingValueText(row.useCount.basis) }), t('execution.usePartialCount')] : [`${t('execution.useCount')}: ${measured(row.useCount)}`])].map(terminalText).join('\t'));
     }
     else for (const row of result.rows) {
       const outcome = row.outcome === 'unknown' ? '' : t(`execution.useOutcome.${row.outcome}`);

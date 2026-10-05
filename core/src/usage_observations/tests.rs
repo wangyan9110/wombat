@@ -357,3 +357,37 @@ fn public_basis_source_completeness_uses_selected_reports_and_never_zeros_missin
     assert_eq!(value.coverage.dispatch_gaps, None);
     assert_eq!(value.source_completeness, UseSourceCompleteness::Unknown);
 }
+
+#[test]
+fn partial_projection_preserves_observed_canonical_uses_and_known_zero() {
+    use crate::config_dto::*;
+    let scope = UseScope {
+        source_instance_ids: vec!["source".into()],
+        project: None,
+        thread_id: None,
+        agent_kind: None,
+        window: UseWindow::AllHistory,
+    };
+    for count in [0, 2] {
+        let mut projection = Projection::default();
+        for id in ["first", "second"].into_iter().take(count) {
+            let call = operation(id, "skillRead");
+            projection.observe(&call);
+            projection.observe(&call);
+        }
+        projection.coverage.target_gaps = 1;
+        assert_eq!(projection.count(false), None);
+        assert_eq!(projection.observed_count(), count as u64);
+        let value = basis(
+            Some(&projection),
+            UseUnit::ObjectUse,
+            scope.clone(),
+            "2026-10-04T00:00:00Z",
+            None,
+            false,
+        );
+        assert_eq!(value.method_version, 3);
+        assert_eq!(value.status, UseBasisStatus::Partial);
+        assert_eq!(serde_json::to_value(value).unwrap()["status"], "partial");
+    }
+}

@@ -165,17 +165,15 @@ fn object(
             project.clone(),
         ),
     };
-    let object_state = if object
-        .records
-        .iter()
-        .any(|index| uses.records[*index].state == projection::UseState::Used)
-    {
+    let object_state = if object.records.iter().any(|index| {
+        !uses.records[*index].target_conflict
+            && uses.records[*index].state == projection::UseState::Used
+    }) {
         UseState::Used
-    } else if object
-        .records
-        .iter()
-        .any(|index| uses.records[*index].state == projection::UseState::Candidate)
-    {
+    } else if object.records.iter().any(|index| {
+        !uses.records[*index].target_conflict
+            && uses.records[*index].state == projection::UseState::Candidate
+    }) {
         UseState::Candidate
     } else {
         UseState::Unclassified
@@ -196,10 +194,14 @@ fn object(
         server,
         project,
         associated_use_count: associated.clone(),
-        use_count: if object.use_count.is_some() || object.associated_use_count.is_none() {
-            associated
+        use_count: if let Some(value) = object.use_count {
+            count(Some(value), Basis::CanonicalUseIdentity)
         } else {
-            m::unavailable(Basis::MissingTurn)
+            m::unavailable(if object.unassigned_turn_records == Some(0) {
+                missing(&object.coverage)
+            } else {
+                Basis::MissingTurn
+            })
         },
         record_count: records_count(object.records.len()),
         unassigned_turn_records: membership(object.unassigned_turn_records),

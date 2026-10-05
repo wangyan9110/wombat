@@ -16,7 +16,7 @@ const common={snapshotId:'preview:1',threadId:'preview-task',turnId:'preview-tur
 function client(scenario:Parameters<typeof previewTiming>[0]='complete') {return createUsageClient({query:async q=>usageFixture(q,'complete'),timing:previewTiming(scenario)});}
 test('real validators accept use summaries, object pages and record pages without counting replay or page rows as uses',async()=>{
  const c=client('dense'),summary=await c.timing!({action:'summary',...common});assert.ok(summary.action==='summary'&&summary.profile==='local');assert.equal(summary.uses.objects.length,50);assert.equal(summary.uses.totals.objectCount.value,53);assert.ok(summary.uses.nextCursor);
- assert.equal(summary.uses.objects[2].associatedUseCount.value,null);assert.equal(summary.uses.objects[2].associatedUseCount.basis,'dispatch_not_proven');assert.equal(summary.uses.objects[3].associatedUseCount.value,null);assert.equal(summary.uses.objects[0].project,null);const mcp=await c.timing!({action:'evidence',collection:'use_records',objectRef:useRefs.mcp,...common});assert.ok(mcp.action==='evidence'&&mcp.collection==='use_records');assert.equal(mcp.rows.length,3);assert.equal(mcp.rows.filter(row=>row.replayOf===null).length,2);assert.equal(summary.uses.objects[1].associatedUseCount.value,null);assert.equal(summary.uses.objects[1].associatedUseCount.basis,'missing_target');assert.equal(mcp.rows[2].replayOf,'use:mcp-1');assert.equal(mcp.totals.unassignedMcpRecords.value,1);assert.ok(mcp.rows.every(row=>!row.gapCodes.includes('missing_turn')));
+ assert.equal(summary.uses.objects[2].associatedUseCount.value,0);assert.equal(summary.uses.objects[2].associatedUseCount.basis,'canonical_use_identity');assert.equal(summary.uses.objects[3].associatedUseCount.value,0);assert.equal(summary.uses.objects[0].project,null);const mcp=await c.timing!({action:'evidence',collection:'use_records',objectRef:useRefs.mcp,...common});assert.ok(mcp.action==='evidence'&&mcp.collection==='use_records');assert.equal(mcp.rows.length,3);assert.equal(mcp.rows.filter(row=>row.replayOf===null).length,2);assert.equal(summary.uses.objects[1].associatedUseCount.value,2);assert.equal(summary.uses.objects[1].associatedUseCount.basis,'canonical_use_identity');assert.equal(mcp.rows[2].replayOf,'use:mcp-1');assert.equal(mcp.totals.unassignedMcpRecords.value,1);assert.ok(mcp.rows.every(row=>!row.gapCodes.includes('missing_turn')));
  const page=await c.timing!({action:'evidence',collection:'use_objects',...common,cursor:summary.uses.nextCursor,limit:200});assert.ok(page.action==='evidence'&&page.collection==='use_objects');assert.equal(page.rows.length,3);assert.equal(page.total.value,53);assert.deepEqual(page.totals,summary.uses.totals);
  const records=await c.timing!({action:'evidence',collection:'use_records',objectRef:useRefs.skill,...common,limit:2});assert.ok(records.action==='evidence'&&records.collection==='use_records');assert.equal(records.total.value,214);assert.equal(records.rows[1].outcome,'failed');assert.ok(records.nextCursor);
  const next=await c.timing!({action:'evidence',collection:'use_records',objectRef:useRefs.skill,...common,limit:2,cursor:records.nextCursor});assert.ok(next.action==='evidence'&&next.collection==='use_records');assert.equal(next.rows[1].replayOf,'use:skill-1');assert.equal(summary.uses.objects[0].useCount.value,213);assert.equal(next.total.value,214);
@@ -31,7 +31,7 @@ test('known empty and missing use facts remain distinct and share contains only 
 });
 test('production use components label whole-turn versus associated counts and preserve zero unknown and all states in both languages',()=>{
  const saved=locale.getSnapshot().locale;
- try{for(const language of ['zh','en'] as const){locale.setLocale(language);const summary=timingFixture();const html=renderToStaticMarkup(createElement(TurnUses,{client:client(),summary,refresh(){},onExpired(){},timezone:'UTC'}));assert.match(html,language==='zh'?/使用次数/:/Uses/);assert.match(html,language==='zh'?/已关联次数/:/Associated uses/);assert.match(html,/SKILL\.md/);assert.match(html,/synthetic-tools/);assert.match(html,language==='zh'?/候选，未确认派发/:/Candidate, dispatch unconfirmed/);assert.match(html,language==='zh'?/未分类/:/Unclassified/);assert.match(html,/<dd>0<\/dd>/);assert.match(html,language==='zh'?/<dd>未记录<\/dd>/:/<dd>Not recorded<\/dd>/);
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);const summary=timingFixture();const html=renderToStaticMarkup(createElement(TurnUses,{client:client(),summary,refresh(){},onExpired(){},timezone:'UTC'}));assert.match(html,language==='zh'?/使用次数/:/Uses/);assert.match(html,language==='zh'?/已关联次数/:/Associated uses/);assert.match(html,/SKILL\.md/);assert.match(html,/synthetic-tools/);assert.match(html,language==='zh'?/候选，未确认派发/:/Candidate, dispatch unconfirmed/);assert.match(html,language==='zh'?/未分类/:/Unclassified/);assert.match(html,/<dd>0<\/dd>/);assert.match(html,language==='zh'?/完整使用次数/:/Full use count/);assert.match(html,language==='zh'?/0 不证明未使用/:/0 does not prove absence of use/);
  const object={...summary.uses.objects[0],useCount:{...summary.uses.objects[0].useCount,value:99},associatedUseCount:{...summary.uses.objects[0].associatedUseCount,value:30}};const row=renderToStaticMarkup(createElement(UseObjectRow,{object,inspect(){}}));assert.match(row,/<dd>99<\/dd>/);assert.match(row,/<dd>30<\/dd>/);assert.doesNotMatch(row,/<dd>4<\/dd>.*<dd>4<\/dd>/);
  const empty=renderToStaticMarkup(createElement(TurnUses,{client:client(),summary:timingFixture('empty'),refresh(){},onExpired(){},timezone:'UTC'}));assert.match(empty,language==='zh'?/没有可展示的使用对象/:/No use objects can be shown/);
  }}finally{locale.setLocale(saved);}
@@ -70,4 +70,23 @@ test('use expiry latches the shared detail selection before late event failure o
   const pending=selection.read(late==='share'?'share':'evidence');selection.expire();assert.equal(signal?.aborted,true);release();const outcome=await pending;assert.equal(outcome.superseded,true);assert.equal(outcome.result,undefined);assert.equal(reader.expired,true);const stopped=await selection.read('share');assert.equal((stopped.error as CoreError).code,'VIEW_EXPIRED');assert.equal(calls,1);
  }
  const replacement=new TimingDetailSelection(new TimingDetailReader(client(),common.snapshotId,common.threadId,common.turnId));assert.ok((await replacement.read('share')).result);
+});
+
+
+test('partial use objects show retained associated counts before whole counts and explain partial zero', () => {
+ const saved=locale.getSnapshot().locale;
+ try {for(const language of ['zh','en'] as const){locale.setLocale(language);
+  const summary=timingFixture();
+  for(const index of [1,2,3]){
+   const object=summary.uses.objects[index];
+   const html=renderToStaticMarkup(createElement(UseObjectRow,{object,inspect(){}}));
+   assert.match(html,new RegExp(`<dd>${object.associatedUseCount.value}</dd>`));
+   assert.match(html,language==='zh'?/完整使用次数/:/Full use count/);
+   assert.match(html,language==='zh'?/证据缺口/:/evidence gaps/);
+   assert.match(html,language==='zh'?/0 不证明未使用/:/0 does not prove absence of use/);
+   assert.doesNotMatch(html,/<dd>未记录<\/dd>|<dd>Not recorded<\/dd>/);
+   assert.equal(object.associatedUseCount.status,'observed');
+   assert.equal(object.useCount.value,null);
+  }
+ }}finally{locale.setLocale(saved);}
 });

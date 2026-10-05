@@ -59,9 +59,8 @@ fn actual_for(item: &Item, use_kind: Option<UseKind>, file_read: bool) -> bool {
 }
 
 /// Each fixed view uses (recheck time, view.checked], never the current clock.
-/// Per-record projections retain identity/time/target/dispatch gaps. The existing
-/// DTO represents a count gap as Unavailable/None; it cannot yet expose individual
-/// gap dimensions or a known lower-bound count alongside that gap.
+/// Per-record projections retain identity/time/target/dispatch gaps alongside
+/// canonical observed counts. Positive observations do not establish adoption.
 pub(super) fn observe(
     suggestions: &[Suggestion],
     view: &View,
@@ -84,9 +83,10 @@ pub(super) fn observe(
             .items
             .iter()
             .find(|item| item.id == suggestion.item.id && item.current && !item.stale);
-        let available = after
-            .zip(cutoff)
-            .is_some_and(|(after, cutoff)| after <= cutoff)
+        let available = source.is_none_or(|source| item.is_some_and(|item| item.in_source(source)))
+            && after
+                .zip(cutoff)
+                .is_some_and(|(after, cutoff)| after <= cutoff)
             && item.is_some_and(|item| item.kind != Kind::Hook)
             && view
                 .snapshot
@@ -247,6 +247,7 @@ pub(super) fn observe(
         },
     );
     let mut seen = BTreeSet::new();
+    let mut seen_gaps = BTreeSet::new();
     for operation in snapshot.operation_facts() {
         let Some(thread) = threads.get(operation.thread_id.as_ref()) else {
             continue;
@@ -331,11 +332,6 @@ pub(super) fn observe(
                 if at.is_none() {
                     projections[index].note_time_gap(operation);
                 }
-                if let Some(identity) = usage_observations::operation_identity(operation)
-                    && !seen.insert((identity, index))
-                {
-                    continue;
-                }
                 let projection = &mut projections[index];
                 if key.is_none()
                     || ambiguous
@@ -343,14 +339,22 @@ pub(super) fn observe(
                     || usage_observations::operation_identity(operation)
                         .is_some_and(|identity| conflicts.contains(&identity))
                 {
-                    projection.coverage.target_gaps += 1;
+                    if usage_observations::operation_identity(operation)
+                        .is_none_or(|identity| seen_gaps.insert((identity, index)))
+                    {
+                        projection.coverage.target_gaps += 1;
+                    }
                     continue;
                 }
                 let item = contexts[index].item.unwrap();
                 if reads.as_ref().is_some_and(|reads| reads.candidate)
                     && matches!(item.kind, Kind::Skill | Kind::Rule)
                 {
-                    projection.coverage.dispatch_gaps += 1;
+                    if usage_observations::operation_identity(operation)
+                        .is_none_or(|identity| seen_gaps.insert((identity, index)))
+                    {
+                        projection.coverage.dispatch_gaps += 1;
+                    }
                     continue;
                 }
                 if !actual_for(item, use_kind, file_read) {
@@ -359,6 +363,11 @@ pub(super) fn observe(
                 let Some(at) = at else {
                     continue;
                 };
+                if let Some(identity) = usage_observations::operation_identity(operation)
+                    && !seen.insert((identity, index))
+                {
+                    continue;
+                }
                 projection.observe_with_time_accounted(operation);
                 if latest[index].is_none_or(|last| at > last) {
                     latest[index] = Some(at);
@@ -383,15 +392,13 @@ pub(super) fn observe(
             view.snapshot.as_deref(),
             true,
         ));
-        out[index].observed_records = projection.count(true);
-        match projection.count(true) {
-            None => out[index].status = FollowUpStatus::Unavailable,
-            Some(0) => {}
-            Some(count) => {
-                out[index].status = FollowUpStatus::VersionUnknown;
-                out[index].observed_records = Some(count);
-            }
-        }
+        let count = projection.observed_count();
+        out[index].observed_records = Some(count);
+        out[index].status = if count > 0 {
+            FollowUpStatus::VersionUnknown
+        } else {
+            FollowUpStatus::NoObservedRecords
+        };
     }
     out
 }

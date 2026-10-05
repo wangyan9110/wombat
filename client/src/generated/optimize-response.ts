@@ -5,7 +5,7 @@ export type Action =
 export type HookSupportStatus = "no_verified_adapter" | "registry_observed" | "registry_partial";
 export type Kind = "rule" | "skill" | "mcp" | "hook";
 export type Observation = "used" | "loaded_only" | "unknown";
-export type UseBasisStatus = "observed" | "unknown" | "unavailable";
+export type UseBasisStatus = ("observed" | "unavailable") | "partial";
 export type UseUnit = "object_use" | "rule_read" | "rule_load_or_read";
 export type UseWindow =
   | {

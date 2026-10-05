@@ -13,7 +13,7 @@ const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', 
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
 const distribution = () => ({ samples: count(), median: count(), p90: count() });
-const useTotals = { methodVersion: 1, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
+const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const baseLocal: TimingLocalResult = {
   outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v1', profile: 'local',

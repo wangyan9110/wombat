@@ -3,7 +3,7 @@
 export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
 export type Kind = "rule" | "skill" | "mcp" | "hook";
 export type Observation = "used" | "loaded_only" | "unknown";
-export type UseBasisStatus = "observed" | "unknown" | "unavailable";
+export type UseBasisStatus = ("observed" | "unavailable") | "partial";
 export type UseUnit = "object_use" | "rule_read" | "rule_load_or_read";
 export type UseWindow =
   | {

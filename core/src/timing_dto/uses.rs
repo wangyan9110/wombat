@@ -101,8 +101,9 @@ pub struct UseObject {
     pub path: Option<String>,
     pub server: Option<String>,
     pub project: Option<String>,
+    /// Exact count in the positively associated canonical set; coverage explains local gaps.
     pub associated_use_count: Count,
-    /// Membership gaps make the whole-turn count unknown, even if associated uses are exact.
+    /// Complete turn count is unavailable when association or unassigned-membership evidence has gaps.
     pub use_count: Count,
     pub record_count: Count,
     pub unassigned_turn_records: Count,

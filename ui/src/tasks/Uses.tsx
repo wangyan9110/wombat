@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {CoreError,type TimingLocalResult,type UsageClient} from '@wombat/client';
-import {t} from '@wombat/client/locale';
+import {t,timingMissingValueText} from '@wombat/client/locale';
 import {timestamp} from '../components.js';
 import {QueryError} from '../Feedback.js';
 import {UsesSelection,type UseObjectsPage,type UseRecordsPage,type UsesRead} from './uses-reader.js';
@@ -8,7 +8,7 @@ type Object=TimingLocalResult['uses']['objects'][number];
 type Count=Object['useCount'];
 const value=(count:Count)=>count.value==null?t('execution.missing'):String(count.value);
 export function UseObjectRow({object,disabled=false,inspect}:{object:Object;disabled?:boolean;inspect:(object:Object)=>void}){
- return <article><h4>{t(`execution.useKind.${object.kind}`)} · {t(`execution.useState.${object.state}`)}</h4>{object.path&&<p><code>{object.path}</code></p>}{object.server&&<p>{t('execution.useServer')} · <code>{object.server}</code></p>}{object.project&&<p>{t('execution.useProject')} · <code>{object.project}</code></p>}<dl className="facts"><dt>{t('execution.useCount')}</dt><dd>{value(object.useCount)}</dd><dt>{t('execution.associatedUseCount')}</dt><dd>{value(object.associatedUseCount)}</dd><dt>{t('execution.useRecordCount')}</dt><dd>{value(object.recordCount)}</dd><dt>{t('execution.unassignedUseRecords')}</dt><dd>{value(object.unassignedTurnRecords)}</dd></dl><button className="link" disabled={disabled} onClick={()=>inspect(object)}>{t('execution.useEvidence')}</button><details><summary>{t('execution.technical')}</summary><code>{object.objectRef}</code><p>{object.useCount.status} · {object.useCount.basis}</p><pre>{JSON.stringify(object.coverage,null,2)}</pre></details></article>;
+ return <article><h4>{t(`execution.useKind.${object.kind}`)} · {t(`execution.useState.${object.state}`)}</h4>{object.path&&<p><code>{object.path}</code></p>}{object.server&&<p>{t('execution.useServer')} · <code>{object.server}</code></p>}{object.project&&<p>{t('execution.useProject')} · <code>{object.project}</code></p>}<dl className="facts"><dt>{t('execution.associatedUseCount')}</dt><dd>{value(object.associatedUseCount)}</dd>{object.useCount.value!=null&&<><dt>{t('execution.useCount')}</dt><dd>{value(object.useCount)}</dd></>}<dt>{t('execution.useRecordCount')}</dt><dd>{value(object.recordCount)}</dd><dt>{t('execution.unassignedUseRecords')}</dt><dd>{value(object.unassignedTurnRecords)}</dd></dl>{object.useCount.value==null&&<><p>{t('execution.useWholeCountUnavailable',{reason:timingMissingValueText(object.useCount.basis)})}</p><p className="note">{t('execution.usePartialCount')}</p></>}<button className="link" disabled={disabled} onClick={()=>inspect(object)}>{t('execution.useEvidence')}</button><details><summary>{t('execution.technical')}</summary><code>{object.objectRef}</code><p>{object.useCount.status} · {object.useCount.basis}</p><pre>{JSON.stringify(object.coverage,null,2)}</pre></details></article>;
 }
 export function UseRecordRow({row,timezone}:{row:UseRecordsPage['rows'][number];timezone:string}){
  const date=row.timestampMs==null?undefined:new Date(row.timestampMs);

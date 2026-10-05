@@ -14,7 +14,7 @@ export function previewChecks(empty:boolean,scenario:ReviewScenario,example='com
    const base=regular({action:'checks',itemId:'preview-skill'}).checks[0];
    result.checks=[{...base,outcome:'hit',reason:null,rule:'skillFormat',itemId:item.id,contentVersion:item.contentHash,assessmentId:'synthetic-invalid-format-assessment',methodVersions:[{method:'synthetic-skill-metadata-v1',version:1}],findings:[{identity:{version:1,findingId:'synthetic-invalid-format-problem',gap:null},rule:'skillFormat',status:'failed',observed:null,threshold:null,evidenceCodes:['nameTypeInvalid']}],basis:{...base.basis,dependencyRevision:'synthetic-invalid-metadata',measurement:{kind:'skill_metadata',status:'invalid',issues:['nameTypeInvalid']}}}];
   }
-  if(example==='evidence-gap'&&result.followUps.length) result.followUps=result.followUps.map(row=>({...row,status:'unavailable',observedRecords:null,lastRecordAt:null,useBasis:row.useBasis?{...row.useBasis,status:'unknown',sourceCompleteness:'partial',coverage:{...row.useBasis.coverage,targetGaps:1}}:null}));
+  if(example==='evidence-gap'&&result.followUps.length) result.followUps=result.followUps.map(row=>({...row,status:'version_unknown',observedRecords:row.observedRecords,lastRecordAt:row.lastRecordAt,useBasis:row.useBasis?{...row.useBasis,status:'partial',sourceCompleteness:'partial',coverage:{...row.useBasis.coverage,targetGaps:1}}:null}));
   return result;
  };
 }

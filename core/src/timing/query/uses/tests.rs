@@ -271,6 +271,74 @@ fn object_membership_gaps_do_not_turn_associated_uses_into_zero() {
     assert!(records.rows[0].timestamp_ms.is_none());
     assert!(matches!(records.rows[0].time_basis, UseTimeBasis::Unknown));
 }
+
+#[test]
+fn public_associated_count_keeps_known_uses_and_explains_partial_total() {
+    let known = operation("known", "skillRead");
+    let mut candidate = operation("candidate", "skillRead").as_ref().clone();
+    candidate.name = "read_skill_file".into();
+    let snapshot = snapshot(vec![known, Arc::new(candidate)]);
+    let Response::UseObjects(page) = run(&snapshot, &request(EvidenceSet::UseObjects, 200)) else {
+        panic!()
+    };
+    let skill = &page.rows[0];
+    assert_eq!(skill.associated_use_count.value, Some(1));
+    assert_eq!(
+        skill.associated_use_count.basis,
+        Basis::CanonicalUseIdentity
+    );
+    assert_eq!(skill.associated_use_count.status, MetricStatus::Observed);
+    assert_eq!(skill.use_count.value, None);
+    assert_eq!(skill.use_count.basis, Basis::DispatchNotProven);
+    assert_eq!(skill.coverage.dispatch_gaps.value, Some(1));
+}
+
+#[test]
+fn conflicting_only_objects_are_unclassified_with_confirmed_zero_associated_uses() {
+    let first = operation("same", "skillRead");
+    let mut conflict = first.as_ref().clone();
+    conflict.path = Some("/synthetic/other/SKILL.md".into());
+    let snapshot = snapshot(vec![first.clone(), Arc::new(conflict), first]);
+    let Response::UseObjects(page) = run(&snapshot, &request(EvidenceSet::UseObjects, 200)) else {
+        panic!()
+    };
+    assert_eq!(page.rows.len(), 2);
+    assert_eq!(page.totals.coverage.target_gaps.value, Some(1));
+    for object in &page.rows {
+        assert!(matches!(object.state, UseState::Unclassified));
+        assert_eq!(object.associated_use_count.value, Some(0));
+        assert_eq!(object.use_count.value, None);
+        assert_eq!(object.coverage.target_gaps.value, Some(1));
+    }
+}
+
+#[test]
+fn independent_known_use_keeps_object_used_alongside_conflicting_identity() {
+    let first = operation("same", "skillRead");
+    let mut conflict = first.as_ref().clone();
+    conflict.path = Some("/synthetic/other/SKILL.md".into());
+    let independent = operation("independent", "skillRead");
+    let snapshot = snapshot(vec![first.clone(), Arc::new(conflict), first, independent]);
+    let Response::UseObjects(page) = run(&snapshot, &request(EvidenceSet::UseObjects, 200)) else {
+        panic!()
+    };
+    let skill = page
+        .rows
+        .iter()
+        .find(|object| object.path.as_deref() == Some("/synthetic/skill/SKILL.md"))
+        .unwrap();
+    assert!(matches!(skill.state, UseState::Used));
+    assert_eq!(skill.associated_use_count.value, Some(1));
+    assert_eq!(skill.use_count.value, None);
+    let other = page
+        .rows
+        .iter()
+        .find(|object| object.path.as_deref() == Some("/synthetic/other/SKILL.md"))
+        .unwrap();
+    assert!(matches!(other.state, UseState::Unclassified));
+    assert_eq!(other.associated_use_count.value, Some(0));
+}
+
 #[test]
 fn object_sort_and_summary_pagination_keep_whole_turn_totals() {
     let mut operations = vec![];
@@ -323,7 +391,7 @@ fn object_sort_and_summary_pagination_keep_whole_turn_totals() {
     };
     assert_eq!(page.total.value, Some(61));
     assert_eq!(page.rows.len(), 11);
-    assert_eq!(page.rows[10].associated_use_count.value, None);
+    assert_eq!(page.rows[10].associated_use_count.value, Some(0));
     assert!(matches!(page.rows[10].state, UseState::Used));
     assert!(page.next_cursor.is_none());
 }

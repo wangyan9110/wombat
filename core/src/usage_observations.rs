@@ -7,7 +7,7 @@ use crate::adapters::contract::{
 };
 use std::{collections::BTreeSet, path::Path};
 
-pub(crate) const METHOD_VERSION: u32 = 2;
+pub(crate) const METHOD_VERSION: u32 = 3;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UseKind {
@@ -316,7 +316,13 @@ impl Projection {
             && self.coverage.identity_gaps == 0
             && self.coverage.target_gaps == 0
             && (!time_filtered || self.coverage.time_gaps == 0))
-            .then_some(self.operations.len() as u64)
+            .then_some(self.observed_count())
+    }
+
+    /// Canonical uses already located by the consumer in its selected scope.
+    /// Gaps in other records do not erase these positive observations.
+    pub(crate) fn observed_count(&self) -> u64 {
+        self.operations.len() as u64
     }
 
     pub(crate) fn related_turns(&self) -> usize {
@@ -374,7 +380,7 @@ pub(crate) fn basis(
             Some(projection) if projection.count(time_filtered).is_some() => {
                 UseBasisStatus::Observed
             }
-            Some(_) => UseBasisStatus::Unknown,
+            Some(_) => UseBasisStatus::Partial,
         },
         unit,
         captured_at: captured_at.into(),

@@ -135,3 +135,21 @@ test('object and record pages preserve missing counts, use outcomes and safe dis
   assert.match(recordText, /operation_result_conflict, time_missing/); assert.equal(timingExitCode(records), 0);
   locale.setLocale('zh'); assert.match(renderTimingResult(records), /已拒绝/);
 });
+
+
+test('partial object counts retain observed associations including zero without presenting a full total', () => {
+ const saved=locale.getSnapshot().locale;
+ try {for(const language of ['zh','en'] as const){locale.setLocale(language);
+  for(const count of [0,2]){
+   const metric={value:count,status:'observed' as const,basis:'canonical_use_identity' as const,evidenceRefs:[]};
+   const missing={value:null,status:'unavailable' as const,basis:'missing_target' as const,evidenceRefs:[]};
+   const result:TimingResult={outputVersion:1,action:'evidence',profile:'local',methodVersion:local.methodVersion,snapshotId:local.readView.snapshotId,scope:local.scope,totals:local.uses.totals,total:{...metric,value:1},nextCursor:null,collection:'use_objects',rows:[{objectRef:'synthetic-object',kind:'mcp',state:'used',path:null,server:'synthetic-server',project:null,useCount:missing,associatedUseCount:metric,recordCount:{...metric,value:3},unassignedTurnRecords:{...metric,value:0},coverage:local.uses.totals.coverage}]};
+   const text=renderTimingResult(result);
+   assert.match(text,new RegExp(`已关联次数: ${count}|Associated uses: ${count}`));
+   assert.match(text,/完整使用次数|Full use count/);
+   assert.match(text,/证据缺口|evidence gaps/);
+   assert.match(text,/0 不证明未使用|0 does not prove absence of use/);
+   assert.doesNotMatch(text,/使用次数: 0|\tUses: 0/);
+  }
+ }}finally{locale.setLocale(saved);}
+});

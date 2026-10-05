@@ -136,9 +136,12 @@ export interface UseObject {
   path?: string | null;
   server?: string | null;
   project?: string | null;
+  /**
+   * Exact count in the positively associated canonical set; coverage explains local gaps.
+   */
   associatedUseCount: TimingMetricUint64;
   /**
-   * Membership gaps make the whole-turn count unknown, even if associated uses are exact.
+   * Complete turn count is unavailable when association or unassigned-membership evidence has gaps.
    */
   useCount: TimingMetricUint64;
   recordCount: TimingMetricUint64;

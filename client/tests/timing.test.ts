@@ -20,7 +20,7 @@ const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', 
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
 const distribution = () => ({ samples: count(), median: count(), p90: count() });
-const useTotals = { methodVersion: 2, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
+const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const local: TimingLocalResult = {
   outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v1', profile: 'local',
@@ -115,7 +115,8 @@ test('timing responses bind action profile method target and selected snapshot',
   assert.equal(await client(evidence).timing!({ ...summary, action: 'evidence', snapshotId: local.readView.snapshotId }), evidence);
   for (const invalid of [
     { ...local, outputVersion: 2 }, { ...local, action: 'evidence' }, { ...local, methodVersion: 'future' },
-    { ...local, profile: 'share-v1' }, { ...local, readView: { ...local.readView, snapshotId: 'live:scope:newer' } },
+    { ...local, profile: 'share-v1' },
+    ...[1, 2, 4].map(methodVersion => ({ ...local, uses: { ...local.uses, totals: { ...local.uses.totals, methodVersion } } })), { ...local, readView: { ...local.readView, snapshotId: 'live:scope:newer' } },
     ...['threadId', 'turnId', 'sourceInstanceId', 'agentKind'].map(field => ({ ...local, scope: { ...scope, [field]: 'other' } })),
     { ...local, scope: { ...scope, wholeTurn: false } },
   ]) await assert.rejects(client(invalid).timing!(summary), { code: 'PROTOCOL_ERROR' });
@@ -197,7 +198,7 @@ test('nonempty local fragment navigation enforces bounds and stays outside shari
 });
 const observed = (value: number, basis: TimingLocalResult['uses']['totals']['objectCount']['basis'] = 'canonical_use_records') => ({ value, status: 'observed' as const, basis, evidenceRefs: [] });
 const objectRef = `use:${'a'.repeat(64)}`;
-const knownUseTotals = { methodVersion: 2, sourceCoverage: 'complete' as const, objectCount: observed(1), recordCount: observed(3), unboundTargetRecords: observed(0),
+const knownUseTotals = { methodVersion: 3, sourceCoverage: 'complete' as const, objectCount: observed(1), recordCount: observed(3), unboundTargetRecords: observed(0),
   unassignedSkillRecords: observed(0, 'unassigned_use_index'), unassignedMcpRecords: observed(0, 'unassigned_use_index'),
   coverage: { dispatchGaps: observed(0), identityGaps: observed(0), targetGaps: observed(0), timeGaps: observed(0), associatedTurnGaps: observed(0) } };
 const useObject = { objectRef, kind: 'skill' as const, state: 'used' as const, path: '/synthetic/skill/SKILL.md', server: null, project: null,
@@ -214,6 +215,7 @@ test('nonempty canonical object and record pages validate and bind collection ob
   const recordRequest: TimingRequest = { ...objectRequest, collection: 'use_records', objectRef };
   assert.equal(await client(objects).timing!(objectRequest), objects);
   assert.equal(await client(records).timing!(recordRequest), records);
+  for(const methodVersion of [1,2,4]) await assert.rejects(client({...objects,totals:{...knownUseTotals,methodVersion}}).timing!(objectRequest),{code:'PROTOCOL_ERROR'});
   const declined = { ...records, rows: [{ ...useRecord, outcome: 'declined', exitCode: null }] };
   assert.equal(await client(declined).timing!(recordRequest), declined);
   const conflicting = { ...records, rows: [{ ...useRecord, exitCode: null, gapCodes: ['operation_result_conflict'] }] };
@@ -228,7 +230,7 @@ test('nonempty canonical object and record pages validate and bind collection ob
   for (const invalid of [
     { ...records, objectRef: `use:${'c'.repeat(64)}` },
     { ...records, rows: [{ ...useRecord, objectRef: `use:${'c'.repeat(64)}` }] },
-    { ...records, totals: { ...knownUseTotals, methodVersion: 99 } },
+    ...[1, 2, 4, 99].map(methodVersion => ({ ...records, totals: { ...knownUseTotals, methodVersion } })),
     { ...records, rows: Array.from({ length: 201 }, () => useRecord) },
     { ...records, rows: [{ ...useRecord, nativeDurationMs: Number.MAX_SAFE_INTEGER + 1 }] },
     { ...records, rows: [{ ...useRecord, outcome: 'invented_success' }] },
@@ -244,6 +246,7 @@ test('sharing allows numeric use coverage and rejects local object record and cu
   const numeric = { ...share, uses: knownUseTotals };
   assert.equal(validateShare(numeric), true);
   assert.equal(await client(numeric).timing!({ ...summary, privacyProfile: 'share-v1' }), numeric);
+  for(const methodVersion of [1,2,4]) await assert.rejects(client({...numeric,uses:{...knownUseTotals,methodVersion}}).timing!({...summary,privacyProfile:'share-v1'}),{code:'PROTOCOL_ERROR'});
   for (const fields of [{ objects: [useObject] }, { path: '/synthetic/skill/SKILL.md' }, { server: 'private-service' },
     { nextCursor: { token: 'local-cursor' } }, { rows: [useRecord] }]) {
     const invalid = { ...numeric, uses: { ...knownUseTotals, ...fields } };

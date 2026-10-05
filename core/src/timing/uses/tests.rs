@@ -111,7 +111,7 @@ fn native_identity_absent_is_still_used_with_unknown_count_and_time() {
     let operations = [Arc::new(anonymous.clone()), Arc::new(anonymous)];
     let out = project(confirmed(&thread, &operations, &cancelled)).unwrap();
     assert_eq!(out.objects[0].use_count, None);
-    assert_eq!(out.objects[0].associated_use_count, None);
+    assert_eq!(out.objects[0].associated_use_count, Some(0));
     assert_eq!(out.objects[0].coverage.identity_gaps, 2);
     assert_eq!(out.coverage.time_gaps, 2);
     assert!(out.records.iter().all(|r| r.state == UseState::Used
@@ -164,6 +164,34 @@ fn wrapper_candidates_catalogs_and_generic_unknown_reads_are_not_uses() {
             .use_count,
         Some(1)
     );
+}
+
+#[test]
+fn known_associated_use_survives_a_local_dispatch_gap() {
+    let thread = thread();
+    let cancelled = AtomicBool::new(false);
+    let known = operation("known", "skillRead");
+    let mut candidate = operation("candidate", "skillRead").as_ref().clone();
+    candidate.name = "read_skill_file".into();
+    let operations = [known, Arc::new(candidate)];
+    let out = project(confirmed(&thread, &operations, &cancelled)).unwrap();
+    assert_eq!(out.objects.len(), 1);
+    assert_eq!(out.objects[0].associated_use_count, Some(1));
+    assert_eq!(out.objects[0].use_count, None);
+    assert_eq!(out.objects[0].coverage.dispatch_gaps, 1);
+}
+
+#[test]
+fn zero_observed_uses_is_preserved_when_dispatch_is_unproven() {
+    let thread = thread();
+    let cancelled = AtomicBool::new(false);
+    let mut candidate = operation("candidate", "skillRead").as_ref().clone();
+    candidate.name = "read_skill_file".into();
+    let operations = [Arc::new(candidate)];
+    let out = project(confirmed(&thread, &operations, &cancelled)).unwrap();
+    assert_eq!(out.objects[0].associated_use_count, Some(0));
+    assert_eq!(out.objects[0].use_count, None);
+    assert_eq!(out.objects[0].coverage.dispatch_gaps, 1);
 }
 #[test]
 fn unknown_explicit_targets_and_mcp_ambiguity_do_not_create_named_objects_or_precise_counts() {
@@ -247,11 +275,21 @@ fn conflicting_canonical_targets_never_merge_by_name_or_first_wins() {
     let first = operation("same", "skillRead");
     let mut conflict = first.as_ref().clone();
     conflict.path = Some("/synthetic/other/SKILL.md".into());
-    let operations = [first.clone(), first.clone(), Arc::new(conflict), first];
+    let independent = operation("independent", "skillRead");
+    let operations = [
+        first.clone(),
+        first.clone(),
+        Arc::new(conflict),
+        first,
+        independent,
+    ];
     let out = project(confirmed(&thread, &operations, &cancelled)).unwrap();
     assert_eq!(out.objects.len(), 2);
     assert!(out.objects.iter().all(|o| o.use_count.is_none()));
-    assert!(out.records.iter().all(|r| r.target_conflict));
+    assert_eq!(out.objects[0].associated_use_count, Some(1));
+    assert_eq!(out.objects[1].associated_use_count, Some(0));
+    assert!(out.records[..4].iter().all(|r| r.target_conflict));
+    assert!(!out.records[4].target_conflict);
     assert_eq!(out.coverage.target_gaps, 1);
 }
 #[test]
@@ -381,23 +419,25 @@ fn unknown_replay_targets_poison_the_same_family_in_both_input_orders() {
                 projected
                     .objects
                     .iter()
-                    .all(|object| object.use_count.is_none()
-                        && object.associated_use_count.is_none())
+                    .all(|object| object.use_count.is_none())
             );
-            assert_eq!(projected.coverage.target_gaps, 2);
+            assert_eq!(projected.objects[0].associated_use_count, Some(0));
+            assert_eq!(projected.objects[1].associated_use_count, Some(1));
+            assert_eq!(projected.coverage.target_gaps, 1);
             assert_eq!(projected.coverage.dispatch_gaps, usize::from(ambiguous));
             assert!(
                 projected.records[..3]
                     .iter()
                     .all(|record| record.target_conflict)
             );
-            assert_eq!(projected.objects[0].coverage.target_gaps, 2);
+            assert_eq!(projected.objects[0].coverage.target_gaps, 1);
             assert_eq!(projected.objects[1].coverage.target_gaps, 1);
         }
         assert_eq!(out.coverage, reversed.coverage);
         for (object, reversed) in out.objects.iter().zip(&reversed.objects) {
             assert_eq!(object.key, reversed.key);
             assert_eq!(object.coverage, reversed.coverage);
+            assert_eq!(object.associated_use_count, reversed.associated_use_count);
         }
     }
 }
@@ -421,7 +461,7 @@ fn native_multiple_skill_candidates_share_one_canonical_row_and_no_invented_disp
     assert_eq!(out.coverage.target_gaps, 0);
     for object in out.objects {
         assert_eq!(object.records, vec![0]);
-        assert_eq!(object.associated_use_count, None);
+        assert_eq!(object.associated_use_count, Some(0));
         assert_eq!(object.coverage.dispatch_gaps, 1);
     }
 }

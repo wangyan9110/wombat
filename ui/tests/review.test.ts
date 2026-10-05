@@ -5,6 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import type {ConfigItem,ConfigResult,OptimizeSuggestion} from '@wombat/client';
 import {locale,reviewPresentation} from '@wombat/client/locale';
 import {RelatedUsageContent,textChanges} from '../src/ReviewUsage.js';
+import {syntheticUseBasis} from '../src/preview/use-basis.js';
 import {parseRoute} from '../src/state.js';
 import {FollowUp} from '../src/optimize/FollowUp.js';
 import {Findings,FindingMethods} from '../src/optimize/Findings.js';
@@ -41,7 +42,7 @@ test('text comparison consumes core comparison identities and measured basis rat
  assert.deepEqual(textChanges(suggestion),[]);
 });
 test('related usage shows records and core turn usage with every operation record; missing history stays unknown',()=>{
- const result={items:[{...item,usageCount:2,counts:{fileReads:2,toolCalls:0,succeeded:2,failed:0,outcomeUnknown:0},relatedTurns:1,usage:{tokens:{total:110},price:{status:'priced',cost:'0.000265',knownCost:'0.000265'}}}],coverage:{status:'partial',historyStatus:'current'},evidence:[{id:'e1',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'completed'},{id:'e2',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'failed'}],usageRevision:'live:one',page:{total:2,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
+ const result={items:[{...item,useBasis:syntheticUseBasis('object_use'),usageCount:2,counts:{fileReads:2,toolCalls:0,succeeded:2,failed:0,outcomeUnknown:0},relatedTurns:1,usage:{tokens:{total:110},price:{status:'priced',cost:'0.000265',knownCost:'0.000265'}}}],coverage:{status:'partial',historyStatus:'current'},evidence:[{id:'e1',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'completed'},{id:'e2',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'failed'}],usageRevision:'live:one',page:{total:2,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
  const props={result,route:parseRoute('?page=optimize&suggestion=s'),navigate:()=>{},onPage:()=>{}};
  const html=renderToStaticMarkup(createElement(RelatedUsageContent,props));assert.match(html,/110/);assert.match(html,/\$0.0003/);assert.equal((html.match(/<strong>synthetic<\/strong>/g)??[]).length,2);assert.match(html,/2 条|2 records/);
  const unknown=renderToStaticMarkup(createElement(RelatedUsageContent,{...props,result:{...result,items:[{...result.items[0],usage:null}],coverage:{...result.coverage,historyStatus:'unavailable'},evidence:[]}}));assert.doesNotMatch(unknown,/\$0\.0000/);assert.match(unknown,/不可用|unavailable/);
@@ -71,5 +72,22 @@ test('related records use task names with identities behind closed disclosure an
   assert.match(html,/Not priced|未计价/);assert.doesNotMatch(html,/\$0\.0000/);
   assert.match(html,/Model and effort filters do not apply|不应用模型与推理强度筛选/);
   assert.match(html,/version|版本/);
+ }}finally{locale.setLocale(saved);}
+});
+
+
+test('shared related usage renders partial counts and does not equate a partial zero with no association', async () => {
+ const {inventoryFixture}=await import('../src/preview/inventory.js');
+ const saved=locale.getSnapshot().locale;
+ try {for(const language of ['zh','en'] as const){locale.setLocale(language);
+  for(const kind of ['mcp','rule'] as const)for(const count of [0,2]){
+   const result=inventoryFixture({action:'detail',itemId:`preview-${kind}`});
+   const row=result.items[0];row.useBasis=syntheticUseBasis(kind==='rule'?'rule_load_or_read':'object_use','partial');
+   if(kind==='rule')row.counts.fileReads=count;else row.usageCount=count;
+   const html=renderToStaticMarkup(createElement(RelatedUsageContent,{result,route:parseRoute('?timezone=UTC'),navigate(){},onPage(){}}));
+   assert.match(html,new RegExp(`${count} 次|${count} 条|${count} use|${count} file read`));
+   assert.match(html,/完整次数更高|full count higher/);
+   assert.doesNotMatch(html,/未找到关联|No associated/);
+  }
  }}finally{locale.setLocale(saved);}
 });

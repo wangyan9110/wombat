@@ -85,7 +85,7 @@ pub(crate) struct Record<'a> {
 #[derive(Debug)]
 pub(crate) struct ObjectUses {
     pub key: Arc<ObjectKey>,
-    /// Exact associated uses from the shared projection. Gaps can make this unknown.
+    /// Identified canonical uses observed for this object, even when other records have gaps.
     pub associated_use_count: Option<u64>,
     /// Whole-turn count needs observed unassigned-membership coverage as well.
     pub use_count: Option<u64>,
@@ -303,11 +303,6 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
         if unbound {
             unassigned_records.push(index);
         }
-        if usage_observations::time_basis(operation) == TimeBasis::Unknown {
-            for object in &associated {
-                objects[*object].projection.note_time_gap(operation);
-            }
-        }
         // Gaps belong to the canonical identity, including replay evidence. Record them
         // before skipping a replay, so unresolved targets cannot depend on input order.
         let group = previous.unwrap_or(index);
@@ -351,12 +346,6 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
         if usage_observations::time_basis(operation) == TimeBasis::Unknown {
             coverage.time_gaps += 1;
         }
-        for object in associated {
-            let projection = &mut objects[object].projection;
-            if state == UseState::Used {
-                projection.observe_with_time_accounted(operation);
-            }
-        }
     }
     for index in 0..records.len() {
         check(input.cancelled)?;
@@ -367,25 +356,59 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
             records[index].target_conflict = true;
         }
     }
+    // Rebuild counts only after replay target conflicts are known. A conflicting
+    // identity must not remain counted against whichever target happened to occur first.
+    for object in &mut objects {
+        check(input.cancelled)?;
+        object.projection = Projection::default();
+        for record_index in &object.records {
+            check(input.cancelled)?;
+            let record = &records[*record_index];
+            if record.time_basis == TimeBasis::Unknown {
+                object.projection.note_time_gap(record.operation);
+            }
+            if record.replay_of.is_none()
+                && !record.target_conflict
+                && record.state == UseState::Used
+            {
+                object
+                    .projection
+                    .observe_with_time_accounted(record.operation);
+            }
+        }
+    }
     coverage.time_gaps = time_gaps.len();
     coverage.dispatch_gaps = dispatch_gaps.len();
-    coverage.target_gaps =
-        unknown_skill_targets.len() + unknown_mcp_targets.len() + target_conflicts.len();
+    coverage.target_gaps = unknown_skill_targets.len()
+        + unknown_mcp_targets
+            .difference(&unknown_skill_targets)
+            .count()
+        + target_conflicts
+            .iter()
+            .filter(|group| {
+                !unknown_skill_targets.contains(group) && !unknown_mcp_targets.contains(group)
+            })
+            .count();
     let mut out = vec![];
     for mut object in objects {
         check(input.cancelled)?;
-        let (unassigned, unknown_targets) = match family(&object.key) {
-            Family::Skill => (input.membership.skill, unknown_skill_targets.len()),
-            Family::Mcp => (input.membership.mcp, unknown_mcp_targets.len()),
+        let unassigned = match family(&object.key) {
+            Family::Skill => input.membership.skill,
+            Family::Mcp => input.membership.mcp,
         };
-        object.projection.coverage.target_gaps = unknown_targets + object.target_conflicts.len();
+        let unknown_targets = match family(&object.key) {
+            Family::Skill => &unknown_skill_targets,
+            Family::Mcp => &unknown_mcp_targets,
+        };
+        object.projection.coverage.target_gaps =
+            unknown_targets.len() + object.target_conflicts.difference(unknown_targets).count();
         object.projection.coverage.dispatch_gaps = object.dispatch_gaps.len();
-        let associated_use_count = object.projection.count(false);
+        let associated_use_count = Some(object.projection.observed_count());
         out.push(ObjectUses {
             key: object.key,
             associated_use_count,
             use_count: (unassigned == Some(0))
-                .then_some(associated_use_count)
+                .then(|| object.projection.count(false))
                 .flatten(),
             coverage: object.projection.coverage,
             unassigned_turn_records: unassigned,

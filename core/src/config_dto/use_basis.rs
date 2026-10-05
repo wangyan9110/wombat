@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 pub enum UseBasisStatus {
     Observed,
-    Unknown,
+    /// Canonical observed counts remain usable; gaps prevent a complete count.
+    Partial,
     Unavailable,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]

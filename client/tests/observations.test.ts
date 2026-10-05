@@ -39,3 +39,20 @@ test('source states and finding quantities stay distinct and natural in both lan
     assert.ok(!reviewFindingNote('mcpInactivity').includes('Wombat'));
   }
 });
+
+
+test('a partial zero remains an observed count without becoming an absence label', async () => {
+  const { useBasisCount } = await import('../src/locale/index.js');
+  const basis: NonNullable<ConfigItem['useBasis']> = { methodVersion: 3, status: 'partial', unit: 'object_use', capturedAt: '2026-10-05T00:00:00Z', snapshotId: 'synthetic', scope: { sourceInstanceIds: ['synthetic'], project: null, threadId: null, agentKind: null, window: { kind: 'all_history' } }, timeBasis: 'source_operation_time', coverage: { targetGaps: 1 }, sourceCompleteness: 'complete' };
+  const saved = locale.getSnapshot().locale;
+  try { for (const language of ['zh', 'en'] as const) {
+    locale.setLocale(language);
+    const row = { ...item('mcp'), useBasis: { ...basis, status: 'partial' as const } };
+    assert.equal(useBasisCount(row.usageCount, row.useBasis), 0);
+    const state = inventoryRecordState(row, coverage);
+    assert.equal(state.kind, 'unknown');
+    assert.match(state.text!, /部分观察|partially observed/);
+    assert.match(state.hint!, /0.*不证明|0 does not prove/);
+    assert.doesNotMatch(state.text!, /无使用|No recorded use/);
+  } } finally { locale.setLocale(saved); }
+});

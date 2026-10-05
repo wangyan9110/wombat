@@ -982,11 +982,19 @@
       ]
     },
     "UseBasisStatus": {
-      "type": "string",
-      "enum": [
-        "observed",
-        "unknown",
-        "unavailable"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "observed",
+            "unavailable"
+          ]
+        },
+        {
+          "description": "Canonical observed counts remain usable; gaps prevent a complete count.",
+          "type": "string",
+          "const": "partial"
+        }
       ]
     },
     "UseUnit": {
