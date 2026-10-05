@@ -187,10 +187,11 @@ jobs:
         with:
           name: github-candidate
           path: candidate
-      - name: Install locked dependencies for the upgrade acceptance test
+      - name: Prepare upgrade acceptance dependencies
         run: |
           npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
+          corepack pnpm --filter @wombat/client build
       - name: Exercise the exact self-contained archive
         env:
           GH_TOKEN: ${{ github.token }}
