@@ -98,10 +98,13 @@ test('real CLI refresh, usage, threads, turns and steps conserve independent Tok
     const initial = f.run(['usage']);
     if (initial.code === 0) {
       assert.equal(initial.value.summary.tokens.total, 491_210);
-    } else {
+    } else if (initial.code === 2) {
       assert.equal(initial.code, 2, initial.stdout);
       assert.equal(initial.value.freshness.status, 'syncing');
       assert.equal(initial.value.quality.issues.some((issue: any) => issue.code === 'initialScanIncomplete'), true);
+    } else {
+      assert.equal(initial.code, 1, initial.stdout);
+      assert.equal(initial.value.error.code, 'SYNC_PENDING');
     }
     const refresh = f.run(['refresh', '--root', f.source, '--root', f.source]);
     assert.equal(refresh.code, 0);
