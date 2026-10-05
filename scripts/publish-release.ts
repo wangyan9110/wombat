@@ -16,8 +16,8 @@ const apiVersion = '2026-03-10';
 const managedReleaseFiles = new Set([
   'README.i18n.json', 'README.md', 'README.zh-CN.md',
   'cli/package.json', 'client/package.json', 'core/Cargo.lock', 'core/Cargo.toml',
-  'docs/dependency-licenses.json', 'docs/reference/distribution.en.md',
-  'docs/reference/distribution.i18n.json', 'docs/reference/distribution.md',
+  'docs/dependency-licenses.json', 'docs/guides/installation.en.md',
+  'docs/guides/installation.i18n.json', 'docs/guides/installation.md',
   'install.sh', 'package.json', 'ui/package.json', 'web/package.json',
 ]);
 

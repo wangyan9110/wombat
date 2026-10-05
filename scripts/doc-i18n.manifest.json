@@ -176,9 +176,9 @@
       "record": "docs/decisions/implemented/architecture/2026-10-02-rule-review-integrity.i18n.json"
     },
     {
-      "zh": "docs/reference/distribution.md",
-      "en": "docs/reference/distribution.en.md",
-      "record": "docs/reference/distribution.i18n.json"
+      "zh": "docs/guides/installation.md",
+      "en": "docs/guides/installation.en.md",
+      "record": "docs/guides/installation.i18n.json"
     },
     {
       "zh": "docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.md",

@@ -34,4 +34,4 @@ corepack pnpm test
 
 宿主、真实内核、浏览器及安装资产分别验证；Web 检查窄屏、取消、失败和返回路径。性能使用固定语料和 release，分别记录缓存、启动、耗时、峰值内存与结果一致性；基准入口见 package.json 的 benchmark 脚本。
 
-依赖变化运行 `corepack pnpm licenses:generate` 和 `corepack pnpm licenses:check`。发行按[发行 Skill](../../.agents/skills/wombat-release/SKILL.md)和[分发说明](../reference/distribution.md)核验目标平台与干净安装。只报告本次实际验证，不以构建替代产品或平台验收。
+依赖变化运行 `corepack pnpm licenses:generate` 和 `corepack pnpm licenses:check`。发行按[发行 Skill](../../.agents/skills/wombat-release/SKILL.md)核验目标平台与干净安装。只报告本次实际验证，不以构建替代产品或平台验收。

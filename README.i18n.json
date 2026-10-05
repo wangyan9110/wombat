@@ -6,16 +6,20 @@
       "en": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562"
     },
     "/wombat-make-ai-work-better": {
-      "zh": "f9293bb13e519e9becb0b4dff8e7b96ffb8ef2bbef706748f353ea52b1f0153c",
-      "en": "b5965150251cb841a73fb96b677e4b88828f42cd9f5b710473e6fd26799ec65b"
+      "zh": "5a2f5706aeb625ce1487fb3e358aee0a3098fe2f78946c95f9f85b1d025c8c99",
+      "en": "c4a6d95f42f9ad2dc87b5ea31664433ded7cbc63e758e36eba77758fb911e34f"
     },
     "/wombat-make-ai-work-better/get-started": {
-      "zh": "9f00182edeb8d4742199ce42260ced73ea426561f2d1cee9e355e8800d4d383c",
-      "en": "a28ebf34f5aa55297b34627896b5f7f6808991a4a1ce66379a2a48007efd32a9"
+      "zh": "165e135abf082e4c86a77ec156724e953868a6ed5139a655c36c5a1f640b25f7",
+      "en": "5b9e22a77bc7245e54a96e1cb521a8cb852057aa4ac8e583aaab2ddc57adc2e3"
     },
     "/wombat-make-ai-work-better/get-started/update-wombat": {
-      "zh": "7ac544837094e13dea5e6665c55313cf5feee734b8e5fbaee2f639b9dc06972e",
-      "en": "4467b6a99e722d8ad67038af8b69daaf36bc7b64e24fe0f865a11ca91e40283d"
+      "zh": "609c2f72daa4f01c11addb3a1c638b181aeb1979609717572d15f90c08f9c3ef",
+      "en": "c1f278ec3a147db87b87c919f1401ba55d58ebe5460881b9ad012a667f3da384"
+    },
+    "/wombat-make-ai-work-better/update-wombat": {
+      "zh": "16d2a3b3f0ede7c577b043249355015a10519141293e73c8c91cbbafdfdbb29b",
+      "en": "224e520aff9232a648a414b02a39268b6350f51a88b758da0800a3b6aaacd321"
     },
     "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow": {
       "zh": "441e2564bb5cd38f72b8d4d425905637667a482b9c412de51e730dc5c3294d74",
@@ -38,8 +42,8 @@
       "en": "435b098e160810356071ac0398970b70672a6b34600213361b51e3e15f9af8d4"
     },
     "/wombat-make-ai-work-better/compatibility": {
-      "zh": "98f2b8cb0f4cb06d3c7debefd33df37b57de9155abb5586acaf843a4507adb2b",
-      "en": "7a36dc9f83081a9cf60c2f87f6bf544e8bdec78c255b6186b72ba63c28692998"
+      "zh": "c44491b088e21a0dff2c316dbfbf0b36033c22502b2f7d4dc3fe4a854815ef33",
+      "en": "4fffc7b82e45875b7e61cf200af43ae097ca6a5f8cc2440405fb2574b2a25924"
     },
     "/wombat-make-ai-work-better/help-shape-wombat": {
       "zh": "b72555cda77427f0657a30e1e621e7f37aac939bd9f6a6ff61d0a720349faa1d",

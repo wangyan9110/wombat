@@ -6,13 +6,13 @@
 
 ## 使用指南 · guides
 
+- [安装与更新](guides/installation.md)：适用系统、一键安装、故障处理、更新与版本选择。
 - [CLI 与机器接口](guides/cli.md)：启动、刷新、查询、筛选、JSON 与错误。
 - [Web 前端](../ui/README.md)：用量、任务、详情查看与当前界面范围。
-- 安装与构建从[项目首页](../README.zh-CN.md)开始。
+- 从[项目首页](../README.zh-CN.md)开始。
 
 ## 技术参考 · reference
 
-- [分发与公开简介](reference/distribution.md)：预发行版本、安装与升级、发行归档及 GitHub 简介。
 - [价格口径](reference/pricing.md)：官方依据、金额政策、未知值与显式更新。
 - [隐私与数据边界](reference/privacy.md)：本地读写、正文白名单与公开材料。
 - [生成 Schema](schemas/) 与[依赖许可清单](dependency-licenses.json)由工具维护，供查阅使用。
@@ -23,6 +23,7 @@
 - [多入口开发流程](development/workflow.md)：同一业务能力的交付与验证。
 - [契约](development/contracts.md)：Rust 源头、生成类型、版本与格式。
 - [来源适配验收](development/adapters.md)：独立真值、数据归属及故障用例。
+- [GitHub 分发决策](decisions/implemented/architecture/2026-10-04-github-release-distribution.md)：长期有效的打包与渠道取舍。重复发行操作由[发行 Skill](../.agents/skills/wombat-release/SKILL.md)维护。
 - [贡献说明](../CONTRIBUTING.zh-CN.md)提供仓库操作入口。
 
 ## 决策与文档维护

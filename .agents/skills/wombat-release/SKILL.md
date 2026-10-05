@@ -5,7 +5,7 @@ description: Build and release Wombat GitHub archives, run release gates and cle
 
 # Wombat Build and Release
 
-Follow [repository rules](../../../AGENTS.md), [development](../../../docs/development/workflow.en.md), and [distribution](../../../docs/reference/distribution.en.md). This Skill orchestrates existing tools without a second product contract.
+Follow [repository rules](../../../AGENTS.md), [development](../../../docs/development/workflow.en.md), and the durable [GitHub distribution decision](../../../docs/decisions/implemented/architecture/2026-10-04-github-release-distribution.en.md). This Skill owns repeatable release operations without becoming a second product contract.
 
 ## Establish scope
 
@@ -35,7 +35,7 @@ Packing runs release:check by default. Use --reuse-build only after gates passed
 ## Verify candidates
 
 1. Run the scoped entry with locked dependencies in isolation. Record and fix the failing stage instead of bypassing gates.
-2. Inspect dist/github/release-set.json, SHA256SUMS, and every archive against the payload and platform requirements owned by the distribution guide. Check release.json and project, dependency, and runtime notices.
+2. Inspect dist/github/release-set.json, SHA256SUMS, and every archive against the target and payload definitions in scripts/native-platforms.ts and scripts/github-release.ts. Check release.json and project, dependency, and runtime notices.
 3. verify-github-release.ts uses the bundled runtime for version, read-only offline `wombat doctor`, empty-snapshot, live, append, fixed-snapshot, task, and Web tests with an empty application PATH, synthetic sources, and temporary data directories. It also installs the preceding public release and upgrades that managed installation to the candidate, preserving the previous version while switching the current pointer.
 4. Run install.sh --base-url file://<dist/github> into a repository-external prefix. Verify the managed marker, version directory, current.txt, launcher, and empty-PATH operation. Verify install.ps1 -BaseUrl <URL> on Windows itself.
 5. cli/tests/update.test.ts covers check-only, size/hash, archive safety, and atomic switching with a simulated Release. Candidate CI performs the real cross-version upgrade on all five targets. After publication, test `wombat update --check` through the stable public endpoint.
@@ -44,6 +44,8 @@ Packing runs release:check by default. Use --reuse-build only after gates passed
 ## Publish and verify
 
 Prefer `release:publish` for an authorized public release. It accepts an explicit version, refuses unrelated worktree changes, runs the local gates before committing, waits for CI on the exact pushed source, and calls `release:preflight` immediately before creating a missing tag. Rerunning it resumes from remote CI, tag, or Release state only when the existing identity still matches. It never replaces a tag or published asset. Use the lower-level entries only for diagnosis, candidate-only work, or recovery that the primary path explicitly requests.
+
+Before publication, review both root READMEs in a first-time user's reading order. Require the exact release stage and version link, the shortest supported install-and-open command, an observable first result and usable recovery, current update commands, necessary limits, and detailed platform support later in the page. Remove internal process links and implementation details that users do not need. Compare commands and claims with the installers, version manifests, current implementation, and exact-source acceptance. Review Chinese and English together. Check that the repository About, Topics, and package description describe the same current scope; planned agents and unsupported behavior are not release keywords. Local copy does not prove remote metadata, so inspect and report the actual GitHub state. Automate mechanical version, command, link, and platform checks in the primary TypeScript release entries; reserve manual review for meaning, ordering, and user clarity.
 
 The tag workflow independently checks that the tagged commit belongs to the default branch and already passed CI. It then runs gates and native export on five platforms, assembles archives, verifies the final files and a preceding-release upgrade on each platform, generates the English notes from the verified release set, creates provenance, uploads every asset to a draft, and publishes that complete draft. The primary script then requires an immutable complete Release, verifies its release and archive attestations, downloads and hashes all five archives, and exercises the public installer and update check on the operator's platform.
 
@@ -80,6 +82,6 @@ Preview candidates increment dev.N. Moving to beta, RC, or stable requires the u
 
 ## Finish
 
-Use the distribution guide for supported targets and runtime prerequisites; do not infer musl, Windows ARM64, or old-system acceptance. Report version, commit, platforms, gates, archive hashes, installation/update evidence, whether publication actually occurred, and the user's installation command. Candidates in dist/github are not externally installable Releases. Clean isolated workspaces only when no longer needed and required ignored files are saved.
+Read supported targets and runtime prerequisites from the versioned source; do not infer musl, Windows ARM64, or old-system acceptance. Report version, commit, platforms, gates, archive hashes, installation/update evidence, whether publication actually occurred, and the user's installation command. Candidates in dist/github are not externally installable Releases. Clean isolated workspaces only when no longer needed and required ignored files are saved.
 
 The preflight follows GitHub's secure-use guidance: third-party Actions remain pinned to full commit SHAs, job permissions stay minimal, and verified assets are attached before a draft becomes public. GitHub artifact attestations bind archives to the hosted build, while SLSA recommends publishing and verifying provenance alongside release artifacts. Repository settings should enable immutable Releases and protect release tags when available; those server-side controls are inspected separately because the local preflight does not change GitHub settings.

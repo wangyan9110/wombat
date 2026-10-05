@@ -13,7 +13,7 @@ Wombat 是面向 Codex 用户的本机工具，用于查看 Token 用量和任�
 
 通过一个概览，可以找到高用量任务、查看 API 估算金额与账户额度、检查 AGENTS.md、Skills、MCP 和 Hooks，并在修改后重新核对结果。
 
-Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细的平台与发行边界见[分发说明](docs/reference/distribution.md)。
+Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。
 
 ## 开始使用
 
@@ -35,7 +35,7 @@ Wombat 支持 macOS、Linux 和 Windows，无需开发工具或 API Key。
 
 2. Wombat 会开始读取本机记录。终端会输出本机访问地址，并在浏览器中打开。首次读取完成前，可以先查看已发现的任务。
 
-安装未完成时，查看[分发说明](docs/reference/distribution.md)中的安装帮助。浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」并选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
+安装未完成时，重新执行安装命令；再次失败时，在 [Issues](https://github.com/wangyan9110/wombat/issues) 反馈问题。浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」并选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
 
 ### 更新 Wombat
 
@@ -46,7 +46,15 @@ wombat update --check
 wombat update
 ```
 
-升级行为、校验和及发行验收详情见[分发说明](docs/reference/distribution.md)。
+## 更新 Wombat
+
+检查或安装最新稳定版：
+
+```sh
+wombat update --check
+wombat update
+```
+
 
 ## 用 Wombat 改进 Codex 的日常使用
 
@@ -109,7 +117,7 @@ wombat optimize list --project-root /path/to/project --json
 
 ## 兼容平台
 
-发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。发行与平台详情见[分发说明](docs/reference/distribution.md)。
+发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。
 
 ## 一起完善 Wombat
 

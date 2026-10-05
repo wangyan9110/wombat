@@ -30,6 +30,25 @@ export function structureErrors(file: string, source: string): string[] {
   return errors;
 }
 
+/** Keep release operations out of pages written for product users. */
+export function audienceBoundaryErrors(files: Record<string, string>): string[] {
+  const errors: string[] = [];
+  const internalReleaseMarkers = [
+    'corepack pnpm release:',
+    'corepack pnpm github:pack',
+    'release-set.json',
+    '.agents/skills/wombat-release',
+    'reference/distribution',
+  ];
+  for (const [file, source] of Object.entries(files)) {
+    if (file !== 'README.md' && file !== 'README.zh-CN.md' && !file.startsWith('docs/guides/')) continue;
+    for (const marker of internalReleaseMarkers) {
+      if (source.includes(marker)) errors.push(`${file}: user documentation contains internal release material: ${marker}`);
+    }
+  }
+  return errors;
+}
+
 function main(): void {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const manifest = JSON.parse(readFileSync(path.join(root, 'scripts/doc-i18n.manifest.json'), 'utf8')) as {
@@ -40,7 +59,11 @@ function main(): void {
     ...manifest.pairs.flatMap(pair => [pair.zh, pair.en]),
     ...Object.keys(budgets).filter(file => path.basename(file) === 'AGENTS.md'),
   ]);
-  const errors = [...files].flatMap(file => structureErrors(file, readFileSync(path.join(root, file), 'utf8')));
+  const sources = Object.fromEntries([...files].map(file => [file, readFileSync(path.join(root, file), 'utf8')]));
+  const errors = [
+    ...Object.entries(sources).flatMap(([file, source]) => structureErrors(file, source)),
+    ...audienceBoundaryErrors(sources),
+  ];
   if (errors.length) {
     for (const error of errors) console.error(error);
     process.exitCode = 1;

@@ -16,7 +16,7 @@ GitHub Releases 成为唯一产品分发渠道。每个版本生成 macOS arm64/
 
 标签工作流参考 [Mole 的 GitHub Release 矩阵、校验和与来源证明流程](https://github.com/tw93/Mole/blob/main/.github/workflows/release.yml)，但按 Wombat 的 Rust+Node 架构独立实现。五个平台先导出内核、Node 运行时和许可哈希，汇总后再由五个平台验证最终归档。与 `package.json` 不匹配的标签拒绝发布，普通 CI 和候选构建不上传。
 
-本决定取代原先全内核 npm 单包和后续 npm 平台包；相关页面合并到这里。继续按目标准确选择原生产物，核验版本、源码提交、目标、哈希与许可；缺失、损坏、身份不符或许可缺失均拒绝，不回退到另一架构。当前操作说明只由[分发说明](../../../reference/distribution.md)维护。
+本决定取代原先全内核 npm 单包和后续 npm 平台包；相关页面合并到这里。继续按目标准确选择原生产物，核验版本、源码提交、目标、哈希与许可；缺失、损坏、身份不符或许可缺失均拒绝，不回退到另一架构。当前发行操作只由[发行 Skill](../../../../.agents/skills/wombat-release/SKILL.md)维护，用户操作由[安装指南](../../../guides/installation.md)维护。
 
 ## 考虑过的方案
 

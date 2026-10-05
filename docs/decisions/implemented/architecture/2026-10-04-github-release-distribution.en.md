@@ -16,7 +16,7 @@ Installations use `versions/<version>-<source>/` plus `current.txt`. `wombat upd
 
 The tag workflow references [Mole's GitHub Release matrix, checksums, and provenance flow](https://github.com/tw93/Mole/blob/main/.github/workflows/release.yml), with an independent implementation for Wombat's Rust and Node architecture. Five targets export core, Node runtime, and notice hashes. After assembly, all targets verify the final archives. A tag that differs from `package.json` is rejected; normal CI and candidate builds never upload.
 
-This decision supersedes the former all-core npm package and subsequent platform packages; their notes are consolidated here. Retain exact target selection and version, source-commit, target, hash, and license verification. Missing, corrupt, mismatched, or unlicensed artifacts fail rather than falling back to another architecture. [Distribution](../../../reference/distribution.en.md) alone owns current operating instructions.
+This decision supersedes the former all-core npm package and subsequent platform packages; their notes are consolidated here. Retain exact target selection and version, source-commit, target, hash, and license verification. Missing, corrupt, mismatched, or unlicensed artifacts fail rather than falling back to another architecture. The [release Skill](../../../../.agents/skills/wombat-release/SKILL.md) alone owns current operating instructions; the [installation guide](../../../guides/installation.en.md) owns user actions.
 
 ## Alternatives considered
 

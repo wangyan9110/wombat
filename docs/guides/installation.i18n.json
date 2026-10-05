@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "sections": {
+    "/install-and-update-wombat": {
+      "zh": "8bbbbf2fafee462cdeb47b14b4815b4d5ea262f5cf3537dcbbf8d0abffb58095",
+      "en": "5870ba7ca1a51b7f97fc646d97cf13b998b07f0fc9e2f1fa4cf1e420496a95ef"
+    },
+    "/install-and-update-wombat/install-and-open": {
+      "zh": "8dbc238fbc1a902160488553a2e12aa184c2d6ac56902ae7492af1ef5872a4bc",
+      "en": "012f65bcb1035f97e7d832ff1ccc3c1d039c1ccd3252d97139e2d853f0795ed2"
+    },
+    "/install-and-update-wombat/update": {
+      "zh": "541fdf1e95c13290fcc9bfc4a060c0827cee2b78501ee8890f93746eabb99dc0",
+      "en": "541d2600d4cd56888ea702c43477910b4205d050ce8e521bac9ec09260ea3aed"
+    },
+    "/install-and-update-wombat/install-a-specific-version": {
+      "zh": "81b1846f8616b75981663c55f2e8dcfd9c9ce6459e99e3089ab0c1b8ed77e7a8",
+      "en": "c9b7373abcccf8860a74704665457154d9c76526f85553482a09925b41d4bac9"
+    }
+  }
+}

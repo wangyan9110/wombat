@@ -13,7 +13,7 @@ Wombat is a local tool for Codex users who want to understand token usage and ta
 
 Use one overview to find high-usage tasks, review API cost estimates and account allowance, inspect AGENTS.md, Skills, MCP entries, and Hooks, and recheck the results after changes.
 
-Wombat currently reads local Codex records. Support for other agents is planned. See the [distribution guide](docs/reference/distribution.en.md) for detailed platform and release boundaries.
+Wombat currently reads local Codex records. Support for other agents is planned.
 
 ## Get started
 
@@ -35,7 +35,7 @@ Wombat supports macOS, Linux, and Windows. No development tools or API key are r
 
 2. Wombat starts reading local records. The terminal prints a local URL, and the browser opens that address. You can view discovered tasks before the initial read finishes.
 
-If installation does not complete, see the installation help in the [distribution guide](docs/reference/distribution.en.md). If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources** and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
+If installation does not complete, run the command again. If it still fails, [report the problem](https://github.com/wangyan9110/wombat/issues). If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources** and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
 
 ### Update Wombat
 
@@ -46,7 +46,15 @@ wombat update --check
 wombat update
 ```
 
-See the [distribution guide](docs/reference/distribution.en.md) for update behavior, checksums, and release acceptance details.
+## Update Wombat
+
+Check for or install the latest stable release:
+
+```sh
+wombat update --check
+wombat update
+```
+
 
 ## Improve your day-to-day Codex workflow
 
@@ -113,7 +121,7 @@ Local inspection needs no API key and makes no model calls. Sending work to Code
 
 ## Compatibility
 
-Release packages support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. See the [distribution guide](docs/reference/distribution.en.md) for release and platform details.
+Release packages support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64.
 
 ## Help shape Wombat
 

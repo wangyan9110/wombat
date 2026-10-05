@@ -34,4 +34,4 @@ Select commands by changed scope; run all for full-chain changes. Cross-language
 
 Verify hosts, real core, browsers, and installed assets separately. Web checks cover narrow layouts, cancellation, failure, and return paths. Performance uses fixed fixtures and release builds, recording cache state, startup, elapsed time, peak memory, and result consistency separately; benchmark entry points are the package.json benchmark scripts.
 
-For dependency changes run `corepack pnpm licenses:generate` and `corepack pnpm licenses:check`. Verify target platforms and clean installation under the [release Skill](../../.agents/skills/wombat-release/SKILL.md) and [distribution guide](../reference/distribution.en.md). Report actual verification only; builds do not establish product or platform acceptance.
+For dependency changes run `corepack pnpm licenses:generate` and `corepack pnpm licenses:check`. Verify target platforms and clean installation under the [release Skill](../../.agents/skills/wombat-release/SKILL.md). Report actual verification only; builds do not establish product or platform acceptance.

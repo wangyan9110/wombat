@@ -6,13 +6,13 @@ Choose documentation by task. Source code, technical references, and implementat
 
 ## User guides · guides
 
+- [Install and update](guides/installation.en.md): supported systems, one-command setup, recovery, updates, and version selection.
 - [CLI and machine interface](guides/cli.en.md): startup, refresh, queries, filters, JSON, and errors.
 - [Web frontend](../ui/README.en.md): usage, tasks, detail views, and current UI scope.
-- Start installation and building from the [project homepage](../README.md).
+- Start with the [project homepage](../README.md).
 
 ## Technical references · reference
 
-- [Distribution and public descriptions](reference/distribution.en.md): prereleases, installation and updates, release archives, and GitHub descriptions.
 - [Pricing rules](reference/pricing.en.md): official evidence, cost policies, unknown values, and explicit updates.
 - [Privacy and data boundaries](reference/privacy.en.md): local reads/writes, body allowlists, and public materials.
 - Tools maintain the [generated schemas](schemas/) and [dependency license inventory](dependency-licenses.json) for reference.
@@ -23,6 +23,7 @@ Choose documentation by task. Source code, technical references, and implementat
 - [Multi-entry development workflow](development/workflow.en.md): delivering and verifying the same business capability.
 - [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and formats.
 - [Source adapter acceptance](development/adapters.en.md): independent truth, data attribution, and failure cases.
+- [GitHub distribution decision](decisions/implemented/architecture/2026-10-04-github-release-distribution.en.md): durable packaging and channel rationale. Repeatable release operations belong to the [release Skill](../.agents/skills/wombat-release/SKILL.md).
 - [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
 
 ## Decisions and documentation maintenance
