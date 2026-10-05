@@ -9,41 +9,58 @@
 
 中文 | [English](README.md)
 
-Wombat 帮你看清 Codex 的 Token 用量和任务耗时，发现指令、扩展和工作方式中值得改进的问题，并把具体建议交给 Codex 处理。
+Wombat 是面向 Codex 用户的本机工具，用于查看 Token 用量和任务耗时、检查指令与扩展，并把有依据的建议交给 Codex 处理。
 
-用量、额度和优化建议集中展示。打开就能看到哪些工作需要关注；处理完成后，回到 Wombat 检查结果。
+通过一个概览，可以找到高用量任务、查看 API 估算金额与账户额度、检查 AGENTS.md、Skills、MCP 和 Hooks，并在修改后重新核对结果。
 
-产品方向以本页为准；当前实现、平台支持和发行验收边界见[分发说明](docs/reference/distribution.md)。
+Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细的平台与发行边界见[分发说明](docs/reference/distribution.md)。
 
 ## 开始使用
 
 **Beta 测试版：[`v0.1.0-beta.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-beta.1)。** 本版本用于扩大安装、升级和现有产品流程的测试范围；功能、数据格式和命令仍可能调整。
 
-macOS 或 Linux：
+发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64，并已包含所需运行环境，无需另装 Node.js、npm、Rust、pnpm 或编译器。Wombat 读取本机 Codex 记录时无需 API Key。分析用量前，至少需要一项本机 Codex 任务；没有任务历史时，仍可检查已授权目录中的指令和扩展。
+
+1. 安装 Wombat。在 macOS 或 Linux 中执行：
+
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
+   ```
+
+   在 Windows PowerShell 中执行：
+
+   ```powershell
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
+   ```
+
+2. 启动 Wombat。在 macOS 或 Linux 中执行：
+
+   ```sh
+   ~/.local/bin/wombat web --open
+   ```
+
+   在 Windows PowerShell 中执行：
+
+   ```powershell
+   & "$HOME\.local\bin\wombat.cmd" web --open
+   ```
+
+3. Wombat 会自动开始读取本机记录。终端会输出本机访问地址，并在浏览器中打开。首次读取完成前，可以先查看已发现的任务。
+
+浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」，核对来源位置和目录权限，然后选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
+
+默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可直接运行 `wombat`。
+
+### 更新预发行版本
+
+预发行版本不会替代最新稳定版。检查或安装后续预发行版本时，需要指定版本：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
-~/.local/bin/wombat web --open
-```
-
-Windows PowerShell：
-
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
-& "$HOME\.local\bin\wombat.cmd" web --open
-```
-
-默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可以直接启动。预发行版本不会替代最新稳定版；升级到后续预发行版本时需要指定版本：
-
-```sh
-wombat web --open
 wombat update --check --version 0.1.0-beta.1
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 
-发行目标包括 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。发行包无需另装 Node.js、npm、Rust、pnpm 或编译器；其他平台和实际验收边界见[分发说明](docs/reference/distribution.md)。浏览器未自动打开时，使用终端输出的完整链接。
-
-首次使用时，确认读取位置并选择“读取本机记录”。首批结果可先查看；没有历史记录，也可以检查已授权的指令和扩展。
+安装选项、升级行为、校验和及发行验收详情见[分发说明](docs/reference/distribution.md)。
 
 ## 用 Wombat 改进 Codex 的日常使用
 
@@ -70,6 +87,8 @@ wombat update --version NEXT_PREVIEW_VERSION
 选择一项建议，或批量选择当前范围内的建议。确认目标项目、文件和处理范围后，将它们发送给 Codex。
 
 在 Codex 中查看处理过程和修改。完成后，回到 Wombat 重新检查：已解决的问题进入处理记录，仍有问题的建议继续保留。
+
+发送建议需要兼容的本机 Codex。原生交接不可用时，可以自行处理建议，再回到 Wombat 复查。
 
 你也可以自己修改文件，再回来复查。运行方式是否已采用，要等后续工作记录确认；文件检查通过不等于实际用量已经减少。
 

@@ -6,12 +6,16 @@
       "en": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562"
     },
     "/wombat-make-ai-work-better": {
-      "zh": "b209d1940dc14b8aceec1ccc3b80e6c4d85cabd3799fc4ad77d20096dfe36b2d",
-      "en": "d7fc5b1b789fa50aa95cc499e0c48eea1f402cfb6426b5e2576c3a805dc26d65"
+      "zh": "f9293bb13e519e9becb0b4dff8e7b96ffb8ef2bbef706748f353ea52b1f0153c",
+      "en": "b5965150251cb841a73fb96b677e4b88828f42cd9f5b710473e6fd26799ec65b"
     },
     "/wombat-make-ai-work-better/get-started": {
-      "zh": "b9d811b8f30f01438d4653806e77a5da1b675740eb7c9a79cba63f9d1010d482",
-      "en": "13723ef7d5410ea186ff60dd80e5daa2231b0da5481db452dd8bd69cc3e69972"
+      "zh": "85663ca7c04f27ebe5a4ae3a1cbbd1a07b4267313577b08a1266157f5edd01fc",
+      "en": "81e0473a01b93781e677b1e5e48e35fbd8531d50cc529012be5cf2aeb83826c1"
+    },
+    "/wombat-make-ai-work-better/get-started/update-a-pre-release": {
+      "zh": "865cfb98359d0f862bce52070865e6ae2f3f46916ff8d8ff9c171af5005fd659",
+      "en": "3bf41c99ee9abcfcd21c6cfc4dcab22ebd11d3d984d89123adaa826614aa2296"
     },
     "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow": {
       "zh": "441e2564bb5cd38f72b8d4d425905637667a482b9c412de51e730dc5c3294d74",
@@ -30,8 +34,8 @@
       "en": "c6192c2c8f6a7846dea5e7559c1a4e97efa61a45a4506e0d88380217a2e7b2d0"
     },
     "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow/send-work-to-codex-then-check-the-result": {
-      "zh": "97a5e3f9c3bbc25618be1e724ece68863647c711b84414615b9db5848d150378",
-      "en": "d9648e5b49ac4b030f7fd9a1c401e52d8edddbd67cef8020dc3bd6dfbc61492a"
+      "zh": "3a85a937cb243bfafc4d561469a716e18ecca3fc9f49f35cbb6ddf9c856a0423",
+      "en": "435b098e160810356071ac0398970b70672a6b34600213361b51e3e15f9af8d4"
     },
     "/wombat-make-ai-work-better/help-shape-wombat": {
       "zh": "b72555cda77427f0657a30e1e621e7f37aac939bd9f6a6ff61d0a720349faa1d",

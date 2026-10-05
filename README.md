@@ -9,43 +9,58 @@
 
 English | [中文](README.zh-CN.md)
 
-Wombat helps you understand Codex token usage and task timing, and find issues in your instructions, extensions, and workflow. Send specific recommendations to Codex for action.
+Wombat is a local tool for Codex users who want to understand token usage and task timing, inspect instructions and extensions, and turn evidence-backed findings into work for Codex.
 
-Usage, account allowance, and optimization recommendations appear in one local overview. See what needs attention, then return after Codex makes changes to check the results.
+Use one overview to find high-usage tasks, review API cost estimates and account allowance, inspect AGENTS.md, Skills, MCP entries, and Hooks, and recheck the results after changes.
 
-This page describes the product direction. See the [distribution guide](docs/reference/distribution.en.md) for current implementation, platform support, and release acceptance boundaries.
+Wombat currently reads local Codex records. Support for other agents is planned. See the [distribution guide](docs/reference/distribution.en.md) for detailed platform and release boundaries.
 
 ## Get started
 
 **Beta: [`v0.1.0-beta.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-beta.1).** This release is intended for wider testing of installation, updates, and current product workflows. Features, data formats, and commands may still change.
 
-On macOS or Linux:
+Release archives support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. They include the required runtime, so you do not need to install Node.js, npm, Rust, pnpm, or a compiler. Wombat reads local Codex records without an API key. You need at least one local Codex task to analyze usage; without task history, you can still inspect instructions and extensions in directories you authorize.
+
+1. Install Wombat. On macOS or Linux, run:
+
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
+   ```
+
+   On Windows PowerShell, run:
+
+   ```powershell
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
+   ```
+
+2. Start Wombat. On macOS or Linux, run:
+
+   ```sh
+   ~/.local/bin/wombat web --open
+   ```
+
+   On Windows PowerShell, run:
+
+   ```powershell
+   & "$HOME\.local\bin\wombat.cmd" web --open
+   ```
+
+3. Wombat automatically starts reading local records. The terminal prints a local URL, and the browser opens that address. You can view discovered tasks before the initial read finishes.
+
+If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources**, check the source location and folder permissions, and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
+
+The default installation prefix is `~/.local`. Add its `bin` directory to `PATH` to run `wombat` directly.
+
+### Update a pre-release
+
+Pre-releases do not replace the latest stable release. Specify the version when you check or install a later pre-release:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
-~/.local/bin/wombat web --open
-```
-
-On Windows PowerShell:
-
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
-& "$HOME\.local\bin\wombat.cmd" web --open
-```
-
-The default installation prefix is `~/.local`. After adding its `bin` directory to `PATH`, start Wombat directly. Pre-releases do not replace the latest stable release, so specify the version when moving to a later pre-release:
-
-```sh
-wombat web --open
 wombat update --check --version 0.1.0-beta.1
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 
-Release targets are macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. The archives require no separate Node.js, npm, Rust, pnpm, or compiler installation. See the [distribution guide](docs/reference/distribution.en.md) for platform and acceptance boundaries. If the browser does not open, use the full URL printed in your terminal.
-
-On first use, confirm the source location and select **Read local records**. You can view the first available results before loading finishes.
-
-Without task history, you can still inspect instructions and extensions in authorized directories.
+See the [distribution guide](docs/reference/distribution.en.md) for installation options, update behavior, checksums, and release acceptance details.
 
 ## Improve your day-to-day Codex workflow
 
@@ -74,6 +89,8 @@ Each recommendation explains where to act, what to change, and what to preserve.
 Select one recommendation or a group within the current scope. After confirming the projects, files, and scope, send the recommendations to Codex.
 
 Review the work and changes in Codex. When it finishes, return to Wombat and rerun the checks.
+
+Sending requires a compatible local Codex installation. If native handoff is unavailable, apply the recommendation yourself and rerun the check.
 
 Resolved issues move to action history. Issues that remain stay pending.
 
