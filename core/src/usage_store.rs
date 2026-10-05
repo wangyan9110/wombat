@@ -51,6 +51,9 @@ pub struct ThreadEntry {
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub schema_version: u32,
+    pub event_observation_version: u32,
+    pub title_observation_version: u32,
+    pub title_observations: Vec<crate::session_events::title_observations::TitleObservation>,
     pub snapshot_ref: SnapshotRef,
     pub price_revision: String,
     pub price_catalog_hash: String,
@@ -82,6 +85,30 @@ pub struct Snapshot {
     directory: PathBuf,
 }
 
+fn validate_title_observations<'a>(
+    rows: &[crate::session_events::title_observations::TitleObservation],
+    threads: impl IntoIterator<Item = &'a Thread>,
+) -> Result<()> {
+    let targets: BTreeMap<_, _> = threads.into_iter().map(|t| (t.id.as_str(), t)).collect();
+    let mut seen = std::collections::BTreeSet::new();
+    for observation in rows {
+        observation.validate()?;
+        anyhow::ensure!(
+            seen.insert(&observation.thread_id),
+            "duplicate title observation"
+        );
+        let thread = targets
+            .get(observation.thread_id.as_str())
+            .ok_or_else(|| anyhow::anyhow!("title target missing"))?;
+        anyhow::ensure!(
+            thread.source_instance_id == observation.source_instance_id
+                && thread.title.as_deref() == Some(observation.title.as_str()),
+            "title observation scope mismatch"
+        );
+    }
+    Ok(())
+}
+
 mod events;
 pub use events::{
     EventChunk, EventCursor, EventIndex, EventPage, EventPartition, EventReadBudget, EventTarget,
@@ -108,3 +135,6 @@ use files::{bounded_read, corrupt, file_ref, product_home, safe_file, save_with_
 #[cfg(test)]
 use files::{load_at, private_dir, save_at};
 pub(crate) use memory::memory;
+
+#[cfg(test)]
+mod observation_tests;

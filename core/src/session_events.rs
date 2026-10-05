@@ -7,7 +7,8 @@ use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub const EVENT_VERSION: u32 = 1;
+pub const EVENT_VERSION: u32 = 2;
+pub mod title_observations;
 
 /// A generation belongs to one physical source file, not to an entire source root.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -269,6 +270,7 @@ struct StoredEvent {
     thread_id: Option<String>,
     turn_id: Option<String>,
     time: Time,
+    collected_at: String,
     gaps: Vec<Gap>,
     payload: Payload,
 }
@@ -286,6 +288,26 @@ impl Event {
         gaps: Vec<Gap>,
         payload: Payload,
     ) -> Result<Self> {
+        Self::new_at(
+            position,
+            thread_id,
+            turn_id,
+            time,
+            gaps,
+            payload,
+            chrono::Utc::now().to_rfc3339(),
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_at(
+        position: Position,
+        thread_id: Option<String>,
+        turn_id: Option<String>,
+        time: Time,
+        gaps: Vec<Gap>,
+        payload: Payload,
+        collected_at: String,
+    ) -> Result<Self> {
         let id = position.event_id()?;
         Self::try_from(StoredEvent {
             version: EVENT_VERSION,
@@ -294,6 +316,7 @@ impl Event {
             thread_id,
             turn_id,
             time,
+            collected_at,
             gaps,
             payload,
         })
@@ -310,6 +333,9 @@ impl Event {
     pub fn time(&self) -> &Time {
         &self.0.time
     }
+    pub fn collected_at(&self) -> &str {
+        &self.0.collected_at
+    }
     pub fn thread_id(&self) -> Option<&str> {
         self.0.thread_id.as_deref()
     }
@@ -324,6 +350,10 @@ impl TryFrom<StoredEvent> for Event {
     type Error = anyhow::Error;
     fn try_from(value: StoredEvent) -> Result<Self> {
         ensure!(value.version == EVENT_VERSION, "unsupported event version");
+        ensure!(
+            chrono::DateTime::parse_from_rfc3339(&value.collected_at).is_ok(),
+            "invalid event collection time"
+        );
         ensure!(
             value.id == value.position.event_id()?,
             "event identity mismatch"

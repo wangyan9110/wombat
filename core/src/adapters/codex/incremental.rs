@@ -192,8 +192,18 @@ fn load_facts(
     report: &SourceReport,
 ) -> Result<Facts> {
     let mut events = BTreeMap::new();
+    let mut title_observations = BTreeMap::new();
     crate::live_index::each(db, scope, |field, id, payload| {
-        if field == "events" {
+        if field == "title_observations" {
+            let observation: crate::session_events::title_observations::TitleObservation =
+                serde_json::from_str(payload)?;
+            observation.validate()?;
+            anyhow::ensure!(
+                observation.thread_id == id && observation.source_instance_id == report.source.id,
+                "stored title scope mismatch"
+            );
+            title_observations.insert(id.into(), observation);
+        } else if field == "events" {
             let event: Arc<crate::session_events::Event> = serde_json::from_str(payload)?;
             anyhow::ensure!(event.id() == id, "stored event identity mismatch");
             anyhow::ensure!(
@@ -220,6 +230,17 @@ fn load_facts(
         Ok(())
     })?;
     let mut facts = replay_events(events, report);
+    facts.title_observations = title_observations;
+    for observation in facts.title_observations.values() {
+        anyhow::ensure!(
+            facts
+                .threads
+                .get(&observation.thread_id)
+                .is_some_and(|t| t.source_instance_id == observation.source_instance_id),
+            "stored title target mismatch"
+        );
+    }
+    titles::apply_titles(&mut facts);
     // Read projections may share allocations, but never establish parser facts.
     let mut paths = EvidencePaths::default();
     for (id, candidate) in &mut facts.measurements {
@@ -351,6 +372,16 @@ pub(crate) fn sync_cached(
         // Reject an unavailable mapping before materializing any future parser
         // payload, whose shape may be beyond this version's JSON decoding limits.
         for (field, version, message) in [
+            (
+                "eventObservationVersion",
+                crate::session_events::EVENT_VERSION,
+                "不支持此事件观察格式",
+            ),
+            (
+                "titleObservationVersion",
+                crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+                "不支持此标题观察格式",
+            ),
             (
                 "workObservationVersion",
                 WORK_OBSERVATION_VERSION,
@@ -500,12 +531,20 @@ pub(crate) fn sync_cached(
     if rebuild {
         // Cross-file ownership and late direct measurements require source-wide
         // reconciliation. Retain facts evidenced solely by now-missing files.
+        let retained_collection_times = facts
+            .events
+            .iter()
+            .map(|(id, e)| (id.clone(), e.collected_at().to_owned()))
+            .collect();
+        let title_observations = std::mem::take(&mut facts.title_observations);
         let missing_files: BTreeSet<_> =
             missing.iter().map(|p| crate::hash(p.as_bytes())).collect();
         facts
             .events
             .retain(|_, event| missing_files.contains(&event.position().file_id));
         facts = replay_events(std::mem::take(&mut facts.events), &report);
+        facts.retained_collection_times = retained_collection_times;
+        facts.title_observations = title_observations;
         checkpoints.retain(|p, _| missing.contains(p));
         dirty = files
             .iter()
@@ -589,8 +628,12 @@ pub(crate) fn sync_cached(
         // Missing files were retained before existing files were parsed. Restore
         // their combined source order before publishing or saving projections.
         // Checkpoints already own diagnostics; replay must not append them again.
+        let title_observations = std::mem::take(&mut facts.title_observations);
         facts = replay_events(std::mem::take(&mut facts.events), &report);
+        facts.title_observations = title_observations;
     }
+    read_titles(root, &mut facts, &mut report);
+    titles::apply_titles(&mut facts);
     for cp in checkpoints.values() {
         report.issues.extend(cp.issues.iter().cloned());
     }
@@ -627,6 +670,7 @@ pub(crate) fn sync_cached(
         }
     }
     facts.dirty_events.clear();
+    save!(title_observations);
     save!(threads);
     save!(turns);
     if full {
@@ -656,7 +700,7 @@ pub(crate) fn sync_cached(
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
-    let metadata = serde_json::json!({"watermarkVersion": WATERMARK_FORMAT_VERSION, "messageObservationVersion": MESSAGE_OBSERVATION_VERSION, "workObservationVersion": WORK_OBSERVATION_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
+    let metadata = serde_json::json!({"eventObservationVersion": crate::session_events::EVENT_VERSION, "titleObservationVersion": crate::session_events::title_observations::TITLE_OBSERVATION_VERSION, "watermarkVersion": WATERMARK_FORMAT_VERSION, "messageObservationVersion": MESSAGE_OBSERVATION_VERSION, "workObservationVersion": WORK_OBSERVATION_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();
@@ -674,7 +718,9 @@ pub(crate) fn sync_cached(
     // the general path for cumulative source counters.
     let direct_only = facts.parents.is_empty() && facts.measurements.values().all(|v| v.direct);
     let derived = facts.fork_derived(!direct_only);
-    finish_facts(derived, root, &mut report, &mut result);
+    let mut derived = finish_projection(derived, &mut report);
+    titles::apply_titles(&mut derived);
+    emit_facts(derived, &mut result);
     if direct_only {
         result.measurements.extend(
             facts

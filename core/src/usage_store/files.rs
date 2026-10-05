@@ -70,6 +70,7 @@ pub(super) fn save_with_prices(
     prices: crate::pricing_sync::Response,
 ) -> Result<Snapshot> {
     validate_watermarks(&collected.watermarks)?;
+    validate_title_observations(&collected.title_observations, &collected.threads)?;
     private_dir(root)?;
     let id = uuid::Uuid::new_v4().to_string();
     let generation = root.join("generations").join(&id);
@@ -176,6 +177,10 @@ pub(super) fn save_with_prices(
     }
     let manifest = Manifest {
         schema_version: 4,
+        event_observation_version: crate::session_events::EVENT_VERSION,
+        title_observation_version:
+            crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+        title_observations: collected.title_observations,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -273,6 +278,7 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     if raw["schemaVersion"] != 4 {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
     }
+    crate::session_events::title_observations::check_headers(&raw)?;
     super::events::check_index_version(raw["events"]["version"].as_u64())?;
     super::native_boundary::check_versions(&raw["events"])?;
     super::use_metadata::check_headers(&raw)?;
@@ -295,6 +301,11 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     let manifest: Manifest =
         serde_json::from_value(raw).map_err(|e| corrupt(format!("快照索引无效：{e}")))?;
     validate_watermarks(&manifest.watermarks).map_err(|e| corrupt(format!("快照水位无效：{e}")))?;
+    validate_title_observations(
+        &manifest.title_observations,
+        manifest.threads.iter().map(|t| &t.thread),
+    )
+    .map_err(|e| corrupt(format!("标题观察无效：{e}")))?;
     super::events::validate_index(&manifest.events)?;
     if manifest.snapshot_ref.snapshot_id != id {
         return Err(corrupt("快照身份不匹配"));

@@ -12,6 +12,10 @@ pub(super) struct Facts {
     pub(super) operations: BTreeMap<String, Arc<Operation>>,
     #[serde(skip)]
     pub(super) event_context: Option<timing::Context>,
+    pub(super) title_observations:
+        BTreeMap<String, crate::session_events::title_observations::TitleObservation>,
+    #[serde(skip)]
+    pub(super) retained_collection_times: BTreeMap<String, String>,
     pub(super) events: BTreeMap<String, Arc<crate::session_events::Event>>,
     #[serde(skip)]
     pub(super) dirty_events: BTreeSet<String>,
@@ -40,6 +44,7 @@ impl Facts {
         Self {
             watermarks: self.watermarks.clone(),
             events: self.events.clone(),
+            title_observations: self.title_observations.clone(),
             threads: self.threads.clone(),
             turns: self.turns.clone(),
             measurements: if include_facts {

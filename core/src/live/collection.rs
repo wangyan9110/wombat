@@ -23,7 +23,10 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
             };
         }
         match field {
-            "messageObservationVersion" | "workObservationVersion" => {}
+            "messageObservationVersion"
+            | "workObservationVersion"
+            | "eventObservationVersion"
+            | "titleObservationVersion" => {}
             "watermarkVersion" => {
                 watermark_version = Some(serde_json::from_str::<u32>(payload)?);
             }
@@ -60,6 +63,18 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
                     strings.operation(row);
                 }
             }
+            "title_observations" => {
+                rows!(title_observations);
+                let observation = value
+                    .title_observations
+                    .last()
+                    .expect("just appended observation");
+                observation.validate()?;
+                anyhow::ensure!(
+                    observation.thread_id == id && observation.source_instance_id == key,
+                    "projection title scope mismatch"
+                );
+            }
             "events" => {
                 rows!(events);
             }
@@ -78,6 +93,19 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
             ));
         }
         validate_watermarks(&value.watermarks)?;
+        let targets: BTreeMap<_, _> = value.threads.iter().map(|t| (t.id.as_str(), t)).collect();
+        let mut seen = std::collections::BTreeSet::new();
+        for observation in &value.title_observations {
+            let thread = targets
+                .get(observation.thread_id.as_str())
+                .ok_or_else(|| anyhow::anyhow!("projection title target missing"))?;
+            anyhow::ensure!(
+                seen.insert(&observation.thread_id)
+                    && thread.source_instance_id == observation.source_instance_id
+                    && thread.title.as_deref() == Some(observation.title.as_str()),
+                "projection title scope mismatch"
+            );
+        }
     }
     Ok(found.then_some(value))
 }
@@ -87,6 +115,14 @@ fn validate_message_mapping(db: &rusqlite::Connection, key: &str) -> Result<()> 
     let scope = format!("projection:{key}");
     if crate::live_index::has_scope(db, &scope)? {
         for (field, version) in [
+            (
+                "eventObservationVersion",
+                crate::session_events::EVENT_VERSION,
+            ),
+            (
+                "titleObservationVersion",
+                crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+            ),
             (
                 "workObservationVersion",
                 adapters::codex::incremental::WORK_OBSERVATION_VERSION,
@@ -270,6 +306,29 @@ pub(super) fn sync(
                     )?;
                 };
             }
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "eventObservationVersion",
+                "",
+                &crate::session_events::EVENT_VERSION,
+            )?;
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "titleObservationVersion",
+                "",
+                &crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+            )?;
+            crate::live_index::replace_field(
+                &tx,
+                &scope,
+                "title_observations",
+                value
+                    .title_observations
+                    .iter()
+                    .map(|v| (v.thread_id.as_str(), v)),
+            )?;
             save!(threads);
             save!(turns);
             if let Some(delta) = synced.measurements {
@@ -372,6 +431,9 @@ pub(super) fn sync(
         collected.measurements.extend(value.measurements);
         collected.operations.extend(value.operations);
         collected.events.extend(value.events);
+        collected
+            .title_observations
+            .extend(value.title_observations);
     }
     if collected.sources.iter().any(|s| s.status == "failed")
         && !collected
@@ -459,6 +521,7 @@ pub(super) fn restore(
         collected.measurements.extend(v.measurements);
         collected.operations.extend(v.operations);
         collected.events.extend(v.events);
+        collected.title_observations.extend(v.title_observations);
     }
     let mut snapshot = crate::usage_store::memory(collected, id.into(), prices, None)?;
     if let Some(at) = prior.get("createdAt").and_then(Value::as_str) {
@@ -467,5 +530,7 @@ pub(super) fn restore(
     Ok(Some(Arc::new(snapshot)))
 }
 
+#[cfg(test)]
+mod observation_tests;
 #[cfg(test)]
 mod watermark_tests;

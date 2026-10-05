@@ -3,6 +3,8 @@ mod ancestry;
 mod event_projection;
 pub(crate) mod incremental;
 mod instructions;
+#[cfg(test)]
+mod observation_tests;
 mod operations;
 pub(crate) mod preview;
 mod skills;
@@ -187,9 +189,10 @@ impl AgentAdapter for CodexAdapter {
     }
 }
 
-fn finish_facts(facts: Facts, root: &Path, report: &mut SourceReport, sink: &mut dyn FactSink) {
-    let mut facts = finish_projection(facts, report);
+fn finish_facts(mut facts: Facts, root: &Path, report: &mut SourceReport, sink: &mut dyn FactSink) {
     read_titles(root, &mut facts, report);
+    let mut facts = finish_projection(facts, report);
+    titles::apply_titles(&mut facts);
     emit_facts(facts, sink);
 }
 
@@ -224,6 +227,9 @@ fn finish_projection(mut facts: Facts, report: &mut SourceReport) -> Facts {
 }
 
 fn emit_facts(facts: Facts, sink: &mut dyn FactSink) {
+    for observation in facts.title_observations.into_values() {
+        sink.push(Fact::TitleObservation(observation));
+    }
     for watermark in facts.watermarks.into_values() {
         sink.push(Fact::Watermark(watermark));
     }

@@ -225,10 +225,19 @@ fn partial_tail_and_rollback_never_publish_half_an_event_generation() {
     tx.rollback().unwrap();
     let tx = db.transaction().unwrap();
     let retried = incremental::sync(&tx, &source, false).unwrap().unwrap();
-    assert_eq!(
-        serde_json::to_value(&retried.events).unwrap(),
-        serde_json::to_value(&uncommitted.events).unwrap()
-    );
+    // Rolled-back new observations are collected again. Only committed events
+    // retain their collection times; event identity and source semantics match.
+    let committed: std::collections::BTreeSet<_> = first.events.iter().map(|e| e.id()).collect();
+    let comparable = |events: &[std::sync::Arc<crate::session_events::Event>]| {
+        let mut rows = serde_json::to_value(events).unwrap();
+        for row in rows.as_array_mut().unwrap() {
+            if !committed.contains(row["id"].as_str().unwrap()) {
+                row.as_object_mut().unwrap().remove("collectedAt");
+            }
+        }
+        rows
+    };
+    assert_eq!(comparable(&retried.events), comparable(&uncommitted.events));
     assert_eq!(retried.sources[0].bytes_read, (row.len() + 1) as u64);
     tx.commit().unwrap();
     let tx = db.transaction().unwrap();

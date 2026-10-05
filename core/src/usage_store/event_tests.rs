@@ -521,7 +521,7 @@ fn valid_hash_cannot_hide_unknown_block_or_event_version_or_scope_mismatch() {
             .contains("不支持此事件块版本")
     );
     let mut changed = original.clone();
-    changed["events"][0]["version"] = serde_json::json!(2);
+    changed["events"][0]["version"] = serde_json::json!(3);
     rewrite_block(&mut snapshot, changed);
     assert!(
         snapshot
@@ -912,7 +912,7 @@ fn future_block_and_fact_fields_are_version_errors_before_current_shape_parsing(
     future_block["futureField"] = serde_json::json!({"private":"uninterpreted"});
     future_block.as_object_mut().unwrap().remove("events");
     let mut future_fact = original.clone();
-    future_fact["events"][0]["version"] = serde_json::json!(2);
+    future_fact["events"][0]["version"] = serde_json::json!(3);
     future_fact["events"][0]["futureField"] = serde_json::json!(true);
     future_fact["events"][0]["payload"] =
         serde_json::json!({"kind":"future_kind","private":"uninterpreted"});

@@ -5,6 +5,7 @@ pub(in crate::adapters::codex) struct Context {
     pub(super) evidence: EvidenceRef,
     position: Position,
     time: Time,
+    collected_at: String,
     gaps: Vec<Gap>,
     phase: Phase,
     pub(super) history_origin: Option<crate::session_events::MessageOrigin>,
@@ -39,6 +40,7 @@ impl Context {
             evidence: evidence.clone(),
             position,
             time,
+            collected_at: chrono::Utc::now().to_rfc3339(),
             gaps: gap.into_iter().collect(),
             phase,
             history_origin: super::messages::history_origin(metadata),
@@ -109,7 +111,25 @@ pub(super) fn record(
     }
     let position = context.position.clone();
     context.position.ordinal += 1;
-    match Event::new(position, thread, turn, context.time.clone(), gaps, payload) {
+    let collected_at = position
+        .event_id()
+        .ok()
+        .and_then(|id| {
+            facts
+                .retained_collection_times
+                .remove(&id)
+                .or_else(|| facts.events.get(&id).map(|e| e.collected_at().to_owned()))
+        })
+        .unwrap_or_else(|| context.collected_at.clone());
+    match Event::new_at(
+        position,
+        thread,
+        turn,
+        context.time.clone(),
+        gaps,
+        payload,
+        collected_at,
+    ) {
         Ok(event) => {
             crate::adapters::codex::event_projection::apply(facts, &event, report);
             let id = event.id().to_owned();

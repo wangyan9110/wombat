@@ -190,6 +190,7 @@ pub struct Collected {
     pub measurements: Vec<Arc<Measurement>>,
     pub operations: Vec<Arc<Operation>>,
     pub events: Vec<Arc<crate::session_events::Event>>,
+    pub title_observations: Vec<crate::session_events::title_observations::TitleObservation>,
     pub issues: Vec<Issue>,
 }
 
@@ -234,6 +235,7 @@ pub enum Fact {
     Measurement(Arc<Measurement>),
     Operation(Arc<Operation>),
     Event(Arc<crate::session_events::Event>),
+    TitleObservation(crate::session_events::title_observations::TitleObservation),
 }
 pub trait FactSink {
     fn push(&mut self, fact: Fact);
@@ -247,6 +249,7 @@ impl FactSink for Collected {
             Fact::Measurement(value) => self.measurements.push(value),
             Fact::Operation(value) => self.operations.push(value),
             Fact::Event(value) => self.events.push(value),
+            Fact::TitleObservation(value) => self.title_observations.push(value),
         }
     }
 }

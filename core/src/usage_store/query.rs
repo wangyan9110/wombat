@@ -23,6 +23,7 @@ impl Snapshot {
         let turns = self.memory_turns.as_ref().unwrap();
         let collected = Collected {
             sources: self.manifest.sources.clone(),
+            title_observations: self.manifest.title_observations.clone(),
             watermarks: self.manifest.watermarks.clone(),
             issues: self.manifest.issues.clone(),
             threads: self

@@ -7,6 +7,7 @@ pub(crate) fn memory(
     prior: Option<&Snapshot>,
 ) -> Result<Snapshot> {
     validate_watermarks(&collected.watermarks)?;
+    validate_title_observations(&collected.title_observations, &collected.threads)?;
     let mut pool = super::price_pool::PricePool::new(&prices);
     let reusable = prior
         .filter(|s| s.manifest.price_catalog_hash == prices.catalog_hash)
@@ -120,6 +121,10 @@ pub(crate) fn memory(
     let (events, live_events) = super::events::memory_events(collected.events)?;
     let manifest = Manifest {
         schema_version: 4,
+        event_observation_version: crate::session_events::EVENT_VERSION,
+        title_observation_version:
+            crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
+        title_observations: collected.title_observations,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,
             created_at: chrono::Utc::now().to_rfc3339(),

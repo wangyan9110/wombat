@@ -84,7 +84,7 @@ fn current_envelope_round_trips_but_unknown_versions_and_changed_identity_fail()
     let restored: Event = serde_json::from_value(json.clone()).unwrap();
     assert_eq!(restored.id(), original.id());
     for (field, value) in [
-        ("version", serde_json::json!(2)),
+        ("version", serde_json::json!(3)),
         ("id", serde_json::json!("forged")),
         ("raw", serde_json::json!("SYNTHETIC_PRIVATE_BODY")),
     ] {
@@ -241,4 +241,25 @@ fn safe_message_roundtrips_closed_enums_and_rejects_body_or_empty_identity() {
         changed["payload"][field] = value;
         assert!(serde_json::from_value::<Event>(changed).is_err());
     }
+}
+
+#[test]
+fn independent_collection_time_is_required_and_does_not_change_identity_or_source_time() {
+    let mut stored = serde_json::to_value(event()).unwrap();
+    let first: Event = serde_json::from_value(stored.clone()).unwrap();
+    stored["collectedAt"] = serde_json::json!("2026-10-06T12:00:00Z");
+    let later: Event = serde_json::from_value(stored.clone()).unwrap();
+    assert_eq!(first.id(), later.id());
+    assert_eq!(first.time(), later.time());
+    assert_ne!(first.collected_at(), later.collected_at());
+    stored["time"] = serde_json::json!({"timestamp":null,"precision":"unknown"});
+    let unknown: Event = serde_json::from_value(stored.clone()).unwrap();
+    assert_eq!(unknown.time().timestamp, None);
+    stored["collectedAt"] = serde_json::json!("invalid");
+    assert!(serde_json::from_value::<Event>(stored.clone()).is_err());
+    stored.as_object_mut().unwrap().remove("collectedAt");
+    assert!(serde_json::from_value::<Event>(stored.clone()).is_err());
+    stored["collectedAt"] = serde_json::json!("2026-10-06T12:00:00Z");
+    stored["version"] = serde_json::json!(1);
+    assert!(serde_json::from_value::<Event>(stored).is_err());
 }
