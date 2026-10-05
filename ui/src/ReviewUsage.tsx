@@ -44,5 +44,7 @@ export function textChanges(s:OptimizeSuggestion) {
 export function TextChanges({suggestion}:{suggestion:OptimizeSuggestion}) {
  if(!suggestion.recheckRuleParameters&&suggestion.checks.every(c=>c.comparison.status==='not_requested'))return null;
  const rows=textChanges(suggestion);
- return <section className="review-related"><h3>{t('optimize.comparison')}</h3>{rows.length?<div className="report-table-wrap"><table className="project-table text-change-table"><thead><tr><th>{t('webui.type')}</th><th>{t('optimize.before')}</th><th>{t('optimize.after')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.label}><td>{r.label}</td><td>{r.before.toLocaleString()}</td><td>{r.after.toLocaleString()}</td></tr>)}</tbody></table></div>:<p>{t('optimize.comparisonUnknown')}</p>}<p className="note">{t('optimize.comparisonNote')}</p></section>;
+ // Per-rule comparisons and reasons remain in ReviewFacts; this table is numerical only.
+ if(!rows.length)return null;
+ return <section className="review-related"><h3>{t('optimize.comparison')}</h3><div className="report-table-wrap"><table className="project-table text-change-table"><thead><tr><th>{t('webui.type')}</th><th>{t('optimize.before')}</th><th>{t('optimize.after')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.label}><td>{r.label}</td><td>{r.before.toLocaleString()}</td><td>{r.after.toLocaleString()}</td></tr>)}</tbody></table></div><p className="note">{t('optimize.comparisonNote')}</p></section>;
 }

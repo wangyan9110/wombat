@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createUsageClient } from '@wombat/client';
-import { locale } from '@wombat/client/locale';
+import { locale, t } from '@wombat/client/locale';
 import { AssessmentRows, ReviewFacts } from '../src/optimize/Assessments.js';
-import { RelatedUsageContent, textChanges } from '../src/ReviewUsage.js';
+import { RelatedUsageContent, textChanges, TextChanges } from '../src/ReviewUsage.js';
 import { configFixture, createRuleFixture, type ReviewScenario } from '../src/preview/configuration.js';
 import { createPreviewClient } from '../src/preview/fixtures.js';
 import { parseRoute } from '../src/state.js';
@@ -158,4 +158,28 @@ test('a reminder suppressed by the standard maximum explains why its over-thresh
       assert.match(html, language === 'zh' ? /已由规范上限检查处理，不重复提醒/ : /Addressed by the standard-maximum check; this reminder is not repeated/);
     }
   } finally { locale.setLocale(saved); }
+});
+
+
+test('non-numerical or incomparable rechecks retain typed status and reason without a misleading missing-comparison table',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);
+  const incomparable=createRuleFixture(false,'incomparable')({action:'recheck'}).suggestions[0];
+  assert.equal(incomparable.checks[0].comparison.status,'incomparable');
+  assert.equal(render(createElement(TextChanges,{suggestion:incomparable})), '');
+  const facts=render(createElement(ReviewFacts,{suggestion:incomparable,timezone:'UTC'}));
+  assert.ok(facts.includes(t('optimize.assessment.comparison.incomparable')));
+  assert.ok(facts.includes(t('optimize.assessment.reason.methodChanged')));
+  assert.ok(!facts.includes(t('optimize.comparisonUnknown')));
+  const comparable=createRuleFixture()({}).suggestions[0];
+  const check=comparable.checks.find(check=>check.rule==='localReference')!;
+  const original=comparable.reviewBaseline!.assessments.find(original=>original.rule===check.rule)!;
+  assert.equal(check.basis.measurement.kind,'static');
+  check.comparison={status:'comparable',baselineAssessmentId:original.assessmentId,reason:null};
+  comparable.checks=[check];
+  assert.equal(render(createElement(TextChanges,{suggestion:comparable})), '');
+  const staticFacts=render(createElement(ReviewFacts,{suggestion:comparable,timezone:'UTC'}));
+  assert.ok(staticFacts.includes(t('optimize.assessment.comparison.comparable')));
+  assert.ok(!staticFacts.includes(t('optimize.comparisonUnknown')));
+ }}finally{locale.setLocale(saved);}
 });

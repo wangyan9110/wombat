@@ -7,6 +7,7 @@ import {locale,reviewPresentation} from '@wombat/client/locale';
 import {RelatedUsageContent,textChanges} from '../src/ReviewUsage.js';
 import {syntheticUseBasis} from '../src/preview/use-basis.js';
 import {parseRoute} from '../src/state.js';
+import {SuggestionMetric} from '../src/optimize/SuggestionMetric.js';
 import {FollowUp} from '../src/optimize/FollowUp.js';
 import {Findings,FindingMethods} from '../src/optimize/Findings.js';
 const estimate={tokens:5000,method:'synthetic-fixed',encoding:'synthetic',payload:'skillBody',applicability:'referenceEncodingOnly',contentHash:'body-a',tokenizerVersion:'v1'};
@@ -89,5 +90,18 @@ test('shared related usage renders partial counts and does not equate a partial 
    assert.match(html,/完整次数更高|full count higher/);
    assert.doesNotMatch(html,/未找到关联|No associated/);
   }
+ }}finally{locale.setLocale(saved);}
+});
+
+
+test('non-numerical missing-instruction findings omit metric placeholders while real zero stays visible',()=>{
+ const saved=locale.getSnapshot().locale;
+ const missing={...suggestion,findings:[{...findings[0],rule:'missingInstruction',observed:null,threshold:null}]} satisfies OptimizeSuggestion;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);
+  const presentation=reviewPresentation(missing);
+  assert.equal(presentation.metric,undefined);
+  assert.equal(renderToStaticMarkup(createElement(SuggestionMetric,{presentation})), '');
+  const zero=renderToStaticMarkup(createElement(SuggestionMetric,{presentation:{...presentation,metric:0,label:'Token'}}));
+  assert.match(zero,/<span>0<\/span>/);assert.doesNotMatch(zero,/—|Unknown|未知/);
  }}finally{locale.setLocale(saved);}
 });
