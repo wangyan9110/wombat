@@ -4,7 +4,7 @@ import {registerHooks} from 'node:module';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {createUsageClient} from '@wombat/client';
-import {locale} from '@wombat/client/locale';
+import {locale,t} from '@wombat/client/locale';
 import {timingFixture,previewTiming} from '../src/preview/timing.js';
 import {usageFixture} from '../src/preview/fixtures.js';
 registerHooks({load(url,context,next){return url.endsWith('.css')?{format:'module',source:'',shortCircuit:true}:next(url,context);}});
@@ -16,7 +16,16 @@ test('production execution consumes real DTOs, keeps zero unknown and five state
  try{for(const language of ['zh','en'] as const){locale.setLocale(language);for(const state of ['completed','running','failed','cancelled','unknown'] as const){const summary=timingFixture();summary.time.state=state;summary.time.nativeWallClockMs.value=0;const html=render(summary);assert.match(html,language==='zh'?/执行过程/:/Execution/);if(state==='running')assert.doesNotMatch(html,/<strong>0 ms<\/strong>/);else assert.match(html,/<strong>0 ms<\/strong>/);if(state==='unknown')assert.doesNotMatch(html,language==='zh'?/现有时间记录不足以确认轮次状态/:/Available timing records do not establish the turn state/);assert.doesNotMatch(html,language==='zh'?/对象级使用投影尚未提供/:/Object-level use projection is not available/);}}}finally{locale.setLocale(previous);}
 });
 test('missing reliable window uses the same production list fallback and unknowns never become zero',()=>{
- const html=render(timingFixture('missing'));assert.match(html,/execution-no-window/);assert.doesNotMatch(html,/NaN|Infinity|<strong>0 ms<\/strong>/);assert.match(html,/missing_time/);
+ const html=render(timingFixture('missing'));assert.match(html,/execution-no-window/);assert.doesNotMatch(html,/NaN|Infinity|<strong>0 ms<\/strong>/);assert.match(html,/missing_time/);assert.ok(html.includes(t('timing.partial')));
+});
+test('missing measures and quality reasons use basis-specific explanations in both locales',()=>{
+ const summary=timingFixture('missing');summary.time.nativeWallClockMs.basis='missing_time';summary.quality.reasonCodes=['missing_time','source_partial','boundary_conflict'];summary.coverage.sourceStatus='partial';
+ const previous=locale.getSnapshot().locale;
+ try{for(const language of ['en','zh'] as const){locale.setLocale(language);const html=render(summary);if(language==='en'){assert.match(html,/Usable timing records are missing for calculation or placement/);assert.match(html,/Some source records or required evidence are incomplete/);assert.match(html,/Boundary or content evidence conflicts across records/);assert.match(html,/missing_time, source_partial, boundary_conflict/);assert.doesNotMatch(html,/Timing is incomplete\. Missing is not zero/);}else{assert.match(html,/缺少可用于计算或定位的时间记录/);assert.match(html,/部分来源记录或所需依据不完整/);assert.match(html,/记录中的边界或内容依据存在冲突/);assert.match(html,/missing_time, source_partial, boundary_conflict/);assert.doesNotMatch(html,/时间记录不完整。未记录不等于零/);}}}finally{locale.setLocale(previous);}
+});
+test('running and censored timing have separate explanations; partial without reasons stays a neutral status',()=>{
+ const previous=locale.getSnapshot().locale;
+ try{locale.setLocale('en');const running=render(timingFixture('running'));assert.match(running,/The turn is still running; only observed records are shown/);assert.match(running,/Results are limited to the current observation window/);const partial=timingFixture('missing');partial.quality.reasonCodes=[];assert.match(render(partial),/Partial results/);}finally{locale.setLocale(previous);}
 });
 test('timeline and expandable distribution preserve core ranges and concurrent union versus sum',()=>{
  const summary=timingFixture(),html=render(summary);assert.equal(summary.time.command.unionMs.value,5000);assert.equal(summary.time.command.sumMs.value,6000);assert.match(html,/1000–4000 ms/);assert.match(html,/5000 ms/);assert.match(html,/6000 ms/);assert.doesNotMatch(html,/11000 ms/);assert.match(html,/execution-gap/);assert.equal(summary.time.timeline.tracks.length,3);

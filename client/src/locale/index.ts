@@ -163,3 +163,39 @@ export function configEvidenceLabel(type: string): string {
 }
 
 export { useBasisPresentation, type PublicUseBasis } from "./use-basis.js";
+
+/** Explain core assessment reason codes without interpreting unknown source details. */
+export function assessmentReason(code: string): string {
+  switch (code) {
+    case 'verifiedHostAdapterUnavailable': return t('optimize.hostEvidenceMissing');
+    case 'continuousCoverageUnavailable': return t('optimize.coverageMissing');
+    case 'runtimeInjectionUnavailable': return t('optimize.injectionMissing');
+    case 'copyRelationNotDeclared': return t('optimize.copyUndeclared');
+    case 'ruleParametersOrMethodChanged': return t('optimize.assessment.reason.methodChanged');
+    case 'assessmentScopeChanged': return t('optimize.assessment.reason.scopeChanged');
+    case 'baselineAssessmentUnavailable': return t('optimize.assessment.reason.baselineMissing');
+    case 'assessmentIdentityUnavailable': case 'problemIdentityUnavailable':
+    case 'objectIdentityUnavailable': case 'problemLocationContextUnavailable':
+    case 'reliableProblemIdentityUnavailable': case 'decisionApplicabilityUnavailable': return t('optimize.assessment.reason.identityMissing');
+    case 'dependencyIdentityBudgetExceeded': case 'scopeIdentityBudgetExceeded':
+    case 'assessmentIdentityBudgetExceeded': return t('optimize.assessment.reason.resourceLimit');
+    case 'checkScopeUnavailable': return t('optimize.assessment.reason.scopeMissing');
+    case 'currentVersionUnavailable': return t('optimize.assessment.reason.versionMissing');
+    case 'analysisUnavailable': return t('optimize.assessment.reason.analysisMissing');
+    case 'invalidAnalysisEvidence': return t('optimize.assessment.reason.analysisInvalid');
+    default: return t('optimize.assessment.reason.evidenceMissing');
+  }
+}
+
+export { timingBasisText, timingMissingValueText, timingSourceStatusText } from './timing-basis.js';
+
+/** Display the recorded review state without deriving it from decisions or measurements. */
+export function reviewStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending': return t('optimize.pending');
+    case 'verified': return t('optimize.verified');
+    case 'stillNeedsReview': return t('optimize.stillNeedsReview');
+    case 'recheckUnavailable': return t('optimize.recheckUnavailable');
+    default: return t('optimize.statusUnavailable');
+  }
+}

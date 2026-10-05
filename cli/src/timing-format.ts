@@ -1,54 +1,24 @@
 import type { TimingResult, TimingLocalResult } from '@wombat/client';
-import { t, type MessageKey } from '@wombat/client/locale';
+import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, type MessageKey } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 
 type Metric = TimingLocalResult['time']['nativeWallClockMs'];
 type WorkMetricLabel = Extract<MessageKey, `cli.timing.work.${string}`>;
-function missingValue(metric: Metric): string {
-  switch (metric.basis) {
-    case 'not_recorded': return t('cli.timing.basis.notRecorded');
-    case 'running_turn': return t('cli.timing.basis.running');
-    case 'unsupported_method': return t('cli.timing.basis.unsupported');
-    case 'missing_repository_baseline': return t('cli.timing.basis.repositoryBaseline');
-    case 'unknown_message_origin': return t('cli.timing.basis.messageOrigin');
-    case 'adapter_not_mapped': return t('cli.timing.basis.notMapped');
-    case 'missing_identity': return t('cli.timing.basis.identity');
-    case 'missing_time': return t('cli.timing.basis.time');
-    case 'missing_batch_cycle': return t('cli.timing.basis.batch');
-    case 'boundary_conflict': return t('cli.timing.basis.conflict');
-    case 'source_partial': return t('cli.timing.basis.sourcePartial');
-    case 'resource_limit': return t('cli.timing.basis.resourceLimit');
-    case 'numeric_range': return t('cli.timing.basis.numericRange');
-    case 'no_candidates': return t('cli.timing.basis.noCandidates');
-    default: return t('cli.timing.basis.evidenceInsufficient');
-  }
-}
 function value(metric: Metric): string {
-  return metric.value == null ? missingValue(metric) : String(metric.value);
+  return metric.value == null ? timingMissingValueText(metric.basis) : String(metric.value);
 }
 function durationValue(metric: Metric): string {
-  return metric.value == null ? missingValue(metric) : `${metric.value} ms`;
+  return metric.value == null ? timingMissingValueText(metric.basis) : `${metric.value} ms`;
 }
 function measured(metric: Metric, unit = ''): string {
-  if (metric.value == null) return value(metric);
-  return `${value(metric)}${unit} · ${t(`cli.timing.measure.${metric.status}`)} · ${terminalText(metric.basis)}`;
+  if (metric.value == null) return timingMissingValueText(metric.basis);
+  return `${value(metric)}${unit} · ${t(`cli.timing.measure.${metric.status}`)} · ${t('timing.basisLabel')}: ${timingBasisText(metric.basis)} (${terminalText(metric.basis)})`;
 }
 function hideUnavailableWorkMetric(metric: Metric): boolean {
   return metric.value == null && (metric.basis === 'unsupported_method' || metric.basis === 'missing_repository_baseline');
 }
 function workMetricLine(label: WorkMetricLabel, metric: Metric, unit = ''): string | undefined {
   return hideUnavailableWorkMetric(metric) ? undefined : `${t(label)}: ${measured(metric, unit)}`;
-}
-function sourceStatusLabel(status: string): string {
-  switch (status) {
-    case 'complete': return t('cli.timing.sourceStatus.complete');
-    case 'partial': return t('cli.timing.sourceStatus.partial');
-    case 'failed': return t('cli.timing.sourceStatus.failed');
-    case 'not_found': return t('cli.timing.sourceStatus.notFound');
-    case 'cancelled': return t('cli.timing.sourceStatus.cancelled');
-    case 'unknown': return t('cli.timing.sourceStatus.unconfirmed');
-    default: return terminalText(status);
-  }
 }
 function turnStateLabel(state: TimingLocalResult['time']['state']): string | undefined {
   switch (state) {
@@ -78,7 +48,7 @@ export function renderTimingResult(result: TimingResult): string {
     } as const;
     for (const field of Object.keys(labels) as (keyof typeof labels)[]) {
       const capability = result.capabilities[field];
-      lines.push(`${t(labels[field])}: ${t(`cli.timing.support.${capability.support}`)} · ${terminalText(capability.reason)}`);
+      lines.push(`${t(labels[field])}: ${t(`cli.timing.support.${capability.support}`)} · ${timingBasisText(capability.reason)} (${terminalText(capability.reason)})`);
     }
     return lines.join('\n');
   }
@@ -136,10 +106,11 @@ export function renderTimingResult(result: TimingResult): string {
     ...(omittedWorkMetrics.length ? [`${t('cli.timing.work.technicalBasis')}: ${omittedWorkMetrics.map(([field, metric]) => `${field}=${metric.basis}`).join(', ')}`] : []),
     `${t('cli.timing.useObjects')}: ${measured('totals' in result.uses ? result.uses.totals.objectCount : result.uses.objectCount)}`,
     `${t('cli.timing.useRecords')}: ${measured('totals' in result.uses ? result.uses.totals.recordCount : result.uses.recordCount)}`,
-    `${t('cli.timing.source')}: ${sourceStatusLabel(result.coverage.sourceStatus)}`,
+    `${t('cli.timing.source')}: ${timingSourceStatusText(result.coverage.sourceStatus)}`,
     `${t('cli.timing.quality')}: ${t(result.quality.partial ? 'cli.timing.partial' : 'cli.timing.complete')}`);
-  if (result.quality.reasonCodes.length) lines.push(result.quality.reasonCodes.map(terminalText).join(', '));
-  if (result.quality.running || result.quality.censored) lines.push(t('cli.timing.provisional'));
+  if (result.quality.reasonCodes.length) lines.push(`${t('timing.reasons')}: ${result.quality.reasonCodes.map(reason => `${timingMissingValueText(reason)} (${terminalText(reason)})`).join('; ')}`);
+  if (result.quality.running) lines.push(t('timing.running'));
+  if (result.quality.censored) lines.push(t('timing.censored'));
   return lines.join('\n');
 }
 

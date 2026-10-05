@@ -1,29 +1,9 @@
 import type { OptimizeResult } from '@wombat/client';
-import { t } from '@wombat/client/locale';
+import { assessmentReason, t } from '@wombat/client/locale';
 import { formatIssueReason } from './Findings.js';
 type Assessment = OptimizeResult['checks'][number];
 
-export function assessmentReason(code: string): string {
-  switch (code) {
-    case 'verifiedHostAdapterUnavailable': return t('optimize.hostEvidenceMissing');
-    case 'continuousCoverageUnavailable': return t('optimize.coverageMissing');
-    case 'runtimeInjectionUnavailable': return t('optimize.injectionMissing');
-    case 'copyRelationNotDeclared': return t('optimize.copyUndeclared');
-    case 'ruleParametersOrMethodChanged': return t('optimize.assessment.reason.methodChanged');
-    case 'assessmentScopeChanged': return t('optimize.assessment.reason.scopeChanged');
-    case 'baselineAssessmentUnavailable': return t('optimize.assessment.reason.baselineMissing');
-    case 'assessmentIdentityUnavailable': case 'problemIdentityUnavailable':
-    case 'objectIdentityUnavailable': case 'problemLocationContextUnavailable':
-    case 'reliableProblemIdentityUnavailable': case 'decisionApplicabilityUnavailable': return t('optimize.assessment.reason.identityMissing');
-    case 'dependencyIdentityBudgetExceeded': case 'scopeIdentityBudgetExceeded':
-    case 'assessmentIdentityBudgetExceeded': return t('optimize.assessment.reason.resourceLimit');
-    case 'checkScopeUnavailable': return t('optimize.assessment.reason.scopeMissing');
-    case 'currentVersionUnavailable': return t('optimize.assessment.reason.versionMissing');
-    case 'analysisUnavailable': return t('optimize.assessment.reason.analysisMissing');
-    case 'invalidAnalysisEvidence': return t('optimize.assessment.reason.analysisInvalid');
-    default: return t('optimize.assessment.reason.evidenceMissing');
-  }
-}
+export { assessmentReason } from '@wombat/client/locale';
 
 /** Five typed input variants are rendered as recorded, including successful checks and absent measurements. */
 export function AssessmentMeasurement({ check }: { check: Assessment }) {

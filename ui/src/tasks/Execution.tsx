@@ -1,21 +1,25 @@
 import type {TimingLocalResult} from '@wombat/client';
-import {t} from '@wombat/client/locale';
+import {t,timingBasisText,timingMissingValueText,timingSourceStatusText} from '@wombat/client/locale';
 import {WorkFacts} from './WorkFacts.js';
 import './execution.css';
 type Metric=TimingLocalResult['time']['nativeWallClockMs'];
-const metric=(value:Metric)=>value.value==null?t('execution.missing'):String(value.value);
-const milliseconds=(value:Metric)=>value.value==null?t('execution.missing'):`${value.value} ms`;
+const metric=(value:Metric)=>value.value==null?timingMissingValueText(value.basis):String(value.value);
+const milliseconds=(value:Metric)=>value.value==null?timingMissingValueText(value.basis):`${value.value} ms`;
 export function Execution({summary,refresh,onEvidence,onShare,updating=false,blocked=false}:{summary:TimingLocalResult;refresh:()=>void;onEvidence:(refs:string[],intervalAlias?:string)=>void;onShare:()=>void;updating?:boolean;blocked?:boolean}){
  const {time,context}=summary,window=time.observedWindowMs.value;
  const timeline=time.timeline.presentation==='timeline'&&window!=null&&window>0;
  const native=time.nativeWallClockMs.value!=null;
  const duration=native?time.nativeWallClockMs:time.derivedWallClockMs;
- const durationText=time.state==='running'?t('execution.running'):duration.value==null?t('execution.missing'):`${duration.value} ms`;
+ const timelineBasis=time.timeline.detail.support==='unavailable'?timingMissingValueText(time.timeline.detail.reason):timingBasisText(time.timeline.detail.reason);
+ const durationText=time.state==='running'?t('execution.running'):duration.value==null?timingMissingValueText(duration.basis):`${duration.value} ms`;
  const evidence=(value:Metric)=><button className="link" disabled={blocked||!summary.evidence.available} onClick={()=>onEvidence(value.evidenceRefs)}>{t('execution.evidence')}</button>;
  return <section className={`execution ${timeline?'':'execution-no-window'}`} aria-label={t('execution.title')} aria-busy={updating}>
   <div className="section-head"><h3>{t('execution.title')}</h3><button className="link" onClick={refresh}>{t('execution.refresh')}</button>{updating&&<span role="status">{t('execution.updating')}</span>}</div>
-  <div className="execution-summary"><div><span>{t(native?'execution.nativeDuration':'execution.derivedDuration')}</span><strong>{durationText}</strong>{evidence(duration)}</div><p>{time.state!=='unknown'&&<>{t(`execution.${time.state}`)}<br/></>}<small>{t('execution.cutoff',{time:summary.freshness.checkedAt??t('execution.missing')})}</small></p></div>
-  {(summary.quality.partial||summary.quality.running||summary.quality.censored)&&<p className="note">{t('execution.timeGap')}</p>}
+  <div className="execution-summary"><div><span>{t(native?'execution.nativeDuration':'execution.derivedDuration')}</span><strong>{durationText}</strong>{evidence(duration)}</div><p>{time.state!=='unknown'&&<>{t(`execution.${time.state}`)}<br/></>}{summary.freshness.checkedAt&&<small>{t('execution.cutoff',{time:summary.freshness.checkedAt})}</small>}</p></div>
+  {summary.quality.running&&<p className="note">{t('timing.running')}</p>}
+  {summary.quality.censored&&<p className="note">{t('timing.censored')}</p>}
+  {summary.quality.partial&&summary.quality.reasonCodes.length===0&&<p className="note">{t('timing.partial')}</p>}
+  {summary.quality.reasonCodes.length>0&&<div className="note"><strong>{t('timing.reasons')}</strong><ul>{summary.quality.reasonCodes.map((reason,index)=><li key={`${reason}-${index}`}>{timingMissingValueText(reason)}</li>)}</ul></div>}
   {timeline&&<p className="execution-axis">{t('execution.window',{range:`0–${window} ms`})}</p>}
   {!timeline&&<p className="note">{t('execution.listFallback')}</p>}
   <div className="execution-tracks">{timeline&&(['command','compaction','reasoning'] as const).filter(category=>time.timeline.tracks.some(track=>track.category===category)).map(category=><details className="execution-track-group" key={category} open={time.timeline.tracks.length<=12}><summary>{t(`execution.category.${category}`)}</summary>{time.timeline.tracks.filter(track=>track.category===category).map(track=><div className="execution-track" key={track.intervalAlias}><span>{t(`execution.category.${track.category}`)}</span><div><button aria-label={`${t(`execution.category.${track.category}`)} ${track.startMs}–${track.endMs} ms`} disabled={blocked} style={{left:`${track.startMs/window!*100}%`,width:`${(track.endMs-track.startMs)/window!*100}%`}} onClick={()=>onEvidence([...track.evidenceRefs],track.intervalAlias)}/></div></div>)}</details>)}{timeline&&time.timeline.unclassifiedGaps.map((gap,index)=><div className="execution-track" key={`gap-${index}`}><span>{t('execution.unclassified')}</span><div><span className="execution-gap" style={{left:`${gap.startMs/window!*100}%`,width:`${(gap.endMs-gap.startMs)/window!*100}%`}} aria-label={`${gap.startMs}–${gap.endMs} ms`}/></div></div>)}</div>
@@ -23,7 +27,7 @@ export function Execution({summary,refresh,onEvidence,onShare,updating=false,blo
   <p className="compact-note">{t('execution.detailCounts',{shown:metric(time.timeline.entryCount),total:metric(time.timeline.identifiedIntervalCount),missing:metric(time.timeline.unlocatedIntervalCount)})}</p>
   <details><summary>{t('execution.distribution')}</summary><p>{t('execution.concurrent')}</p><dl className="facts">{(['command','compaction','reasoning'] as const).map(category=><div key={category}><dt>{t(`execution.category.${category}`)}</dt><dd>{t('execution.unionSum',{union:milliseconds(time[category].unionMs),sum:milliseconds(time[category].sumMs)})}</dd></div>)}<dt>{t('execution.covered')}</dt><dd>{milliseconds(time.coveredMs)}</dd><dt>{t('execution.unclassified')}</dt><dd>{milliseconds(time.unclassifiedMs)}</dd></dl></details>
   <details><summary>{t('execution.moreMetrics')}</summary><dl className="facts"><dt>{t('execution.nativeTtft')}</dt><dd>{milliseconds(time.nativeTtftMs)} {evidence(time.nativeTtftMs)}</dd><dt>{t('execution.firstContent')}</dt><dd>{milliseconds(time.firstContentRecordDelayMs)} {evidence(time.firstContentRecordDelayMs)}</dd><dt>{t('execution.input')}</dt><dd>{metric(context.input.median)} / {metric(context.input.p90)}</dd><dt>{t('execution.ratio')}</dt><dd>{metric(context.ratio.median)} / {metric(context.ratio.p90)}</dd><dt>{t('execution.samples')}</dt><dd>{metric(context.input.samples)}</dd><dt>{t('execution.compactions')}</dt><dd>{metric(context.compactionRecords)} / {milliseconds(context.compactionTimeMs)}</dd></dl><p>{t('execution.ratioNote')}</p><WorkFacts work={summary.work} sourceStatus={summary.coverage.sourceStatus} partial={summary.quality.partial}/></details>
-  <details><summary>{t('execution.basis')}</summary><p>{t('execution.wholeTurn')}</p><p>{summary.quality.reasonCodes.join(', ')}</p><p>{summary.methodVersion} · {summary.coverage.sourceStatus}</p><p>{duration.status} · {duration.basis}</p><p>{time.timeline.detail.support} · {time.timeline.detail.reason}</p><code>{summary.readView.snapshotId}</code></details>
+  <details><summary>{t('execution.basis')}</summary><p>{t('execution.wholeTurn')}</p><p>{t('timing.reasons')}: {summary.quality.reasonCodes.join(', ')}</p><p>{summary.methodVersion} · {timingSourceStatusText(summary.coverage.sourceStatus)} ({summary.coverage.sourceStatus})</p><p>{t('timing.basisLabel')}: {t(`cli.timing.measure.${duration.status}`)} · {timingBasisText(duration.basis)} ({duration.basis})</p><p>{t('timing.reasons')}: {t(`cli.timing.support.${time.timeline.detail.support}`)} · {timelineBasis} ({time.timeline.detail.reason})</p><code>{summary.readView.snapshotId}</code></details>
   <button disabled={blocked||updating} onClick={onShare}>{t('execution.share')}</button>
  </section>;
 }
