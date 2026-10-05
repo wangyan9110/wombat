@@ -37,6 +37,8 @@ export type Basis =
   | "unassigned_use_index"
   | "dispatch_not_proven"
   | "missing_target"
+  | "target_conflict"
+  | "outcome_conflict"
   | "missing_turn";
 export type CollectionKind =
   "turn_events" | "canonical_measurements" | "canonical_operations" | "source_controls" | "native_boundary_index";

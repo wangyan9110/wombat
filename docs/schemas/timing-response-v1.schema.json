@@ -280,6 +280,8 @@
         "unassigned_use_index",
         "dispatch_not_proven",
         "missing_target",
+        "target_conflict",
+        "outcome_conflict",
         "missing_turn"
       ]
     },

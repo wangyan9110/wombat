@@ -174,6 +174,7 @@ fn fixed_unknown_or_missing_observation_headers_reject_before_payload_and_preser
     let event_bytes = fs::read(&event_path).unwrap();
     for field in [
         "operationObservationVersion",
+        "operationAssociationVersion",
         "measurementObservationVersion",
         "eventObservationVersion",
         "titleObservationVersion",
@@ -199,6 +200,7 @@ fn fixed_unknown_or_missing_observation_headers_reject_before_payload_and_preser
     }
     for field in [
         "operationObservationVersion",
+        "operationAssociationVersion",
         "measurementObservationVersion",
         "eventObservationVersion",
         "titleObservationVersion",

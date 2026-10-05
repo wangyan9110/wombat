@@ -26,6 +26,10 @@ fn required_operation_work_and_measurement_mappings_reject_before_payload_withou
     let saved_view = crate::live_index::load_map(&db, &format!("view:{key}")).unwrap();
     for (field, current) in [
         (
+            "operationAssociationVersion",
+            crate::operation_association::METHOD_VERSION,
+        ),
+        (
             "workObservationVersion",
             adapters::codex::incremental::WORK_OBSERVATION_VERSION,
         ),

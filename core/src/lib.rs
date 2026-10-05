@@ -13,6 +13,7 @@ mod live_index;
 mod live_windows;
 mod log_io;
 pub(crate) mod observation_versions;
+pub(crate) mod operation_association;
 mod optimize;
 pub mod optimize_dto;
 pub mod preferences;

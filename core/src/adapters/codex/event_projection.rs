@@ -77,6 +77,9 @@ pub(super) fn apply(facts: &mut Facts, event: &Event, report: &mut SourceReport)
         SafePayload::Operation { value, .. } => {
             facts.project_operation(value.as_ref().clone(), report)
         }
+        SafePayload::Item { .. } | SafePayload::Lifecycle { .. } => {
+            facts.operations_pending = true;
+        }
         _ => {}
     }
 }

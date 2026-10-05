@@ -15,7 +15,7 @@ const capabilities = {
   lifecycleIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: unavailable,
 };
-const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v2', profile: 'local', capabilities } as const;
+const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v3', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
@@ -23,7 +23,7 @@ const distribution = () => ({ samples: count(), median: count(), p90: count() })
 const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const local: TimingLocalResult = {
-  outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v2', profile: 'local',
+  outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v3', profile: 'local',
   uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
@@ -121,6 +121,29 @@ test('timing responses bind action profile method target and selected snapshot',
     { ...local, scope: { ...scope, wholeTurn: false } },
   ]) await assert.rejects(client(invalid).timing!(summary), { code: 'PROTOCOL_ERROR' });
   await assert.rejects(client({ ...evidence, snapshotId: 'other' }).timing!({ action: 'evidence', threadId: 'thread', turnId: 'turn', snapshotId: 'fixed' }), { code: 'PROTOCOL_ERROR' });
+});
+
+test('timing v3 rejects both previous methods for every response action and profile', async () => {
+  const evidence = { outputVersion: 1, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
+  for (const methodVersion of ['safe_event_turn_v1', 'safe_event_turn_v2']) {
+    await assert.rejects(client({ ...capabilityResult, methodVersion }).timing!({ action: 'capabilities' }), { code: 'PROTOCOL_ERROR' });
+    await assert.rejects(client({ ...local, methodVersion }).timing!(summary), { code: 'PROTOCOL_ERROR' });
+    await assert.rejects(client({ ...share, methodVersion }).timing!({ ...summary, privacyProfile: 'share-v1' }), { code: 'PROTOCOL_ERROR' });
+    await assert.rejects(client({ ...evidence, methodVersion }).timing!({ ...summary, action: 'evidence', snapshotId: local.readView.snapshotId }), { code: 'PROTOCOL_ERROR' });
+  }
+});
+
+test('timing conflict reasons coexist with retained duration in local and share contracts', async () => {
+  const time = { ...local.time, nativeWallClockMs: { ...count(), value: 120, status: 'observed', basis: 'native_record' } };
+  const quality = { ...local.quality, reasonCodes: ['target_conflict', 'outcome_conflict'] };
+  const localized = { ...local, time, quality };
+  const shared = { ...share, time, quality };
+  assert.equal(validateLocal(localized), true);
+  assert.equal(validateShare(shared), true);
+  assert.equal(await client(localized).timing!(summary), localized);
+  assert.equal(await client(shared).timing!({ ...summary, privacyProfile: 'share-v1' }), shared);
+  assert.equal(localized.time.nativeWallClockMs.value, 120);
+  assert.equal(shared.time.nativeWallClockMs.value, 120);
 });
 
 test('local and share validators have their correct roots and reject leaked locating fields', async () => {
@@ -272,7 +295,7 @@ test('work metrics preserve canonical identities, reported paths and unknown use
   assert.equal(validateLocal({ ...local, work: { ...work, userBoundaryRecords: { ...work.userBoundaryRecords, basis: 'guessed_user' } } }), false);
 });
 
-test('method v2 accepts MCP relative tracks and all sixteen core masks; stale masks and share identities fail', async () => {
+test('method v3 accepts MCP relative tracks and all sixteen core masks; stale masks and share identities fail', async () => {
   const mcp = structuredClone(local);
   mcp.time.timeline.tracks = [{intervalAlias:'interval-1',category:'mcp',startMs:2000,endMs:7000,clipped:false,evidenceScope:'turn_collection',evidenceRefs:[]}];
   mcp.time.mcp.unionMs = observed(5000, 'lifecycle_union');

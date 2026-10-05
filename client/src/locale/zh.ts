@@ -1297,6 +1297,8 @@ export const zh = {
   "timing.basis.missingTime": "缺少可用于计算或定位的时间记录",
   "timing.basis.missingBatchCycle": "缺少工具批次与响应周期记录",
   "timing.basis.boundaryConflict": "记录中的边界或内容依据存在冲突",
+  "timing.basis.targetConflict": "操作目标记录存在冲突；有效的起止记录仍可用于计时",
+  "timing.basis.outcomeConflict": "操作结果记录存在冲突；有效的起止记录仍可用于计时",
   "timing.basis.sourcePartial": "部分来源记录或所需依据不完整",
   "timing.basis.resourceLimit": "计算或明细达到资源上限，部分结果不可用",
   "timing.basis.numericRange": "数值超出支持范围",

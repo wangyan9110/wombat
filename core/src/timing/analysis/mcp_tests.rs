@@ -324,7 +324,7 @@ fn native_completion_is_closure_while_operation_failure_is_the_outcome() {
 }
 
 #[test]
-fn explicit_dispatch_target_conflict_excludes_only_that_canonical_mcp_lifecycle() {
+fn explicit_dispatch_target_conflict_keeps_consistent_mcp_interval() {
     let start = operation_event(1, Some("conflict"), None, Phase::Started, Some(10));
     let end = operation_event(2, Some("conflict"), None, Phase::Completed, Some(30));
     let Payload::Operation { value, phase } = end.payload() else {
@@ -333,7 +333,7 @@ fn explicit_dispatch_target_conflict_excludes_only_that_canonical_mcp_lifecycle(
     let mut other_server = value.as_ref().clone();
     other_server.server = Some("different-server".into());
     let conflicting = event(
-        2,
+        5,
         Some(30),
         Payload::Operation {
             value: Arc::new(other_server),
@@ -346,9 +346,15 @@ fn explicit_dispatch_target_conflict_excludes_only_that_canonical_mcp_lifecycle(
         operation_event(3, Some("known"), None, Phase::Started, Some(40)),
         operation_event(4, Some("known"), None, Phase::Completed, Some(60)),
     ]));
-    assert_eq!(result.category_union_ms[3], Some(20));
-    assert_eq!(result.coverage.conflicting_lifecycles, 1);
-    assert_eq!(result.coverage.linked_lifecycles[3], 1);
+    assert_eq!(result.category_union_ms[3], Some(40));
+    assert_eq!(result.coverage.conflicting_lifecycles, 0);
+    assert_eq!(result.coverage.linked_lifecycles[3], 2);
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::TargetConflict(_)))
+    );
 }
 
 #[test]

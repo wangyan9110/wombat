@@ -283,6 +283,7 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
             ObservationKind::Event | ObservationKind::Title => "不支持此快照来源观察格式",
             ObservationKind::Message => "不支持此消息观察映射",
             ObservationKind::Operation => "不支持此操作结果观察映射",
+            ObservationKind::Association => "不支持此操作关联方法",
             ObservationKind::Measurement => "不支持此计量观察映射",
             ObservationKind::Work => "不支持此快照来源观察格式",
         }

@@ -31,7 +31,7 @@ pub enum ShareProfile {
 }
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 pub const OUTPUT_VERSION: u32 = 1;
-pub const METHOD_VERSION: &str = "safe_event_turn_v2";
+pub const METHOD_VERSION: &str = "safe_event_turn_v3";
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum PrivacyProfile {
@@ -149,6 +149,8 @@ pub enum Basis {
     UnassignedUseIndex,
     DispatchNotProven,
     MissingTarget,
+    TargetConflict,
+    OutcomeConflict,
     MissingTurn,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

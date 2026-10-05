@@ -487,6 +487,24 @@ fn query_impl(
         quality.partial = true;
         quality.reason_codes.push(Basis::MissingIdentity);
     }
+    if a.issues
+        .iter()
+        .any(|issue| matches!(issue, analysis::Issue::TargetConflict(_)))
+    {
+        quality.partial = true;
+        if !quality.reason_codes.contains(&Basis::TargetConflict) {
+            quality.reason_codes.push(Basis::TargetConflict);
+        }
+    }
+    if a.issues
+        .iter()
+        .any(|issue| matches!(issue, analysis::Issue::OutcomeConflict(_)))
+    {
+        quality.partial = true;
+        if !quality.reason_codes.contains(&Basis::OutcomeConflict) {
+            quality.reason_codes.push(Basis::OutcomeConflict);
+        }
+    }
     if a.issues.iter().any(|issue| {
         matches!(
             issue,

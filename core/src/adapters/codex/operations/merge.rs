@@ -62,12 +62,7 @@ fn merge_mcp(old: &mut Operation, incoming: &mut Operation, report: &mut SourceR
         return;
     }
     if reliable(&old.kind) && reliable(&incoming.kind) {
-        if old.server != incoming.server
-            || old.tool != incoming.tool
-            || (old.kind != incoming.kind
-                && old.kind.as_ref() != "mcpUnclassified"
-                && incoming.kind.as_ref() != "mcpUnclassified")
-        {
+        if crate::operation_association::mcp_target_conflict(old, incoming) {
             old.kind = "mcpConflict".into();
             old.server = None;
             old.tool = None;

@@ -23,12 +23,11 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
             };
         }
         match field {
-            "operationObservationVersion"
-            | "messageObservationVersion"
-            | "measurementObservationVersion"
-            | "workObservationVersion"
-            | "eventObservationVersion"
-            | "titleObservationVersion" => {}
+            field
+                if crate::observation_versions::ObservationHeaderSet::Projection
+                    .kinds()
+                    .iter()
+                    .any(|kind| kind.field() == field) => {}
             "watermarkVersion" => {
                 watermark_version = Some(serde_json::from_str::<u32>(payload)?);
             }

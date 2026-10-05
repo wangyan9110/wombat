@@ -1297,6 +1297,8 @@ export const en = {
   "timing.basis.missingTime": "Usable timing records are missing for calculation or placement",
   "timing.basis.missingBatchCycle": "Tool batch and response-cycle records are missing",
   "timing.basis.boundaryConflict": "Boundary or content evidence conflicts across records",
+  "timing.basis.targetConflict": "Operation target records conflict; valid start and end records remain usable for timing",
+  "timing.basis.outcomeConflict": "Operation result records conflict; valid start and end records remain usable for timing",
   "timing.basis.sourcePartial": "Some source records or required evidence are incomplete",
   "timing.basis.resourceLimit": "A calculation or detail resource limit was reached; some results are unavailable",
   "timing.basis.numericRange": "The value is outside the supported range",

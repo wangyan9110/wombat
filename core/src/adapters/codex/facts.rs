@@ -22,6 +22,12 @@ pub(super) struct Facts {
     #[serde(skip)]
     pub(super) dirty_operations: BTreeSet<String>,
     #[serde(skip)]
+    pub(super) operations_pending: bool,
+    #[serde(skip)]
+    pub(super) retired_operations: BTreeSet<String>,
+    #[serde(skip)]
+    pub(super) operation_aliases: BTreeMap<String, Arc<[crate::operation_association::OwnedAlias]>>,
+    #[serde(skip)]
     pub(super) dirty_measurements: BTreeSet<String>,
     #[serde(skip)]
     pub(super) dirty_aliases: BTreeSet<String>,
@@ -54,6 +60,11 @@ impl Facts {
             },
             operations: if include_facts {
                 self.operations.clone()
+            } else {
+                BTreeMap::new()
+            },
+            operation_aliases: if include_facts {
+                self.operation_aliases.clone()
             } else {
                 BTreeMap::new()
             },
@@ -149,50 +160,130 @@ impl Facts {
         self.strings.operation(&mut operation);
         timing::operation(self, &operation, report);
     }
-    pub(super) fn project_operation(
-        &mut self,
-        mut operation: Operation,
-        report: &mut SourceReport,
-    ) {
+    pub(super) fn project_operation(&mut self, operation: Operation, _report: &mut SourceReport) {
         self.observe_operation(&operation);
-        let aliases: Vec<_> = [operation.call_id.as_deref(), operation.item_id.as_deref()]
-            .into_iter()
-            .flatten()
-            .map(|id| {
-                operations::operation_id(&operation.thread_id, operation.turn_id.as_deref(), id)
-            })
-            .collect();
-        if let Some(id) = aliases
-            .iter()
-            .find_map(|key| {
-                self.aliases
-                    .get(key)
-                    .or_else(|| self.operations.get_key_value(key).map(|(id, _)| id))
-            })
-            .cloned()
-        {
-            operation.id = id;
+        self.operations_pending = true;
+    }
+    /// Rebuild the affected source's association once; retain unchanged allocations
+    /// and emit ordinary append deltas. Retired identities require atomic replacement.
+    pub(super) fn resolve_operations(
+        &mut self,
+        report: &mut SourceReport,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> anyhow::Result<()> {
+        let check = crate::operation_association::check;
+        check(cancelled)?;
+        if !self.operations_pending {
+            return Ok(());
         }
-        for alias in aliases {
-            // Canonical operations already index their own identity. Persist only alternate IDs.
-            if alias != operation.id {
-                self.dirty_aliases.insert(alias.clone());
-                self.aliases.insert(alias, operation.id.clone());
-            }
-        }
-        self.dirty_operations.insert(operation.id.clone());
-        if let Some(old) = self.operations.get_mut(&operation.id) {
-            let old = Arc::make_mut(old);
-            operations::merge_metadata(old, &mut operation, report);
-            for evidence in operation.evidence {
-                if !old.evidence.contains(&evidence) {
-                    old.evidence.push(evidence);
+        let resolution = crate::operation_association::resolve(
+            self.events.values().map(AsRef::as_ref),
+            cancelled,
+        )?;
+        let mut operations = BTreeMap::new();
+        let mut aliases = HashMap::new();
+        let mut operation_aliases = BTreeMap::new();
+        for group in resolution.groups {
+            crate::operation_association::check(cancelled)?;
+            let mut observed = group.operation_events.into_iter();
+            let Some(first) = observed.next() else {
+                continue;
+            };
+            let crate::session_events::Payload::Operation { value, .. } = first.payload() else {
+                unreachable!()
+            };
+            let mut operation = value.as_ref().clone();
+            operation.id.clone_from(&group.id);
+            for event in observed {
+                crate::operation_association::check(cancelled)?;
+                let crate::session_events::Payload::Operation { value, .. } = event.payload()
+                else {
+                    unreachable!()
+                };
+                let mut incoming = value.as_ref().clone();
+                operations::merge_metadata(&mut operation, &mut incoming, report);
+                for evidence in incoming.evidence {
+                    check(cancelled)?;
+                    operation.evidence.push(evidence);
                 }
             }
-        } else {
-            self.operations
-                .insert(operation.id.clone(), Arc::new(operation));
+            // Identity/phase association owns these contradictions. A missing field
+            // does not contradict a recorded target; merged metadata cannot refill it.
+            if group.target_conflict {
+                operation.kind = "mcpConflict".into();
+                operation.server = None;
+                operation.tool = None;
+                issue(
+                    report,
+                    "operationIdentityConflict",
+                    "同一 MCP 调用的来源身份冲突",
+                    operation.evidence.first().cloned(),
+                );
+            }
+            if group.outcome_conflict {
+                operation.outcome_conflict = true;
+                operation.exit_code = None;
+            }
+            crate::operation_association::check(cancelled)?;
+            operation
+                .evidence
+                .sort_unstable_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
+            check(cancelled)?;
+            operation.evidence.dedup();
+            check(cancelled)?;
+            self.strings.operation(&mut operation);
+            let retained = self
+                .operations
+                .get(&group.id)
+                .filter(|old| old.as_ref() == &operation)
+                .cloned();
+            let row = if let Some(retained) = retained {
+                retained
+            } else {
+                self.dirty_operations.insert(group.id.clone());
+                Arc::new(operation)
+            };
+            operations.insert(group.id.clone(), row);
+            let mut owned_aliases = Vec::new();
+            for alias in group.aliases {
+                crate::operation_association::check(cancelled)?;
+                owned_aliases.push(alias.owned());
+                let (namespace, native) = match alias {
+                    crate::operation_association::Alias::Call(value) => ("call", value),
+                    crate::operation_association::Alias::Item(value) => ("item", value),
+                };
+                let key = stable_id(&[
+                    group.scope.source,
+                    group.scope.thread.unwrap_or(""),
+                    group.scope.turn.unwrap_or(""),
+                    namespace,
+                    native,
+                ]);
+                if self.aliases.get(&key) != Some(&group.id) {
+                    self.dirty_aliases.insert(key.clone());
+                }
+                aliases.insert(key, group.id.clone());
+            }
+            operation_aliases.insert(group.id.clone(), Arc::from(owned_aliases));
         }
+        for id in self.operations.keys() {
+            check(cancelled)?;
+            if !operations.contains_key(id) {
+                self.retired_operations.insert(id.clone());
+            }
+        }
+        for id in std::mem::take(&mut self.dirty_operations) {
+            check(cancelled)?;
+            if operations.contains_key(&id) {
+                self.dirty_operations.insert(id);
+            }
+        }
+        check(cancelled)?;
+        self.operations = operations;
+        self.aliases = aliases;
+        self.operation_aliases = operation_aliases;
+        self.operations_pending = false;
+        Ok(())
     }
     pub(super) fn observe_operation(&mut self, operation: &Operation) {
         if let Some(turn) = operation

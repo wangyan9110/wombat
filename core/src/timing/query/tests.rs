@@ -49,6 +49,39 @@ fn boundary(
         },
     )
 }
+fn mcp_operation_event(
+    offset: u64,
+    millis: i64,
+    call_id: &str,
+    server: &str,
+    phase: Phase,
+    status: &str,
+) -> Arc<Event> {
+    let value = serde_json::from_value(serde_json::json!({
+        "id": format!("operation-{offset}"),
+        "threadId": "thread-private",
+        "turnId": "turn-private",
+        "callId": call_id,
+        "kind": "mcpTool",
+        "name": "lookup",
+        "server": server,
+        "tool": "lookup",
+        "sequence": offset,
+        "timePrecision": "millisecond",
+        "status": status,
+        "outcomeConflict": false,
+        "evidence": []
+    }))
+    .unwrap();
+    event(
+        offset,
+        Some(millis),
+        Payload::Operation {
+            value: Arc::new(value),
+            phase,
+        },
+    )
+}
 fn data(events: Vec<Arc<Event>>) -> Collected {
     Collected {
         threads: vec![Thread {
@@ -1473,7 +1506,7 @@ fn mcp_time_is_delivered_in_local_and_private_relative_share_projection() {
         boundary(3, Some(1100), Phase::Completed, Some(100), None),
     ]);
     let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(result.method_version, "safe_event_turn_v2");
+    assert_eq!(result.method_version, "safe_event_turn_v3");
     assert_eq!(result.time.mcp.union_ms.value, Some(50));
     assert_eq!(result.time.mcp.sum_ms.value, Some(50));
     assert_eq!(result.time.mcp.closed.value, Some(1));
@@ -1522,4 +1555,58 @@ fn mcp_time_is_delivered_in_local_and_private_relative_share_projection() {
         schema["definitions"]["Coverage"]["properties"]["lifecycleCandidates"]["minItems"],
         4
     );
+}
+
+#[test]
+fn mcp_target_and_outcome_conflicts_preserve_time_and_report_local_quality() {
+    let snapshot = make_snapshot(vec![
+        boundary(0, Some(1_000), Phase::Started, None, None),
+        mcp_operation_event(10, 1_010, "target-call", "docs", Phase::Started, "running"),
+        mcp_operation_event(
+            20,
+            1_030,
+            "target-call",
+            "docs",
+            Phase::Completed,
+            "completed",
+        ),
+        mcp_operation_event(
+            21,
+            1_030,
+            "target-call",
+            "other",
+            Phase::Completed,
+            "completed",
+        ),
+        mcp_operation_event(30, 1_040, "outcome-call", "docs", Phase::Started, "running"),
+        mcp_operation_event(
+            40,
+            1_060,
+            "outcome-call",
+            "docs",
+            Phase::Completed,
+            "completed",
+        ),
+        mcp_operation_event(41, 1_060, "outcome-call", "docs", Phase::Failed, "failed"),
+        boundary(100, Some(1_100), Phase::Completed, Some(100), None),
+    ]);
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.time.mcp.union_ms.value, Some(40));
+    assert_eq!(result.time.mcp.sum_ms.value, Some(40));
+    assert_eq!(result.time.mcp.closed.value, Some(2));
+    assert!(result.quality.partial);
+    assert!(result.quality.reason_codes.contains(&Basis::TargetConflict));
+    assert!(
+        result
+            .quality
+            .reason_codes
+            .contains(&Basis::OutcomeConflict)
+    );
+    assert!(
+        !result
+            .quality
+            .reason_codes
+            .contains(&Basis::MissingIdentity)
+    );
+    assert!(!result.quality.reason_codes.contains(&Basis::MissingTime));
 }

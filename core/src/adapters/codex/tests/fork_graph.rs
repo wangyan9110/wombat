@@ -2,6 +2,32 @@ use super::super::ancestry::ForkForest;
 use super::*;
 
 #[test]
+fn fork_builder_and_replay_loop_observe_cancellation_without_a_prefix_result() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let parents = HashMap::from([("child".to_owned(), "parent".to_owned())]);
+    assert!(ForkForest::new_cancellable(&parents, &AtomicBool::new(true)).is_err());
+    let flag = AtomicBool::new(false);
+    let forest = ForkForest::new_cancellable(&parents, &flag).unwrap();
+    let entries = [(0, "parent", "p"), (0, "child", "c")]
+        .into_iter()
+        .enumerate()
+        .map(|(n, row)| {
+            if n == 1 {
+                flag.store(true, Ordering::Relaxed);
+            }
+            row
+        });
+    let error = forest.replays_cancellable(entries, &flag).unwrap_err();
+    assert_eq!(
+        error
+            .downcast_ref::<crate::dto::OperationError>()
+            .unwrap()
+            .code,
+        "CANCELLED"
+    );
+}
+
+#[test]
 fn indexed_fork_replays_match_independent_ancestor_walks_in_sparse_cyclic_forests() {
     let names: Vec<_> = (0..128).map(|n| format!("thread-{n}")).collect();
     let mut state = 0x7265706c6179_u64;

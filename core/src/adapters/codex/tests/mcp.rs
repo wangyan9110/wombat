@@ -57,7 +57,7 @@ fn mcp_native_completion_promotes_identity_merges_replay_and_preserves_failed_re
 #[test]
 fn paginated_native_item_and_explicit_resource_requests_separate_discovery() {
     let dir = tempfile::tempdir().unwrap();
-    let item = json!({"type":"event_msg","timestamp":"2026-10-03T00:00:02Z","payload":{"type":"item_completed","thread_id":"t","turn_id":"u","item":{"type":"McpToolCall","id":"read","server":"docs","tool":"read_mcp_resource","arguments":{"uri":"SECRET_URI"},"status":"failed","duration":{"secs":0,"nanos":5000000},"result":{"isError":true,"content":[{"text":"SECRET_BODY"}]}}}});
+    let item = json!({"type":"event_msg","timestamp":"2026-10-03T00:00:02Z","payload":{"type":"item_completed","thread_id":"t","turn_id":"u","item":{"type":"McpToolCall","id":"read","call_id":"read","server":"docs","tool":"read_mcp_resource","arguments":{"uri":"SECRET_URI"},"status":"failed","duration":{"secs":0,"nanos":5000000},"result":{"isError":true,"content":[{"text":"SECRET_BODY"}]}}}});
     write(
         dir.path(),
         "sessions/a.jsonl",

@@ -194,10 +194,12 @@ fn load_facts(
     scope: &str,
     reuse: Option<&ReusableFacts>,
     report: &SourceReport,
+    cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<Facts> {
     let mut events = BTreeMap::new();
     let mut title_observations = BTreeMap::new();
     crate::live_index::each(db, scope, |field, id, payload| {
+        crate::operation_association::check(cancelled)?;
         if field == "title_observations" {
             let observation: crate::session_events::title_observations::TitleObservation =
                 serde_json::from_str(payload)?;
@@ -233,9 +235,10 @@ fn load_facts(
         }
         Ok(())
     })?;
-    let mut facts = replay_events(events, report);
+    let mut facts = replay_events(events, report, cancelled)?;
     facts.title_observations = title_observations;
     for observation in facts.title_observations.values() {
+        crate::operation_association::check(cancelled)?;
         anyhow::ensure!(
             facts
                 .threads
@@ -248,6 +251,7 @@ fn load_facts(
     // Read projections may share allocations, but never establish parser facts.
     let mut paths = EvidencePaths::default();
     for (id, candidate) in &mut facts.measurements {
+        crate::operation_association::check(cancelled)?;
         if let Some(rows) = reuse.map(|r| &r.measurements)
             && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
             && rows[index] == candidate.measurement
@@ -261,6 +265,7 @@ fn load_facts(
         }
     }
     for (id, operation) in &mut facts.operations {
+        crate::operation_association::check(cancelled)?;
         if let Some(rows) = reuse.map(|r| &r.operations)
             && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
             && rows[index] == *operation
@@ -279,18 +284,30 @@ fn load_facts(
 fn replay_events(
     events: BTreeMap<String, Arc<crate::session_events::Event>>,
     report: &SourceReport,
-) -> Facts {
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<Facts> {
+    crate::operation_association::check(cancelled)?;
     let mut facts = Facts::default();
     // Parse diagnostics remain owned by file checkpoints; replay only restores facts.
     let mut replay_report = report.clone();
     replay_report.issues.clear();
-    let mut ordered: Vec<_> = events.values().collect();
+    let mut ordered = Vec::new();
+    for event in events.values() {
+        crate::operation_association::check(cancelled)?;
+        ordered.push(event);
+    }
+    crate::operation_association::check(cancelled)?;
     ordered.sort_by(|a, b| event_projection::order(a).cmp(&event_projection::order(b)));
+    crate::operation_association::check(cancelled)?;
     for event in ordered {
+        crate::operation_association::check(cancelled)?;
         event_projection::apply(&mut facts, event, &mut replay_report);
     }
     facts.events = events;
-    facts
+    // Canonical operations must exist before allocation reuse or derived emission.
+    // The caller repeats this pass only after additional observations are collected.
+    facts.resolve_operations(&mut replay_report, cancelled)?;
+    Ok(facts)
 }
 
 pub(crate) struct MeasurementDelta {
@@ -348,6 +365,16 @@ pub(crate) fn sync_cached(
     cache: &mut Cache,
 ) -> Result<Option<Synced>> {
     let context = RunContext::default();
+    sync_cached_with_context(db, source, verify, cache, &context)
+}
+fn sync_cached_with_context(
+    db: &Connection,
+    source: &SourceInstance,
+    verify: bool,
+    cache: &mut Cache,
+    context: &RunContext,
+) -> Result<Option<Synced>> {
+    crate::operation_association::check(&context.cancelled)?;
     let mut report = SourceReport {
         source: source.clone(),
         adapter_version: VERSION.into(),
@@ -367,7 +394,7 @@ pub(crate) fn sync_cached(
             0,
             &mut files,
             &mut visited,
-            &context,
+            context,
             &mut report,
         );
     }
@@ -381,6 +408,7 @@ pub(crate) fn sync_cached(
                 crate::observation_versions::ObservationKind::Operation => {
                     "不支持此操作结果观察映射"
                 }
+                crate::observation_versions::ObservationKind::Association => "不支持此操作关联方法",
                 crate::observation_versions::ObservationKind::Event => "不支持此事件观察格式",
                 crate::observation_versions::ObservationKind::Title => "不支持此标题观察格式",
                 crate::observation_versions::ObservationKind::Work => "不支持此来源工作观察映射",
@@ -498,11 +526,18 @@ pub(crate) fn sync_cached(
     let restoring = cache.facts.is_none();
     let mut facts = match cache.facts.take() {
         Some(facts) => facts,
-        None => load_facts(db, &fact_scope, cache.seed.as_ref(), &report)?,
+        None => load_facts(
+            db,
+            &fact_scope,
+            cache.seed.as_ref(),
+            &report,
+            &context.cancelled,
+        )?,
     };
     cache.seed = None;
     facts.dirty_events.clear();
     facts.dirty_operations.clear();
+    facts.retired_operations.clear();
     facts.dirty_measurements.clear();
     facts.dirty_aliases.clear();
     let generations: BTreeMap<_, _> = checkpoints
@@ -537,7 +572,11 @@ pub(crate) fn sync_cached(
         facts
             .events
             .retain(|_, event| missing_files.contains(&event.position().file_id));
-        facts = replay_events(std::mem::take(&mut facts.events), &report);
+        facts = replay_events(
+            std::mem::take(&mut facts.events),
+            &report,
+            &context.cancelled,
+        )?;
         facts.retained_collection_times = retained_collection_times;
         facts.title_observations = title_observations;
         checkpoints.retain(|p, _| missing.contains(p));
@@ -583,7 +622,7 @@ pub(crate) fn sync_cached(
         read_file_from(
             Path::new(&path),
             source,
-            &context,
+            context,
             &mut facts,
             &mut report,
             Some(checkpoint),
@@ -624,9 +663,14 @@ pub(crate) fn sync_cached(
         // their combined source order before publishing or saving projections.
         // Checkpoints already own diagnostics; replay must not append them again.
         let title_observations = std::mem::take(&mut facts.title_observations);
-        facts = replay_events(std::mem::take(&mut facts.events), &report);
+        facts = replay_events(
+            std::mem::take(&mut facts.events),
+            &report,
+            &context.cancelled,
+        )?;
         facts.title_observations = title_observations;
     }
+    facts.resolve_operations(&mut report, &context.cancelled)?;
     read_titles(root, &mut facts, &mut report);
     titles::apply_titles(&mut facts);
     for cp in checkpoints.values() {
@@ -642,13 +686,52 @@ pub(crate) fn sync_cached(
     // Events restore parser truth; refresh disposable projection rows on restart,
     // including references whose cached payload may have been discarded.
     let full = rebuild || previous.is_empty() || restoring;
-    let changed_operations = if full || !facts.parents.is_empty() {
+    let replace_operations = full || !facts.retired_operations.is_empty();
+    let changed_operations = if replace_operations || !facts.parents.is_empty() {
         None
     } else {
         Some(facts.dirty_operations.clone())
     };
+    // Complete source-derived calculations before any parser writes. Errors or
+    // cancellation then leave publication to the caller's source transaction.
+    let mut result = Collected::default();
+    for checkpoint in checkpoints.values() {
+        crate::operation_association::check(&context.cancelled)?;
+        if let Some(watermark) = &checkpoint.watermark {
+            result.watermarks.push(watermark.clone());
+        }
+    }
+    facts.watermarks.clear();
+    let mut direct_only = facts.parents.is_empty();
+    if direct_only {
+        for candidate in facts.measurements.values() {
+            crate::operation_association::check(&context.cancelled)?;
+            if !candidate.direct {
+                direct_only = false;
+                break;
+            }
+        }
+    }
+    crate::operation_association::check(&context.cancelled)?;
+    let derived = facts.fork_derived(!direct_only);
+    let mut derived = finish_projection(derived, &mut report, &context.cancelled)?;
+    titles::apply_titles(&mut derived);
+    crate::operation_association::check(&context.cancelled)?;
+    emit_facts(derived, &mut result, &context.cancelled)?;
+    if direct_only {
+        for candidate in facts.measurements.values() {
+            crate::operation_association::check(&context.cancelled)?;
+            result.measurements.push(Arc::clone(&candidate.measurement));
+        }
+        for operation in facts.operations.values() {
+            crate::operation_association::check(&context.cancelled)?;
+            result.operations.push(Arc::clone(operation));
+        }
+    }
+    crate::operation_association::check(&context.cancelled)?;
     macro_rules! save {
         ($field:ident) => {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::replace_field(
                 db,
                 &fact_scope,
@@ -661,6 +744,7 @@ pub(crate) fn sync_cached(
         save!(events);
     } else {
         for id in &facts.dirty_events {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::put(db, &fact_scope, "events", id, &facts.events[id])?;
         }
     }
@@ -672,6 +756,7 @@ pub(crate) fn sync_cached(
         save!(measurements);
     } else {
         for id in &facts.dirty_measurements {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::put(db, &fact_scope, "measurements", id, &facts.measurements[id])?;
         }
     }
@@ -684,14 +769,16 @@ pub(crate) fn sync_cached(
         "",
         &facts.measurement_conflicts,
     )?;
-    if full {
+    if replace_operations {
         save!(operations);
         save!(aliases);
     } else {
         for id in &facts.dirty_operations {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::put(db, &fact_scope, "operations", id, &facts.operations[id])?;
         }
         for id in &facts.dirty_aliases {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
@@ -707,32 +794,9 @@ pub(crate) fn sync_cached(
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();
+    facts.retired_operations.clear();
     facts.dirty_aliases.clear();
-    let mut result = Collected {
-        watermarks: checkpoints
-            .values()
-            .filter_map(|cp| cp.watermark.clone())
-            .collect(),
-        ..Collected::default()
-    };
-    // Parser replay restores event facts, not file observation metadata.
-    facts.watermarks.clear();
-    // Direct response records require no cumulative/fork reconciliation. Preserve
-    // the general path for cumulative source counters.
-    let direct_only = facts.parents.is_empty() && facts.measurements.values().all(|v| v.direct);
-    let derived = facts.fork_derived(!direct_only);
-    let mut derived = finish_projection(derived, &mut report);
-    titles::apply_titles(&mut derived);
-    emit_facts(derived, &mut result);
-    if direct_only {
-        result.measurements.extend(
-            facts
-                .measurements
-                .values()
-                .map(|v| Arc::clone(&v.measurement)),
-        );
-        result.operations.extend(facts.operations.values().cloned());
-    }
+    crate::operation_association::check(&context.cancelled)?;
     cache.facts = Some(facts);
     if !root.exists() && checkpoints.is_empty() {
         report.status = "notFound".into();
@@ -772,6 +836,65 @@ fn facts_empty_marker(result: &Collected) -> bool {
 #[cfg(test)]
 mod sharing_tests {
     use super::*;
+    use std::io::Write;
+    #[test]
+    fn cancelled_incremental_context_does_not_write_or_replace_the_cached_view() {
+        let root = tempfile::tempdir().unwrap();
+        let index = tempfile::tempdir().unwrap();
+        let dir = root.path().join("sessions");
+        fs::create_dir(&dir).unwrap();
+        let path = dir.join("a.jsonl");
+        fs::write(
+            &path,
+            "{\"type\":\"session_meta\",\"payload\":{\"id\":\"t\"}}\n",
+        )
+        .unwrap();
+        let source = CodexAdapter
+            .discover(&DiscoveryRequest {
+                roots: vec![root.path().into()],
+            })
+            .sources
+            .remove(0);
+        let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+        let mut cache = Cache::default();
+        sync_cached(&db, &source, false, &mut cache)
+            .unwrap()
+            .unwrap();
+        let scope = format!("parser:{}:{VERSION}:1", source.id);
+        let before = crate::live_index::load_map(&db, &scope).unwrap();
+        let retained = cache.facts.as_ref().unwrap().events.clone();
+        fs::OpenOptions::new()
+            .append(true)
+            .open(path)
+            .unwrap()
+            .write_all(b"{\"type\":\"turn_context\",\"payload\":{\"turn_id\":\"u\"}}\n")
+            .unwrap();
+        let context = RunContext::default();
+        context
+            .cancelled
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let error = sync_cached_with_context(&db, &source, false, &mut cache, &context)
+            .err()
+            .unwrap();
+        assert_eq!(
+            error
+                .downcast_ref::<crate::dto::OperationError>()
+                .unwrap()
+                .code,
+            "CANCELLED"
+        );
+        assert_eq!(crate::live_index::load_map(&db, &scope).unwrap(), before);
+        assert_eq!(
+            cache
+                .facts
+                .as_ref()
+                .unwrap()
+                .events
+                .keys()
+                .collect::<Vec<_>>(),
+            retained.keys().collect::<Vec<_>>()
+        );
+    }
     #[test]
     fn prefix_checksum_rejects_source_change_during_streaming_read() {
         use std::io::Write;

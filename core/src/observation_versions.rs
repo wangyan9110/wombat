@@ -1,4 +1,4 @@
-//! Current source observation mapping headers shared by durable stores.
+//! Current observation mappings and derived association versions shared by durable stores.
 
 use anyhow::Result;
 use serde_json::{Map, Value};
@@ -11,6 +11,7 @@ pub(crate) enum ObservationKind {
     Message,
     Measurement,
     Operation,
+    Association,
 }
 
 impl ObservationKind {
@@ -22,6 +23,7 @@ impl ObservationKind {
             Self::Message => "messageObservationVersion",
             Self::Measurement => "measurementObservationVersion",
             Self::Operation => "operationObservationVersion",
+            Self::Association => "operationAssociationVersion",
         }
     }
 
@@ -35,6 +37,7 @@ impl ObservationKind {
                 crate::adapters::codex::incremental::MEASUREMENT_OBSERVATION_VERSION
             }
             Self::Operation => crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
+            Self::Association => crate::operation_association::METHOD_VERSION,
         }
     }
 }
@@ -48,6 +51,7 @@ pub(crate) enum ObservationHeaderSet {
 
 const SOURCE_HEADERS: &[ObservationKind] = &[
     ObservationKind::Operation,
+    ObservationKind::Association,
     ObservationKind::Event,
     ObservationKind::Title,
     ObservationKind::Work,
@@ -59,6 +63,7 @@ const SNAPSHOT_HEADERS: &[ObservationKind] = &[
     ObservationKind::Message,
     ObservationKind::Measurement,
     ObservationKind::Operation,
+    ObservationKind::Association,
     ObservationKind::Title,
 ];
 
@@ -107,7 +112,7 @@ impl ObservationHeaderSet {
 }
 
 /// Named snapshot values keep the public manifest fields while giving both
-/// in-memory and on-disk constructors one source for the five flat headers.
+/// in-memory and on-disk constructors one source for the flat dependency headers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SnapshotObservationVersions {
@@ -115,6 +120,7 @@ pub(crate) struct SnapshotObservationVersions {
     pub message_observation_version: u32,
     pub measurement_observation_version: u32,
     pub operation_observation_version: u32,
+    pub operation_association_version: u32,
     pub title_observation_version: u32,
 }
 
@@ -125,6 +131,7 @@ impl SnapshotObservationVersions {
             message_observation_version: ObservationKind::Message.current(),
             measurement_observation_version: ObservationKind::Measurement.current(),
             operation_observation_version: ObservationKind::Operation.current(),
+            operation_association_version: ObservationKind::Association.current(),
             title_observation_version: ObservationKind::Title.current(),
         }
     }

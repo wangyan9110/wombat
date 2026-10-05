@@ -29,8 +29,23 @@ pub(super) fn replay(collected: &Collected) -> (Collected, SourceReport) {
     for (_, _, _, event) in observations {
         super::super::event_projection::apply(&mut facts, event, &mut report);
     }
+    facts.events = collected
+        .events
+        .iter()
+        .map(|event| (event.id().to_owned(), event.clone()))
+        .collect();
     let mut replayed = Collected::default();
-    emit_facts(finish_projection(facts, &mut report), &mut replayed);
+    emit_facts(
+        finish_projection(
+            facts,
+            &mut report,
+            &std::sync::atomic::AtomicBool::new(false),
+        )
+        .unwrap(),
+        &mut replayed,
+        &std::sync::atomic::AtomicBool::new(false),
+    )
+    .unwrap();
     (replayed, report)
 }
 

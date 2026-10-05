@@ -113,7 +113,7 @@ fn native_and_locatable_durations_remain_separate() {
             None,
         ),
     ]);
-    assert_eq!(result.method, "safe_event_turn_v2");
+    assert_eq!(result.method, "safe_event_turn_v3");
     assert_eq!(result.response_gap_union_ms, None);
     assert_eq!(result.native_wall_clock_ms, Some(120));
     assert_eq!(result.derived_wall_clock_ms, Some(100));
@@ -248,9 +248,12 @@ fn explicit_identity_pairs_and_conflicts_never_merge_by_time() {
     assert_eq!(result.category_union_ms, [Some(10), None, None, None]);
     assert_eq!(result.coverage.linked_lifecycles, [1, 0, 0, 0]);
     assert_eq!(result.coverage.conflicting_lifecycles, 1);
-    assert!(result.issues.contains(&Issue::IdentityConflict(
-        serde_json::to_string(&("item", "conflict")).unwrap()
-    )));
+    assert!(
+        result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::IdentityConflict(_)))
+    );
     assert_eq!(result.intervals.unclassified_ms, Some(90));
 }
 #[test]
@@ -503,7 +506,7 @@ fn clock_domains_cannot_pair_missing_boundaries_or_item_halves() {
 }
 
 #[test]
-fn explicit_identity_gap_and_conflicting_terminal_states_exclude_intervals() {
+fn identity_gap_excludes_uncertain_lifecycle_and_item_completion_does_not_infer_outcome() {
     let conflicted = Arc::new(
         Event::new(
             Position {
@@ -552,9 +555,16 @@ fn explicit_identity_gap_and_conflicting_terminal_states_exclude_intervals() {
         ),
     ]);
     assert!(result.coverage.partial);
-    assert_eq!(result.coverage.conflicting_lifecycles, 2);
-    assert_eq!(result.category_union_ms, [None; 4]);
-    assert_eq!(result.intervals.unclassified_ms, Some(100));
+    assert_eq!(result.coverage.conflicting_lifecycles, 1);
+    assert_eq!(result.category_union_ms, [None, None, Some(10), None]);
+    assert_eq!(result.coverage.linked_lifecycles[2], 1);
+    assert_eq!(result.intervals.unclassified_ms, Some(90));
+    assert!(
+        !result
+            .issues
+            .iter()
+            .any(|issue| matches!(issue, Issue::OutcomeConflict(_)))
+    );
 }
 
 #[test]
@@ -653,9 +663,12 @@ fn explicit_native_identity_cannot_join_start_end_across_clock_domains() {
         assert_eq!(result.intervals.complete_intervals, [0; 4]);
         assert_eq!(result.intervals.category_sum_ms[0], 0);
         assert_eq!(result.category_union_ms[0], None);
-        assert!(result.issues.contains(&Issue::UnmatchedClockDomain(
-            serde_json::to_string(&("item", "native-command")).unwrap()
-        )));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| matches!(issue, Issue::UnmatchedClockDomain(_)))
+        );
     }
 }
 

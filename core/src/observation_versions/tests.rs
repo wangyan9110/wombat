@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn descriptors_define_the_six_current_flat_fields() {
+fn descriptors_define_the_current_flat_fields() {
     let expected = [
         (
             ObservationKind::Event,
@@ -32,6 +32,11 @@ fn descriptors_define_the_six_current_flat_fields() {
             ObservationKind::Operation,
             "operationObservationVersion",
             crate::adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
+        ),
+        (
+            ObservationKind::Association,
+            "operationAssociationVersion",
+            crate::operation_association::METHOD_VERSION,
         ),
     ];
     for (kind, field, version) in expected {
@@ -151,6 +156,7 @@ fn snapshot_version_group_serializes_as_the_existing_flat_manifest_headers() {
             "messageObservationVersion": ObservationKind::Message.current(),
             "measurementObservationVersion": ObservationKind::Measurement.current(),
             "operationObservationVersion": ObservationKind::Operation.current(),
+            "operationAssociationVersion": ObservationKind::Association.current(),
             "titleObservationVersion": ObservationKind::Title.current(),
         })
     );

@@ -197,7 +197,11 @@ fn required_parser_headers_reject_old_and_future_shapes_before_loading_facts() {
     sync(&mut db, &source, false);
     let scope = format!("parser:{}:{VERSION}:1", source.id);
     let original = crate::live_index::load_map(&db, &scope).unwrap();
-    for field in ["eventObservationVersion", "titleObservationVersion"] {
+    for field in [
+        "eventObservationVersion",
+        "titleObservationVersion",
+        "operationAssociationVersion",
+    ] {
         for future in [None, Some(serde_json::json!(99))] {
             let mut changed = original.clone();
             changed.remove(field);

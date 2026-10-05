@@ -1,7 +1,10 @@
 //! Safe-event mapping for a single explicit turn; no source bodies or time-based identity guesses.
-use super::{context, intervals, phase_observations};
+use super::{context, intervals};
 use crate::adapters::contract::Measurement;
-use crate::session_events::{Event, Gap, LifecycleKind, MessageOrigin, Payload, Phase, Precision};
+use crate::operation_association::{self, ObservationKind, TerminalOutcome};
+use crate::session_events::{
+    Event, Gap, ItemKind, LifecycleKind, MessageOrigin, Payload, Phase, Precision,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{
@@ -49,6 +52,8 @@ pub enum Issue {
     ResourceLimit,
     SourceGap(String),
     IdentityConflict(String),
+    TargetConflict(String),
+    OutcomeConflict(String),
     BoundaryConflict,
     MissingBoundaryTime(String),
     MissingItemIdentity(String),
@@ -317,7 +322,9 @@ struct Item {
     domains: BTreeMap<(String, String), ItemDomain>,
     categories: BTreeSet<usize>,
     terminal_states: BTreeSet<u8>,
-    conflict: bool,
+    identity_conflict: bool,
+    target_conflict: bool,
+    outcome_conflict: bool,
 }
 #[derive(Default)]
 struct ItemDomain {
@@ -335,6 +342,64 @@ struct ItemDomain {
 
 fn terminal(phase: &Phase) -> bool {
     matches!(phase, Phase::Completed | Phase::Failed | Phase::Cancelled)
+}
+fn category(item_kind: &ItemKind) -> Option<usize> {
+    match item_kind {
+        ItemKind::Command => Some(0),
+        ItemKind::Compaction => Some(1),
+        ItemKind::Reasoning => Some(2),
+        ItemKind::Mcp => Some(3),
+        _ => None,
+    }
+}
+fn phase_category(kind: ObservationKind<'_>) -> Option<usize> {
+    match kind {
+        ObservationKind::Item(item_kind) => category(item_kind),
+        ObservationKind::Compaction => Some(1),
+        ObservationKind::Operation(operation)
+            if matches!(
+                operation.kind.as_ref(),
+                "mcpTool" | "mcpResource" | "mcpDiscovery" | "mcpUnclassified" | "mcpConflict"
+            ) =>
+        {
+            Some(3)
+        }
+        ObservationKind::Operation(_) => None,
+    }
+}
+fn event_category(event: &Event) -> Option<usize> {
+    match event.payload() {
+        Payload::Item { item_kind, .. } => category(item_kind),
+        Payload::Lifecycle {
+            lifecycle: LifecycleKind::Compaction,
+            ..
+        } => Some(1),
+        Payload::Operation { value, .. }
+            if matches!(
+                value.kind.as_ref(),
+                "mcpTool" | "mcpResource" | "mcpDiscovery" | "mcpUnclassified" | "mcpConflict"
+            ) =>
+        {
+            Some(3)
+        }
+        _ => None,
+    }
+}
+fn category_at(index: usize) -> intervals::Category {
+    [
+        intervals::Category::Command,
+        intervals::Category::Compaction,
+        intervals::Category::Reasoning,
+        intervals::Category::Mcp,
+    ][index]
+}
+fn outcome_code(outcome: TerminalOutcome) -> u8 {
+    match outcome {
+        TerminalOutcome::Completed => 1,
+        TerminalOutcome::Failed => 2,
+        TerminalOutcome::Cancelled => 3,
+        TerminalOutcome::Declined => 4,
+    }
 }
 fn precision_rank(precision: &Precision) -> u8 {
     match precision {
@@ -521,7 +586,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
     let mut items: BTreeMap<intervals::Identity, Item> = BTreeMap::new();
     let lifecycle_records = events
         .iter()
-        .filter(|event| phase_observations::is_candidate(event))
+        .filter(|event| event_category(event).is_some())
         .count();
     for event in &events {
         check(cancelled)?;
@@ -547,27 +612,27 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
                 .push(Issue::MissingBoundaryTime(event.id().to_owned()));
         }
     }
+    for event in &events {
+        check(cancelled)?;
+        if let Some(index) = event_category(event) {
+            result.coverage.lifecycle_candidates[index] += 1;
+        }
+    }
     let observations = if lifecycle_records <= input.budget.lifecycle_records {
-        phase_observations::associate(&events, cancelled)?
+        operation_association::resolve(events.iter().map(Arc::as_ref), cancelled)?.phases
     } else {
         Vec::new()
     };
-    if lifecycle_records > input.budget.lifecycle_records {
-        for event in &events {
-            if let Some(index) = phase_observations::candidate_index(event) {
-                result.coverage.lifecycle_candidates[index] += 1;
-            }
-        }
-    }
     for observation in observations {
         check(cancelled)?;
+        let Some(index) = phase_category(observation.kind) else {
+            continue;
+        };
         let event = observation.event;
-        let index = observation.index;
         let native_id = observation.identity;
         let phase = observation.phase;
         let native_start = observation.native_start;
         let native_end = observation.native_end;
-        result.coverage.lifecycle_candidates[index] += 1;
         if lifecycle_records > input.budget.lifecycle_records {
             continue;
         }
@@ -588,9 +653,11 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         };
         let item = items.entry(identity).or_default();
         item.categories.insert(index);
-        item.conflict |= observation.conflict;
-        if let Some(outcome) = observation.outcome {
-            item.terminal_states.insert(outcome);
+        item.identity_conflict |= observation.identity_conflict;
+        item.target_conflict |= observation.target_conflict;
+        item.outcome_conflict |= observation.outcome_conflict;
+        if let Some(outcome) = observation.terminal_outcome {
+            item.terminal_states.insert(outcome_code(outcome));
         }
         let domain = item
             .domains
@@ -725,8 +792,17 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
                 pairs.insert(pair);
             }
         }
-        if item.conflict
-            || item.terminal_states.len() > 1
+        if item.target_conflict {
+            result
+                .issues
+                .push(Issue::TargetConflict(identity.item.clone()));
+        }
+        if item.outcome_conflict || item.terminal_states.len() > 1 {
+            result
+                .issues
+                .push(Issue::OutcomeConflict(identity.item.clone()));
+        }
+        if item.identity_conflict
             || item.categories.len() != 1
             || starts.len() > 1
             || ends.len() > 1
@@ -736,7 +812,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             continue;
         }
         let index = *item.categories.first().unwrap();
-        let category = phase_observations::category_at(index);
+        let category = category_at(index);
         let start_ms = singleton(&starts);
         // A closed same-domain pair is required even with explicit identity.
         let end_ms = singleton(&pairs).map(|(_, end)| end);

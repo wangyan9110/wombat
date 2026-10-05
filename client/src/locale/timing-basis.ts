@@ -4,7 +4,7 @@ import { t, type MessageKey } from './index.js';
 
 type TimingBasisKey = Extract<MessageKey, `timing.basis.${string}`>;
 
-const methodBasis: Partial<Record<Basis, TimingBasisKey>> = {
+const methodBasis = {
   native_record: 'timing.basis.nativeRecord',
   explicit_boundary: 'timing.basis.explicitBoundary',
   lifecycle_union: 'timing.basis.lifecycleUnion',
@@ -23,9 +23,9 @@ const methodBasis: Partial<Record<Basis, TimingBasisKey>> = {
   canonical_use_identity: 'timing.basis.canonicalUseIdentity',
   canonical_use_records: 'timing.basis.canonicalUseRecords',
   unassigned_use_index: 'timing.basis.unassignedUseIndex',
-};
+} as const satisfies Partial<Record<Basis, TimingBasisKey>>;
 
-const missingBasis: Partial<Record<Basis, TimingBasisKey>> = {
+const gapKeys = {
   not_recorded: 'timing.basis.notRecorded',
   running_turn: 'timing.basis.runningTurn',
   unsupported_method: 'timing.basis.unsupportedMethod',
@@ -36,6 +36,8 @@ const missingBasis: Partial<Record<Basis, TimingBasisKey>> = {
   missing_time: 'timing.basis.missingTime',
   missing_batch_cycle: 'timing.basis.missingBatchCycle',
   boundary_conflict: 'timing.basis.boundaryConflict',
+  target_conflict: 'timing.basis.targetConflict',
+  outcome_conflict: 'timing.basis.outcomeConflict',
   source_partial: 'timing.basis.sourcePartial',
   resource_limit: 'timing.basis.resourceLimit',
   numeric_range: 'timing.basis.numericRange',
@@ -43,11 +45,14 @@ const missingBasis: Partial<Record<Basis, TimingBasisKey>> = {
   dispatch_not_proven: 'timing.basis.dispatchNotProven',
   missing_target: 'timing.basis.missingTarget',
   missing_turn: 'timing.basis.missingTurn',
-};
+} as const satisfies Partial<Record<Basis, TimingBasisKey>>;
+const missingBasis: Partial<Record<Basis, TimingBasisKey>> = gapKeys;
+
+const basisKeys = { ...methodBasis, ...gapKeys } satisfies Record<Basis, TimingBasisKey>;
 
 /** Describes the calculation/provenance basis, and must not stand in for a missing-value cause. */
 export function timingBasisText(basis: Basis): string {
-  const key = methodBasis[basis] ?? missingBasis[basis];
+  const key = basisKeys[basis];
   return key ? t(key) : t('timing.basis.evidenceInsufficient');
 }
 

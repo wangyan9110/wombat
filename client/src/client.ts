@@ -188,7 +188,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
 function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
   const profile = request.privacyProfile ?? 'local';
   if (result.outputVersion !== 1 || result.action !== request.action || result.profile !== profile
-    || result.methodVersion !== 'safe_event_turn_v2') return false;
+    || result.methodVersion !== 'safe_event_turn_v3') return false;
   if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 3
     || 'totals' in result && result.totals.methodVersion !== 3) return false;
   if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);

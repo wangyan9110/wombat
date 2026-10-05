@@ -56,6 +56,7 @@ mod mcp;
 
 mod command_work;
 mod fork_graph;
+mod operation_association;
 mod operations;
 mod work;
 
