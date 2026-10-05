@@ -19,7 +19,7 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 
 **正式版：[`v0.1.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0)。** 这是 Wombat 的首个稳定版本，面向本机 Codex 用量、配置检查和建议处理流程。
 
-自包含发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64，无需开发工具链或 API Key。
+Wombat 支持 macOS、Linux 和 Windows，无需开发工具或 API Key。
 
 1. 安装 Wombat。在 macOS 或 Linux 中执行：
 
@@ -33,7 +33,7 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
    ```
 
-2. 首次安装后打开一个新终端，再启动 Wombat。在 macOS 或 Linux 中执行：
+2. 打开一个新终端，再启动 Wombat。在 macOS 或 Linux 中执行：
 
    ```sh
    wombat web --open
@@ -47,11 +47,7 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 
 3. Wombat 会自动开始读取本机记录。终端会输出本机访问地址，并在浏览器中打开。首次读取完成前，可以先查看已发现的任务。
 
-浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」，核对来源位置和目录权限，然后选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
-
-运行 `wombat doctor` 可检查安装、`PATH`、运行时、本机内核和 Codex 来源；该命令不扫描记录，也不访问网络。
-
-默认安装位置是 `~/.local`。安装器会将对应的 `bin` 目录加入用户 `PATH`；如需自行管理 `PATH`，安装时传入 `--no-modify-path`。
+打开新终端后仍无法使用 Wombat 时，查看[分发说明](docs/reference/distribution.md)中的安装帮助。浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」并选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
 
 ### 更新 Wombat
 
@@ -62,7 +58,7 @@ wombat update --check
 wombat update
 ```
 
-安装选项、升级行为、校验和及发行验收详情见[分发说明](docs/reference/distribution.md)。
+升级行为、校验和及发行验收详情见[分发说明](docs/reference/distribution.md)。
 
 ## 用 Wombat 改进 Codex 的日常使用
 
@@ -115,7 +111,6 @@ CLI 支持 JSON 输出，方便接入脚本：
 wombat usage --json
 wombat threads --sort tokens --json
 wombat turns --thread THREAD_ID --sort tokens --json
-wombat doctor --json
 wombat optimize inventory --project-root /path/to/project --json
 wombat optimize list --project-root /path/to/project --json
 ```
@@ -123,6 +118,10 @@ wombat optimize list --project-root /path/to/project --json
 </details>
 
 本机查看和检查无需 API Key，也不调用模型。发送给 Codex 时，只提供所选对象所需的内容和检查结果；Codex 处理会产生模型用量。API 估算金额不是订阅账单，也不能换算成剩余额度。[隐私说明](docs/reference/privacy.md) · [计价说明](docs/reference/pricing.md)。
+
+## 兼容平台
+
+发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。发行与平台详情见[分发说明](docs/reference/distribution.md)。
 
 ## 一起完善 Wombat
 

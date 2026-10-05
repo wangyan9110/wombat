@@ -34,11 +34,11 @@ irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version PREVIEW_VERSION
 ```
 
-安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。安装器会将默认命令目录加入用户的 shell 配置或 Windows 用户 `PATH`，`--no-modify-path` 可关闭这项修改。`WOMBAT_INSTALL_PREFIX` 或 `--prefix` 可改安装位置；`--version` 可安装指定版本；`--base-url` 供开发候选或受控镜像验收。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
+安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。安装器会将默认命令目录加入用户的 shell 配置或 Windows 用户 `PATH`；macOS/Linux 使用 `--no-modify-path`，Windows 使用 `-NoModifyPath`，可关闭这项修改。macOS/Linux 使用 `WOMBAT_INSTALL_PREFIX` 或 `--prefix` 修改安装位置，使用 `--version` 选择版本，使用 `--base-url` 验收开发候选或受控镜像；对应的 Windows 参数是 `-Prefix`、`-Version` 和 `-BaseUrl`。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
 
 通过安装器部署后，执行 `wombat update` 下载并安装最新稳定 Release；`wombat update --check` 只检查，`--version X.Y.Z` 安装指定版本。预览版不会进入 `latest`，升级到后续预览版时须显式指定版本。版本保存在并列目录，校验元数据、文件大小和 SHA-256 后原子切换 `current.txt`。正在运行的旧版本不会被覆盖，适用于 Windows 的占用规则；升级器保留当前和上一运行版本，并清理更早的受管版本。源码构建或手工解压副本不带安装指针，升级命令会明确拒绝。
 
-`wombat doctor` 检查受管安装、命令路径、运行时、本机内核和 Codex 来源目录。该命令不扫描来源记录、不访问网络，也不修改产品数据；`--json` 返回一项机器可读结果。
+`wombat doctor` 检查受管安装、命令路径、运行时、本机内核和 Codex 数据目录。该命令不扫描来源记录、不访问网络，也不修改产品数据；`--json` 返回一项机器可读结果。
 
 ## GitHub Release 结构
 
@@ -60,7 +60,7 @@ corepack pnpm github:pack -- --current-platform --reuse-build --runtime-license 
 本节适用于仓库根目录的 `README.md` 和 `README.zh-CN.md`。维护时遵循 [GitHub README 指南](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes)、[用户页面与文案规则](../i18n/product.md)和[双语审校规则](../i18n/README.md)。技术说明采用 ASD-STE100；产品介绍和短标题保持目标语言的自然表达。搜索优化采用 [Google SEO 基础指南](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)中适用于公开内容的原则，不将独立网站的配置要求套用到 GitHub README。
 
 - 面向首次访问的用户，开头说明 Wombat 是什么、适合谁、解决什么问题。随后提供当前版本状态、安装与首次使用、主要用途、必要限制，以及帮助、贡献、安全和许可证入口。开发细节链接到对应文档，不让读者先理解内部架构才能开始使用。
-- 快速开始以首次安装、没有项目背景知识的用户为基准。先说明适用系统、必要的来源记录或目录授权，以及需要了解的数据与费用边界，再按最短可用路径给出安装、启动、首次读取和查看结果的步骤。说明到哪里执行、如何判断成功，以及浏览器未打开、没有记录或读取失败时实际可用的下一步。普通安装与源码开发分开；可选功能和升级说明不打断首次使用路径。术语和缩写首次出现时按需要解释，不假定用户懂内部名称或已有配置。
+- 快速开始以首次安装、没有项目背景知识的用户为基准。先说明适用系统、必要的来源记录或目录授权，以及需要了解的数据与费用边界，再按最短可用路径给出安装、启动、首次读取和查看结果的步骤。说明到哪里执行、如何判断成功，以及浏览器未打开、没有记录或读取失败时实际可用的下一步。安装和故障说明只写用户操作与可见结果。安装目录、`PATH` 修改机制、运行时或内核组成、打包方式及内部校验等实现细节，只有在用户必须据此做决定时才保留，其余内容链接到分发参考。普通安装与源码开发分开；可选功能和升级说明不打断首次使用路径。术语和缩写首次出现时按需要解释，不假定用户懂内部名称或已有配置。
 - 安装、升级、使用步骤和故障说明须按 ASD-STE100 的[写作与词典审校要求](../i18n/README.md)检查。操作用主动语态和明确动词，每步聚焦一项操作；先说明条件和必要警告，再给出动作、可观察结果及有依据的失败处理。统一对象名称，保留命令、版本、路径、数量、单位和否定范围。中英文同步技术含义，中文保持自然表达。未完成官方规则和词典审校时，不声明 README 已符合该标准。
 - 介绍内容以当前能力为依据，明确区分可用功能、产品方向和计划支持。版本、安装命令、平台与验收范围须与当前发行事实一致；金额、额度、隐私和优化效果保留各自限制。不为宣传或关键词覆盖扩大功能承诺。
 - 保持一个主标题和清晰的标题层级。标题、首段和相关小节自然使用产品名、已支持的来源名称和实际用途词，例如 Codex、Token 用量及 API 费用估算；中英文按各自读者的搜索表达撰写。每个小节回答明确问题，避免只用口号代替用途说明。

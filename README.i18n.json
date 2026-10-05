@@ -10,12 +10,12 @@
       "en": "b5965150251cb841a73fb96b677e4b88828f42cd9f5b710473e6fd26799ec65b"
     },
     "/wombat-make-ai-work-better/get-started": {
-      "zh": "0b8bc92a772b14ed671ef7ca516083a9444f2d02e786a65d53f126777f7a9f9f",
-      "en": "443d7f24135b188e25ab31c6e0f30758a189d1ebd894bdd5cee93cda6f46915e"
+      "zh": "d0af131192f62af641d61fb58f8e5b898e021ebbc48fbee2efde79a54139c4a6",
+      "en": "d6aafd1c3936fbfe5fc4114cc694528b67a430321c87f61e5f8a29ec9b26cd4d"
     },
     "/wombat-make-ai-work-better/get-started/update-wombat": {
-      "zh": "3738fb4ef1477b6b8be57507bfd4bc30431e7a7f6e4953ed01ddac3b321436eb",
-      "en": "a2079c0fa46d751cacfd294d5703868214fcf8e1c0df53791ed499acc743c081"
+      "zh": "7ac544837094e13dea5e6665c55313cf5feee734b8e5fbaee2f639b9dc06972e",
+      "en": "4467b6a99e722d8ad67038af8b69daaf36bc7b64e24fe0f865a11ca91e40283d"
     },
     "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow": {
       "zh": "441e2564bb5cd38f72b8d4d425905637667a482b9c412de51e730dc5c3294d74",
@@ -36,6 +36,10 @@
     "/wombat-make-ai-work-better/improve-your-day-to-day-codex-workflow/send-work-to-codex-then-check-the-result": {
       "zh": "3a85a937cb243bfafc4d561469a716e18ecca3fc9f49f35cbb6ddf9c856a0423",
       "en": "435b098e160810356071ac0398970b70672a6b34600213361b51e3e15f9af8d4"
+    },
+    "/wombat-make-ai-work-better/compatibility": {
+      "zh": "98f2b8cb0f4cb06d3c7debefd33df37b57de9155abb5586acaf843a4507adb2b",
+      "en": "7a36dc9f83081a9cf60c2f87f6bf544e8bdec78c255b6186b72ba63c28692998"
     },
     "/wombat-make-ai-work-better/help-shape-wombat": {
       "zh": "b72555cda77427f0657a30e1e621e7f37aac939bd9f6a6ff61d0a720349faa1d",

@@ -4,7 +4,7 @@
   "highlights": [
     "Review token usage, API cost estimates, tasks, turns, and timing from local Codex records.",
     "Inspect AGENTS.md, Skills, MCP entries, and Hooks, then send selected findings to a compatible local Codex and recheck them.",
-    "Run wombat doctor for a read-only, offline check of the installation, PATH, bundled runtime, local core, and Codex source.",
+    "Run wombat doctor for a read-only, offline check of the installation, PATH, bundled runtime, local core, and Codex data directory.",
     "Install self-contained archives with one command and use atomic, checksum-verified updates without a system Node.js, npm, Rust, pnpm, or compiler installation."
   ],
   "knownLimitations": [

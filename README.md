@@ -19,7 +19,7 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 **Stable: [`v0.1.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0).** This is the first stable Wombat release for local Codex usage review, configuration checks, and recommendation workflows.
 
-Self-contained archives support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. No development toolchain or API key is required.
+Wombat supports macOS, Linux, and Windows. No development tools or API key are required.
 
 1. Install Wombat. On macOS or Linux, run:
 
@@ -33,7 +33,7 @@ Self-contained archives support macOS arm64/x64, Linux glibc arm64/x64, and Wind
    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
    ```
 
-2. Open a new terminal after the first installation, then start Wombat. On macOS or Linux, run:
+2. Open a new terminal, then start Wombat. On macOS or Linux, run:
 
    ```sh
    wombat web --open
@@ -47,11 +47,7 @@ Self-contained archives support macOS arm64/x64, Linux glibc arm64/x64, and Wind
 
 3. Wombat automatically starts reading local records. The terminal prints a local URL, and the browser opens that address. You can view discovered tasks before the initial read finishes.
 
-If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources**, check the source location and folder permissions, and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
-
-Run `wombat doctor` to check the installation, `PATH`, runtime, local core, and Codex source without scanning records or using the network.
-
-The default installation prefix is `~/.local`. The installer adds its `bin` directory to your user `PATH`; pass `--no-modify-path` when you want to manage `PATH` yourself.
+If Wombat is still unavailable after you open a new terminal, see the installation help in the [distribution guide](docs/reference/distribution.en.md). If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources** and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
 
 ### Update Wombat
 
@@ -62,7 +58,7 @@ wombat update --check
 wombat update
 ```
 
-See the [distribution guide](docs/reference/distribution.en.md) for installation options, update behavior, checksums, and release acceptance details.
+See the [distribution guide](docs/reference/distribution.en.md) for update behavior, checksums, and release acceptance details.
 
 ## Improve your day-to-day Codex workflow
 
@@ -119,7 +115,6 @@ The CLI provides JSON output for scripts:
 wombat usage --json
 wombat threads --sort tokens --json
 wombat turns --thread THREAD_ID --sort tokens --json
-wombat doctor --json
 wombat optimize inventory --project-root /path/to/project --json
 wombat optimize list --project-root /path/to/project --json
 ```
@@ -127,6 +122,10 @@ wombat optimize list --project-root /path/to/project --json
 </details>
 
 Local inspection needs no API key and makes no model calls. Sending work to Codex shares only the content and findings needed for the selected objects. Codex tasks use model tokens. API cost estimates are not subscription charges and cannot be converted to remaining allowance. [Privacy](docs/reference/privacy.en.md) · [Pricing](docs/reference/pricing.en.md).
+
+## Compatibility
+
+Release packages support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. See the [distribution guide](docs/reference/distribution.en.md) for release and platform details.
 
 ## Help shape Wombat
 
