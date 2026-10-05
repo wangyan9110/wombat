@@ -14,8 +14,8 @@
       "en": "986dd8097aac4d3d9e25cf3e2cef01c77daedde5ce18afa375f7c433f9d8bc72"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/proposal/7-minimum-cli-and-json-contract": {
-      "zh": "5a34820f3c2b982dcc14722da9e69124371fe132dbb87ddd41d8476db76063a9",
-      "en": "77432c9111a3e40d82fa1f0169e129248c490b339cec9117f4c86489c78c0b4b"
+      "zh": "4914188ea73287f0e8c5c1581f3c544d8adb53e85c113d8f41679b4fd7b9f198",
+      "en": "249629c8ad07c8e7880f3bcd15068d72124e7bd6ae7b66a3d31ac15938e71b1f"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/proposal/8-historical-compare-and-on-demand-watch": {
       "zh": "34e582da526e1e157eaadc563d46bb91c8e846fbb875eb958a992cd0f02e242a",
@@ -30,24 +30,24 @@
       "en": "0de7ca4c23b9636784249de81432fb240d684234c0dfa631a359b053d344fbee"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/proposal/16-web-presentation-and-resource-boundaries": {
-      "zh": "0b4835f793ae451e4fa510a271c55fc308db3eaf8d44da3986fc48c3d8c10a47",
-      "en": "c768fdcbf05f182376e4d736d0d79fa0e59db69cddeec3656ba4720cfc84c6b5"
+      "zh": "34d086f81048102bcf2656975589d29c12e739ea76963a6378c9d94f78562271",
+      "en": "49693643078091c3f9753a177546e8dbe63d0ddfccfa66ef2609ec8b400b86a1"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/proposal/16-web-presentation-and-resource-boundaries/16-1-user-questions-and-page-hierarchy": {
-      "zh": "56f3d78a53066789ddeffe84d2fce5eb9435a9b3809f8527e913d0a1f42e4546",
-      "en": "d5e426ca1dcdf2c0cf352b28d9fc4b963d27b38770296b586aa64ca42fef0443"
+      "zh": "71b43d9b33b72e03642c4e2b2745070e660cf3bedb7450b24032ca2569eabd81",
+      "en": "7a523f9a56c845e03d4cfab7805385e1948788dbd65110298574cb5396a7201f"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/proposal/16-web-presentation-and-resource-boundaries/16-2-interaction-and-wording": {
-      "zh": "1ef073f1472d000340104d16e545b141ef2f18db17dfe3454c6a7f44e73b0ce1",
-      "en": "75bce27258e77e82138bc48e09fab74e0fe89ec97c0371033394f1348bbb1d01"
+      "zh": "bd03f4d6c626de67157fe23feebbea8da238d2948d3b5b6a3d8bfb0d29fcc521",
+      "en": "191c4efa2ad0620d7c0b947a5ff14bc6e12e4f21098e82616cb697d725309283"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/proposal/16-web-presentation-and-resource-boundaries/16-3-states-and-user-acceptance": {
-      "zh": "c397995677c245a1dc62da828605d8e40387cd9c868d8d08804e7fb53371f284",
-      "en": "eaf4b7065631ddc00a6fa20602ddaba8ba2a6cb684eb03902c93b7202c1e1876"
+      "zh": "570ab4f1013e120228df3f24626a6cbed0366831edce963ce0845eed3468a0f2",
+      "en": "a922bb265e249f8af764e4361c1a5ca319e4252bd3b9fe90aaa186abb6496990"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/proposal/16-web-presentation-and-resource-boundaries/16-4-visual-direction-and-structural-sketch": {
-      "zh": "9dbcaeeb2e8abf2bf7f1fce5396a0b8130df46759420d73260629d6d0947b26c",
-      "en": "014487ed6b776764be6ac18249279f67559de7a17e51c0e4ad9febede42244d9"
+      "zh": "a6a1ec412e8390f09516f60fd30602ae35e768a9af42301c2338f743ad5345e7",
+      "en": "793ea3c870c519aef0f1354fe2acf870a4908da481966b65d96f989829f2c8d5"
     },
     "/decision-note-event-query-interfaces-and-shared-pages/alternatives-considered": {
       "zh": "b75923b05d58145205c697f8a9b967ec5d8dd60fedaf2f61e958ef33e9bc326c",
