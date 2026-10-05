@@ -1,6 +1,6 @@
 {
   "name": "wombat",
-  "version": "0.1.0-dev.2",
+  "version": "0.1.0-beta.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.3",
@@ -31,6 +31,8 @@
     "licenses:check": "node scripts/dependency-licenses.mjs --check",
     "public:check": "node scripts/check-public-release.mjs",
     "release:prepare": "node scripts/prepare-release.ts",
+    "release:preflight": "node scripts/release-preflight.ts",
+    "release:publish": "node scripts/publish-release.ts",
     "release:probe": "node scripts/probe-release-startup.ts",
     "release:check": "node scripts/check-release.mjs",
     "github:pack": "node scripts/prepare-github-release.ts",

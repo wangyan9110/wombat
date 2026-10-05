@@ -2,11 +2,11 @@
 
 English | [中文](CONTRIBUTING.zh-CN.md)
 
-Wombat uses a shared Rust core and a Node CLI/Web. Read [AGENTS.md](AGENTS.md), [architecture](docs/development/architecture.en.md), and [development](docs/development/workflow.en.md).
+Wombat uses a shared Rust core with a Node.js CLI and local Web host. Before you start, read [AGENTS.md](AGENTS.md), [architecture](docs/development/architecture.en.md), and the [development workflow](docs/development/workflow.en.md).
 
-Install locked dependencies, build, then run type checking, generated contract checks and tests. Cross-language tests use dist and must run after a build. Rust changes require formatting and clippy with warnings denied.
+Install the locked dependencies and build the project. Then run type checks, generated contract checks, and tests. Cross-language tests use `dist` and must run after a build. For Rust changes, check formatting and run clippy with warnings treated as errors.
 
-For documentation or Skill changes, update both languages where paired and run `corepack pnpm docs:check`.
+For documentation or Skill changes, update both versions of paired pages and run `corepack pnpm docs:check`. Follow the [language review rules](docs/i18n/README.en.md) for ASD-STE100 technical writing and translation review.
 
 ```sh
 corepack pnpm install --frozen-lockfile
@@ -25,7 +25,7 @@ Dependency changes require license review and `licenses:generate` / `licenses:ch
 
 ## Review and automation
 
-Provide a minimal synthetic reproduction, version, platform, expected and observed behavior for bug reports. Explain changes and actual validation in pull requests; never attach private logs. Suspected vulnerabilities follow [Security](SECURITY.md).
+In bug reports, include a minimal synthetic reproduction, the version and platform, and the expected and observed behavior. In pull requests, explain the changes and the checks you ran. Do not attach private logs. Report suspected vulnerabilities as described in [Security](SECURITY.md).
 
 CI builds and checks five native targets, exports the core and bundled Node.js runtime, and assembles five self-contained GitHub Release archives only when all native artifacts match. The final archive is exercised on every target without relying on a system Node runtime. Source tools use Node 26.4.0+. Each target exports its own dependency license inventory and Node runtime license; the checked-in dependency inventory is the macOS arm64 baseline. Other targets regenerate their inventory in CI before checking. CLI and local Web require separate acceptance. Tag workflows publish only after the full matrix passes; ordinary CI never publishes or changes repository visibility.
 

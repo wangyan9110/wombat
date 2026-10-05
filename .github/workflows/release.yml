@@ -3,16 +3,55 @@ on:
   push:
     tags: ['v*']
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  preflight:
+    name: Verify release source
+    if: ${{ github.event.repository.private == false }}
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a matching version, main ancestry and successful prior CI
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node -e 'const p=require("./package.json");if(process.env.GITHUB_REF_NAME!==`v${p.version}`)throw new Error(`tag ${process.env.GITHUB_REF_NAME} does not match package ${p.version}`)'
+          default_branch=$DEFAULT_BRANCH
+          git fetch --no-tags origin "+refs/heads/$default_branch:refs/remotes/origin/$default_branch"
+          git merge-base --is-ancestor "$GITHUB_SHA" "refs/remotes/origin/$default_branch" || {
+            echo "Tagged commit $GITHUB_SHA is not on $default_branch" >&2
+            exit 1
+          }
+          ci_url=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --branch "$default_branch" --event push --status success --limit 1 --json conclusion,status,url --jq '.[] | select(.status == "completed" and .conclusion == "success") | .url')
+          test -n "$ci_url" || {
+            echo "No successful CI push run found for $GITHUB_SHA on $default_branch" >&2
+            exit 1
+          }
+          release_error="$RUNNER_TEMP/wombat-release-lookup.txt"
+          if gh api --silent "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" 2>"$release_error"; then
+            echo "Release $GITHUB_REF_NAME already exists and will not be replaced" >&2
+            exit 1
+          elif ! grep -q 'HTTP 404' "$release_error"; then
+            cat "$release_error" >&2
+            exit 1
+          fi
+          echo "Prior CI: $ci_url"
+
   build:
     name: Build ${{ matrix.target }}
     if: ${{ github.event.repository.private == false }}
+    needs: preflight
     strategy:
       fail-fast: false
       matrix:
@@ -30,11 +69,11 @@ jobs:
     env:
       WOMBAT_AUTO_PRICES: '0'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '26.4.0'
       - name: Validate tag and install locked tools
@@ -51,7 +90,7 @@ jobs:
         run: |
           corepack pnpm release:check
           corepack pnpm native:export
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: native-${{ matrix.target }}
           path: dist/native-artifacts/
@@ -65,14 +104,14 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '26.4.0'
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: native-*
           path: native-artifacts
@@ -83,7 +122,7 @@ jobs:
           corepack pnpm install --frozen-lockfile
           corepack pnpm build
           corepack pnpm github:pack -- --native-dir native-artifacts --reuse-build
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-candidate
           path: dist/github/
@@ -109,13 +148,13 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '26.4.0'
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-candidate
           path: candidate
@@ -126,11 +165,15 @@ jobs:
     if: ${{ github.event.repository.private == false }}
     needs: verify
     runs-on: ubuntu-24.04
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-candidate
           path: candidate
@@ -141,6 +184,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
+          draft: true
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
@@ -149,3 +193,7 @@ jobs:
             candidate/release-set.json
             install.sh
             install.ps1
+      - name: Publish the complete draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false

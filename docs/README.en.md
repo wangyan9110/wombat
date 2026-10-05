@@ -7,22 +7,22 @@ Choose documentation by task. Source code, technical references, and implementat
 ## User guides · guides
 
 - [CLI and machine interface](guides/cli.en.md): startup, refresh, queries, filters, JSON, and errors.
-- [Web frontend](../ui/README.en.md): usage, conversations, drill-down, and current UI scope.
+- [Web frontend](../ui/README.en.md): usage, tasks, detail views, and current UI scope.
 - Start installation and building from the [project homepage](../README.md).
 
 ## Technical references · reference
 
-- [Distribution and public descriptions](reference/distribution.en.md): unreleased status, GitHub description candidates and README asset boundaries.
+- [Distribution and public descriptions](reference/distribution.en.md): prereleases, installation and updates, release archives, and GitHub descriptions.
 - [Pricing rules](reference/pricing.en.md): official evidence, cost policies, unknown values, and explicit updates.
 - [Privacy and data boundaries](reference/privacy.en.md): local reads/writes, body allowlists, and public materials.
-- [Generated schemas](schemas/) and the [dependency license inventory](dependency-licenses.json) are machine-maintained references.
+- Tools maintain the [generated schemas](schemas/) and [dependency license inventory](dependency-licenses.json) for reference.
 
 ## Developer documentation · development
 
 - [Architecture](development/architecture.en.md): modules, dependencies, data flow, storage, and failures.
 - [Multi-entry development workflow](development/workflow.en.md): delivering and verifying the same business capability.
 - [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and formats.
-- [Source adapter acceptance](development/adapters.en.md): independent truth, attribution, and failure cases.
+- [Source adapter acceptance](development/adapters.en.md): independent truth, data attribution, and failure cases.
 - [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
 
 ## Decisions and documentation maintenance

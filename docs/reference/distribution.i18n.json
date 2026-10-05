@@ -6,16 +6,20 @@
       "en": "d99ba0b07e0d43125d5ec35537687379a4abe305afaca4a1f1df49a7cf699b14"
     },
     "/distribution-status-and-public-descriptions/current-status": {
-      "zh": "a3ba9d00492241e83de33bd752dcc5f39c231620a2529bbfb015e01c13e18c3f",
-      "en": "c98eb229d888c756540eb9a92b9f538299745d3ef39fa7cb49417d12f8a7eeb5"
+      "zh": "4ea1a6c7d821ffa99da15b8ab0cf60669296815b4045f389a3ee3062dc7e84ca",
+      "en": "65e93d440f1d5b570af81e96ddf90c842248242e21970963dba6e7e387effd8d"
     },
     "/distribution-status-and-public-descriptions/one-command-installation-and-updates": {
-      "zh": "14695348839b4b007d58f2289f03205fc149bddd627520abe9fc389d9db40153",
-      "en": "5fdc9a1d8565ce19e19ec227eed8591740eb091c94bd84fb602fe061c1b50600"
+      "zh": "31eb0beb9b69a0b6e48315676a539bff89bccac06764427e1fa2e84e8cdc64df",
+      "en": "0923a7b3470c7184f91ab82b36ddbf2d096ebd8cbd956afe03b439293ab4dec5"
     },
     "/distribution-status-and-public-descriptions/github-release-structure": {
       "zh": "c36760c416a375e31fd9ede37de0954c801062c6df8edd8dcc232b06326aa294",
       "en": "e367f539efe00d6f284e8e445144bf9c9c7051ce64b906b342eb6acfe393e241"
+    },
+    "/distribution-status-and-public-descriptions/root-readme-maintenance": {
+      "zh": "c28a74194fa038edf2ce245c4ada850940aaa7b18e89d8f82f373e7936a378b0",
+      "en": "8c9ffc9198bd4b5a8bcda0f178d4affadb963667e16de45bd6157532a7aea89f"
     },
     "/distribution-status-and-public-descriptions/github-description": {
       "zh": "073f8b69f2f91cff962e02506ec1bdbcbcd0962abc1bd6f77cfacc8483191ba7",

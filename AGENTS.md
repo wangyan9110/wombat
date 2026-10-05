@@ -1,13 +1,13 @@
 # Wombat Agent Instructions
 
-Wombat analyzes local Agent usage and configuration with a Rust core, Node CLI, and Web UI. Preserve changes. User instructions take precedence; nested AGENTS.md files add scoped rules.
+Wombat analyzes local Agent usage/configuration with a Rust core, Node CLI, and Web UI. Preserve changes. User instructions override nested scoped rules.
 
 ## Read by task
 
-- Code: read [architecture](docs/development/architecture.en.md), [code conventions](docs/development/workflow.en.md), scoped AGENTS.md, and the module README.
-- Product behavior: consult the owning module README or technical reference; unfinished requirements and acceptance belong in [proposed decisions](docs/decisions/proposed/). Retrieve historical evidence only when needed.
-- Documentation: follow [docs/AGENTS.md](docs/AGENTS.md); use [wombat-docs](.agents/skills/wombat-docs/SKILL.md) for restructuring. Maintain each fact once and link elsewhere.
-- Review: [wombat-review](.agents/skills/wombat-review/SKILL.md). Commit: [wombat-commit](.agents/skills/wombat-commit/SKILL.md). Verify: [wombat-verify](.agents/skills/wombat-verify/SKILL.md). Release: [wombat-release](.agents/skills/wombat-release/SKILL.md). Scripts: [scripts/AGENTS.md](scripts/AGENTS.md).
+- Code: read [architecture](docs/development/architecture.en.md), [conventions](docs/development/workflow.en.md), scoped instructions, and the module README.
+- Product behavior: use its module/reference owner; keep unfinished acceptance in [proposed decisions](docs/decisions/proposed/). Read history only when needed.
+- Documentation: follow [docs/AGENTS.md](docs/AGENTS.md) and use [wombat-docs](.agents/skills/wombat-docs/SKILL.md) for restructuring. Keep one owner per fact.
+- Workflows: [review](.agents/skills/wombat-review/SKILL.md), [commit](.agents/skills/wombat-commit/SKILL.md), [verify](.agents/skills/wombat-verify/SKILL.md), [release](.agents/skills/wombat-release/SKILL.md), [scripts](scripts/AGENTS.md).
 
 ## Standing constraints
 
@@ -20,16 +20,18 @@ Wombat analyzes local Agent usage and configuration with a Rust core, Node CLI, 
 - Wombat hands authorized targets and version-bound evidence to Codex for review, execution, and recovery. Acceptance is not resolution; recheck with the same rules. Keep user decisions separate from check facts; do not add execution receipts.
 - Rebuilding derived indexes must preserve decisions, identities, and handling records. Support only current formats; reject unknown versions without deleting data or adding compatibility migrations.
 - Never commit real conversations, tool output, secrets, or unreviewed raw fields. Write real-source test output outside the repository. Public builds and documentation must not depend on private material.
-- Own presentation copy in client/src/locale and consume @wombat/client/locale. Do not translate protocol values, stable identifiers, or source content.
+- Follow [copy rules](docs/i18n/product.en.md) for UI/CLI, locale ownership, and unchanged protocol values, stable IDs, and source content.
+- Automate programmable/computable steps and evidence checks in TypeScript behind one `corepack pnpm` entry. It validates, stops, reports, and resumes external state. Skills use it; manual work is only for judgment or authorization.
 
 ## Verify and finish
 
-Select checks by changed scope; do not repeat unaffected passing checks. Source runtime requirements live in root package.json.
+Select checks by scope; do not repeat unaffected passing checks. Runtime requirements live in root package.json.
 
 - Docs, rules, and tooling: `corepack pnpm repo:check` and `git diff --check`. Wire mechanical rules into executed aggregate checks, test valid and invalid cases, and scope exceptions narrowly.
 - Rust: focused accuracy/failure tests, fmt, and locked clippy across all targets with warnings denied; commands are in the [workflow](docs/development/workflow.en.md).
 - CLI/cross-language: run `corepack pnpm build` before relevant tests and `corepack pnpm typecheck`. Full-chain changes require `corepack pnpm test`. Source checks must not rely on built artifacts.
 - Performance: fixed fixtures, release build, explicit cache/scope, elapsed time, peak memory, and consistent results. Parsing alone is not scan performance; mapped pages still use memory. Releases require target-platform and clean-install verification.
-- Dependency changes: run `licenses:generate` and `licenses:check`. Before publication run `repo:check`, `public:check`, and `github:pack`, all via corepack pnpm. Checks do not replace commit review or platform acceptance.
+- Dependency changes: run `licenses:generate` and `licenses:check`. Before publication run `repo:check`, `public:check`, and `github:pack`; checks do not replace review or platform acceptance.
+- Authorized public releases use `corepack pnpm release:publish -- --version <version>`.
 
-Report changed scope, actual verification, remaining limits, and how to run. Do not mark whole plans complete. Maintain [decisions](docs/decisions/README.en.md) for lasting rationale absent from code, tests, and existing docs. Update the owner; mechanical/local edits, including UI, are exempt.
+Report scope, actual checks, limits, and how to run. Record [decisions](docs/decisions/README.en.md) only for lasting rationale absent from code, tests, and current docs; mechanical/local edits are exempt.
