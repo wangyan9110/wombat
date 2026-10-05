@@ -7,10 +7,7 @@ use crate::{
     usage_observations::{self, Projection, UseKind},
 };
 use chrono::{DateTime, FixedOffset, Utc};
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    path::PathBuf,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 type Time = DateTime<FixedOffset>;
 struct Context<'a> {
@@ -49,15 +46,7 @@ fn mcp_project_matches(item: &Item, thread: &Thread) -> bool {
         .is_none_or(|project| thread.project.as_deref() == Some(project))
 }
 fn read_path(operation: &Operation, thread: &Thread) -> Option<String> {
-    let path = PathBuf::from(operation.path.as_deref()?);
-    let path = if path.is_absolute() {
-        path
-    } else {
-        PathBuf::from(thread.project.as_deref()?).join(path)
-    };
-    crate::absolute(path)
-        .ok()
-        .map(|path| path.to_string_lossy().into_owned())
+    usage_observations::normalized_path(operation.path.as_deref()?, thread.project.as_deref())
 }
 fn actual_for(item: &Item, use_kind: Option<UseKind>, file_read: bool) -> bool {
     match item.kind {
@@ -192,6 +181,43 @@ pub(super) fn observe(
         .map(|_| Projection::default())
         .collect::<Vec<_>>();
     let mut latest = vec![None; out.len()];
+    let conflicts = usage_observations::target_conflicts(
+        || snapshot.operation_facts().map(AsRef::as_ref),
+        |op| {
+            threads
+                .get(op.thread_id.as_ref())
+                .and_then(|thread| thread.project.as_deref())
+        },
+        |op| {
+            let Some(thread) = threads.get(op.thread_id.as_ref()) else {
+                return false;
+            };
+            let at = op
+                .timestamp
+                .as_deref()
+                .and_then(|time| DateTime::parse_from_rfc3339(time).ok());
+            if !contexts
+                .iter()
+                .any(|context| context.contains(thread, at, cutoff, source))
+            {
+                return false;
+            }
+            if let Some(reads) = usage_observations::read_targets(op) {
+                reads.unbound
+                    || reads.paths.iter().any(|raw| {
+                        reads
+                            .resolve(raw, thread.project.as_deref())
+                            .is_some_and(|path| {
+                                files.contains_key(&(thread.source_instance_id.clone(), path))
+                            })
+                    })
+            } else {
+                op.server.as_ref().is_some_and(|server| {
+                    servers.contains_key(&(thread.source_instance_id.clone(), server.to_string()))
+                })
+            }
+        },
+    );
     let mut seen = BTreeSet::new();
     for operation in snapshot.operation_facts() {
         let Some(thread) = threads.get(operation.thread_id.as_ref()) else {
@@ -203,98 +229,113 @@ pub(super) fn observe(
             .and_then(|time| DateTime::parse_from_rfc3339(time).ok());
         let use_kind = usage_observations::use_kind(operation);
         let candidate_read = usage_observations::is_skill_read_candidate(operation);
-        let file_read = operation.name.as_ref() == "read_file"
-            && matches!(operation.kind.as_ref(), "tool" | "skillRead");
+        let reads = usage_observations::read_targets(operation);
+        let file_read = reads.is_some()
+            || operation.name.as_ref() == "read_file"
+                && matches!(operation.kind.as_ref(), "tool" | "skillRead");
         let unknown_mcp = matches!(operation.kind.as_ref(), "mcpConflict" | "mcpUnclassified");
         if use_kind.is_none() && !candidate_read && !file_read && !unknown_mcp {
             continue;
         }
         let mcp = matches!(use_kind, Some(UseKind::McpTool | UseKind::McpResource)) || unknown_mcp;
-        let key = if mcp {
-            operation.server.as_deref().map(str::to_owned)
+        let mut keys = BTreeSet::new();
+        if mcp {
+            keys.insert(operation.server.as_deref().map(str::to_owned));
+        } else if let Some(reads) = &reads {
+            if reads.unbound {
+                keys.insert(None);
+            }
+            for raw in &reads.paths {
+                keys.insert(reads.resolve(raw, thread.project.as_deref()));
+            }
         } else {
-            read_path(operation, thread)
-        };
-        let candidates = key.as_ref().and_then(|key| {
-            let map = if mcp { &servers } else { &files };
-            map.get(&(thread.source_instance_id.clone(), key.clone()))
-        });
-        let relevant = |context: &Context<'_>| {
-            context.item.is_some_and(|item| match item.kind {
-                Kind::Skill => use_kind == Some(UseKind::SkillRead) || candidate_read,
-                Kind::Rule => file_read,
-                Kind::Mcp => mcp,
-                Kind::Hook => false,
-            })
-        };
-        let indices: Vec<_> = match candidates {
-            Some(candidates) => candidates
-                .iter()
-                .copied()
-                .filter(|index| {
-                    contexts[*index].contains(thread, at, cutoff, source)
-                        && relevant(&contexts[*index])
-                })
-                .collect(),
-            None if key.is_none() => contexts
-                .iter()
-                .enumerate()
-                .filter(|(_, context)| {
-                    context.contains(thread, at, cutoff, source) && relevant(context)
-                })
-                .map(|(index, _)| index)
-                .collect(),
-            None => vec![],
-        };
-        if indices.is_empty() {
-            continue;
+            keys.insert(read_path(operation, thread));
         }
-        if let Some(identity) = usage_observations::operation_identity(operation)
-            && !seen.insert(identity)
-        {
-            continue;
-        }
-        let owners = key.as_ref().and_then(|key| {
-            let owners = if mcp { &mcp_items } else { &file_items };
-            owners.get(&(thread.source_instance_id.clone(), key.clone()))
-        });
-        let owner = contexts[indices[0]].item.unwrap().id.as_str();
-        let ambiguous = indices
-            .iter()
-            .any(|index| contexts[*index].item.unwrap().id != owner)
-            || owners.is_some_and(|owners| {
-                owners
-                    .iter()
-                    .any(|item| (!mcp || mcp_project_matches(item, thread)) && item.id != owner)
+        for key in keys {
+            let candidates = key.as_ref().and_then(|key| {
+                let map = if mcp { &servers } else { &files };
+                map.get(&(thread.source_instance_id.clone(), key.clone()))
             });
-        for index in indices {
-            let projection = &mut projections[index];
-            if key.is_none() || ambiguous || unknown_mcp {
-                projection.coverage.target_gaps += 1;
-                if at.is_none() {
-                    projection.coverage.time_gaps += 1;
-                }
-                continue;
-            }
-            let item = contexts[index].item.unwrap();
-            if candidate_read && item.kind == Kind::Skill {
-                projection.coverage.dispatch_gaps += 1;
-                if at.is_none() {
-                    projection.coverage.time_gaps += 1;
-                }
-                continue;
-            }
-            if !actual_for(item, use_kind, file_read) {
-                continue;
-            }
-            let Some(at) = at else {
-                projection.coverage.time_gaps += 1;
-                continue;
+            let relevant = |context: &Context<'_>| {
+                context.item.is_some_and(|item| match item.kind {
+                    Kind::Skill => use_kind == Some(UseKind::SkillRead) || candidate_read,
+                    Kind::Rule => file_read,
+                    Kind::Mcp => mcp,
+                    Kind::Hook => false,
+                })
             };
-            projection.observe(operation);
-            if latest[index].is_none_or(|last| at > last) {
-                latest[index] = Some(at);
-                out[index].last_record_at = Some(at.with_timezone(&Utc).to_rfc3339());
+            let indices: Vec<_> = match candidates {
+                Some(candidates) => candidates
+                    .iter()
+                    .copied()
+                    .filter(|index| {
+                        contexts[*index].contains(thread, at, cutoff, source)
+                            && relevant(&contexts[*index])
+                    })
+                    .collect(),
+                None if key.is_none() => contexts
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, context)| {
+                        context.contains(thread, at, cutoff, source) && relevant(context)
+                    })
+                    .map(|(index, _)| index)
+                    .collect(),
+                None => vec![],
+            };
+            if indices.is_empty() {
+                continue;
+            }
+            let owners = key.as_ref().and_then(|key| {
+                let owners = if mcp { &mcp_items } else { &file_items };
+                owners.get(&(thread.source_instance_id.clone(), key.clone()))
+            });
+            let owner = contexts[indices[0]].item.unwrap().id.as_str();
+            let ambiguous = indices
+                .iter()
+                .any(|index| contexts[*index].item.unwrap().id != owner)
+                || owners.is_some_and(|owners| {
+                    owners
+                        .iter()
+                        .any(|item| (!mcp || mcp_project_matches(item, thread)) && item.id != owner)
+                });
+            for index in indices {
+                if at.is_none() {
+                    projections[index].note_time_gap(operation);
+                }
+                if let Some(identity) = usage_observations::operation_identity(operation)
+                    && !seen.insert((identity, index))
+                {
+                    continue;
+                }
+                let projection = &mut projections[index];
+                if key.is_none()
+                    || ambiguous
+                    || unknown_mcp
+                    || usage_observations::operation_identity(operation)
+                        .is_some_and(|identity| conflicts.contains(&identity))
+                {
+                    projection.coverage.target_gaps += 1;
+                    continue;
+                }
+                let item = contexts[index].item.unwrap();
+                if reads.as_ref().is_some_and(|reads| reads.candidate)
+                    && matches!(item.kind, Kind::Skill | Kind::Rule)
+                {
+                    projection.coverage.dispatch_gaps += 1;
+                    continue;
+                }
+                if !actual_for(item, use_kind, file_read) {
+                    continue;
+                }
+                let Some(at) = at else {
+                    continue;
+                };
+                projection.observe_with_time_accounted(operation);
+                if latest[index].is_none_or(|last| at > last) {
+                    latest[index] = Some(at);
+                    out[index].last_record_at = Some(at.with_timezone(&Utc).to_rfc3339());
+                }
             }
         }
     }

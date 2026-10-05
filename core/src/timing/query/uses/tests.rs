@@ -525,3 +525,127 @@ fn full_projection_budget_failure_preserves_other_verified_facts_without_prefix_
     assert!(local.uses.objects.is_empty());
     assert_eq!(local.uses.detail.reason, Basis::ResourceLimit);
 }
+
+#[test]
+fn multiple_native_read_targets_share_one_record_and_filtered_object_reference() {
+    use crate::adapters::contract::{
+        CommandSource, ParsedCommand, WORK_OBSERVATION_VERSION, WorkData, WorkObservation,
+        WorkStage,
+    };
+    let mut op = operation("multi", "command").as_ref().clone();
+    op.path = None;
+    op.work = Some(WorkObservation {
+        format_version: WORK_OBSERVATION_VERSION,
+        stage: WorkStage::Terminal,
+        data: WorkData::Command {
+            cwd: Some("file:///synthetic".into()),
+            source: Some(CommandSource::Agent),
+            parsed_commands: Some(vec![
+                ParsedCommand::Read {
+                    path: Some("/synthetic/one/SKILL.md".into()),
+                },
+                ParsedCommand::Read {
+                    path: Some("/synthetic/two/SKILL.md".into()),
+                },
+            ]),
+        },
+        gaps: vec![],
+    });
+    let snapshot = snapshot(vec![Arc::new(op)]);
+    let Response::UseObjects(objects) = run(&snapshot, &request(EvidenceSet::UseObjects, 200))
+    else {
+        panic!()
+    };
+    assert_eq!(objects.rows.len(), 2);
+    assert_eq!(objects.totals.record_count.value, Some(1));
+    let Response::Local(summary) = run(&snapshot, &summary_request(PrivacyProfile::Local)) else {
+        panic!()
+    };
+    assert_eq!(summary.work.operation_candidates.value, Some(1));
+    assert_eq!(summary.work.closed_operations.value, Some(1));
+    assert_eq!(summary.work.failed_operations.value, Some(0));
+    assert!(
+        summary
+            .uses
+            .objects
+            .iter()
+            .all(|object| object.use_count.value.is_none())
+    );
+    let Response::UseRecords(records) = run(&snapshot, &request(EvidenceSet::UseRecords, 200))
+    else {
+        panic!()
+    };
+    assert_eq!(records.rows.len(), 1);
+    assert!(records.rows[0].object_ref.is_none());
+    assert!(matches!(records.rows[0].state, UseState::Candidate));
+    assert!(!records.rows[0].gap_codes.contains(&"missing_target".into()));
+    for object in objects.rows {
+        let mut request = request(EvidenceSet::UseRecords, 200);
+        if let Request::Evidence { object_ref, .. } = &mut request {
+            *object_ref = Some(object.object_ref.clone());
+        }
+        let Response::UseRecords(filtered) = run(&snapshot, &request) else {
+            panic!()
+        };
+        assert_eq!(filtered.rows.len(), 1);
+        assert_eq!(filtered.rows[0].reference, records.rows[0].reference);
+        assert_eq!(filtered.rows[0].object_ref, Some(object.object_ref));
+        assert_eq!(filtered.total.value, Some(1));
+        assert_eq!(filtered.totals.record_count.value, Some(1));
+    }
+}
+
+#[test]
+fn mixed_known_and_missing_native_read_targets_keep_record_gap_on_filtered_pages() {
+    use crate::adapters::contract::{
+        CommandSource, ParsedCommand, WORK_OBSERVATION_VERSION, WorkData, WorkObservation,
+        WorkStage,
+    };
+    let mut op = operation("mixed", "command").as_ref().clone();
+    op.path = None;
+    op.work = Some(WorkObservation {
+        format_version: WORK_OBSERVATION_VERSION,
+        stage: WorkStage::Terminal,
+        data: WorkData::Command {
+            cwd: Some("file:///synthetic".into()),
+            source: Some(CommandSource::Agent),
+            parsed_commands: Some(vec![
+                ParsedCommand::Read {
+                    path: Some("/synthetic/one/SKILL.md".into()),
+                },
+                ParsedCommand::Read { path: None },
+            ]),
+        },
+        gaps: vec![crate::adapters::contract::WorkGap::MissingReadPath],
+    });
+    let snapshot = snapshot(vec![Arc::new(op)]);
+    let Response::UseObjects(objects) = run(&snapshot, &request(EvidenceSet::UseObjects, 200))
+    else {
+        panic!()
+    };
+    assert_eq!(objects.rows.len(), 1);
+    let Response::UseRecords(records) = run(&snapshot, &request(EvidenceSet::UseRecords, 200))
+    else {
+        panic!()
+    };
+    assert_eq!(records.rows.len(), 1);
+    assert!(records.rows[0].gap_codes.contains(&"missing_target".into()));
+    let mut filtered_request = request(EvidenceSet::UseRecords, 200);
+    if let Request::Evidence { object_ref, .. } = &mut filtered_request {
+        *object_ref = Some(objects.rows[0].object_ref.clone());
+    }
+    let Response::UseRecords(filtered) = run(&snapshot, &filtered_request) else {
+        panic!()
+    };
+    assert_eq!(filtered.rows.len(), 1);
+    assert!(
+        filtered.rows[0]
+            .gap_codes
+            .contains(&"missing_target".into())
+    );
+    assert_eq!(filtered.rows[0].reference, records.rows[0].reference);
+    assert_eq!(
+        filtered.rows[0].object_ref,
+        Some(objects.rows[0].object_ref.clone())
+    );
+}

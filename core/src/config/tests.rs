@@ -89,15 +89,28 @@ fn use_operation(id: &str, kind: &str, status: &str) -> crate::adapters::contrac
     .unwrap()
 }
 
-fn use_view(mut operations: Vec<crate::adapters::contract::Operation>) -> View {
+fn use_view(operations: Vec<crate::adapters::contract::Operation>) -> View {
+    use_view_paths(operations, false)
+}
+fn use_view_paths(
+    mut operations: Vec<crate::adapters::contract::Operation>,
+    preserve: bool,
+) -> View {
     let root = tempfile::tempdir().unwrap();
     let path = root
         .path()
         .join("synthetic-skill/SKILL.md")
         .to_string_lossy()
         .into_owned();
-    for op in &mut operations {
-        op.path = Some(path.clone());
+    let path = if preserve {
+        "/synthetic/SKILL.md".into()
+    } else {
+        path
+    };
+    if !preserve {
+        for op in &mut operations {
+            op.path = Some(path.clone());
+        }
     }
     let mut collected = crate::adapters::contract::Collected::default();
     collected.threads.push(crate::adapters::contract::Thread {
@@ -215,7 +228,7 @@ fn wrapper_literal_read_keeps_a_candidate_without_claiming_actual_dispatch() {
             .coverage
             .issues
             .iter()
-            .any(|issue| issue.code == "usageCountV1DispatchUnknown"
+            .any(|issue| issue.code == "usageCountV2DispatchUnknown"
                 && issue.path.as_ref() == Some(&item.path))
     );
     let mut request = uses_request();
@@ -249,7 +262,7 @@ fn explicit_read_without_native_identity_is_used_but_its_count_is_unknown() {
             .coverage
             .issues
             .iter()
-            .any(|issue| issue.code == "usageCountV1IdentityUnknown")
+            .any(|issue| issue.code == "usageCountV2IdentityUnknown")
     );
 }
 
@@ -291,7 +304,7 @@ fn mcp_calls_and_resource_reads_share_operation_counts_but_discovery_does_not() 
             .coverage
             .issues
             .iter()
-            .any(|issue| issue.code == "usageCountV1TargetUnknown")
+            .any(|issue| issue.code == "usageCountV2TargetUnknown")
     );
 }
 
@@ -313,7 +326,7 @@ fn ambiguous_inventory_targets_keep_candidate_gaps_instead_of_picking_an_item() 
                 .coverage
                 .issues
                 .iter()
-                .any(|issue| issue.code == "usageCountV1TargetUnknown"
+                .any(|issue| issue.code == "usageCountV2TargetUnknown"
                     && issue.path.as_ref() == Some(&item.path))
         );
     }
@@ -344,7 +357,7 @@ fn missing_time_prevents_a_precise_date_window_count_without_creating_a_turn() {
             .coverage
             .issues
             .iter()
-            .any(|issue| issue.code == "usageCountV1TimeUnknown")
+            .any(|issue| issue.code == "usageCountV2TimeUnknown")
     );
     let all = execute(uses_request(), "config:uses".into(), &v).unwrap();
     assert_eq!(all.items[0].usage_count, Some(2));
@@ -354,7 +367,7 @@ fn missing_time_prevents_a_precise_date_window_count_without_creating_a_turn() {
         all.coverage
             .issues
             .iter()
-            .any(|issue| issue.code == "usageCountV1TurnUnknown")
+            .any(|issue| issue.code == "usageCountV2TurnUnknown")
     );
 }
 
@@ -376,7 +389,7 @@ fn thread_scope_retains_read_candidates_and_their_queryable_evidence() {
         list.coverage
             .issues
             .iter()
-            .any(|issue| issue.code == "usageCountV1DispatchUnknown")
+            .any(|issue| issue.code == "usageCountV2DispatchUnknown")
     );
     request.action = Action::Evidence;
     request.item_id = Some("skill".into());
@@ -415,7 +428,7 @@ fn thread_scope_retains_missing_time_coverage_without_inventing_evidence_dates()
             .coverage
             .issues
             .iter()
-            .any(|issue| issue.code == "usageCountV1TimeUnknown")
+            .any(|issue| issue.code == "usageCountV2TimeUnknown")
     );
 }
 
@@ -433,6 +446,126 @@ fn unmatched_operation_from_another_project_does_not_pollute_selected_coverage()
     assert_eq!(result.items[0].observation, Observation::Unknown);
     assert!(!result.coverage.issues.iter().any(|issue| matches!(
         issue.code.as_str(),
-        "usageOperationTargetUnknown" | "usageCountV1TargetUnknown"
+        "usageOperationTargetUnknown" | "usageCountV2TargetUnknown"
     )));
+}
+
+#[test]
+fn native_multiple_read_candidates_match_each_object_without_pretending_dispatch() {
+    let mut native = use_operation("native", "command", "completed");
+    native.path = None;
+    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"SKILL.md"},{"kind":"read","path":"second/SKILL.md"},{"kind":"read","path":"./SKILL.md"}]},"gaps":[]})).unwrap());
+    let mut v = use_view_paths(vec![native.clone(), native.clone()], true);
+    let mut second = v.items[0].clone();
+    second.id = "second".into();
+    second.path = "/synthetic/second/SKILL.md".into();
+    v.items.push(second);
+    let result = execute(uses_request(), "config:multi".into(), &v).unwrap();
+    assert_eq!(result.items.len(), 2);
+    for item in &result.items {
+        assert_eq!(item.usage_count, None);
+        assert_eq!(item.observation, Observation::Unknown);
+        assert_eq!(item.counts.file_reads, 0);
+        assert!(
+            result
+                .coverage
+                .issues
+                .iter()
+                .any(|issue| issue.code == "usageCountV2DispatchUnknown"
+                    && issue.path.as_deref() == Some(item.path.as_str()))
+        );
+    }
+    let crate::adapters::contract::WorkData::Command { source, .. } =
+        &mut native.work.as_mut().unwrap().data
+    else {
+        panic!()
+    };
+    *source = Some(crate::adapters::contract::CommandSource::UserShell);
+    let user = use_view(vec![native]);
+    let result = execute(uses_request(), "config:user-shell".into(), &user).unwrap();
+    assert!(
+        result
+            .coverage
+            .issues
+            .iter()
+            .all(|issue| !issue.code.starts_with("usageCount"))
+    );
+}
+#[test]
+fn canonical_replay_target_conflicts_do_not_depend_on_input_order() {
+    let mut first = use_operation("canonical", "skillRead", "completed");
+    first.path = Some("/synthetic/SKILL.md".into());
+    let mut second = first.clone();
+    second.path = Some("/synthetic/second/SKILL.md".into());
+    for operations in [
+        vec![first.clone(), second.clone()],
+        vec![second.clone(), first.clone()],
+    ] {
+        let mut v = use_view_paths(operations, true);
+        let mut second = v.items[0].clone();
+        second.id = "second".into();
+        second.path = "/synthetic/second/SKILL.md".into();
+        v.items.push(second);
+        let result = execute(uses_request(), "config:conflict".into(), &v).unwrap();
+        for item in result.items {
+            assert_eq!(item.usage_count, None);
+        }
+        assert!(
+            result
+                .coverage
+                .issues
+                .iter()
+                .any(|issue| issue.code == "usageCountV2TargetUnknown")
+        );
+    }
+}
+
+#[test]
+fn native_rule_read_display_label_is_not_loaded_or_an_executed_file_read() {
+    let mut op = use_operation("native-rule", "command", "completed");
+    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"AGENTS.md"}]},"gaps":[]})).unwrap());
+    let mut v = use_view_paths(vec![op], true);
+    v.items[0].kind = Kind::Rule;
+    v.items[0].path = "/synthetic/AGENTS.md".into();
+    let result = execute(uses_request(), "config:native-rule".into(), &v).unwrap();
+    assert_eq!(result.items[0].counts.file_reads, 0);
+    assert_eq!(result.items[0].observation, Observation::Unknown);
+    assert!(
+        result
+            .coverage
+            .issues
+            .iter()
+            .any(|issue| issue.code == "ruleReadDispatchUnknown")
+    );
+}
+
+#[test]
+fn replay_missing_time_is_visible_in_both_orders_and_only_window_count_is_unknown() {
+    let known = use_operation("canonical-time", "skillRead", "completed");
+    let mut missing = known.clone();
+    missing.timestamp = None;
+    for operations in [
+        vec![known.clone(), missing.clone()],
+        vec![missing.clone(), known.clone()],
+    ] {
+        let v = use_view(operations);
+        let all = execute(uses_request(), "config:time-replay".into(), &v).unwrap();
+        assert_eq!(all.items[0].usage_count, Some(1));
+        assert!(
+            all.coverage
+                .issues
+                .iter()
+                .any(|issue| issue.code == "usageCountV2TimeUnknown")
+        );
+        let request = Request {
+            scope: Scope {
+                since: Some("2026-10-04".into()),
+                until: Some("2026-10-05".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let filtered = execute(request, "config:time-replay-window".into(), &v).unwrap();
+        assert_eq!(filtered.items[0].usage_count, None);
+    }
 }

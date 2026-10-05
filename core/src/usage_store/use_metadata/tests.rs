@@ -137,7 +137,11 @@ fn missing_current_metadata_is_corrupt_and_future_headers_precede_new_shapes_wit
     for (metadata, expected) in [
         (None, "SNAPSHOT_CORRUPT"),
         (
-            Some(serde_json::json!({"methodVersion":1,"skillRecords":null,"mcpRecords":0})),
+            Some(serde_json::json!({"methodVersion":1,"skillRecords":0,"mcpRecords":0})),
+            "UNSUPPORTED_VERSION",
+        ),
+        (
+            Some(serde_json::json!({"methodVersion":2,"skillRecords":null,"mcpRecords":0})),
             "SNAPSHOT_CORRUPT",
         ),
         (
@@ -193,4 +197,45 @@ fn typed_memory_metadata_unknown_version_does_not_become_zero() {
         ),
         "UNSUPPORTED_VERSION"
     );
+}
+
+#[test]
+fn read_modes_native_multi_target_candidates_charge_one_unassigned_operation_and_exclude_user_shell()
+ {
+    let root = tempfile::tempdir().unwrap();
+    let mut native = operation("native", "command", None).as_ref().clone();
+    native.path = None;
+    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"a/SKILL.md"},{"kind":"read","path":"b/SKILL.md"},{"kind":"read","path":"a/SKILL.md"}]},"gaps":[]})).unwrap());
+    let mut user = native.clone();
+    user.id = "user".into();
+    let crate::adapters::contract::WorkData::Command { source, .. } =
+        &mut user.work.as_mut().unwrap().data
+    else {
+        panic!()
+    };
+    *source = Some(crate::adapters::contract::CommandSource::UserShell);
+    let collected = data(vec![
+        operation("target", "skillRead", Some("turn")),
+        Arc::new(native),
+        Arc::new(user),
+    ]);
+    let disk = super::super::save_at(root.path(), collected.clone()).unwrap();
+    let memory = super::super::memory(
+        collected,
+        "live:multi".into(),
+        crate::pricing_sync::current_at(root.path()).unwrap(),
+        None,
+    )
+    .unwrap();
+    for snapshot in [&memory, &disk] {
+        let evidence = snapshot
+            .timing_evidence(
+                target(),
+                TimingReadBudget::default(),
+                &AtomicBool::new(false),
+            )
+            .unwrap();
+        assert_eq!(evidence.unassigned_uses.method_version, 2);
+        assert_eq!(evidence.unassigned_uses.skill_records, 1);
+    }
 }

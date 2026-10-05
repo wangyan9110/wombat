@@ -1,7 +1,9 @@
 //! Safe-event mapping for a single explicit turn; no source bodies or time-based identity guesses.
 use super::{context, intervals};
 use crate::adapters::contract::Measurement;
-use crate::session_events::{Event, Gap, ItemKind, LifecycleKind, Payload, Phase, Precision};
+use crate::session_events::{
+    Event, Gap, ItemKind, LifecycleKind, MessageOrigin, Payload, Phase, Precision,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{
@@ -76,6 +78,10 @@ pub struct Coverage {
     pub conflicting_lifecycles: usize,
     pub missing_identity_lifecycles: usize,
     /// Counts describe safe message records, never messages or API requests.
+    pub user_input_records: usize,
+    pub unclassified_user_records: usize,
+    pub injected_context_records: usize,
+    pub reasoning_message_records: usize,
     pub content_candidates: usize,
     pub nonempty_content_records: usize,
     pub unknown_content_records: usize,
@@ -526,6 +532,16 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
     let lifecycle_records = events.iter().filter(|event| matches!(event.payload(), Payload::Item { item_kind, .. } if category(item_kind).is_some()) || matches!(event.payload(), Payload::Lifecycle { lifecycle: LifecycleKind::Compaction, .. })).count();
     for event in &events {
         check(cancelled)?;
+        if let Payload::Message { origin, .. } = event.payload() {
+            // One physical safe record, independent of content presence/native message identity.
+            match origin {
+                MessageOrigin::UserInput => result.coverage.user_input_records += 1,
+                MessageOrigin::UserUnclassified => result.coverage.unclassified_user_records += 1,
+                MessageOrigin::InjectedContext => result.coverage.injected_context_records += 1,
+                MessageOrigin::Reasoning => result.coverage.reasoning_message_records += 1,
+                _ => {}
+            }
+        }
         if !event.gaps().is_empty() {
             result.issues.push(Issue::SourceGap(event.id().to_owned()));
             if event.gaps().contains(&Gap::SourcePartial) {

@@ -407,3 +407,77 @@ fn unavailable_bases_and_unverified_records_never_claim_absence() {
     assert_eq!(out[0].observed_records, None);
     assert!(!out[0].absence_observable);
 }
+
+#[test]
+fn native_multiple_read_candidates_and_reliable_target_conflicts_share_unknown_counts() {
+    let first = item("first", Kind::Skill);
+    let mut second = item("second", Kind::Skill);
+    second.path = "/synthetic/second/SKILL.md".into();
+    let mut native = operation("native", "command", &first);
+    native.path = None;
+    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"SKILL.md"},{"kind":"read","path":"second/SKILL.md"},{"kind":"read","path":"./SKILL.md"}]},"gaps":[]})).unwrap());
+    let suggestions = vec![suggestion(&first), suggestion(&second)];
+    let v = view(
+        vec![first.clone(), second.clone()],
+        vec![native.clone(), native.clone()],
+        vec![thread("thread", "source", Some("/project"))],
+    );
+    for row in observe(&suggestions, &v, None) {
+        assert_eq!(row.observed_records, None);
+        assert_eq!(row.status, FollowUpStatus::Unavailable);
+    }
+    let crate::adapters::contract::WorkData::Command { source, .. } =
+        &mut native.work.as_mut().unwrap().data
+    else {
+        panic!()
+    };
+    *source = Some(crate::adapters::contract::CommandSource::UserShell);
+    let v = view(
+        vec![first.clone(), second.clone()],
+        vec![native],
+        vec![thread("thread", "source", Some("/project"))],
+    );
+    for row in observe(&suggestions, &v, None) {
+        assert_eq!(row.observed_records, None);
+        assert_eq!(row.status, FollowUpStatus::NoObservedRecords);
+    }
+    let a = operation("canonical", "skillRead", &first);
+    let b = operation("canonical", "skillRead", &second);
+    for operations in [vec![a.clone(), b.clone()], vec![b.clone(), a.clone()]] {
+        let v = view(
+            vec![first.clone(), second.clone()],
+            operations,
+            vec![thread("thread", "source", Some("/project"))],
+        );
+        for row in observe(&suggestions, &v, None) {
+            assert_eq!(row.observed_records, None);
+            assert_eq!(row.status, FollowUpStatus::Unavailable);
+        }
+    }
+}
+
+#[test]
+fn native_rule_read_without_a_skill_path_is_dispatch_unknown_not_observed_rule_use() {
+    let object = item("rule", Kind::Rule);
+    let mut op = operation("native-rule", "command", &object);
+    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"AGENTS.md"}]},"gaps":[]})).unwrap());
+    let out = observe(&[suggestion(&object)], &single(&object, vec![op]), None);
+    assert_eq!(out[0].observed_records, None);
+    assert_eq!(out[0].status, FollowUpStatus::Unavailable);
+}
+
+#[test]
+fn replay_unknown_time_cannot_depend_on_first_record_order_inside_follow_up_window() {
+    let object = item("skill", Kind::Skill);
+    let known = operation("canonical-time", "skillRead", &object);
+    let mut missing = known.clone();
+    missing.timestamp = None;
+    for operations in [
+        vec![known.clone(), missing.clone()],
+        vec![missing.clone(), known.clone()],
+    ] {
+        let out = observe(&[suggestion(&object)], &single(&object, operations), None);
+        assert_eq!(out[0].status, FollowUpStatus::Unavailable);
+        assert_eq!(out[0].observed_records, None);
+    }
+}

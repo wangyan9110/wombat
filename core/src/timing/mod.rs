@@ -6,4 +6,5 @@ mod mapping;
 mod query;
 mod share;
 pub(crate) mod uses;
+pub(crate) mod work;
 pub use query::{capabilities, dispatch, error_output, query_on_snapshot, validate};

@@ -3,8 +3,8 @@ use crate::adapters::contract::{
     Collected, SourceInstance, SourceReport, SourceWatermark, Thread, Turn, WatermarkState,
 };
 use crate::session_events::{
-    ContentPhase, ContentPresence, LifecycleKind, MessageRecordKind, Phase, Position,
-    Time as EventTime,
+    ContentPhase, ContentPresence, LifecycleKind, MessageOrigin, MessageRecordKind, Phase,
+    Position, Time as EventTime,
 };
 fn event(offset: u64, time: Option<i64>, payload: Payload) -> Arc<Event> {
     let time = time.map(|ms| {
@@ -180,7 +180,11 @@ fn full_local_metrics_and_share_aliases_are_independent_whitelists() {
         l.time.strict_response_gap_ms.basis,
         Basis::MissingBatchCycle
     );
-    assert_eq!(l.work.operation_candidates.basis, Basis::AdapterNotMapped);
+    assert_eq!(
+        l.work.operation_candidates.basis,
+        Basis::CanonicalOperationIdentity
+    );
+    assert_eq!(l.work.operation_candidates.value, Some(0));
     assert_eq!(l.context.active_context_occupancy.value, None);
     assert_eq!(l.evidence.collections.len(), 5);
     let operations = l
@@ -1193,4 +1197,258 @@ fn fragment_navigation_known_zero_and_unknown_proof_remain_distinct() {
     assert_eq!(result.missing_event_ref_count.value, None);
     assert_eq!(result.missing_event_ref_count.basis, Basis::MissingIdentity);
     assert!(result.entries.is_empty());
+}
+
+fn work_operation(
+    id: &str,
+    kind: &str,
+    status: &str,
+    work: Option<crate::adapters::contract::WorkObservation>,
+) -> Arc<crate::adapters::contract::Operation> {
+    let mut op:crate::adapters::contract::Operation=serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread-private","turnId":"turn-private","callId":id,"kind":kind,"name":"safe","sequence":1,"timePrecision":"unknown","status":status,"evidence":[]})).unwrap();
+    op.work = work;
+    Arc::new(op)
+}
+fn file_work(paths: &[(&str, Option<&str>)]) -> crate::adapters::contract::WorkObservation {
+    use crate::adapters::contract::*;
+    WorkObservation {
+        format_version: WORK_OBSERVATION_VERSION,
+        stage: WorkStage::Terminal,
+        data: WorkData::FileChange {
+            changes: Some(
+                paths
+                    .iter()
+                    .map(|(path, moved)| FilePathChange {
+                        path: (*path).into(),
+                        change: ChangeKind::Update,
+                        move_path: moved.map(str::to_owned),
+                    })
+                    .collect(),
+            ),
+        },
+        gaps: vec![],
+    }
+}
+fn work_snapshot(
+    operations: Vec<Arc<crate::adapters::contract::Operation>>,
+    events: Vec<Arc<Event>>,
+    partial: bool,
+) -> Snapshot {
+    let mut collected = data(events);
+    collected.operations = operations;
+    if partial {
+        collected.sources[0].status = "partial".into();
+    }
+    let root = tempfile::tempdir().unwrap();
+    usage_store::memory(
+        collected,
+        "live:private".into(),
+        crate::pricing_sync::current_at(root.path()).unwrap(),
+        None,
+    )
+    .unwrap()
+}
+#[test]
+fn work_summary_consumes_canonical_operations_and_reported_terminal_paths() {
+    let snapshot = work_snapshot(
+        vec![
+            work_operation(
+                "failed",
+                "file",
+                "failed",
+                Some(file_work(&[("/private-work/a", Some("/private-work/b"))])),
+            ),
+            work_operation(
+                "declined",
+                "file",
+                "declined",
+                Some(file_work(&[("/private-work/a", None)])),
+            ),
+            work_operation("active", "command", "running", None),
+        ],
+        complete_events(),
+        true,
+    );
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.work.operation_candidates.value, Some(3));
+    assert_eq!(result.work.closed_operations.value, Some(2));
+    assert_eq!(result.work.failed_operations.value, Some(1));
+    assert_eq!(result.work.file_change_records.value, Some(2));
+    assert_eq!(result.work.changed_files.value, Some(2));
+    assert_eq!(result.work.changed_files.basis, Basis::ReportedFilePaths);
+    assert_eq!(result.work.changed_files.status, MetricStatus::Derived);
+    assert_eq!(
+        result.work.operation_candidates.status,
+        MetricStatus::Observed
+    );
+    assert_eq!(
+        result.work.changed_files.evidence_refs,
+        vec!["collection:canonical_operations"]
+    );
+    assert_eq!(result.work.added_lines.value, None);
+    assert_eq!(
+        result.work.added_lines.basis,
+        Basis::MissingRepositoryBaseline
+    );
+    assert_eq!(
+        result.work.labelled_command_ms.basis,
+        Basis::UnsupportedMethod
+    );
+    assert!(result.quality.reason_codes.contains(&Basis::SourcePartial));
+    let Response::Share(shared) = query(&snapshot, &request(PrivacyProfile::ShareV1)) else {
+        panic!()
+    };
+    assert_eq!(shared.work.changed_files.value, Some(2));
+    assert!(shared.basis_collections.iter().any(|c| {
+        shared
+            .work
+            .changed_files
+            .evidence_refs
+            .contains(&c.reference)
+    }));
+    assert!(
+        !serde_json::to_string(&shared)
+            .unwrap()
+            .contains("/private-work")
+    );
+}
+#[test]
+fn work_missing_targets_proposed_and_source_budgets_are_not_zero() {
+    let snapshot = work_snapshot(
+        vec![work_operation(
+            "relative",
+            "file",
+            "completed",
+            Some(file_work(&[("a", None)])),
+        )],
+        complete_events(),
+        false,
+    );
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.work.changed_files.value, None);
+    assert_eq!(result.work.changed_files.basis, Basis::MissingTarget);
+    assert!(result.quality.reason_codes.contains(&Basis::MissingTarget));
+    let mut proposed = file_work(&[("/synthetic/a", None)]);
+    proposed.stage = crate::adapters::contract::WorkStage::Proposed;
+    let snapshot = work_snapshot(
+        vec![work_operation(
+            "proposed",
+            "file",
+            "running",
+            Some(proposed),
+        )],
+        complete_events(),
+        false,
+    );
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.work.changed_files.value, None);
+    assert_eq!(result.work.file_change_records.value, Some(1));
+    assert_eq!(result.work.closed_operations.value, Some(0));
+}
+#[test]
+fn work_native_conflicts_and_resource_gaps_keep_distinct_reasons() {
+    for (gap, basis) in [
+        (
+            crate::adapters::contract::WorkGap::ConflictingObservation,
+            Basis::BoundaryConflict,
+        ),
+        (
+            crate::adapters::contract::WorkGap::ResourceLimit,
+            Basis::ResourceLimit,
+        ),
+    ] {
+        let mut observed = file_work(&[]);
+        observed.data = crate::adapters::contract::WorkData::FileChange { changes: None };
+        observed.gaps = vec![gap];
+        let snapshot = work_snapshot(
+            vec![work_operation("file", "file", "failed", Some(observed))],
+            complete_events(),
+            false,
+        );
+        let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+        assert_eq!(result.work.file_change_records.value, Some(1));
+        assert_eq!(result.work.failed_operations.value, Some(1));
+        assert_eq!(result.work.changed_files.value, None);
+        assert_eq!(result.work.changed_files.basis, basis);
+        assert!(result.quality.reason_codes.contains(&basis));
+    }
+}
+#[test]
+fn work_safe_message_counts_preserve_unknown_user_provenance_and_source_gap() {
+    let mut events = complete_events();
+    for (i, origin) in [
+        MessageOrigin::UserInput,
+        MessageOrigin::UserUnclassified,
+        MessageOrigin::InjectedContext,
+        MessageOrigin::Reasoning,
+        MessageOrigin::Inherited,
+        MessageOrigin::InterAgent,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        events.push(event(
+            20 + i as u64,
+            None,
+            Payload::Message {
+                origin,
+                presence: ContentPresence::Empty,
+                native_id: None,
+                record_kind: MessageRecordKind::LegacySnapshot,
+                record_phase: Phase::Completed,
+                content_phase: ContentPhase::Unknown,
+            },
+        ));
+    }
+    let snapshot = work_snapshot(vec![], events, true);
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.work.user_boundary_records.value, None);
+    assert_eq!(
+        result.work.user_boundary_records.basis,
+        Basis::UnknownMessageOrigin
+    );
+    assert_eq!(result.work.injected_context_records.value, Some(1));
+    assert_eq!(result.work.reasoning_message_records.value, Some(1));
+    assert!(
+        result
+            .quality
+            .reason_codes
+            .contains(&Basis::UnknownMessageOrigin)
+    );
+    assert!(result.quality.reason_codes.contains(&Basis::SourcePartial));
+}
+#[test]
+fn work_observed_empty_and_fallback_unavailable_are_distinct() {
+    let snapshot = make_snapshot(complete_events());
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.work.operation_candidates.value, Some(0));
+    assert_eq!(result.work.changed_files.value, Some(0));
+    assert_eq!(result.work.user_boundary_records.value, Some(0));
+    let analysis = analysis::analyze(analysis::AnalyzeInput {
+        source: "source",
+        thread: "thread",
+        turn: "turn",
+        measurements: &[],
+        events: &[],
+        budget: analysis::Budget {
+            events: 0,
+            measurements: 0,
+            lifecycle_records: 0,
+        },
+    });
+    let mapped = m::work(
+        &analysis,
+        &[],
+        &[],
+        None,
+        Some(Basis::ResourceLimit),
+        Some(Basis::ResourceLimit),
+    );
+    assert_eq!(mapped.changed_files.value, None);
+    assert_eq!(mapped.changed_files.basis, Basis::ResourceLimit);
+    assert_eq!(mapped.user_boundary_records.value, None);
+    let mapped = m::work(&analysis, &[], &[], None, None, Some(Basis::ResourceLimit));
+    assert_eq!(mapped.operation_candidates.value, None);
+    assert_eq!(mapped.operation_candidates.basis, Basis::ResourceLimit);
+    assert_eq!(mapped.user_boundary_records.value, Some(0));
 }

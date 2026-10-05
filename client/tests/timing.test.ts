@@ -20,7 +20,7 @@ const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', 
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
 const distribution = () => ({ samples: count(), median: count(), p90: count() });
-const useTotals = { methodVersion: 1, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
+const useTotals = { methodVersion: 2, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const local: TimingLocalResult = {
   outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v1', profile: 'local',
@@ -197,7 +197,7 @@ test('nonempty local fragment navigation enforces bounds and stays outside shari
 });
 const observed = (value: number, basis: TimingLocalResult['uses']['totals']['objectCount']['basis'] = 'canonical_use_records') => ({ value, status: 'observed' as const, basis, evidenceRefs: [] });
 const objectRef = `use:${'a'.repeat(64)}`;
-const knownUseTotals = { methodVersion: 1, sourceCoverage: 'complete' as const, objectCount: observed(1), recordCount: observed(3), unboundTargetRecords: observed(0),
+const knownUseTotals = { methodVersion: 2, sourceCoverage: 'complete' as const, objectCount: observed(1), recordCount: observed(3), unboundTargetRecords: observed(0),
   unassignedSkillRecords: observed(0, 'unassigned_use_index'), unassignedMcpRecords: observed(0, 'unassigned_use_index'),
   coverage: { dispatchGaps: observed(0), identityGaps: observed(0), targetGaps: observed(0), timeGaps: observed(0), associatedTurnGaps: observed(0) } };
 const useObject = { objectRef, kind: 'skill' as const, state: 'used' as const, path: '/synthetic/skill/SKILL.md', server: null, project: null,
@@ -245,4 +245,21 @@ test('sharing allows numeric use coverage and rejects local object record and cu
     assert.equal(validateShare(invalid), false);
     await assert.rejects(client(invalid).timing!({ ...summary, privacyProfile: 'share-v1' }), { code: 'PROTOCOL_ERROR' });
   }
+});
+
+test('work metrics preserve canonical identities, reported paths and unknown user origin in both whitelists', () => {
+  const work = {
+    ...local.work,
+    operationCandidates: { value: 3, status: 'observed', basis: 'canonical_operation_identity', evidenceRefs: [] },
+    changedFiles: { value: 2, status: 'derived', basis: 'reported_file_paths', evidenceRefs: [] },
+    userBoundaryRecords: { value: null, status: 'unavailable', basis: 'unknown_message_origin', evidenceRefs: [] },
+  };
+  const quality = { ...local.quality, reasonCodes: ['unknown_message_origin', 'source_partial'] };
+  assert.equal(validateLocal({ ...local, work, quality }), true);
+  assert.equal(validateShare({ ...share, work, quality }), true);
+  for (const value of [-1, 9007199254740992]) {
+    assert.equal(validateLocal({ ...local, work: { ...work, changedFiles: { ...work.changedFiles, value } } }), false);
+  }
+  assert.equal(validateShare({ ...share, work: { ...work, changedFiles: { ...work.changedFiles, paths: ['/private/path'] } } }), false);
+  assert.equal(validateLocal({ ...local, work: { ...work, userBoundaryRecords: { ...work.userBoundaryRecords, basis: 'guessed_user' } } }), false);
 });

@@ -17,6 +17,7 @@ pub(super) fn row(
     target: TurnTarget<'_>,
     uses: &projection::TurnUses<'_>,
     index: usize,
+    selected_object: Option<usize>,
 ) -> UseRecord {
     let record = &uses.records[index];
     let op = record.operation;
@@ -30,7 +31,7 @@ pub(super) fn row(
     if !record.identity_known {
         gaps.push("missing_identity".into());
     }
-    if record.object.is_none() {
+    if record.unbound_target {
         gaps.push("missing_target".into());
     }
     if record.target_conflict {
@@ -52,8 +53,8 @@ pub(super) fn row(
     }
     UseRecord {
         reference: row_ref(snapshot, target, index, record),
-        object_ref: record
-            .object
+        object_ref: selected_object
+            .or(record.object)
             .map(|index| object_ref(snapshot, target, &uses.objects[index].key)),
         kind: record.kind.map(|kind| match kind {
             observations::UseKind::SkillRead => UseKind::SkillRead,

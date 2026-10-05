@@ -2,10 +2,12 @@
 //!
 //! Adapters own call/result aliases and explicit fork inheritance. This projection
 //! neither pairs log records nor guesses operation identity from paths or time.
-use crate::adapters::contract::Operation;
+use crate::adapters::contract::{
+    CommandSource, Operation, ParsedCommand, WORK_OBSERVATION_VERSION, WorkData,
+};
 use std::{collections::BTreeSet, path::Path};
 
-pub(crate) const METHOD_VERSION: u32 = 1;
+pub(crate) const METHOD_VERSION: u32 = 2;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UseKind {
@@ -14,9 +16,104 @@ pub(crate) enum UseKind {
     McpResource,
 }
 
+/// Native parsed commands are display classifications, never independent dispatch proof.
+/// Codex 89c8bcf37d64be69e4c8286f4541c1a84ed312a4, protocol/src/parse_command.rs.
+/// Paths stay borrowed; consumers resolve only against recorded historical bases.
+pub(crate) struct ReadTargets<'a> {
+    pub paths: Vec<&'a str>,
+    pub candidate: bool,
+    pub unbound: bool,
+    /// Native cwd is distinct from the task project. None cannot fall back to current cwd.
+    pub native_cwd: Option<Option<&'a str>>,
+}
+impl ReadTargets<'_> {
+    pub(crate) fn may_be_skill(&self) -> bool {
+        self.unbound || self.paths.iter().any(|path| is_skill_file(path))
+    }
+    pub(crate) fn resolve(&self, path: &str, historical_project: Option<&str>) -> Option<String> {
+        normalized_path(path, self.native_cwd.unwrap_or(historical_project))
+    }
+}
+pub(crate) fn normalized_path(path: &str, base: Option<&str>) -> Option<String> {
+    if path.is_empty() {
+        return None;
+    }
+    let path = Path::new(path);
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        Path::new(base.filter(|base| Path::new(base).is_absolute())?).join(path)
+    };
+    crate::absolute(absolute)
+        .ok()
+        .map(|path| path.to_string_lossy().into_owned())
+}
+pub(crate) fn read_targets(operation: &Operation) -> Option<ReadTargets<'_>> {
+    if let Some(work) = &operation.work
+        && let WorkData::Command {
+            cwd,
+            source,
+            parsed_commands,
+        } = &work.data
+    {
+        if *source == Some(CommandSource::UserShell) {
+            return None;
+        }
+        if work.format_version != WORK_OBSERVATION_VERSION {
+            return None;
+        }
+        let mut paths = vec![];
+        let mut unbound = false;
+        for command in parsed_commands.as_deref()? {
+            if let ParsedCommand::Read { path } = command {
+                if let Some(path) = path.as_deref().filter(|path| !path.is_empty()) {
+                    paths.push(path);
+                } else {
+                    unbound = true;
+                }
+            }
+        }
+        if paths.is_empty() && !unbound {
+            return None;
+        }
+        return Some(ReadTargets {
+            paths,
+            candidate: true,
+            unbound,
+            native_cwd: Some(cwd.as_deref()),
+        });
+    }
+    if operation.kind.as_ref() == "skillRead"
+        || operation.kind.as_ref() == "tool" && operation.name.as_ref() == "read_file"
+    {
+        let paths = operation
+            .path
+            .as_deref()
+            .filter(|path| !path.is_empty())
+            .into_iter()
+            .collect();
+        return Some(ReadTargets {
+            paths,
+            candidate: operation.name.as_ref() == "read_skill_file",
+            unbound: operation.path.as_deref().is_none_or(str::is_empty),
+            native_cwd: None,
+        });
+    }
+    None
+}
+
 /// Catalogs, declarations, discovery and unresolved MCP identities are not uses.
 pub(crate) fn use_kind(operation: &Operation) -> Option<UseKind> {
-    if is_skill_read_candidate(operation) {
+    if matches!(
+        operation.work.as_ref().map(|work| &work.data),
+        Some(WorkData::Command {
+            source: Some(CommandSource::UserShell),
+            ..
+        })
+    ) {
+        return None;
+    }
+    if read_targets(operation).is_some_and(|targets| targets.candidate) {
         return None;
     }
     match operation.kind.as_ref() {
@@ -42,7 +139,79 @@ pub(crate) fn is_skill_file(path: &str) -> bool {
 /// Completion of a legacy exec wrapper does not establish dispatch of a read
 /// whose command was only extracted from a literal in the wrapper's input.
 pub(crate) fn is_skill_read_candidate(operation: &Operation) -> bool {
-    operation.kind.as_ref() == "skillRead" && operation.name.as_ref() == "read_skill_file"
+    read_targets(operation).is_some_and(|targets| targets.candidate && targets.may_be_skill())
+}
+
+/// Exact canonical replay conflicts, not time proximity or anonymous record hashes.
+/// Only fixed-size digests survive each record; target resolution uses the same historical bases.
+pub(crate) fn target_conflicts<'a, I: Iterator<Item = &'a Operation>>(
+    operations: impl Fn() -> I,
+    project: impl Fn(&'a Operation) -> Option<&'a str>,
+    relevant: impl Fn(&'a Operation) -> bool,
+) -> BTreeSet<(&'a str, &'a str)> {
+    use sha2::{Digest, Sha256};
+    let related = operations()
+        .filter(|operation| relevant(operation))
+        .filter_map(operation_identity)
+        .collect::<BTreeSet<_>>();
+    let mut identities = std::collections::BTreeMap::new();
+    let mut conflicts = BTreeSet::new();
+    for operation in operations() {
+        let Some(identity) = operation_identity(operation) else {
+            continue;
+        };
+        if !related.contains(&identity) {
+            continue;
+        }
+        let reads = read_targets(operation);
+        let mcp = matches!(
+            operation.kind.as_ref(),
+            "mcpTool" | "mcpResource" | "mcpConflict" | "mcpUnclassified"
+        );
+        if reads.is_none() && !mcp {
+            continue;
+        }
+        let mut hash = Sha256::new();
+        let mut field = |value: &str| {
+            hash.update((value.len() as u64).to_le_bytes());
+            hash.update(value.as_bytes());
+        };
+        field(operation.kind.as_ref());
+        if let Some(reads) = reads {
+            field(if reads.candidate {
+                "candidate"
+            } else {
+                "dispatched"
+            });
+            field(if reads.unbound { "unbound" } else { "bound" });
+            let targets = reads
+                .paths
+                .iter()
+                .map(|raw| {
+                    reads
+                        .resolve(raw, project(operation))
+                        .unwrap_or_else(|| format!("unresolved:{raw}"))
+                })
+                .collect::<BTreeSet<_>>();
+            for target in targets {
+                field(&target);
+            }
+        } else {
+            field(operation.server.as_deref().unwrap_or(""));
+            field(project(operation).unwrap_or(""));
+        }
+        let fingerprint: [u8; 32] = hash.finalize().into();
+        match identities.get(&identity) {
+            Some(previous) if *previous != fingerprint => {
+                conflicts.insert(identity);
+            }
+            None => {
+                identities.insert(identity, fingerprint);
+            }
+            _ => {}
+        }
+    }
+    conflicts
 }
 
 /// Operation currently stores the earliest observed source time. It does not
@@ -93,6 +262,7 @@ pub(crate) struct Projection {
     operations: BTreeSet<(String, String)>,
     related_turns: BTreeSet<(String, String)>,
     related_tasks: BTreeSet<String>,
+    missing_time_operations: BTreeSet<(String, String)>,
     pub coverage: Coverage,
 }
 
@@ -100,6 +270,21 @@ impl Projection {
     /// Outcomes never subtract dispatched uses. Reliable source identities are
     /// already canonicalized; independent retries retain independent IDs.
     pub(crate) fn observe(&mut self, operation: &Operation) {
+        self.associate(operation);
+        if time_basis(operation) == TimeBasis::Unknown {
+            self.note_time_gap(operation);
+        }
+    }
+
+    /// Consumers retaining every replay's time coverage call this once per canonical use.
+    pub(crate) fn observe_with_time_accounted(&mut self, operation: &Operation) {
+        if time_basis(operation) == TimeBasis::SourceOperationTime {
+            self.observe(operation);
+        } else {
+            self.associate(operation);
+        }
+    }
+    fn associate(&mut self, operation: &Operation) {
         if let Some((thread, id)) = operation_identity(operation) {
             self.operations.insert((thread.to_owned(), id.to_owned()));
         } else {
@@ -112,7 +297,14 @@ impl Projection {
         } else {
             self.coverage.turn_gaps += 1;
         }
-        if time_basis(operation) == TimeBasis::Unknown {
+    }
+
+    pub(crate) fn note_time_gap(&mut self, operation: &Operation) {
+        let new = operation_identity(operation).is_none_or(|(thread, id)| {
+            self.missing_time_operations
+                .insert((thread.into(), id.into()))
+        });
+        if new {
             self.coverage.time_gaps += 1;
         }
     }

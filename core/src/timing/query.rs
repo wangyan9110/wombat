@@ -1,6 +1,6 @@
 //! One fixed turn, bounded storage reads, and protocol projection. No ledger scans.
-use super::{analysis, mapping as m, share};
-use crate::session_events::{Event, MessageOrigin, Payload};
+use super::{analysis, mapping as m, share, work};
+use crate::session_events::{Event, Payload};
 use crate::{
     dto::operation_error,
     timing_dto::*,
@@ -606,16 +606,80 @@ fn query_impl(
             quality.reason_codes.push(Basis::ResourceLimit);
         }
     }
-    let mut work = m::work(&a, &turn_refs, fallback);
-    if let Some(e) = &evidence {
-        let count_origin = |origin| {
-            e.events.iter().filter(|event| matches!(event.payload(), Payload::Message { origin: value, .. } if *value == origin)).count()
-        };
-        work.injected_context_records =
-            m::observed(count_origin(MessageOrigin::InjectedContext), &turn_refs);
-        work.reasoning_message_records =
-            m::observed(count_origin(MessageOrigin::Reasoning), &turn_refs);
-        // Explicit source user provenance is not yet mapped. Unclassified users are not promoted.
+    let (work_projection, work_fallback) = if let Some(e) = &evidence {
+        match work::project(work::Input {
+            thread,
+            turn: turn_id,
+            source,
+            operations: &e.operations,
+            budget: work::Budget::default(),
+            cancelled,
+        }) {
+            Ok(p) => (Some(p), None),
+            Err(error)
+                if error
+                    .downcast_ref::<crate::dto::OperationError>()
+                    .is_some_and(|e| e.code == "RESOURCE_LIMIT") =>
+            {
+                (None, Some(Basis::ResourceLimit))
+            }
+            Err(error) => return Err(error),
+        }
+    } else {
+        (None, fallback)
+    };
+    let operation_refs = if work_projection.is_some() {
+        vec!["collection:canonical_operations".into()]
+    } else {
+        vec![]
+    };
+    let work = m::work(
+        &a,
+        &turn_refs,
+        &operation_refs,
+        work_projection.as_ref(),
+        fallback,
+        work_fallback,
+    );
+    let mut work_reasons = Vec::new();
+    if let Some(p) = &work_projection {
+        for count in [
+            &p.operation_candidates,
+            &p.closed_operations,
+            &p.failed_operations,
+            &p.file_change_records,
+            &p.changed_files,
+        ] {
+            for gap in &count.gaps {
+                work_reasons.push(m::work_gap(*gap));
+            }
+        }
+        if p.coverage.time_gaps > 0 {
+            work_reasons.push(Basis::MissingTime);
+        }
+        if p.coverage.source != work::SourceCoverage::Complete {
+            work_reasons.push(Basis::SourcePartial);
+        }
+    }
+    if let Some(reason) = work_fallback {
+        work_reasons.push(reason);
+    }
+    if a.coverage.unclassified_user_records > 0 {
+        work_reasons.push(Basis::UnknownMessageOrigin);
+    }
+    if a.coverage.unassigned_events > 0
+        || coverage
+            .thread_unassigned_total
+            .value
+            .is_some_and(|n| n > 0)
+    {
+        work_reasons.push(Basis::MissingTurn);
+    }
+    for reason in work_reasons {
+        quality.partial = true;
+        if !quality.reason_codes.contains(&reason) {
+            quality.reason_codes.push(reason);
+        }
     }
     let findings = quality
         .reason_codes
@@ -768,7 +832,14 @@ fn query_impl(
             end_ms: m::signed(None, Basis::ResourceLimit, &[]),
         };
         local.context = m::context(&unavailable, &[], Some(Basis::ResourceLimit));
-        local.work = m::work(&unavailable, &[], Some(Basis::ResourceLimit));
+        local.work = m::work(
+            &unavailable,
+            &[],
+            &[],
+            None,
+            Some(Basis::ResourceLimit),
+            Some(Basis::ResourceLimit),
+        );
         local.evidence.refs.clear();
         local.evidence.interval_pages =
             navigation::unavailable(m::unavailable(Basis::ResourceLimit), Basis::ResourceLimit);

@@ -1361,3 +1361,65 @@ fn timeline_proof_uses_selected_same_domain_endpoints_and_terminal_records() {
     assert_eq!((tracks[1].start_ms, tracks[1].end_ms), (20, 40));
     assert_eq!(result.intervals.timeline.gaps, [(0, 10), (40, 100)]);
 }
+
+#[test]
+fn scoped_safe_message_records_count_physical_origins_without_promoting_users() {
+    use crate::session_events::{ContentPhase, ContentPresence, MessageRecordKind};
+    let msg = |offset, origin| {
+        event(
+            offset,
+            None,
+            Payload::Message {
+                origin,
+                presence: ContentPresence::Empty,
+                native_id: Some("same-message".into()),
+                record_kind: MessageRecordKind::NativeSnapshot,
+                record_phase: Phase::Completed,
+                content_phase: ContentPhase::Unknown,
+            },
+        )
+    };
+    let user = msg(1, MessageOrigin::UserInput);
+    let unassigned = Arc::new(
+        Event::new(
+            user.position().clone(),
+            Some("thread".into()),
+            None,
+            user.time().clone(),
+            vec![],
+            user.payload().clone(),
+        )
+        .unwrap(),
+    );
+    let outside = Arc::new(
+        Event::new(
+            user.position().clone(),
+            Some("other-thread".into()),
+            Some("turn".into()),
+            user.time().clone(),
+            vec![],
+            user.payload().clone(),
+        )
+        .unwrap(),
+    );
+    let events = [
+        user,
+        msg(2, MessageOrigin::UserInput),
+        msg(3, MessageOrigin::UserUnclassified),
+        msg(4, MessageOrigin::InjectedContext),
+        msg(5, MessageOrigin::Reasoning),
+        msg(6, MessageOrigin::Inherited),
+        msg(7, MessageOrigin::InterAgent),
+        msg(8, MessageOrigin::Compaction),
+        unassigned,
+        outside,
+    ];
+    let out = analyze_events(&events);
+    assert_eq!(out.coverage.user_input_records, 2);
+    assert_eq!(out.coverage.unclassified_user_records, 1);
+    assert_eq!(out.coverage.injected_context_records, 1);
+    assert_eq!(out.coverage.reasoning_message_records, 1);
+    assert_eq!(out.coverage.unassigned_events, 1);
+    assert_eq!(out.coverage.outside_events, 1);
+    assert_eq!(out.coverage.content_candidates, 0);
+}

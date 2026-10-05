@@ -401,3 +401,46 @@ fn unknown_replay_targets_poison_the_same_family_in_both_input_orders() {
         }
     }
 }
+
+#[test]
+fn native_multiple_skill_candidates_share_one_canonical_row_and_no_invented_dispatch() {
+    let mut op = operation("native", "command").as_ref().clone();
+    op.path = None;
+    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"a/SKILL.md"},{"kind":"read","path":"b/SKILL.md"},{"kind":"read","path":"a/./SKILL.md"}]},"gaps":[]})).unwrap());
+    let operations = vec![Arc::new(op)];
+    let owner = thread();
+    let cancelled = AtomicBool::new(false);
+    let out = project(confirmed(&owner, &operations, &cancelled)).unwrap();
+    assert_eq!(out.records.len(), 1);
+    assert_eq!(out.objects.len(), 2);
+    assert_eq!(out.records[0].objects.len(), 2);
+    assert!(!out.records[0].unbound_target);
+    assert_eq!(out.records[0].object, None);
+    assert!(out.unassigned_records.is_empty());
+    assert_eq!(out.coverage.dispatch_gaps, 1);
+    assert_eq!(out.coverage.target_gaps, 0);
+    for object in out.objects {
+        assert_eq!(object.records, vec![0]);
+        assert_eq!(object.associated_use_count, None);
+        assert_eq!(object.coverage.dispatch_gaps, 1);
+    }
+}
+
+#[test]
+fn replay_missing_time_coverage_is_order_independent_without_erasing_all_time_count() {
+    let first = operation("canonical-time", "skillRead");
+    let mut unknown = first.as_ref().clone();
+    unknown.timestamp = None;
+    let unknown = Arc::new(unknown);
+    let owner = thread();
+    let cancelled = AtomicBool::new(false);
+    for operations in [
+        vec![first.clone(), unknown.clone()],
+        vec![unknown.clone(), first.clone()],
+    ] {
+        let out = project(confirmed(&owner, &operations, &cancelled)).unwrap();
+        assert_eq!(out.objects[0].associated_use_count, Some(1));
+        assert_eq!(out.objects[0].coverage.time_gaps, 1);
+        assert_eq!(out.coverage.time_gaps, 1);
+    }
+}

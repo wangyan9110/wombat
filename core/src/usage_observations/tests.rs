@@ -195,3 +195,97 @@ fn reliable_operation_identity_requires_canonical_owner_and_native_call_or_item(
         assert_eq!(projection.coverage.identity_gaps, 1);
     }
 }
+
+fn native_read(paths: &[Option<&str>]) -> Operation {
+    let mut op = operation("native", "command");
+    op.path = None;
+    op.work = Some(crate::adapters::contract::WorkObservation {
+        format_version: crate::adapters::contract::WORK_OBSERVATION_VERSION,
+        stage: crate::adapters::contract::WorkStage::Terminal,
+        data: crate::adapters::contract::WorkData::Command {
+            cwd: Some("/synthetic/native-cwd".into()),
+            source: Some(crate::adapters::contract::CommandSource::Agent),
+            parsed_commands: Some(
+                paths
+                    .iter()
+                    .map(|path| crate::adapters::contract::ParsedCommand::Read {
+                        path: path.map(str::to_owned),
+                    })
+                    .collect(),
+            ),
+        },
+        gaps: vec![],
+    });
+    op
+}
+#[test]
+fn native_multiple_read_labels_remain_candidates_with_recorded_cwd_not_project() {
+    let op = native_read(&[
+        Some("a/SKILL.md"),
+        Some("b/SKILL.md"),
+        Some("a/SKILL.md"),
+        None,
+    ]);
+    let targets = read_targets(&op).unwrap();
+    assert!(targets.candidate && targets.unbound && targets.may_be_skill());
+    assert_eq!(use_kind(&op), None);
+    assert_eq!(
+        targets.resolve(targets.paths[0], Some("/wrong-project")),
+        Some("/synthetic/native-cwd/a/SKILL.md".into())
+    );
+    let mut op = op;
+    let WorkData::Command { source, .. } = &mut op.work.as_mut().unwrap().data else {
+        panic!()
+    };
+    *source = Some(CommandSource::UserShell);
+    assert!(read_targets(&op).is_none());
+    op.kind = "skillRead".into();
+    assert_eq!(use_kind(&op), None);
+    let WorkData::Command { source, cwd, .. } = &mut op.work.as_mut().unwrap().data else {
+        panic!()
+    };
+    *source = Some(CommandSource::Agent);
+    *cwd = Some("file:///synthetic/native-cwd".into());
+    assert_eq!(
+        read_targets(&op)
+            .unwrap()
+            .resolve("a/SKILL.md", Some("/wrong-project")),
+        None
+    );
+}
+#[test]
+fn replay_target_conflicts_are_order_independent_and_not_based_on_outcome_or_time() {
+    let first = operation("canonical", "skillRead");
+    let mut second = first.clone();
+    second.path = Some("/synthetic/other/SKILL.md".into());
+    for records in [[&first, &second], [&second, &first]] {
+        assert!(
+            target_conflicts(|| records.into_iter(), |_| None, |_| true)
+                .contains(&("thread", "canonical"))
+        );
+    }
+    let mut result = first.clone();
+    result.status = "failed".into();
+    result.timestamp = None;
+    assert!(target_conflicts(|| [&first, &result].into_iter(), |_| None, |_| true).is_empty());
+    let mut anonymous = second;
+    anonymous.call_id = None;
+    assert!(target_conflicts(|| [&first, &anonymous].into_iter(), |_| None, |_| true).is_empty());
+}
+
+#[test]
+fn scoped_replay_registry_checks_off_target_aliases_without_retaining_unrelated_identities() {
+    let selected = operation("selected", "skillRead");
+    let mut alias = selected.clone();
+    alias.path = Some("/other/SKILL.md".into());
+    let unrelated = operation("unrelated", "skillRead");
+    let mut unrelated_alias = unrelated.clone();
+    unrelated_alias.path = Some("/different/SKILL.md".into());
+    let records = [&selected, &alias, &unrelated, &unrelated_alias];
+    let conflicts = target_conflicts(
+        || records.into_iter(),
+        |_| None,
+        |op| op.id == "selected" && op.path == selected.path,
+    );
+    assert_eq!(conflicts, BTreeSet::from([("thread", "selected")]));
+}

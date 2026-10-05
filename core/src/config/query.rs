@@ -195,11 +195,44 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             .collect::<Vec<_>>();
         let mut unassigned_sources = BTreeSet::<String>::new();
         let mut unassigned_skill_sources = BTreeSet::<String>::new();
+        let conflicts = usage_observations::target_conflicts(
+            || snapshot.operation_facts().map(AsRef::as_ref),
+            |op| {
+                threads
+                    .get(op.thread_id.as_ref())
+                    .and_then(|thread| thread.project.as_deref())
+            },
+            |op| {
+                let Some(thread) = threads.get(op.thread_id.as_ref()) else {
+                    return false;
+                };
+                if scope
+                    .source_instance_id
+                    .as_ref()
+                    .is_some_and(|id| id != &thread.source_instance_id)
+                    || scope.thread_id.as_ref().is_some_and(|id| id != &thread.id)
+                {
+                    return false;
+                }
+                if let Some(reads) = usage_observations::read_targets(op) {
+                    (reads.unbound && !paths.is_empty())
+                        || reads.paths.iter().any(|raw| {
+                            reads
+                                .resolve(raw, thread.project.as_deref())
+                                .is_some_and(|path| {
+                                    paths.contains_key(&(thread.source_instance_id.clone(), path))
+                                })
+                        })
+                } else {
+                    op.server.as_ref().is_some_and(|server| {
+                        servers
+                            .contains_key(&(thread.source_instance_id.clone(), server.to_string()))
+                    })
+                }
+            },
+        );
         let mut seen = BTreeSet::new();
         for op in snapshot.operation_facts() {
-            if !seen.insert((op.thread_id.as_ref(), op.id.as_str())) {
-                continue;
-            }
             let Some(thread) = threads.get(op.thread_id.as_ref()) else {
                 continue;
             };
@@ -215,6 +248,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             let skill_available = op.kind.as_ref() == "skillAvailable";
             let use_kind = usage_observations::use_kind(op);
             let candidate_read = usage_observations::is_skill_read_candidate(op);
+            let reads = usage_observations::read_targets(op);
             let file_read = instruction_load
                 || op.kind.as_ref() == "skillRead"
                 || (op.name.as_ref() == "read_file"
@@ -231,92 +265,156 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                 }
                 continue;
             }
-            let candidates = if file_read || skill_available {
-                normalized_operation_path(op.path.as_deref(), thread.project.as_deref())
-                    .and_then(|path| paths.get(&(thread.source_instance_id.clone(), path)))
-            } else if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource") {
-                op.server
-                    .as_ref()
-                    .and_then(|s| servers.get(&(thread.source_instance_id.clone(), s.to_string())))
-            } else {
-                None
-            };
-            let Some(candidates) = candidates else {
-                if (use_kind.is_some() || candidate_read)
-                    && (in_time(op.timestamp.as_deref(), &scope, tz)
-                        || usage_observations::time_basis(op) == TimeBasis::Unknown)
-                    && scope
-                        .project
-                        .as_ref()
-                        .is_none_or(|p| thread.project.as_ref() == Some(p))
-                {
-                    if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource") && op.server.is_none()
-                    {
-                        unassigned_sources.insert(thread.source_instance_id.clone());
-                    } else if file_read
-                        && normalized_operation_path(op.path.as_deref(), thread.project.as_deref())
-                            .is_none()
-                    {
-                        unassigned_skill_sources.insert(thread.source_instance_id.clone());
-                    }
-                    result.coverage.issues.push(Issue {
-                        code: "usageOperationTargetUnknown".into(),
-                        path: None,
-                    });
-                }
-                continue;
-            };
-            let candidates = candidates
-                .iter()
-                .copied()
-                .filter(|n| {
-                    file_read
-                        || skill_available
-                        || items[*n]
-                            .project
-                            .as_ref()
-                            .is_none_or(|p| thread.project.as_ref() == Some(p))
-                })
-                .collect::<Vec<_>>();
-            if candidates.len() != 1 {
-                if (use_kind.is_some() || candidate_read)
-                    && scope
-                        .project
-                        .as_ref()
-                        .is_none_or(|p| thread.project.as_ref() == Some(p))
-                    && (in_time(op.timestamp.as_deref(), &scope, tz)
-                        || usage_observations::time_basis(op) == TimeBasis::Unknown)
-                {
-                    for index in candidates {
-                        item_uses[index].coverage.target_gaps += 1;
+            let mut read_paths = BTreeSet::new();
+            let mut unbound_read = false;
+            if let Some(reads) = &reads {
+                unbound_read = reads.unbound && (use_kind.is_some() || candidate_read);
+                for raw in &reads.paths {
+                    if let Some(path) = reads.resolve(raw, thread.project.as_deref()) {
+                        read_paths.insert(path);
+                    } else if usage_observations::is_skill_file(raw) {
+                        unbound_read = true;
                     }
                 }
-                continue;
             }
-            let n = candidates[0];
-            if !in_time(op.timestamp.as_deref(), &scope, tz) {
-                if (use_kind.is_some() || candidate_read)
-                    && usage_observations::time_basis(op) == TimeBasis::Unknown
-                    && scope
-                        .project
-                        .as_ref()
-                        .is_none_or(|p| thread.project.as_ref() == Some(p))
-                {
-                    item_uses[n].coverage.time_gaps += 1;
-                }
-                continue;
-            }
-            let item = &mut items[n];
-            if candidate_read {
-                if scope
+            if unbound_read
+                && (in_time(op.timestamp.as_deref(), &scope, tz)
+                    || usage_observations::time_basis(op) == TimeBasis::Unknown)
+                && scope
                     .project
                     .as_ref()
                     .is_none_or(|p| thread.project.as_ref() == Some(p))
-                {
-                    item_uses[n].coverage.dispatch_gaps += 1;
-                    if usage_observations::time_basis(op) == TimeBasis::Unknown {
-                        item_uses[n].coverage.time_gaps += 1;
+            {
+                unassigned_skill_sources.insert(thread.source_instance_id.clone());
+            }
+            if read_paths.is_empty() {
+                read_paths.insert(String::new());
+            }
+            for read_path in &read_paths {
+                let candidates = if reads.is_some() {
+                    paths.get(&(thread.source_instance_id.clone(), read_path.clone()))
+                } else if file_read || skill_available {
+                    normalized_operation_path(op.path.as_deref(), thread.project.as_deref())
+                        .and_then(|path| paths.get(&(thread.source_instance_id.clone(), path)))
+                } else if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource") {
+                    op.server.as_ref().and_then(|s| {
+                        servers.get(&(thread.source_instance_id.clone(), s.to_string()))
+                    })
+                } else {
+                    None
+                };
+                let Some(candidates) = candidates else {
+                    if (use_kind.is_some() || candidate_read)
+                        && (in_time(op.timestamp.as_deref(), &scope, tz)
+                            || usage_observations::time_basis(op) == TimeBasis::Unknown)
+                        && scope
+                            .project
+                            .as_ref()
+                            .is_none_or(|p| thread.project.as_ref() == Some(p))
+                    {
+                        if matches!(op.kind.as_ref(), "mcpTool" | "mcpResource")
+                            && op.server.is_none()
+                        {
+                            unassigned_sources.insert(thread.source_instance_id.clone());
+                        } else if file_read
+                            && normalized_operation_path(
+                                op.path.as_deref(),
+                                thread.project.as_deref(),
+                            )
+                            .is_none()
+                        {
+                            unassigned_skill_sources.insert(thread.source_instance_id.clone());
+                        }
+                        result.coverage.issues.push(Issue {
+                            code: "usageOperationTargetUnknown".into(),
+                            path: None,
+                        });
                     }
+                    continue;
+                };
+                let candidates = candidates
+                    .iter()
+                    .copied()
+                    .filter(|n| {
+                        file_read
+                            || skill_available
+                            || items[*n]
+                                .project
+                                .as_ref()
+                                .is_none_or(|p| thread.project.as_ref() == Some(p))
+                    })
+                    .collect::<Vec<_>>();
+                if candidates.len() != 1 {
+                    if (use_kind.is_some() || candidate_read)
+                        && scope
+                            .project
+                            .as_ref()
+                            .is_none_or(|p| thread.project.as_ref() == Some(p))
+                        && (in_time(op.timestamp.as_deref(), &scope, tz)
+                            || usage_observations::time_basis(op) == TimeBasis::Unknown)
+                    {
+                        for index in candidates {
+                            item_uses[index].coverage.target_gaps += 1;
+                        }
+                    }
+                    continue;
+                }
+                let n = candidates[0];
+                if usage_observations::time_basis(op) == TimeBasis::Unknown {
+                    item_uses[n].note_time_gap(op);
+                }
+                if let Some(identity) = usage_observations::operation_identity(op)
+                    && !seen.insert((identity, n))
+                {
+                    continue;
+                }
+                if !in_time(op.timestamp.as_deref(), &scope, tz) {
+                    continue;
+                }
+                if usage_observations::operation_identity(op)
+                    .is_some_and(|identity| conflicts.contains(&identity))
+                {
+                    item_uses[n].coverage.target_gaps += 1;
+                }
+                let item = &mut items[n];
+                if reads.as_ref().is_some_and(|reads| reads.candidate) {
+                    if scope
+                        .project
+                        .as_ref()
+                        .is_none_or(|p| thread.project.as_ref() == Some(p))
+                    {
+                        item_uses[n].coverage.dispatch_gaps += 1;
+                        if item.kind == Kind::Rule {
+                            result.coverage.issues.push(Issue {
+                                code: "ruleReadDispatchUnknown".into(),
+                                path: Some(item.path.clone()),
+                            });
+                        }
+                        if r.item_id.as_ref() == Some(&item.id) {
+                            evidence.push(Evidence {
+                                id: op.id.clone(),
+                                source_instance_id: Some(thread.source_instance_id.clone()),
+                                item_id: item.id.clone(),
+                                thread_id: thread.id.clone(),
+                                turn_id: op.turn_id.as_deref().map(str::to_owned),
+                                title: thread.title.clone(),
+                                project: thread.project.clone(),
+                                timestamp: op.timestamp.clone(),
+                                event_type: if item.kind == Kind::Rule {
+                                    "rule_read_candidate"
+                                } else {
+                                    "skill_read_candidate"
+                                }
+                                .into(),
+                                outcome: "unknown".into(),
+                                association: "operationDispatchUnknown".into(),
+                                usage: None,
+                            });
+                        }
+                    }
+                    continue;
+                }
+                if skill_available {
                     if r.item_id.as_ref() == Some(&item.id) {
                         evidence.push(Evidence {
                             id: op.id.clone(),
@@ -327,16 +425,122 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                             title: thread.title.clone(),
                             project: thread.project.clone(),
                             timestamp: op.timestamp.clone(),
-                            event_type: "skill_read_candidate".into(),
-                            outcome: "unknown".into(),
-                            association: "operationDispatchUnknown".into(),
+                            event_type: "skill_available".into(),
+                            outcome: "observed".into(),
+                            association: "hostAvailability".into(),
                             usage: None,
                         });
                     }
+                    continue;
                 }
-                continue;
-            }
-            if skill_available {
+                let observed_use =
+                    use_kind.is_some() && matches!(item.kind, Kind::Skill | Kind::Mcp);
+                let full_scope = Scope {
+                    project: None,
+                    ..scope.clone()
+                };
+                let indices = op
+                    .turn_id
+                    .as_deref()
+                    .and_then(|u| turns.get(&(thread.id.as_str(), u)))
+                    .into_iter()
+                    .flatten()
+                    .copied()
+                    .filter(|i| matches_row(ledger[*i], &full_scope, tz, &projects))
+                    .collect::<BTreeSet<_>>();
+                if r.item_id.as_ref() == Some(&item.id) {
+                    let entry = related.entry(thread.project.clone()).or_default();
+                    entry.0 += 1;
+                    entry.1.extend(&indices);
+                }
+                if scope
+                    .project
+                    .as_ref()
+                    .is_some_and(|p| thread.project.as_ref() != Some(p))
+                {
+                    continue;
+                }
+                if op.timestamp > item.last_record_at {
+                    item.last_record_at = op.timestamp.clone();
+                }
+                let typ = if item.kind == Kind::Mcp {
+                    if op.kind.as_ref() == "mcpResource" {
+                        item.counts.resource_reads += 1;
+                    } else {
+                        item.counts.tool_calls += 1;
+                    }
+                    item.observation = Observation::Used;
+                    if op.kind.as_ref() == "mcpResource" {
+                        "resource_read"
+                    } else {
+                        "tool_call"
+                    }
+                } else if item.kind == Kind::Skill {
+                    if file_read {
+                        item.counts.file_reads += 1;
+                    }
+                    if observed_use {
+                        item.observation = Observation::Used;
+                    }
+                    "file_read"
+                } else {
+                    item.counts.file_reads += 1;
+                    if op.status.as_ref() == "completed" {
+                        item.observation = Observation::LoadedOnly;
+                    }
+                    if instruction_load {
+                        "instruction_load"
+                    } else {
+                        "file_read"
+                    }
+                };
+                match op.status.as_ref() {
+                    "completed" => item.counts.succeeded += 1,
+                    "failed" => item.counts.failed += 1,
+                    _ => item.counts.outcome_unknown += 1,
+                };
+                if let Some(context) = item
+                    .source_contexts
+                    .iter_mut()
+                    .find(|c| c.source_instance_id == thread.source_instance_id)
+                {
+                    if op.timestamp > context.last_record_at {
+                        context.last_record_at = op.timestamp.clone();
+                    }
+                    if item.kind == Kind::Mcp {
+                        if op.kind.as_ref() == "mcpResource" {
+                            context.counts.resource_reads += 1;
+                        } else {
+                            context.counts.tool_calls += 1;
+                        }
+                        context.observation = Observation::Used;
+                    } else if item.kind == Kind::Skill {
+                        if file_read {
+                            context.counts.file_reads += 1;
+                        }
+                        if observed_use {
+                            context.observation = Observation::Used;
+                        }
+                    } else {
+                        context.counts.file_reads += 1;
+                        if op.status.as_ref() == "completed" {
+                            context.observation = Observation::LoadedOnly;
+                        }
+                    }
+                    match op.status.as_ref() {
+                        "completed" => context.counts.succeeded += 1,
+                        "failed" => context.counts.failed += 1,
+                        _ => context.counts.outcome_unknown += 1,
+                    }
+                }
+                item_rows[n].extend(&indices);
+                item_tasks[n].insert(thread.id.clone());
+                if observed_use {
+                    item_uses[n].observe_with_time_accounted(op);
+                }
+                if let Some(u) = &op.turn_id {
+                    item_turns[n].insert(format!("{}:{u}", thread.id));
+                }
                 if r.item_id.as_ref() == Some(&item.id) {
                     evidence.push(Evidence {
                         id: op.id.clone(),
@@ -347,136 +551,12 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                         title: thread.title.clone(),
                         project: thread.project.clone(),
                         timestamp: op.timestamp.clone(),
-                        event_type: "skill_available".into(),
-                        outcome: "observed".into(),
-                        association: "hostAvailability".into(),
-                        usage: None,
+                        event_type: typ.into(),
+                        outcome: op.status.to_string(),
+                        association: "identityOnlyVersionUnknown".into(),
+                        usage: usage(&indices.iter().map(|i| ledger[*i]).collect::<Vec<_>>())?,
                     });
                 }
-                continue;
-            }
-            let observed_use = use_kind.is_some() && matches!(item.kind, Kind::Skill | Kind::Mcp);
-            let full_scope = Scope {
-                project: None,
-                ..scope.clone()
-            };
-            let indices = op
-                .turn_id
-                .as_deref()
-                .and_then(|u| turns.get(&(thread.id.as_str(), u)))
-                .into_iter()
-                .flatten()
-                .copied()
-                .filter(|i| matches_row(ledger[*i], &full_scope, tz, &projects))
-                .collect::<BTreeSet<_>>();
-            if r.item_id.as_ref() == Some(&item.id) {
-                let entry = related.entry(thread.project.clone()).or_default();
-                entry.0 += 1;
-                entry.1.extend(&indices);
-            }
-            if scope
-                .project
-                .as_ref()
-                .is_some_and(|p| thread.project.as_ref() != Some(p))
-            {
-                continue;
-            }
-            if op.timestamp > item.last_record_at {
-                item.last_record_at = op.timestamp.clone();
-            }
-            let typ = if item.kind == Kind::Mcp {
-                if op.kind.as_ref() == "mcpResource" {
-                    item.counts.resource_reads += 1;
-                } else {
-                    item.counts.tool_calls += 1;
-                }
-                item.observation = Observation::Used;
-                if op.kind.as_ref() == "mcpResource" {
-                    "resource_read"
-                } else {
-                    "tool_call"
-                }
-            } else if item.kind == Kind::Skill {
-                if file_read {
-                    item.counts.file_reads += 1;
-                }
-                if observed_use {
-                    item.observation = Observation::Used;
-                }
-                "file_read"
-            } else {
-                item.counts.file_reads += 1;
-                if op.status.as_ref() == "completed" {
-                    item.observation = Observation::LoadedOnly;
-                }
-                if instruction_load {
-                    "instruction_load"
-                } else {
-                    "file_read"
-                }
-            };
-            match op.status.as_ref() {
-                "completed" => item.counts.succeeded += 1,
-                "failed" => item.counts.failed += 1,
-                _ => item.counts.outcome_unknown += 1,
-            };
-            if let Some(context) = item
-                .source_contexts
-                .iter_mut()
-                .find(|c| c.source_instance_id == thread.source_instance_id)
-            {
-                if op.timestamp > context.last_record_at {
-                    context.last_record_at = op.timestamp.clone();
-                }
-                if item.kind == Kind::Mcp {
-                    if op.kind.as_ref() == "mcpResource" {
-                        context.counts.resource_reads += 1;
-                    } else {
-                        context.counts.tool_calls += 1;
-                    }
-                    context.observation = Observation::Used;
-                } else if item.kind == Kind::Skill {
-                    if file_read {
-                        context.counts.file_reads += 1;
-                    }
-                    if observed_use {
-                        context.observation = Observation::Used;
-                    }
-                } else {
-                    context.counts.file_reads += 1;
-                    if op.status.as_ref() == "completed" {
-                        context.observation = Observation::LoadedOnly;
-                    }
-                }
-                match op.status.as_ref() {
-                    "completed" => context.counts.succeeded += 1,
-                    "failed" => context.counts.failed += 1,
-                    _ => context.counts.outcome_unknown += 1,
-                }
-            }
-            item_rows[n].extend(&indices);
-            item_tasks[n].insert(thread.id.clone());
-            if observed_use {
-                item_uses[n].observe(op);
-            }
-            if let Some(u) = &op.turn_id {
-                item_turns[n].insert(format!("{}:{u}", thread.id));
-            }
-            if r.item_id.as_ref() == Some(&item.id) {
-                evidence.push(Evidence {
-                    id: op.id.clone(),
-                    source_instance_id: Some(thread.source_instance_id.clone()),
-                    item_id: item.id.clone(),
-                    thread_id: thread.id.clone(),
-                    turn_id: op.turn_id.as_deref().map(str::to_owned),
-                    title: thread.title.clone(),
-                    project: thread.project.clone(),
-                    timestamp: op.timestamp.clone(),
-                    event_type: typ.into(),
-                    outcome: op.status.to_string(),
-                    association: "identityOnlyVersionUnknown".into(),
-                    usage: usage(&indices.iter().map(|i| ledger[*i]).collect::<Vec<_>>())?,
-                });
             }
         }
         let mut union = BTreeSet::<usize>::new();
@@ -636,11 +716,5 @@ fn catalog_occurrence(operation: &crate::adapters::contract::Operation) -> Strin
 }
 
 fn normalized_operation_path(path: Option<&str>, project: Option<&str>) -> Option<String> {
-    let path = PathBuf::from(path?);
-    let path = if path.is_absolute() {
-        crate::absolute(path).ok()?
-    } else {
-        crate::absolute(PathBuf::from(project?).join(path)).ok()?
-    };
-    Some(path.to_string_lossy().into_owned())
+    usage_observations::normalized_path(path?, project)
 }

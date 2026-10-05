@@ -12,7 +12,7 @@ const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
 const distribution = () => ({ samples: count(), median: count(), p90: count() });
 export const useTotals = () => ({
-  methodVersion: 1, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(),
+  methodVersion: 2, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(),
   unboundTargetRecords: count(), unassignedSkillRecords: count(), unassignedMcpRecords: count(),
   coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() },
 });

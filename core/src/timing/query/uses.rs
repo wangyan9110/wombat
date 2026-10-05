@@ -407,7 +407,7 @@ pub(super) fn page(
                         )
                         .filter(|n| *n <= DETAIL_BYTES)
                         .ok_or_else(limit)?;
-                    Ok(records::row(snapshot, target, &uses, index))
+                    Ok(records::row(snapshot, target, &uses, index, object))
                 })
                 .collect::<Result<Vec<_>>>()?;
             Response::UseRecords(UseRecordsResponse {

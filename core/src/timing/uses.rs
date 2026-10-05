@@ -8,7 +8,6 @@ use crate::{
 use anyhow::Result;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    path::Path,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -76,6 +75,8 @@ pub(crate) struct Record<'a> {
     pub kind: Option<UseKind>,
     pub state: UseState,
     pub object: Option<usize>,
+    pub objects: Vec<usize>,
+    pub unbound_target: bool,
     pub identity_known: bool,
     pub time_basis: TimeBasis,
     pub replay_of: Option<usize>,
@@ -139,33 +140,23 @@ fn target(
     input: &Input<'_>,
     operation: &Operation,
     family: Family,
+    raw: Option<&str>,
+    base: Option<&str>,
     remaining: &mut usize,
 ) -> Result<Option<ObjectKey>> {
     charge(remaining, input.thread.source_instance_id.len())?;
     match family {
         Family::Skill => {
-            let Some(raw) = operation.path.as_deref().filter(|p| !p.is_empty()) else {
+            let Some(raw) = raw.filter(|p| !p.is_empty()) else {
                 return Ok(None);
             };
             charge(remaining, raw.len())?;
-            let path = Path::new(raw);
-            let path = if path.is_absolute() {
-                path.to_path_buf()
-            } else {
-                let Some(project) = input
-                    .thread
-                    .project
-                    .as_deref()
-                    .filter(|p| Path::new(p).is_absolute())
-                else {
-                    return Ok(None);
-                };
-                charge(remaining, project.len())?;
-                Path::new(project).join(path)
+            if let Some(base) = base {
+                charge(remaining, base.len())?;
+            }
+            let Some(path) = usage_observations::normalized_path(raw, base) else {
+                return Ok(None);
             };
-            // The input is already absolute: absolute() performs lexical normalization,
-            // never current-cwd discovery, filesystem canonicalization or content reads.
-            let path = crate::absolute(path)?.to_string_lossy().into_owned();
             Ok(Some(ObjectKey::Skill {
                 source: input.thread.source_instance_id.clone(),
                 path,
@@ -219,6 +210,7 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
     let mut unknown_mcp_targets = BTreeSet::new();
     let mut target_conflicts = BTreeSet::new();
     let mut dispatch_gaps = BTreeSet::new();
+    let mut time_gaps = BTreeSet::new();
     for operation in input.operations {
         check(input.cancelled)?;
         if operation.thread_id.as_ref() != input.thread.id
@@ -244,21 +236,52 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
         if let Some(timestamp) = &operation.timestamp {
             charge(&mut remaining, timestamp.len())?;
         }
-        let key = target(&input, operation, family, &mut remaining)?;
-        let object = key.map(|key| {
-            let key = Arc::new(key);
-            *object_keys.entry(key.clone()).or_insert_with(|| {
-                let index = objects.len();
-                objects.push(ObjectBuilder {
-                    key,
-                    projection: Projection::default(),
-                    records: vec![],
-                    target_conflicts: BTreeSet::new(),
-                    dispatch_gaps: BTreeSet::new(),
-                });
-                index
+        let reads = usage_observations::read_targets(operation);
+        let mut keys = BTreeSet::new();
+        let mut unbound = false;
+        if family == Family::Skill {
+            if let Some(reads) = &reads {
+                unbound = reads.unbound;
+                for raw in &reads.paths {
+                    check(input.cancelled)?;
+                    if !usage_observations::is_skill_file(raw) && candidate {
+                        charge(&mut remaining, raw.len())?;
+                        continue;
+                    }
+                    let base = reads.native_cwd.unwrap_or(input.thread.project.as_deref());
+                    match target(&input, operation, family, Some(raw), base, &mut remaining)? {
+                        Some(key) => {
+                            keys.insert(key);
+                        }
+                        None => unbound = true,
+                    }
+                }
+            } else {
+                unbound = true;
+            }
+        } else if let Some(key) = target(&input, operation, family, None, None, &mut remaining)? {
+            keys.insert(key);
+        } else {
+            unbound = true;
+        }
+        let associated = keys
+            .into_iter()
+            .map(|key| {
+                let key = Arc::new(key);
+                *object_keys.entry(key.clone()).or_insert_with(|| {
+                    let index = objects.len();
+                    objects.push(ObjectBuilder {
+                        key,
+                        projection: Projection::default(),
+                        records: vec![],
+                        target_conflicts: BTreeSet::new(),
+                        dispatch_gaps: BTreeSet::new(),
+                    });
+                    index
+                })
             })
-        });
+            .collect::<Vec<_>>();
+        let object = (associated.len() == 1).then(|| associated[0]);
         let identity = usage_observations::operation_identity(operation);
         let previous = identity.and_then(|identity| identities.get(&identity).copied());
         let index = records.len();
@@ -267,26 +290,37 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
             kind,
             state,
             object,
+            objects: associated.clone(),
+            unbound_target: unbound,
             identity_known: identity.is_some(),
             time_basis: usage_observations::time_basis(operation),
             replay_of: previous,
             target_conflict: false,
         });
-        if let Some(object) = object {
-            objects[object].records.push(index);
-        } else {
+        for object in &associated {
+            objects[*object].records.push(index);
+        }
+        if unbound {
             unassigned_records.push(index);
+        }
+        if usage_observations::time_basis(operation) == TimeBasis::Unknown {
+            for object in &associated {
+                objects[*object].projection.note_time_gap(operation);
+            }
         }
         // Gaps belong to the canonical identity, including replay evidence. Record them
         // before skipping a replay, so unresolved targets cannot depend on input order.
         let group = previous.unwrap_or(index);
+        if usage_observations::time_basis(operation) == TimeBasis::Unknown {
+            time_gaps.insert(group);
+        }
         if state != UseState::Used {
             dispatch_gaps.insert(group);
-            if let Some(object) = object {
-                objects[object].dispatch_gaps.insert(group);
+            for object in &associated {
+                objects[*object].dispatch_gaps.insert(group);
             }
         }
-        if object.is_none() || unclassified {
+        if unbound || unclassified {
             match family {
                 Family::Skill => unknown_skill_targets.insert(group),
                 Family::Mcp => unknown_mcp_targets.insert(group),
@@ -294,16 +328,16 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
         }
         if let Some(previous) = previous {
             let old = &records[previous];
-            if old.object != object || old.kind != kind || old.state != state {
+            if old.objects != associated
+                || old.unbound_target != unbound
+                || old.kind != kind
+                || old.state != state
+            {
                 records[index].target_conflict = true;
                 records[previous].target_conflict = true;
                 target_conflicts.insert(group);
-                let prior_object = records[previous].object;
-                if let Some(prior) = prior_object {
-                    objects[prior].target_conflicts.insert(group);
-                }
-                if let Some(current) = object.filter(|current| Some(*current) != prior_object) {
-                    objects[current].target_conflicts.insert(group);
+                for object in records[previous].objects.iter().chain(&associated) {
+                    objects[*object].target_conflicts.insert(group);
                 }
             }
             continue;
@@ -317,12 +351,10 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
         if usage_observations::time_basis(operation) == TimeBasis::Unknown {
             coverage.time_gaps += 1;
         }
-        if let Some(object) = object {
+        for object in associated {
             let projection = &mut objects[object].projection;
             if state == UseState::Used {
-                projection.observe(operation);
-            } else if usage_observations::time_basis(operation) == TimeBasis::Unknown {
-                projection.coverage.time_gaps += 1;
+                projection.observe_with_time_accounted(operation);
             }
         }
     }
@@ -335,6 +367,7 @@ pub(crate) fn project(input: Input<'_>) -> Result<TurnUses<'_>> {
             records[index].target_conflict = true;
         }
     }
+    coverage.time_gaps = time_gaps.len();
     coverage.dispatch_gaps = dispatch_gaps.len();
     coverage.target_gaps =
         unknown_skill_targets.len() + unknown_mcp_targets.len() + target_conflicts.len();

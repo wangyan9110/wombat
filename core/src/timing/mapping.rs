@@ -69,6 +69,7 @@ fn status(basis: Basis) -> MetricStatus {
         | Basis::SafeEventCount
         | Basis::RequestInput
         | Basis::SafeMessageRecord
+        | Basis::CanonicalOperationIdentity
         | Basis::CanonicalUseIdentity
         | Basis::CanonicalUseRecords
         | Basis::UnassignedUseIndex => MetricStatus::Observed,
@@ -94,8 +95,8 @@ pub(super) fn capabilities() -> Capabilities {
         context_pressure: capability(Support::Partial, Basis::HistoricalWindow),
         strict_response_gap: capability(Support::Unavailable, Basis::MissingBatchCycle),
         exploratory_gap: capability(Support::Unavailable, Basis::UnsupportedMethod),
-        command_labels: capability(Support::Unavailable, Basis::AdapterNotMapped),
-        file_changes: capability(Support::Unavailable, Basis::AdapterNotMapped),
+        command_labels: capability(Support::Unavailable, Basis::UnsupportedMethod),
+        file_changes: capability(Support::Partial, Basis::ReportedFilePaths),
         message_records: capability(Support::Partial, Basis::SafeMessageRecord),
         object_uses: capability(Support::Partial, Basis::CanonicalUseIdentity),
     }
@@ -595,24 +596,83 @@ pub(super) fn context(a: &Analysis, refs: &[String], fallback: Option<Basis>) ->
         ),
     }
 }
-pub(super) fn work(a: &Analysis, refs: &[String], fallback: Option<Basis>) -> Work {
-    let marker = |value| fallback.map_or_else(|| observed(value, refs), unavailable);
+pub(super) fn work_gap(gap: super::work::Gap) -> Basis {
+    use super::work::Gap;
+    match gap {
+        Gap::MissingIdentity => Basis::MissingIdentity,
+        Gap::CanonicalConflict => Basis::BoundaryConflict,
+        Gap::UnknownOutcome | Gap::NonTerminalFile => Basis::NotRecorded,
+        Gap::UnknownOperationKind | Gap::MissingWorkMetadata => Basis::AdapterNotMapped,
+        Gap::InvalidFileMetadata => Basis::SourcePartial,
+        Gap::MissingChanges => Basis::NotRecorded,
+        Gap::ResourceLimit => Basis::ResourceLimit,
+        Gap::MissingPathScope => Basis::MissingTarget,
+    }
+}
+fn work_count(metric: &super::work::Count, refs: &[String]) -> Count {
+    let basis = if metric.value.is_none() {
+        metric
+            .gaps
+            .first()
+            .copied()
+            .map_or(Basis::NotRecorded, work_gap)
+    } else {
+        match metric.basis {
+            super::work::Basis::ReportedPathUnion => Basis::ReportedFilePaths,
+            _ => Basis::CanonicalOperationIdentity,
+        }
+    };
+    count(metric.value.map(u128::from), basis, refs)
+}
+pub(super) fn work(
+    a: &Analysis,
+    refs: &[String],
+    operation_refs: &[String],
+    projection: Option<&super::work::Projection>,
+    fallback: Option<Basis>,
+    work_fallback: Option<Basis>,
+) -> Work {
+    let message_fallback = fallback.or_else(|| {
+        a.issues
+            .iter()
+            .any(|i| matches!(i, Issue::ResourceLimit))
+            .then_some(Basis::ResourceLimit)
+    });
+    let marker = |value| message_fallback.map_or_else(|| observed(value, refs), unavailable);
+    let operation = |f: fn(&super::work::Projection) -> &super::work::Count| {
+        projection.map_or_else(
+            || {
+                unavailable(
+                    work_fallback
+                        .or(fallback)
+                        .unwrap_or(Basis::AdapterNotMapped),
+                )
+            },
+            |p| work_count(f(p), operation_refs),
+        )
+    };
     Work {
-        operation_candidates: unavailable(Basis::AdapterNotMapped),
-        closed_operations: unavailable(Basis::AdapterNotMapped),
-        failed_operations: unavailable(Basis::AdapterNotMapped),
-        labelled_command_ms: unavailable(Basis::AdapterNotMapped),
-        file_change_records: unavailable(Basis::AdapterNotMapped),
-        changed_files: unavailable(Basis::AdapterNotMapped),
-        added_lines: unavailable(Basis::AdapterNotMapped),
-        removed_lines: unavailable(Basis::AdapterNotMapped),
+        operation_candidates: operation(|p| &p.operation_candidates),
+        closed_operations: operation(|p| &p.closed_operations),
+        failed_operations: operation(|p| &p.failed_operations),
+        labelled_command_ms: unavailable(Basis::UnsupportedMethod),
+        file_change_records: operation(|p| &p.file_change_records),
+        changed_files: operation(|p| &p.changed_files),
+        added_lines: unavailable(Basis::MissingRepositoryBaseline),
+        removed_lines: unavailable(Basis::MissingRepositoryBaseline),
         message_record_candidates: marker(a.coverage.content_candidates),
         nonempty_visible_content_records: marker(a.coverage.nonempty_content_records),
         unknown_content_records: marker(a.coverage.unknown_content_records),
         missing_content_time_records: marker(a.coverage.missing_content_time_records),
-        user_boundary_records: unavailable(Basis::AdapterNotMapped),
-        injected_context_records: unavailable(Basis::AdapterNotMapped),
-        reasoning_message_records: unavailable(Basis::AdapterNotMapped),
+        user_boundary_records: if message_fallback.is_none()
+            && a.coverage.unclassified_user_records > 0
+        {
+            count(None, Basis::UnknownMessageOrigin, refs)
+        } else {
+            marker(a.coverage.user_input_records)
+        },
+        injected_context_records: marker(a.coverage.injected_context_records),
+        reasoning_message_records: marker(a.coverage.reasoning_message_records),
         compaction_records: marker(a.coverage.lifecycle_candidates[1]),
         repository_baseline: capability(Support::Unavailable, Basis::MissingRepositoryBaseline),
     }
