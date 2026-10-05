@@ -201,3 +201,5 @@ export function reviewStatusLabel(status: string): string {
     default: return t('optimize.statusUnavailable');
   }
 }
+
+export { timingCategories, timingCategoryText, timingIntersectionText } from './timing-categories.js';

@@ -1452,3 +1452,74 @@ fn work_observed_empty_and_fallback_unavailable_are_distinct() {
     assert_eq!(mapped.operation_candidates.basis, Basis::ResourceLimit);
     assert_eq!(mapped.user_boundary_records.value, Some(0));
 }
+
+#[test]
+fn mcp_time_is_delivered_in_local_and_private_relative_share_projection() {
+    let operation = event(
+        2,
+        Some(1070),
+        Payload::Item {
+            item_kind: crate::session_events::ItemKind::Mcp,
+            native_id: Some("mcp-item-private".into()),
+            phase: Phase::Completed,
+            started_at_ms: Some(1010),
+            completed_at_ms: Some(1060),
+            duration: None,
+        },
+    );
+    let snapshot = make_snapshot(vec![
+        boundary(0, Some(1000), Phase::Started, None, None),
+        operation.clone(),
+        boundary(3, Some(1100), Phase::Completed, Some(100), None),
+    ]);
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.method_version, "safe_event_turn_v2");
+    assert_eq!(result.time.mcp.union_ms.value, Some(50));
+    assert_eq!(result.time.mcp.sum_ms.value, Some(50));
+    assert_eq!(result.time.mcp.closed.value, Some(1));
+    assert_eq!(result.time.intersection_masks_ms.len(), 16);
+    assert_eq!(result.time.intersection_masks_ms[8].value, Some(50));
+    assert_eq!(result.coverage.lifecycle_candidates.len(), 4);
+    assert_eq!(result.time.timeline.tracks[0].category, TrackCategory::Mcp);
+    assert_eq!(
+        (
+            result.time.timeline.tracks[0].start_ms,
+            result.time.timeline.tracks[0].end_ms
+        ),
+        (10, 60)
+    );
+    let shared = super::super::share::project(&result);
+    assert_eq!(shared.time.mcp.union_ms.value, Some(50));
+    assert_eq!(shared.time.timeline.tracks[0].category, TrackCategory::Mcp);
+    assert_eq!(
+        (
+            shared.time.timeline.tracks[0].start_ms,
+            shared.time.timeline.tracks[0].end_ms
+        ),
+        (10, 60)
+    );
+    let encoded = serde_json::to_string(&shared).unwrap();
+    for private in [
+        operation.id(),
+        "mcp-item-private",
+        "file-private",
+        "generation-private",
+        "thread-private",
+        "source-private",
+    ] {
+        assert!(!encoded.contains(private), "{private}");
+    }
+    let schema = crate::dispatch("schema_timing_local_response", &serde_json::json!({})).unwrap();
+    assert_eq!(
+        schema["definitions"]["Time"]["properties"]["intersectionMasksMs"]["minItems"],
+        16
+    );
+    assert_eq!(
+        schema["definitions"]["Time"]["properties"]["intersectionMasksMs"]["maxItems"],
+        16
+    );
+    assert_eq!(
+        schema["definitions"]["Coverage"]["properties"]["lifecycleCandidates"]["minItems"],
+        4
+    );
+}

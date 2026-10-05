@@ -22,6 +22,7 @@ pub enum Category {
     Command,
     Compaction,
     Reasoning,
+    Mcp,
 }
 impl Category {
     fn index(self) -> usize {
@@ -29,6 +30,7 @@ impl Category {
             Self::Command => 0,
             Self::Compaction => 1,
             Self::Reasoning => 2,
+            Self::Mcp => 3,
         }
     }
 }
@@ -43,6 +45,8 @@ pub struct LifecycleInterval {
     pub evidence_ids: Vec<String>,
 }
 
+pub(super) const CATEGORY_COUNT: usize = 4;
+pub(super) const MASK_COUNT: usize = 1 << CATEGORY_COUNT;
 pub const DETAIL_LIMIT: usize = 200;
 
 #[derive(Debug, PartialEq)]
@@ -104,17 +108,17 @@ pub enum Issue {
 #[derive(Debug, PartialEq)]
 pub struct IntervalMetrics {
     pub observed_window_ms: Option<u64>,
-    pub category_union_ms: [u64; 3],
-    pub category_sum_ms: [u128; 3],
-    /// Bit 0 command, bit 1 compaction, bit 2 reasoning; 0 is unknown.
-    pub mask_ms: [u64; 8],
+    pub category_union_ms: [u64; CATEGORY_COUNT],
+    pub category_sum_ms: [u128; CATEGORY_COUNT],
+    /// Bits 0..3 are command, compaction, reasoning, and MCP; 0 is unknown.
+    pub mask_ms: [u64; MASK_COUNT],
     pub covered_ms: Option<u64>,
     pub unclassified_ms: Option<u64>,
     pub coverage_ratio: Option<f64>,
     pub gap_union_ms: u64,
-    pub gap_intersection_mask_ms: [u64; 8],
-    pub candidates: [usize; 3],
-    pub complete_intervals: [usize; 3],
+    pub gap_intersection_mask_ms: [u64; MASK_COUNT],
+    pub candidates: [usize; CATEGORY_COUNT],
+    pub complete_intervals: [usize; CATEGORY_COUNT],
     pub partial: bool,
     pub issues: Vec<Issue>,
     pub timeline: Timeline,
@@ -153,16 +157,16 @@ pub(super) fn analyze_cancellable(
     check(cancelled)?;
     let mut result = IntervalMetrics {
         observed_window_ms: None,
-        category_union_ms: [0; 3],
-        category_sum_ms: [0; 3],
-        mask_ms: [0; 8],
+        category_union_ms: [0; CATEGORY_COUNT],
+        category_sum_ms: [0; CATEGORY_COUNT],
+        mask_ms: [0; MASK_COUNT],
         covered_ms: None,
         unclassified_ms: None,
         coverage_ratio: None,
         gap_union_ms: 0,
-        gap_intersection_mask_ms: [0; 8],
-        candidates: [0; 3],
-        complete_intervals: [0; 3],
+        gap_intersection_mask_ms: [0; MASK_COUNT],
+        candidates: [0; CATEGORY_COUNT],
+        complete_intervals: [0; CATEGORY_COUNT],
         partial: false,
         issues: Vec::new(),
         timeline: Timeline::default(),
@@ -198,7 +202,7 @@ pub(super) fn analyze_cancellable(
             })
             .or_insert(Some(interval));
     }
-    let mut endpoints: BTreeMap<i64, [i64; 4]> = BTreeMap::new();
+    let mut endpoints: BTreeMap<i64, [i64; CATEGORY_COUNT + 1]> = BTreeMap::new();
     if let Some(window) = usable_window {
         endpoints.entry(window.start_ms).or_default();
         endpoints.entry(window.end_ms).or_default();
@@ -256,14 +260,14 @@ pub(super) fn analyze_cancellable(
         if gap.end_ms < gap.start_ms {
             result.issues.push(Issue::InvalidGap);
         } else if let Some(value) = usable_window.and_then(|window| clip(*gap, window)) {
-            endpoints.entry(value.start_ms).or_default()[3] += 1;
-            endpoints.entry(value.end_ms).or_default()[3] -= 1;
+            endpoints.entry(value.start_ms).or_default()[CATEGORY_COUNT] += 1;
+            endpoints.entry(value.end_ms).or_default()[CATEGORY_COUNT] -= 1;
         }
     }
     let Some(window) = usable_window else {
         return Ok(result);
     };
-    let mut active = [0_i64; 4];
+    let mut active = [0_i64; CATEGORY_COUNT + 1];
     let mut previous = window.start_ms;
     let mut pending_gap: Option<Window> = None;
     for (time, changes) in endpoints {
@@ -273,7 +277,7 @@ pub(super) fn analyze_cancellable(
             end_ms: time,
         });
         let mut mask = 0;
-        for (index, count) in active[..3].iter().enumerate() {
+        for (index, count) in active[..CATEGORY_COUNT].iter().enumerate() {
             if *count > 0 {
                 mask |= 1 << index;
                 result.category_union_ms[index] += duration;
@@ -294,7 +298,7 @@ pub(super) fn analyze_cancellable(
             }
         }
         result.mask_ms[mask] += duration;
-        if active[3] > 0 {
+        if active[CATEGORY_COUNT] > 0 {
             result.gap_union_ms += duration;
             result.gap_intersection_mask_ms[mask] += duration;
         }

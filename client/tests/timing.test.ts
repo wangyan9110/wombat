@@ -15,7 +15,7 @@ const capabilities = {
   lifecycleIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: unavailable,
 };
-const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v1', profile: 'local', capabilities } as const;
+const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v2', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
@@ -23,7 +23,7 @@ const distribution = () => ({ samples: count(), median: count(), p90: count() })
 const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const local: TimingLocalResult = {
-  outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v1', profile: 'local',
+  outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v2', profile: 'local',
   uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
@@ -31,8 +31,8 @@ const local: TimingLocalResult = {
   time: {
     timeline: { presentation: 'list', detail: unavailable, entryCount: count(), trackCount: count(), identifiedIntervalCount: count(), unclassifiedGapCount: count(), unlocatedIntervalCount: count(), outsideWindowIntervalCount: count(), detailLimit: 200, tracks: [], unclassifiedGaps: [] },
     state: 'unknown', nativeWallClockMs: count(), derivedWallClockMs: count(), nativeTtftMs: count(), firstContentRecordDelayMs: count(),
-    boundaryDiscrepancyMs: count(), observedWindowMs: count(), command: category(), compaction: category(), reasoning: category(),
-    intersectionMasksMs: [], coveredMs: count(), unclassifiedMs: count(), coverageRatio: count(), waitingProxyMs: count(),
+    boundaryDiscrepancyMs: count(), observedWindowMs: count(), command: category(), compaction: category(), reasoning: category(), mcp: category(),
+    intersectionMasksMs: [count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count()], coveredMs: count(), unclassifiedMs: count(), coverageRatio: count(), waitingProxyMs: count(),
     strictResponseGapMs: count(), exploratoryGapMs: count(),
   },
   context: {
@@ -48,7 +48,7 @@ const local: TimingLocalResult = {
   },
   findings: [], coverage: {
     facts: count(), bytes: count(), metadata: count(), eventBlocks: count(), scopedEvents: count(), scopedMeasurements: count(),
-    boundaryCandidates: count(), lifecycleCandidates: [], linkedLifecycles: [], conflictingLifecycles: count(), missingIdentityLifecycles: count(),
+    boundaryCandidates: count(), lifecycleCandidates: [count(), count(), count(), count()], linkedLifecycles: [count(), count(), count(), count()], conflictingLifecycles: count(), missingIdentityLifecycles: count(),
     contentCandidates: count(), domainCount: count(), missingWatermarks: count(), generationMismatches: count(), incompleteDomains: count(),
     snapshotUnassignedTotal: count(), threadUnassignedTotal: count(), sourceStatus: 'unknown',
   },
@@ -114,7 +114,7 @@ test('timing responses bind action profile method target and selected snapshot',
   const evidence = { outputVersion: 1, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
   assert.equal(await client(evidence).timing!({ ...summary, action: 'evidence', snapshotId: local.readView.snapshotId }), evidence);
   for (const invalid of [
-    { ...local, outputVersion: 2 }, { ...local, action: 'evidence' }, { ...local, methodVersion: 'future' },
+    { ...local, outputVersion: 2 }, { ...local, action: 'evidence' }, { ...local, methodVersion: 'future' }, { ...local, methodVersion: 'safe_event_turn_v1' },
     { ...local, profile: 'share-v1' },
     ...[1, 2, 4].map(methodVersion => ({ ...local, uses: { ...local.uses, totals: { ...local.uses.totals, methodVersion } } })), { ...local, readView: { ...local.readView, snapshotId: 'live:scope:newer' } },
     ...['threadId', 'turnId', 'sourceInstanceId', 'agentKind'].map(field => ({ ...local, scope: { ...scope, [field]: 'other' } })),
@@ -270,4 +270,29 @@ test('work metrics preserve canonical identities, reported paths and unknown use
   }
   assert.equal(validateShare({ ...share, work: { ...work, changedFiles: { ...work.changedFiles, paths: ['/private/path'] } } }), false);
   assert.equal(validateLocal({ ...local, work: { ...work, userBoundaryRecords: { ...work.userBoundaryRecords, basis: 'guessed_user' } } }), false);
+});
+
+test('method v2 accepts MCP relative tracks and all sixteen core masks; stale masks and share identities fail', async () => {
+  const mcp = structuredClone(local);
+  mcp.time.timeline.tracks = [{intervalAlias:'interval-1',category:'mcp',startMs:2000,endMs:7000,clipped:false,evidenceScope:'turn_collection',evidenceRefs:[]}];
+  mcp.time.mcp.unionMs = observed(5000, 'lifecycle_union');
+  mcp.time.mcp.sumMs = observed(7000, 'lifecycle_sum');
+  mcp.time.intersectionMasksMs = [observed(5000, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(5000, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask'), observed(0, 'interval_mask')];
+  assert.equal(validateLocal(mcp), true);
+  assert.equal(await client(mcp).timing!(summary), mcp);
+  const shared = {...share,time:mcp.time};
+  assert.equal(validateShare(shared), true);
+  assert.equal(await client(shared).timing!({...summary,privacyProfile:'share-v1'}), shared);
+  assert.doesNotMatch(JSON.stringify(shared), /server|tool|threadId|snapshotId/);
+  const {mcp: omittedMcp, ...oldTime} = mcp.time;
+  assert.equal(omittedMcp.unionMs.value, 5000);
+  assert.equal(validateLocal({...mcp,time:oldTime}), false);
+  assert.equal(validateShare({...shared,time:oldTime}), false);
+  await assert.rejects(client({...shared,time:oldTime}).timing!({...summary,privacyProfile:'share-v1'}), {code:'PROTOCOL_ERROR'});
+  for (const length of [0, 8, 15, 17]) await assert.rejects(client({...mcp,time:{...mcp.time,intersectionMasksMs:Array.from({length}, count)}}).timing!(summary), {code:'PROTOCOL_ERROR'});
+  for (const field of ['server','tool','nativeId']) {
+    const leaked = {...shared,time:{...shared.time,timeline:{...shared.time.timeline,tracks:[{...shared.time.timeline.tracks[0],[field]:'synthetic-private'}]}}};
+    assert.equal(validateShare(leaked), false);
+    await assert.rejects(client(leaked).timing!({...summary,privacyProfile:'share-v1'}), {code:'PROTOCOL_ERROR'});
+  }
 });

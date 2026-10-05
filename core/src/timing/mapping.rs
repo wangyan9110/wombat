@@ -286,6 +286,7 @@ pub(super) fn time(
         command: category(0),
         compaction: category(1),
         reasoning: category(2),
+        mcp: category(3),
         intersection_masks_ms: a
             .intervals
             .mask_ms
@@ -426,6 +427,7 @@ fn timeline(a: &Analysis, refs: &[String], fallback: Option<Basis>, missing: Bas
                         super::intervals::Category::Command => TrackCategory::Command,
                         super::intervals::Category::Compaction => TrackCategory::Compaction,
                         super::intervals::Category::Reasoning => TrackCategory::Reasoning,
+                        super::intervals::Category::Mcp => TrackCategory::Mcp,
                     },
                     start_ms: track.start_ms,
                     end_ms: track.end_ms,

@@ -656,12 +656,17 @@
         "reasoning": {
           "$ref": "#/definitions/Category"
         },
+        "mcp": {
+          "$ref": "#/definitions/Category"
+        },
         "intersectionMasksMs": {
-          "description": "Masks 0..7: command bit 1, compaction bit 2, reasoning bit 4.",
+          "description": "Masks 0..15: command bit 1, compaction bit 2, reasoning bit 4, MCP bit 8.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/TimingMetric_uint64"
-          }
+          },
+          "minItems": 16,
+          "maxItems": 16
         },
         "coveredMs": {
           "$ref": "#/definitions/TimingMetric_uint64"
@@ -695,6 +700,7 @@
         "command",
         "compaction",
         "reasoning",
+        "mcp",
         "intersectionMasksMs",
         "coveredMs",
         "unclassifiedMs",
@@ -832,7 +838,8 @@
       "enum": [
         "command",
         "compaction",
-        "reasoning"
+        "reasoning",
+        "mcp"
       ]
     },
     "FragmentEvidence": {
@@ -1282,13 +1289,17 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/TimingMetric_uint64"
-          }
+          },
+          "minItems": 4,
+          "maxItems": 4
         },
         "linkedLifecycles": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/TimingMetric_uint64"
-          }
+          },
+          "minItems": 4,
+          "maxItems": 4
         },
         "conflictingLifecycles": {
           "$ref": "#/definitions/TimingMetric_uint64"

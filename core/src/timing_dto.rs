@@ -31,7 +31,7 @@ pub enum ShareProfile {
 }
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 pub const OUTPUT_VERSION: u32 = 1;
-pub const METHOD_VERSION: &str = "safe_event_turn_v1";
+pub const METHOD_VERSION: &str = "safe_event_turn_v2";
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum PrivacyProfile {
@@ -227,6 +227,7 @@ pub enum TrackCategory {
     Command,
     Compaction,
     Reasoning,
+    Mcp,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -295,7 +296,9 @@ pub struct Time {
     pub command: Category,
     pub compaction: Category,
     pub reasoning: Category,
-    /// Masks 0..7: command bit 1, compaction bit 2, reasoning bit 4.
+    pub mcp: Category,
+    /// Masks 0..15: command bit 1, compaction bit 2, reasoning bit 4, MCP bit 8.
+    #[schemars(length(min = 16, max = 16))]
     pub intersection_masks_ms: Vec<Count>,
     pub covered_ms: Count,
     pub unclassified_ms: Count,
@@ -406,7 +409,9 @@ pub struct Coverage {
     pub scoped_events: Count,
     pub scoped_measurements: Count,
     pub boundary_candidates: Count,
+    #[schemars(length(min = 4, max = 4))]
     pub lifecycle_candidates: Vec<Count>,
+    #[schemars(length(min = 4, max = 4))]
     pub linked_lifecycles: Vec<Count>,
     pub conflicting_lifecycles: Count,
     pub missing_identity_lifecycles: Count,

@@ -1,4 +1,5 @@
 import {CoreError,type TimingLocalResult,type TimingShareResult,type TimingRequest,type TimingResult,type QueryOptions} from '@wombat/client';
+import {timingCategories} from '@wombat/client/locale';
 import type {Scenario} from './fixtures.js';
 import {usesFixture,shareUsesFixture,usesEvidence} from './uses.js';
 const metric = { value: null, status: 'unavailable', basis: 'not_recorded', evidenceRefs: [] } as const;
@@ -8,7 +9,7 @@ const capabilities = {
   lifecycleIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: {support:'supported',reason:'canonical_use_records'} as const,
 };
-export const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v1', profile: 'local', capabilities } as const;
+export const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v2', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
@@ -16,7 +17,7 @@ const distribution = () => ({ samples: count(), median: count(), p90: count() })
 const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const baseLocal: TimingLocalResult = {
-  outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v1', profile: 'local',
+  outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v2', profile: 'local',
   uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
@@ -24,8 +25,8 @@ const baseLocal: TimingLocalResult = {
   time: {
     timeline: { presentation: 'list', detail: unavailable, entryCount: count(), trackCount: count(), identifiedIntervalCount: count(), unclassifiedGapCount: count(), unlocatedIntervalCount: count(), outsideWindowIntervalCount: count(), detailLimit: 200, tracks: [], unclassifiedGaps: [] },
     state: 'unknown', nativeWallClockMs: count(), derivedWallClockMs: count(), nativeTtftMs: count(), firstContentRecordDelayMs: count(),
-    boundaryDiscrepancyMs: count(), observedWindowMs: count(), command: category(), compaction: category(), reasoning: category(),
-    intersectionMasksMs: [], coveredMs: count(), unclassifiedMs: count(), coverageRatio: count(), waitingProxyMs: count(),
+    boundaryDiscrepancyMs: count(), observedWindowMs: count(), command: category(), compaction: category(), reasoning: category(), mcp: category(),
+    intersectionMasksMs: [count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count()], coveredMs: count(), unclassifiedMs: count(), coverageRatio: count(), waitingProxyMs: count(),
     strictResponseGapMs: count(), exploratoryGapMs: count(),
   },
   context: {
@@ -41,7 +42,7 @@ const baseLocal: TimingLocalResult = {
   },
   findings: [], coverage: {
     facts: count(), bytes: count(), metadata: count(), eventBlocks: count(), scopedEvents: count(), scopedMeasurements: count(),
-    boundaryCandidates: count(), lifecycleCandidates: [], linkedLifecycles: [], conflictingLifecycles: count(), missingIdentityLifecycles: count(),
+    boundaryCandidates: count(), lifecycleCandidates: [count(), count(), count(), count()], linkedLifecycles: [count(), count(), count(), count()], conflictingLifecycles: count(), missingIdentityLifecycles: count(),
     contentCandidates: count(), domainCount: count(), missingWatermarks: count(), generationMismatches: count(), incompleteDomains: count(),
     snapshotUnassignedTotal: count(), threadUnassignedTotal: count(), sourceStatus: 'unknown',
   },
@@ -67,8 +68,20 @@ export function timingFixture(scenario:Scenario='complete',snapshotId='preview:1
  result.time.nativeWallClockMs=missing||running?count():measured(10000);
  result.time.observedWindowMs=missing?count():measured(10000,'explicit_boundary');
  result.time.command.unionMs=missing?count():measured(5000,'lifecycle_union');result.time.command.sumMs=missing?count():measured(6000,'lifecycle_sum');
- const tracks=scenario==='empty'?[]:Array.from({length:scenario==='dense'?200:3},(_,index)=>({intervalAlias:`interval-${index}`,category:'command' as const,startMs:1000+index*10,endMs:4000+index*10,clipped:false,evidenceScope:'event_records' as const,evidenceRefs:[`event:start-${index}`,`event:end-${index}`] as [string,string]}));
- result.time.timeline={...result.time.timeline,presentation:missing?'list':'timeline',detail:{support:missing?'unavailable':'supported',reason:missing?'missing_time':'explicit_boundary'},tracks:missing?[]:tracks,unclassifiedGaps:missing?[]:[{startMs:9000,endMs:10000,evidenceScope:'turn_collection',evidenceRefs:['collection:turn']}],entryCount:measured(missing?0:tracks.length,'safe_event_count'),identifiedIntervalCount:measured(tracks.length,'safe_event_count'),unlocatedIntervalCount:measured(missing?tracks.length:0,'safe_event_count')};
+ let tracks:TimingLocalResult['time']['timeline']['tracks']=scenario==='empty'?[]:Array.from({length:scenario==='dense'?200:3},(_,index)=>({intervalAlias:`interval-${index}`,category:'command' as const,startMs:1000+index*10,endMs:4000+index*10,clipped:false,evidenceScope:'event_records' as const,evidenceRefs:[`event:start-${index}`,`event:end-${index}`] as [string,string]}));
+ const mcpOnly=scenario==='mcp-only',mixed=scenario==='mcp-mixed';
+ if(mcpOnly||mixed){
+  const ranges=mcpOnly?[['mcp',2000,7000] as const]:[['command',0,6000],['compaction',2000,5000],['reasoning',3000,8000],['mcp',4000,7000]] as const;
+  tracks=ranges.map(([category,startMs,endMs],index)=>({intervalAlias:`interval-${index}`,category,startMs,endMs,clipped:false,evidenceScope:'event_records',evidenceRefs:[`event:start-${index}`,`event:end-${index}`]}));
+  // Handwritten synthetic oracle, not interval arithmetic in a view.
+  const durations=mcpOnly?[0,0,0,5000]:[6000,3000,5000,3000];
+  timingCategories.forEach((category,index)=>{result.time[category]={candidates:measured(durations[index]===0?0:1,'safe_event_count'),closed:measured(durations[index]===0?0:1,'safe_event_count'),unionMs:measured(durations[index],'lifecycle_union'),sumMs:measured(durations[index],'lifecycle_sum')};});
+  const masks=mcpOnly?[5000,0,0,0,0,0,0,0,5000,0,0,0,0,0,0,0]:[2000,2000,0,1000,1000,0,0,1000,0,0,0,0,1000,1000,0,1000];
+  result.time.intersectionMasksMs=[measured(masks[0],'interval_mask'), measured(masks[1],'interval_mask'), measured(masks[2],'interval_mask'), measured(masks[3],'interval_mask'), measured(masks[4],'interval_mask'), measured(masks[5],'interval_mask'), measured(masks[6],'interval_mask'), measured(masks[7],'interval_mask'), measured(masks[8],'interval_mask'), measured(masks[9],'interval_mask'), measured(masks[10],'interval_mask'), measured(masks[11],'interval_mask'), measured(masks[12],'interval_mask'), measured(masks[13],'interval_mask'), measured(masks[14],'interval_mask'), measured(masks[15],'interval_mask')];
+  result.time.coveredMs=measured(mcpOnly?5000:8000,'lifecycle_union');result.time.unclassifiedMs=measured(mcpOnly?5000:2000,'interval_mask');
+  result.time.coverageRatio=measured(mcpOnly?0.5:0.8,'interval_mask');
+ }
+ result.time.timeline={...result.time.timeline,presentation:missing?'list':'timeline',detail:{support:missing?'unavailable':'supported',reason:missing?'missing_time':'explicit_boundary'},tracks:missing?[]:tracks,unclassifiedGaps:missing?[]:(mcpOnly?[[0,2000],[7000,10000]]:mixed?[[8000,10000]]:[[9000,10000]]).map(([startMs,endMs])=>({startMs,endMs,evidenceScope:'turn_collection',evidenceRefs:['collection:turn']})),trackCount:measured(tracks.length,'safe_event_count'),entryCount:measured(missing?0:tracks.length,'safe_event_count'),identifiedIntervalCount:measured(tracks.length,'safe_event_count'),unlocatedIntervalCount:measured(missing?tracks.length:0,'safe_event_count')};
  result.evidence.available=true;result.evidence.collections=[{reference:'collection:turn',kind:'turn_events',snapshotId,scope:result.scope,count:measured(4,'safe_event_count'),method:result.methodVersion}];
  result.evidence.intervalPages={detail:{support:'supported',reason:'safe_event_count'},candidateIntervalCount:measured(tracks.length,'safe_event_count'),locatedIntervalCount:measured(tracks.length,'safe_event_count'),missingEventRefCount:measured(0,'safe_event_count'),pageCount:measured(1,'safe_event_count'),limitBytes:65536,entries:tracks.map(track=>({intervalAlias:track.intervalAlias,pages:[{limit:200,evidenceRefs:track.evidenceRefs}]}))};
  result.uses=usesFixture(result,scenario);result.capabilities={...result.capabilities,objectUses:result.uses.detail};
@@ -77,9 +90,10 @@ export function timingFixture(scenario:Scenario='complete',snapshotId='preview:1
 export function timingShareFixture(local:TimingLocalResult):TimingShareResult {
  const result=structuredClone(baseShare);result.time=structuredClone(local.time);result.quality=structuredClone(local.quality);result.uses=shareUsesFixture(local);result.capabilities={...result.capabilities,objectUses:local.uses.detail};
  // Synthetic Rust-share-shaped facts use package aliases only; no local view is added.
- result.time.nativeWallClockMs.evidenceRefs=[];result.time.observedWindowMs.evidenceRefs=[];result.time.command.unionMs.evidenceRefs=[];result.time.command.sumMs.evidenceRefs=[];
+ result.time.nativeWallClockMs.evidenceRefs=[];result.time.observedWindowMs.evidenceRefs=[];for(const category of timingCategories)for(const field of ['candidates','closed','unionMs','sumMs'] as const)result.time[category][field].evidenceRefs=[];
+ for(const measure of [...result.time.intersectionMasksMs,result.time.coveredMs,result.time.unclassifiedMs,result.time.coverageRatio])measure.evidenceRefs=[];
  result.time.timeline.tracks=result.time.timeline.tracks.map((track,index)=>({...track,intervalAlias:`interval-${index}`,evidenceRefs:[]}));result.time.timeline.unclassifiedGaps=result.time.timeline.unclassifiedGaps.map(gap=>({...gap,evidenceRefs:[]}));
- for(const field of ['entryCount','identifiedIntervalCount','unlocatedIntervalCount'] as const)result.time.timeline[field].evidenceRefs=[];
+ for(const field of ['entryCount','trackCount','identifiedIntervalCount','unlocatedIntervalCount'] as const)result.time.timeline[field].evidenceRefs=[];
  return result;
 }
 export function previewTiming(scenario:Scenario){

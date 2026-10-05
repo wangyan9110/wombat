@@ -25,17 +25,95 @@ fn independent_proposal_truth() {
         interval("r", Category::Reasoning, 20, 50),
     ];
     let result = analyze(Some(window(0, 100)), &input, &[window(0, 40)], 5);
-    assert_eq!(result.category_union_ms, [50, 30, 30]);
-    assert_eq!(result.category_sum_ms, [60, 30, 30]);
-    assert_eq!(result.mask_ms, [20, 30, 20, 0, 0, 20, 10, 0]);
+    assert_eq!(result.category_union_ms, [50, 30, 30, 0]);
+    assert_eq!(result.category_sum_ms, [60, 30, 30, 0]);
+    assert_eq!(
+        result.mask_ms,
+        [20, 30, 20, 0, 0, 20, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
     assert_eq!(result.covered_ms, Some(80));
     assert_eq!(result.coverage_ratio, Some(0.8));
     assert_eq!(result.gap_union_ms, 40);
-    assert_eq!(result.gap_intersection_mask_ms, [0, 0, 20, 0, 0, 10, 10, 0]);
+    assert_eq!(
+        result.gap_intersection_mask_ms,
+        [0, 0, 20, 0, 0, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
     let only_gap = analyze(Some(window(0, 100)), &[], &[window(0, 40)], 1);
     assert_eq!(only_gap.unclassified_ms, Some(100));
     assert_eq!(only_gap.covered_ms, Some(0));
 }
+
+#[test]
+fn four_categories_overlap_with_independent_gap_mask_truth() {
+    let input = [
+        interval("command", Category::Command, 0, 8),
+        interval("compaction", Category::Compaction, 4, 12),
+        interval("reasoning", Category::Reasoning, 6, 14),
+        interval("mcp", Category::Mcp, 10, 18),
+    ];
+    let result = analyze(Some(window(0, 20)), &input, &[window(5, 13)], 5);
+
+    assert_eq!(result.category_union_ms, [8, 8, 8, 8]);
+    assert_eq!(result.category_sum_ms, [8, 8, 8, 8]);
+    assert_eq!(
+        result.mask_ms,
+        [2, 4, 0, 2, 0, 0, 2, 2, 4, 0, 0, 0, 2, 0, 2, 0]
+    );
+    assert_eq!(result.covered_ms, Some(18));
+    assert_eq!(result.unclassified_ms, Some(2));
+    assert_eq!(result.coverage_ratio, Some(0.9));
+    assert_eq!(result.gap_union_ms, 8);
+    assert_eq!(
+        result.gap_intersection_mask_ms,
+        [0, 0, 0, 1, 0, 0, 2, 2, 0, 0, 0, 0, 1, 0, 2, 0]
+    );
+}
+
+#[test]
+fn mcp_only_and_gap_use_the_fourth_bit_without_classifying_unknown_time() {
+    let result = analyze(
+        Some(window(0, 10)),
+        &[interval("mcp", Category::Mcp, 2, 7)],
+        &[window(0, 4)],
+        2,
+    );
+
+    assert_eq!(result.category_union_ms, [0, 0, 0, 5]);
+    assert_eq!(result.category_sum_ms, [0, 0, 0, 5]);
+    assert_eq!(
+        result.mask_ms,
+        [5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0]
+    );
+    assert_eq!(result.covered_ms, Some(5));
+    assert_eq!(result.unclassified_ms, Some(5));
+    assert_eq!(result.gap_union_ms, 4);
+    assert_eq!(
+        result.gap_intersection_mask_ms,
+        [2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0]
+    );
+}
+
+#[test]
+fn mcp_does_not_change_existing_category_unions_or_sums() {
+    let input = [
+        interval("compaction", Category::Compaction, 0, 30),
+        interval("command-a", Category::Command, 30, 60),
+        interval("command-b", Category::Command, 50, 80),
+        interval("reasoning", Category::Reasoning, 20, 50),
+        interval("mcp", Category::Mcp, 80, 90),
+    ];
+    let result = analyze(Some(window(0, 100)), &input, &[], 5);
+
+    assert_eq!(result.category_union_ms[..3], [50, 30, 30]);
+    assert_eq!(result.category_sum_ms[..3], [60, 30, 30]);
+    assert_eq!(result.category_union_ms[3], 10);
+    assert_eq!(result.category_sum_ms[3], 10);
+    assert_eq!(result.mask_ms[0], 10);
+    assert_eq!(result.mask_ms[8], 10);
+    assert_eq!(result.covered_ms, Some(90));
+    assert_eq!(result.unclassified_ms, Some(10));
+}
+
 #[test]
 fn unordered_adjacent_duplicates_and_zero() {
     let a = interval("a", Category::Command, 0, 10);
@@ -46,9 +124,9 @@ fn unordered_adjacent_duplicates_and_zero() {
         a,
     ];
     let result = analyze(Some(window(0, 20)), &input, &[], 4);
-    assert_eq!(result.category_sum_ms, [20, 0, 0]);
-    assert_eq!(result.category_union_ms, [20, 0, 0]);
-    assert_eq!(result.complete_intervals, [2, 0, 1]);
+    assert_eq!(result.category_sum_ms, [20, 0, 0, 0]);
+    assert_eq!(result.category_union_ms, [20, 0, 0, 0]);
+    assert_eq!(result.complete_intervals, [2, 0, 1, 0]);
 }
 #[test]
 fn conflicts_open_reversed_and_clipped_are_visible() {
@@ -69,7 +147,7 @@ fn conflicts_open_reversed_and_clipped_are_visible() {
         &[window(10, 9)],
         6,
     );
-    assert_eq!(result.category_union_ms, [0, 20, 0]);
+    assert_eq!(result.category_union_ms, [0, 20, 0, 0]);
     assert_eq!(result.issues.len(), 5);
     assert!(
         result
@@ -119,8 +197,8 @@ fn unavailable_window_retains_input_coverage_quality() {
     assert_eq!(result.covered_ms, None);
     assert_eq!(result.unclassified_ms, None);
     assert_eq!(result.coverage_ratio, None);
-    assert_eq!(result.candidates, [3, 2, 1]);
-    assert_eq!(result.complete_intervals, [0, 1, 0]);
+    assert_eq!(result.candidates, [3, 2, 1, 0]);
+    assert_eq!(result.complete_intervals, [0, 1, 0, 0]);
     assert!(!result.partial);
     assert_eq!(result.issues.len(), 4);
     assert!(
@@ -155,8 +233,8 @@ fn unavailable_window_still_stops_at_resource_limit() {
 
     let result = analyze(None, &input, &[], 0);
 
-    assert_eq!(result.candidates, [0; 3]);
-    assert_eq!(result.complete_intervals, [0; 3]);
+    assert_eq!(result.candidates, [0; CATEGORY_COUNT]);
+    assert_eq!(result.complete_intervals, [0; CATEGORY_COUNT]);
     assert!(result.partial);
     assert_eq!(result.issues, [Issue::ResourceLimit]);
 }
@@ -171,8 +249,8 @@ fn reversed_window_retains_complete_interval_quality() {
     assert_eq!(result.covered_ms, None);
     assert_eq!(result.unclassified_ms, None);
     assert_eq!(result.coverage_ratio, None);
-    assert_eq!(result.candidates, [1, 0, 0]);
-    assert_eq!(result.complete_intervals, [1, 0, 0]);
+    assert_eq!(result.candidates, [1, 0, 0, 0]);
+    assert_eq!(result.complete_intervals, [1, 0, 0, 0]);
     assert!(!result.partial);
     assert_eq!(result.issues, [Issue::InvalidWindow]);
 }
@@ -215,7 +293,7 @@ fn timeline_relative_tracks_zero_clipping_and_merged_unknown_gaps() {
         (50, 50)
     );
     assert_eq!(result.unclassified_ms, Some(60));
-    assert_eq!(result.category_sum_ms, [40, 0, 0]);
+    assert_eq!(result.category_sum_ms, [40, 0, 0, 0]);
 }
 
 #[test]
@@ -233,8 +311,8 @@ fn timeline_combined_limit_omits_whole_detail_but_retains_complete_totals() {
         (over.timeline.track_count, over.timeline.gap_count),
         (200, 1)
     );
-    assert_eq!(over.category_sum_ms, [200, 0, 0]);
-    assert_eq!(over.category_union_ms, [200, 0, 0]);
+    assert_eq!(over.category_sum_ms, [200, 0, 0, 0]);
+    assert_eq!(over.category_union_ms, [200, 0, 0, 0]);
     assert_eq!(over.unclassified_ms, Some(1));
     assert!(!over.partial);
     let alternating: Vec<_> = (0..150)

@@ -153,3 +153,18 @@ test('partial object counts retain observed associations including zero without 
   }
  }}finally{locale.setLocale(saved);}
 });
+
+test('MCP timing and four-way overlap use core measurements without summing categories in either locale',()=>{
+ const previous=locale.getSnapshot().locale;
+ const fixture=structuredClone(local);
+ const measure=(value:number)=>({value,status:'derived' as const,basis:'interval_mask' as const,evidenceRefs:[]});
+ fixture.time.mcp.unionMs=measure(5000);fixture.time.mcp.sumMs=measure(7000);
+ fixture.time.intersectionMasksMs=[measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0), measure(0)];fixture.time.intersectionMasksMs[15]=measure(1000);
+ fixture.time.coveredMs=measure(8000);fixture.time.unclassifiedMs=measure(2000);
+ try{for(const language of ['en','zh'] as const){locale.setLocale(language);const text=renderTimingResult(fixture);
+  assert.match(text,language==='zh'?/MCP 调用：并集 5000 ms；相加 7000 ms/:/MCP calls: union 5000 ms; sum 7000 ms/);
+  assert.match(text,language==='zh'?/命令 ∩ 压缩 ∩ 推理 ∩ MCP 调用: 1000 ms/:/Commands ∩ Compaction ∩ Reasoning ∩ MCP calls: 1000 ms/);
+  assert.match(text,language==='zh'?/已覆盖区间: 8000 ms/:/Covered intervals: 8000 ms/);
+  assert.doesNotMatch(text,/12000 ms/);
+ }}finally{locale.setLocale(previous);}
+});

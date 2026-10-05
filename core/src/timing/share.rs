@@ -132,6 +132,7 @@ pub(super) fn project(local: &LocalResponse) -> ShareResponse {
         command: a.category(&time.command),
         compaction: a.category(&time.compaction),
         reasoning: a.category(&time.reasoning),
+        mcp: a.category(&time.mcp),
         intersection_masks_ms: time
             .intersection_masks_ms
             .iter()

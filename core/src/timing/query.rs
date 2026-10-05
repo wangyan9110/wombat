@@ -754,7 +754,7 @@ fn query_impl(
                         CollectionKind::TurnEvents,
                         "turn_events",
                         e.events.len(),
-                        "safe_event_turn_v1",
+                        METHOD_VERSION,
                     );
                     add(
                         CollectionKind::CanonicalMeasurements,

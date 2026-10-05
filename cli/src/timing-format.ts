@@ -1,5 +1,5 @@
 import type { TimingResult, TimingLocalResult } from '@wombat/client';
-import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, type MessageKey } from '@wombat/client/locale';
+import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, timingCategories, timingCategoryText, timingIntersectionText, type MessageKey } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 
 type Metric = TimingLocalResult['time']['nativeWallClockMs'];
@@ -78,8 +78,14 @@ export function renderTimingResult(result: TimingResult): string {
     `${t('cli.timing.derivedDuration')}: ${measured(result.time.derivedWallClockMs, ' ms')}`,
     `${t('cli.timing.nativeTtft')}: ${measured(result.time.nativeTtftMs, ' ms')}`,
     `${t('cli.timing.firstContentDelay')}: ${measured(result.time.firstContentRecordDelayMs, ' ms')}`);
-  for (const category of ['command', 'compaction', 'reasoning'] as const)
-    lines.push(t('cli.timing.intervals', { category: t(`cli.timing.${category}`), union: durationValue(result.time[category].unionMs), sum: durationValue(result.time[category].sumMs) }));
+  for (const category of timingCategories)
+    lines.push(t('cli.timing.intervals', { category: timingCategoryText(category), union: durationValue(result.time[category].unionMs), sum: durationValue(result.time[category].sumMs) }));
+  result.time.intersectionMasksMs.forEach((metric, mask) => {
+    if ((mask & (mask - 1)) !== 0 && metric.value != null && metric.value > 0)
+      lines.push(`${t('execution.intersections')} · ${timingIntersectionText(mask)}: ${measured(metric, ' ms')}`);
+  });
+  lines.push(`${t('execution.covered')}: ${measured(result.time.coveredMs, ' ms')}`,
+    `${t('execution.unclassified')}: ${measured(result.time.unclassifiedMs, ' ms')}`);
   const allWorkMetrics: Array<[string, Metric]> = [
     ['addedLines', result.work.addedLines],
     ['removedLines', result.work.removedLines],

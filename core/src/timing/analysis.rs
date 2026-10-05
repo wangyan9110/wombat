@@ -1,9 +1,7 @@
 //! Safe-event mapping for a single explicit turn; no source bodies or time-based identity guesses.
-use super::{context, intervals};
+use super::{context, intervals, phase_observations};
 use crate::adapters::contract::Measurement;
-use crate::session_events::{
-    Event, Gap, ItemKind, LifecycleKind, MessageOrigin, Payload, Phase, Precision,
-};
+use crate::session_events::{Event, Gap, LifecycleKind, MessageOrigin, Payload, Phase, Precision};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{
@@ -73,8 +71,8 @@ pub struct Coverage {
     pub outside_events: usize,
     pub outside_measurements: usize,
     pub boundary_candidates: usize,
-    pub lifecycle_candidates: [usize; 3],
-    pub linked_lifecycles: [usize; 3],
+    pub lifecycle_candidates: [usize; intervals::CATEGORY_COUNT],
+    pub linked_lifecycles: [usize; intervals::CATEGORY_COUNT],
     pub conflicting_lifecycles: usize,
     pub missing_identity_lifecycles: usize,
     /// Counts describe safe message records, never messages or API requests.
@@ -109,7 +107,7 @@ pub struct Analysis {
     pub intervals: intervals::IntervalMetrics,
     /// Unknown without observed candidates and at least one valid closed interval.
     /// Counts describe observations only; absence never establishes source completeness.
-    pub category_union_ms: [Option<u64>; 3],
+    pub category_union_ms: [Option<u64>; intervals::CATEGORY_COUNT],
     pub context: Option<context::Statistics>,
     pub response_gap_support: ResponseGapSupport,
     pub response_gap_union_ms: Option<u64>,
@@ -335,14 +333,6 @@ struct ItemDomain {
     terminal_ref: Option<String>,
 }
 
-fn category(kind: &ItemKind) -> Option<(usize, intervals::Category)> {
-    match kind {
-        ItemKind::Command => Some((0, intervals::Category::Command)),
-        ItemKind::Compaction => Some((1, intervals::Category::Compaction)),
-        ItemKind::Reasoning => Some((2, intervals::Category::Reasoning)),
-        _ => None,
-    }
-}
 fn terminal(phase: &Phase) -> bool {
     matches!(phase, Phase::Completed | Phase::Failed | Phase::Cancelled)
 }
@@ -410,7 +400,7 @@ pub(super) fn check(cancelled: &AtomicBool) -> anyhow::Result<()> {
 fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Result<Analysis> {
     check(cancelled)?;
     let mut result = Analysis {
-        method: "safe_event_turn_v1",
+        method: crate::timing_dto::METHOD_VERSION,
         state: State::Unknown,
         start: None,
         end: None,
@@ -419,7 +409,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         native_ttft_ms: None,
         boundary_delta_ms: None,
         intervals: intervals::analyze(None, &[], &[], input.budget.lifecycle_records),
-        category_union_ms: [None; 3],
+        category_union_ms: [None; intervals::CATEGORY_COUNT],
         context: None,
         response_gap_support: ResponseGapSupport::UnsupportedMissingBatchAndCycleEvidence,
         response_gap_union_ms: None,
@@ -529,7 +519,10 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
     )?);
     let mut boundaries = BoundaryReducer::default();
     let mut items: BTreeMap<intervals::Identity, Item> = BTreeMap::new();
-    let lifecycle_records = events.iter().filter(|event| matches!(event.payload(), Payload::Item { item_kind, .. } if category(item_kind).is_some()) || matches!(event.payload(), Payload::Lifecycle { lifecycle: LifecycleKind::Compaction, .. })).count();
+    let lifecycle_records = events
+        .iter()
+        .filter(|event| phase_observations::is_candidate(event))
+        .count();
     for event in &events {
         check(cancelled)?;
         if let Payload::Message { origin, .. } = event.payload() {
@@ -553,42 +546,27 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
                 .issues
                 .push(Issue::MissingBoundaryTime(event.id().to_owned()));
         }
-        let candidate = match event.payload() {
-            Payload::Item {
-                item_kind,
-                native_id,
-                phase,
-                started_at_ms,
-                completed_at_ms,
-                ..
-            } => category(item_kind).map(|(index, category)| {
-                (
-                    index,
-                    category,
-                    native_id,
-                    phase,
-                    *started_at_ms,
-                    *completed_at_ms,
-                )
-            }),
-            Payload::Lifecycle {
-                lifecycle: LifecycleKind::Compaction,
-                native_id,
-                phase,
-                ..
-            } => Some((
-                1,
-                intervals::Category::Compaction,
-                native_id,
-                phase,
-                None,
-                None,
-            )),
-            _ => None,
-        };
-        let Some((index, _, native_id, phase, native_start, native_end)) = candidate else {
-            continue;
-        };
+    }
+    let observations = if lifecycle_records <= input.budget.lifecycle_records {
+        phase_observations::associate(&events, cancelled)?
+    } else {
+        Vec::new()
+    };
+    if lifecycle_records > input.budget.lifecycle_records {
+        for event in &events {
+            if let Some(index) = phase_observations::candidate_index(event) {
+                result.coverage.lifecycle_candidates[index] += 1;
+            }
+        }
+    }
+    for observation in observations {
+        check(cancelled)?;
+        let event = observation.event;
+        let index = observation.index;
+        let native_id = observation.identity;
+        let phase = observation.phase;
+        let native_start = observation.native_start;
+        let native_end = observation.native_end;
         result.coverage.lifecycle_candidates[index] += 1;
         if lifecycle_records > input.budget.lifecycle_records {
             continue;
@@ -606,18 +584,13 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             source: input.source.to_owned(),
             task: input.thread.to_owned(),
             turn: input.turn.to_owned(),
-            item: native_id.clone(),
+            item: native_id.to_owned(),
         };
         let item = items.entry(identity).or_default();
         item.categories.insert(index);
-        item.conflict |= conflicting(event);
-        if terminal(phase) {
-            item.terminal_states.insert(match phase {
-                Phase::Completed => 1,
-                Phase::Failed => 2,
-                Phase::Cancelled => 3,
-                _ => unreachable!(),
-            });
+        item.conflict |= observation.conflict;
+        if let Some(outcome) = observation.outcome {
+            item.terminal_states.insert(outcome);
         }
         let domain = item
             .domains
@@ -711,7 +684,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         result.intervals.covered_ms = None;
         result.intervals.unclassified_ms = None;
         result.intervals.coverage_ratio = None;
-        result.intervals.mask_ms = [0; 8];
+        result.intervals.mask_ms = [0; intervals::MASK_COUNT];
         result
             .intervals
             .issues
@@ -763,11 +736,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             continue;
         }
         let index = *item.categories.first().unwrap();
-        let category = [
-            intervals::Category::Command,
-            intervals::Category::Compaction,
-            intervals::Category::Reasoning,
-        ][index];
+        let category = phase_observations::category_at(index);
         let start_ms = singleton(&starts);
         // A closed same-domain pair is required even with explicit identity.
         let end_ms = singleton(&pairs).map(|(_, end)| end);

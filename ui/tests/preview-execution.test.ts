@@ -108,3 +108,30 @@ test('events without an applicable phase do not receive a missing-state label',a
  const {TimingEvidenceRecord}=await import('../src/tasks/TurnExecution.js');const row={reference:'event:no-phase',recordKind:'message',phase:null,timestampMs:null,gapCodes:[]};const previous=locale.getSnapshot().locale;
  try{for(const language of ['zh','en'] as const){locale.setLocale(language);for(const phase of [null,'unknown'] as const){const html=renderToStaticMarkup(createElement(TimingEvidenceRecord,{row:{...row,phase},selected:false,timezone:'UTC'}));const primary=html.slice(0,html.indexOf('<details>'));assert.doesNotMatch(primary,language==='zh'?/现有时间记录不足以确认轮次状态|状态未知|未知/:/Available timing records do not establish the turn state|Status unknown|Unknown/);assert.match(primary,language==='zh'?/安全事实记录/:/Safe fact record/);if(phase==='unknown')assert.match(html,/unknown/);}}}finally{locale.setLocale(previous);}
 });
+
+test('MCP-only and four-category previews render production tracks and core intersections in both languages',()=>{
+ const previous=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){
+  locale.setLocale(language);
+  const only=timingFixture('mcp-only'),mixed=timingFixture('mcp-mixed');
+  assert.deepEqual(only.time.timeline.tracks.map(track=>track.category),['mcp']);
+  assert.equal(only.time.mcp.unionMs.value,5000);assert.equal(only.time.command.unionMs.value,0);
+  assert.equal(only.time.coveredMs.value,5000);assert.equal(only.time.intersectionMasksMs[8].value,5000);
+  assert.equal(only.time.intersectionMasksMs.length,16);
+  const onlyHtml=render(only);assert.match(onlyHtml,language==='zh'?/<summary>MCP 调用<\/summary>/:/<summary>MCP calls<\/summary>/);assert.match(onlyHtml,/2000–7000 ms/);assert.match(onlyHtml,/5000 ms/);
+  assert.deepEqual(mixed.time.timeline.tracks.map(track=>track.category),['command','compaction','reasoning','mcp']);
+  assert.deepEqual(mixed.time.intersectionMasksMs.map(metric=>metric.value),[2000,2000,0,1000,1000,0,0,1000,0,0,0,0,1000,1000,0,1000]);
+  assert.equal(mixed.time.coveredMs.value,8000);assert.equal(mixed.time.unclassifiedMs.value,2000);
+  const html=render(mixed);assert.match(html,language==='zh'?/命令 ∩ 压缩 ∩ 推理 ∩ MCP 调用/:/Commands ∩ Compaction ∩ Reasoning ∩ MCP calls/);assert.match(html,/4000–7000 ms/);assert.match(html,/8000 ms/);assert.doesNotMatch(html,/17000 ms/);
+  mixed.time.coveredMs.value=7777;assert.match(render(mixed),/7777 ms/);
+ }}finally{locale.setLocale(previous);}
+});
+test('MCP preview uses the public validator for local and share; sharing has relative coordinates and no tool identities',async()=>{
+ for(const scenario of ['mcp-only','mcp-mixed'] as const){
+  const client=createUsageClient({query:async request=>usageFixture(request,scenario),timing:previewTiming(scenario)});
+  const common={snapshotId:'preview:1',threadId:'preview-task',turnId:'preview-turn'};
+  const local=await client.timing!({action:'summary',...common});assert.ok('time' in local);assert.equal(local.time.mcp.unionMs.value,scenario==='mcp-only'?5000:3000);
+  const share=await client.timing!({action:'summary',...common,privacyProfile:'share-v1'});assert.ok('time' in share);assert.equal(share.time.timeline.tracks.find(track=>track.category==='mcp')?.startMs,scenario==='mcp-only'?2000:4000);
+  assert.doesNotMatch(JSON.stringify(share),/server|tool|preview-task|preview-turn|preview:1|collection:turn|event:start|event:end/);
+ }
+});

@@ -47,7 +47,7 @@ export type SummaryAction = "summary";
 export type LocalProfile = "local";
 export type PrivacyProfile = "local" | "share-v1";
 export type TimelinePresentation = "timeline" | "list";
-export type TrackCategory = "command" | "compaction" | "reasoning";
+export type TrackCategory = "command" | "compaction" | "reasoning" | "mcp";
 export type FragmentEvidence = "event_records" | "turn_collection" | "unavailable";
 export type TurnState = "running" | "completed" | "failed" | "cancelled" | "unknown";
 export type FindingKind = "fact" | "proxy" | "user_annotation";
@@ -205,10 +205,31 @@ export interface Time {
   command: Category;
   compaction: Category;
   reasoning: Category;
+  mcp: Category;
   /**
-   * Masks 0..7: command bit 1, compaction bit 2, reasoning bit 4.
+   * Masks 0..15: command bit 1, compaction bit 2, reasoning bit 4, MCP bit 8.
+   *
+   * @minItems 16
+   * @maxItems 16
    */
-  intersectionMasksMs: TimingMetricUint64[];
+  intersectionMasksMs: [
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64,
+    TimingMetricUint64
+  ];
   coveredMs: TimingMetricUint64;
   unclassifiedMs: TimingMetricUint64;
   coverageRatio: TimingMetricDouble;
@@ -352,8 +373,16 @@ export interface Coverage {
   scopedEvents: TimingMetricUint64;
   scopedMeasurements: TimingMetricUint64;
   boundaryCandidates: TimingMetricUint64;
-  lifecycleCandidates: TimingMetricUint64[];
-  linkedLifecycles: TimingMetricUint64[];
+  /**
+   * @minItems 4
+   * @maxItems 4
+   */
+  lifecycleCandidates: [TimingMetricUint64, TimingMetricUint64, TimingMetricUint64, TimingMetricUint64];
+  /**
+   * @minItems 4
+   * @maxItems 4
+   */
+  linkedLifecycles: [TimingMetricUint64, TimingMetricUint64, TimingMetricUint64, TimingMetricUint64];
   conflictingLifecycles: TimingMetricUint64;
   missingIdentityLifecycles: TimingMetricUint64;
   contentCandidates: TimingMetricUint64;

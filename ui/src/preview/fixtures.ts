@@ -10,7 +10,7 @@ import {previewPrices} from './prices.js';
 import {readScenarios,previewReadState} from './read-states.js';
 import {previewStartup} from './startup.js';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type UsageSummary, type QueryOptions } from '@wombat/client';
-export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap','uses-failure','uses-expired','tasks-pages','tasks-delayed','tasks-refresh-failed','partial','config-details','config-detail-failed','prices-update-failed','prices-unavailable','initial-pending','cancelled','interrupted','failed','rules-format','rules-reference','rules-hook','rules-clean',...readScenarios,...accountScenarios,...directoryScenarios,...handoffScenarios] as const;
+export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'mcp-only', 'mcp-mixed', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap','uses-failure','uses-expired','tasks-pages','tasks-delayed','tasks-refresh-failed','partial','config-details','config-detail-failed','prices-update-failed','prices-unavailable','initial-pending','cancelled','interrupted','failed','rules-format','rules-reference','rules-hook','rules-clean',...readScenarios,...accountScenarios,...directoryScenarios,...handoffScenarios] as const;
 export type Scenario = typeof scenarios[number];
 const at = '2026-10-04T02:00:00Z';
 const page = {offset:0,limit:20,total:0,nextOffset:null};

@@ -3,6 +3,7 @@ pub(crate) mod cache;
 pub mod context;
 pub mod intervals;
 mod mapping;
+mod phase_observations;
 mod query;
 mod share;
 pub(crate) mod uses;

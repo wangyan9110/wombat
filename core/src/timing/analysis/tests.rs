@@ -1,5 +1,5 @@
 use super::*;
-use crate::session_events::{NativeDuration, Position, Time};
+use crate::session_events::{ItemKind, NativeDuration, Position, Time};
 
 fn event(offset: u64, millis: Option<i64>, payload: Payload) -> Arc<Event> {
     let text = millis.map(|millis| {
@@ -113,7 +113,7 @@ fn native_and_locatable_durations_remain_separate() {
             None,
         ),
     ]);
-    assert_eq!(result.method, "safe_event_turn_v1");
+    assert_eq!(result.method, "safe_event_turn_v2");
     assert_eq!(result.response_gap_union_ms, None);
     assert_eq!(result.native_wall_clock_ms, Some(120));
     assert_eq!(result.derived_wall_clock_ms, Some(100));
@@ -121,7 +121,10 @@ fn native_and_locatable_durations_remain_separate() {
     assert_eq!(result.native_ttft_ms, Some(0));
     assert_eq!(result.intervals.covered_ms, Some(80));
     assert_eq!(result.intervals.unclassified_ms, Some(20));
-    assert_eq!(result.category_union_ms, [Some(50), Some(30), Some(30)]);
+    assert_eq!(
+        result.category_union_ms,
+        [Some(50), Some(30), Some(30), None]
+    );
     assert_eq!(result.intervals.gap_union_ms, 0);
     assert_eq!(
         result.response_gap_support,
@@ -149,8 +152,8 @@ fn duration_never_supplies_absolute_window_or_item_end() {
     assert_eq!(result.native_wall_clock_ms, Some(100));
     assert_eq!(result.derived_wall_clock_ms, None);
     assert_eq!(result.intervals.observed_window_ms, None);
-    assert_eq!(result.category_union_ms, [None; 3]);
-    assert_eq!(result.intervals.complete_intervals, [0; 3]);
+    assert_eq!(result.category_union_ms, [None; 4]);
+    assert_eq!(result.intervals.complete_intervals, [0; 4]);
 }
 #[test]
 fn open_and_missing_identity_are_not_closed_coverage() {
@@ -177,8 +180,8 @@ fn open_and_missing_identity_are_not_closed_coverage() {
     ]);
     assert_eq!(result.state, State::Running);
     assert_eq!(result.native_wall_clock_ms, None);
-    assert_eq!(result.intervals.complete_intervals, [0; 3]);
-    assert_eq!(result.coverage.lifecycle_candidates, [1, 1, 0]);
+    assert_eq!(result.intervals.complete_intervals, [0; 4]);
+    assert_eq!(result.coverage.lifecycle_candidates, [1, 1, 0, 0]);
     assert_eq!(result.coverage.missing_identity_lifecycles, 1);
     assert_eq!(result.intervals.covered_ms, None);
 }
@@ -242,14 +245,12 @@ fn explicit_identity_pairs_and_conflicts_never_merge_by_time() {
             Some(30),
         ),
     ]);
-    assert_eq!(result.category_union_ms, [Some(10), None, None]);
-    assert_eq!(result.coverage.linked_lifecycles, [1, 0, 0]);
+    assert_eq!(result.category_union_ms, [Some(10), None, None, None]);
+    assert_eq!(result.coverage.linked_lifecycles, [1, 0, 0, 0]);
     assert_eq!(result.coverage.conflicting_lifecycles, 1);
-    assert!(
-        result
-            .issues
-            .contains(&Issue::IdentityConflict("conflict".into()))
-    );
+    assert!(result.issues.contains(&Issue::IdentityConflict(
+        serde_json::to_string(&("item", "conflict")).unwrap()
+    )));
     assert_eq!(result.intervals.unclassified_ms, Some(90));
 }
 #[test]
@@ -297,7 +298,7 @@ fn zero_duration_is_known_and_absent_categories_are_unknown() {
     assert_eq!(result.native_wall_clock_ms, Some(0));
     assert_eq!(result.intervals.observed_window_ms, Some(0));
     assert_eq!(result.intervals.coverage_ratio, None);
-    assert_eq!(result.category_union_ms, [Some(0), None, None]);
+    assert_eq!(result.category_union_ms, [Some(0), None, None, None]);
 }
 fn measurement(id: &str, thread: &str, turn: &str) -> Arc<Measurement> {
     Arc::new(serde_json::from_value(serde_json::json!({
@@ -422,7 +423,7 @@ fn budgets_are_checked_before_context_or_interval_analysis() {
     assert!(result.intervals.partial);
     assert_eq!(result.intervals.observed_window_ms, Some(100));
     assert_eq!(result.intervals.covered_ms, None);
-    assert_eq!(result.category_union_ms, [None; 3]);
+    assert_eq!(result.category_union_ms, [None; 4]);
 }
 #[test]
 fn conflicting_turn_boundaries_do_not_rescale_or_close_window() {
@@ -463,8 +464,8 @@ fn duplicate_copies_count_one_interval_and_distinct_ids_count_independently() {
             None,
         ),
     ]);
-    assert_eq!(result.coverage.lifecycle_candidates, [3, 0, 0]);
-    assert_eq!(result.intervals.complete_intervals, [2, 0, 0]);
+    assert_eq!(result.coverage.lifecycle_candidates, [3, 0, 0, 0]);
+    assert_eq!(result.intervals.complete_intervals, [2, 0, 0, 0]);
     assert_eq!(result.intervals.category_sum_ms[0], 20);
     assert_eq!(result.category_union_ms[0], Some(10));
 }
@@ -552,7 +553,7 @@ fn explicit_identity_gap_and_conflicting_terminal_states_exclude_intervals() {
     ]);
     assert!(result.coverage.partial);
     assert_eq!(result.coverage.conflicting_lifecycles, 2);
-    assert_eq!(result.category_union_ms, [None; 3]);
+    assert_eq!(result.category_union_ms, [None; 4]);
     assert_eq!(result.intervals.unclassified_ms, Some(100));
 }
 
@@ -611,9 +612,9 @@ fn explicit_native_replay_across_files_and_generations_has_one_work_sum() {
             copy_to_domain(&command, file, generation),
         ]);
         assert_eq!(result.intervals.observed_window_ms, Some(100));
-        assert_eq!(result.coverage.lifecycle_candidates, [2, 0, 0]);
-        assert_eq!(result.coverage.linked_lifecycles, [1, 0, 0]);
-        assert_eq!(result.intervals.complete_intervals, [1, 0, 0]);
+        assert_eq!(result.coverage.lifecycle_candidates, [2, 0, 0, 0]);
+        assert_eq!(result.coverage.linked_lifecycles, [1, 0, 0, 0]);
+        assert_eq!(result.intervals.complete_intervals, [1, 0, 0, 0]);
         assert_eq!(result.intervals.category_sum_ms[0], 20);
         assert_eq!(result.category_union_ms[0], Some(20));
         assert_eq!(result.intervals.unclassified_ms, Some(80));
@@ -647,16 +648,14 @@ fn explicit_native_identity_cannot_join_start_end_across_clock_domains() {
             command_start.clone(),
             copy_to_domain(&command_end, file, generation),
         ]);
-        assert_eq!(result.coverage.lifecycle_candidates, [2, 0, 0]);
-        assert_eq!(result.intervals.candidates, [1, 0, 0]);
-        assert_eq!(result.intervals.complete_intervals, [0; 3]);
+        assert_eq!(result.coverage.lifecycle_candidates, [2, 0, 0, 0]);
+        assert_eq!(result.intervals.candidates, [1, 0, 0, 0]);
+        assert_eq!(result.intervals.complete_intervals, [0; 4]);
         assert_eq!(result.intervals.category_sum_ms[0], 0);
         assert_eq!(result.category_union_ms[0], None);
-        assert!(
-            result
-                .issues
-                .contains(&Issue::UnmatchedClockDomain("native-command".into()))
-        );
+        assert!(result.issues.contains(&Issue::UnmatchedClockDomain(
+            serde_json::to_string(&("item", "native-command")).unwrap()
+        )));
     }
 }
 
@@ -687,7 +686,7 @@ fn conflicting_native_replay_endpoints_exclude_all_copies() {
         copy_to_domain(&conflicting_copy, "replay-file", "generation"),
     ]);
     assert_eq!(result.coverage.conflicting_lifecycles, 1);
-    assert_eq!(result.intervals.complete_intervals, [0; 3]);
+    assert_eq!(result.intervals.complete_intervals, [0; 4]);
     assert_eq!(result.intervals.category_sum_ms[0], 0);
     assert_eq!(result.category_union_ms[0], None);
     assert_eq!(result.intervals.unclassified_ms, Some(100));
@@ -710,9 +709,9 @@ fn unidentified_equal_records_remain_two_identity_gaps() {
         unidentified.clone(),
         copy_to_domain(&unidentified, "replay-file", "generation"),
     ]);
-    assert_eq!(result.coverage.lifecycle_candidates, [2, 0, 0]);
+    assert_eq!(result.coverage.lifecycle_candidates, [2, 0, 0, 0]);
     assert_eq!(result.coverage.missing_identity_lifecycles, 2);
-    assert_eq!(result.intervals.complete_intervals, [0; 3]);
+    assert_eq!(result.intervals.complete_intervals, [0; 4]);
     assert_eq!(result.category_union_ms[0], None);
 }
 
@@ -848,7 +847,7 @@ fn unassigned_source_breaks_stop_context_continuation_without_adding_payload_sam
         assert!(context.compactions.is_empty());
         assert_eq!(result.coverage.scoped_events, 3);
         assert_eq!(result.coverage.unassigned_events, 1);
-        assert_eq!(result.coverage.lifecycle_candidates, [0; 3]);
+        assert_eq!(result.coverage.lifecycle_candidates, [0; 4]);
         assert!(result.coverage.partial);
         assert!(result.issues.contains(&Issue::SourceGap(id)));
     }
@@ -1426,3 +1425,6 @@ fn scoped_safe_message_records_count_physical_origins_without_promoting_users() 
     assert_eq!(out.coverage.outside_events, 1);
     assert_eq!(out.coverage.content_candidates, 0);
 }
+
+#[path = "mcp_tests.rs"]
+mod mcp;
