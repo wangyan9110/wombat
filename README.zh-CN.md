@@ -17,20 +17,20 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 
 ## 开始使用
 
-**Beta 测试版：[`v0.1.0-beta.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-beta.1)。** 本版本用于扩大安装、升级和现有产品流程的测试范围；功能、数据格式和命令仍可能调整。
+**正式版：[`v0.1.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0)。** 这是 Wombat 的首个稳定版本，面向本机 Codex 用量、配置检查和建议处理流程。
 
 发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64，并已包含所需运行环境，无需另装 Node.js、npm、Rust、pnpm 或编译器。Wombat 读取本机 Codex 记录时无需 API Key。分析用量前，至少需要一项本机 Codex 任务；没有任务历史时，仍可检查已授权目录中的指令和扩展。
 
 1. 安装 Wombat。在 macOS 或 Linux 中执行：
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
    ```
 
    在 Windows PowerShell 中执行：
 
    ```powershell
-   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
    ```
 
 2. 启动 Wombat。在 macOS 或 Linux 中执行：
@@ -51,13 +51,13 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 
 默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可直接运行 `wombat`。
 
-### 更新预发行版本
+### 更新 Wombat
 
-预发行版本不会替代最新稳定版。检查或安装后续预发行版本时，需要指定版本：
+检查或安装最新稳定版：
 
 ```sh
-wombat update --check --version 0.1.0-beta.1
-wombat update --version NEXT_PREVIEW_VERSION
+wombat update --check
+wombat update
 ```
 
 安装选项、升级行为、校验和及发行验收详情见[分发说明](docs/reference/distribution.md)。

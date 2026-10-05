@@ -4,7 +4,7 @@
 
 ## Current status
 
-Wombat uses GitHub Releases as its only product distribution channel and does not publish an npm package. The root npm workspace stays `private: true` for source development. `v0.1.0-dev.2` was the first public Development Preview; `v0.1.0-beta.1` is the current Beta and remains a GitHub Pre-release. Pre-release features, data formats, and commands may change. Source tools require Node.js 26.4.0 or newer. User archives bundle a fixed Node.js 26.4.0 runtime, CLI/Web, and the local Rust core, so users do not install Node, npm, Rust, pnpm, or a compiler.
+Wombat uses GitHub Releases as its only product distribution channel and does not publish an npm package. The root npm workspace stays `private: true` for source development. `v0.1.0` is the first stable release. Source tools require Node.js 26.4.0 or newer. User archives bundle a fixed Node.js 26.4.0 runtime, CLI/Web, and the local Rust core, so users do not install Node, npm, Rust, pnpm, or a compiler.
 
 Release automation uses only free GitHub capabilities. The public repository runs CI and tag releases on standard GitHub-hosted runners; paid larger runners are not used. Intermediate Actions artifacts expire after one day, while final archives become GitHub Release assets. Versions with a prerelease component create a Pre-release and do not occupy the stable `latest` endpoint.
 
@@ -19,7 +19,7 @@ curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh 
 Specify a version for a pre-release:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version PREVIEW_VERSION
 ```
 
 Windows PowerShell:
@@ -31,7 +31,7 @@ irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
 For a pre-release:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version PREVIEW_VERSION
 ```
 
 The installer detects the local target, downloads `wombat-<target>.tar.gz` and `SHA256SUMS`, verifies the archive, and installs under `~/.local`. `WOMBAT_INSTALL_PREFIX` or `--prefix` changes the destination; `--version` selects a release; `--base-url` supports development candidates or controlled mirrors. The installer replaces only directories and commands carrying Wombat's management marker.

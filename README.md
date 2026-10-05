@@ -17,20 +17,20 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 ## Get started
 
-**Beta: [`v0.1.0-beta.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-beta.1).** This release is intended for wider testing of installation, updates, and current product workflows. Features, data formats, and commands may still change.
+**Stable: [`v0.1.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0).** This is the first stable Wombat release for local Codex usage review, configuration checks, and recommendation workflows.
 
 Release archives support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. They include the required runtime, so you do not need to install Node.js, npm, Rust, pnpm, or a compiler. Wombat reads local Codex records without an API key. You need at least one local Codex task to analyze usage; without task history, you can still inspect instructions and extensions in directories you authorize.
 
 1. Install Wombat. On macOS or Linux, run:
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh
    ```
 
    On Windows PowerShell, run:
 
    ```powershell
-   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
    ```
 
 2. Start Wombat. On macOS or Linux, run:
@@ -51,13 +51,13 @@ If the browser does not open, use the full URL from the terminal. If no tasks ap
 
 The default installation prefix is `~/.local`. Add its `bin` directory to `PATH` to run `wombat` directly.
 
-### Update a pre-release
+### Update Wombat
 
-Pre-releases do not replace the latest stable release. Specify the version when you check or install a later pre-release:
+Check for or install the latest stable release:
 
 ```sh
-wombat update --check --version 0.1.0-beta.1
-wombat update --version NEXT_PREVIEW_VERSION
+wombat update --check
+wombat update
 ```
 
 See the [distribution guide](docs/reference/distribution.en.md) for installation options, update behavior, checksums, and release acceptance details.
