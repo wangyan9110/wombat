@@ -43,6 +43,7 @@ Proceed workstream by workstream, keeping one detailed design per scope. This ov
 
 | Workstream | Task ownership |
 |---|---|
+| [Statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) | Shared semantics and added gates for U02 and U04–U18 |
 | [Unified events and persistence](2026-10-04-event-foundation.en.md) | U04–U08 |
 | [Timing metrics and use counts](2026-10-04-event-metrics.en.md) | U09–U10 |
 | [Rule evaluation over unified evidence](2026-10-04-event-rules.en.md) | U11–U13 |
@@ -205,9 +206,11 @@ Observational history cannot establish stable model speed multipliers, quality r
 
 U01/U02 have [independent baseline evidence](../../../benchmarks/2026-10-04-event-upgrade-baseline.json) and frozen contracts. U03 now has production page components, a shared synthetic-data preview, and use-statistics wiring; cleanup of the independent old prototype and remaining user journeys are open in the [delivery workstream](2026-10-04-event-delivery.en.md). U04–U18 have core implementations and independent verification; some interfaces and pages are wired, but this evidence does not replace final cross-entry and browser acceptance. U19 has not passed: final integration, browser, and platform acceptance remain open, and resource acceptance has an observed failure whose cause is not yet established. U20 documentation and installation evidence are incomplete. Historical commits and local test output do not replace individual completion gates.
 
+The [statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) reopens the shared-semantics gates in U02 and U04–U18. Existing focused evidence remains reusable but does not establish these added conditions.
+
 #### Scope and delivery principles
 
-This scope covers U01–U20 in this record and the four companion upgrade decisions. Persistent MVCC, project-level progressive initialization, and the broader optimization lifecycle from historical proposals are not completion requirements for this upgrade. The shared-component preview has moved into the repository; cleanup of the independent old prototype, the user-journey gaps in the delivery workstream, and U19/U20 acceptance remain open.
+This scope covers U01–U20 in this record and the four companion upgrade decisions plus the statistical analysis architecture revision. Persistent MVCC, project-level progressive initialization, and the broader optimization lifecycle from historical proposals are not completion requirements for this upgrade. The shared-component preview has moved into the repository; cleanup of the independent old prototype, the user-journey gaps in the delivery workstream, and U19/U20 acceptance remain open.
 
 This is a substantial upgrade across core, client, cli, web, and ui, covering event facts, index/snapshot formats, usage projections, rule assessments, and interactions rather than just a timing panel. Initial scope includes safe Codex events, fixed evidence views, existing accounting conservation, Skill/MCP use counts, timing metrics, rule adaptation, and equivalent CLI/Web delivery. Retain the modular monolith without a new service or general rule engine.
 
@@ -226,43 +229,43 @@ Determine completion from each task’s gates and actual verification; partial i
 | ID / design stage | Task and primary ownership | Dependencies | Completion gate |
 |---|---|---|---|
 | U01 / D1, R1 | Current behavior and independent truth baseline; core tests and evidence | None | Pin source revision and synthetic corpus; enumerate accounting/rule expectations, known failures, and evidence gaps; record storage formats and user-record boundaries |
-| U02 / D1, D2, R2 | Event, evidence-view, and identity contracts; core | U01 | Specify event/operation identities, source generations, watermarks, time/gaps, observation revisions, and rule dependencies; reconcile format versions and user-record protection |
+| U02 / D1, D2, R2 | Event, evidence-view, and identity contracts; core | U01 | Specify event/operation identities, source generations, watermarks, time/gaps, observation revisions, and rule dependencies; reconcile format versions and user-record protection; Define minimum shared observation, association, and analysis contracts, estimate eligibility, and local explanations; the new architecture gates remain open |
 | U03 / D0 | Turn and rule page prototypes; design specification and synthetic prototype | U02 | Wide/narrow, bilingual, complete/missing/running scenarios; five journeys, assessment/decision presentation, DOM/source and interaction review, and presentation-field mapping |
 
 ##### Batch two: event foundation and persistence
 
 | ID / design stage | Task and primary ownership | Dependencies | Completion gate |
 |---|---|---|---|
-| U04 / D1 | Codex logs to safe events; core/adapters, session_events | U02 | Current and supported historical shapes, valid large lines/partial tails, source identity, and native fields; body/argument/output isolation |
-| U05 / D1 | Derive existing Measurement/Operation from events; core | U04 | Independent truth for Tokens, cache subcategories, fork replay, cumulative reconciliation, and pricing association; parse each source once |
-| U06 / D2 | Transactional event index, cursors, and projections; core/live_index | U05 | Append, restart, cancellation, source failure, truncation/replacement, late correction, and cold-rebuild equivalence; no partial-version commits |
-| U07 / D2, D4 | Fixed-view selection and snapshots; core/live, usage_store | U06 | Shard references/hashes, same-version queries, expiry, cached no-scan, initial-preview isolation; reject unknown formats while preserving directories |
+| U04 / D1 | Codex logs to safe events; core/adapters, session_events | U02 | Current and supported historical shapes, valid large lines/partial tails, source identity, and native fields; body/argument/output isolation; Preserve missing, invalid, and conflicting observations with bounded evidence instead of collapsing them into derived nulls |
+| U05 / D1 | Derive existing Measurement/Operation from events; core | U04 | Independent truth for Tokens, cache subcategories, fork replay, cumulative reconciliation, and pricing association; parse each source once; Share identity, inheritance, phase association, and reconciliation; retain usable primary metrics and replace same-scope estimates with native values without double counting |
+| U06 / D2 | Transactional event index, cursors, and projections; core/live_index | U05 | Append, restart, cancellation, source failure, truncation/replacement, late correction, and cold-rebuild equivalence; no partial-version commits; Use identical observation and reconciliation semantics, with version dependencies supplied by a shared descriptor |
+| U07 / D2, D4 | Fixed-view selection and snapshots; core/live, usage_store | U06 | Shard references/hashes, same-version queries, expiry, cached no-scan, initial-preview isolation; reject unknown formats while preserving directories; Unify analysis dependencies and cache keys; evidence pagination failures do not invalidate completed summaries |
 | U08 / R2 | Configuration measurements and host observations in evidence views; core/config | U06, U02 | Preserve independent source/scope/time; bodies read only in authorized collection analysis; rules consume safe versioned inputs |
 
 ##### Batch three: metrics and rules
 
 | ID / design stage | Task and primary ownership | Dependencies | Completion gate |
 |---|---|---|---|
-| U09 / D3 | Skill/MCP usage projections; core shared statistics | U05, U07 | Three same-turn uses count as three; start/result count once; include failures, exclude catalogs/declarations; disclose unknown ownership/time and duplicate-evidence gaps |
-| U10 / D3 | Pure timing, coverage, and context algorithms; core/timing | U02; integrate after U05, U07 | Union/exclusive coverage conservation, native scalar versus observed interval, historical windows and quantile truth, resource limits, sharing allowlist |
-| U11 / R1 | Independent rule evaluation; core/optimize | U02 | Reuse static algorithms; every rule directly returns five assessment outcomes; isolate failures and derive suggestions from hits |
-| U12 / R2 | Rule inputs and dependency updates; core/config, optimize | U08, U09, U11 | Reuse counts across inventory/rules/follow-up; fixed cutoff; correct invalidation for configuration, windows, and late events; unrelated appends preserve static judgments |
+| U09 / D3 | Skill/MCP usage projections; core shared statistics | U05, U07 | Three same-turn uses count as three; start/result count once; include failures, exclude catalogs/declarations; disclose unknown ownership/time and duplicate-evidence gaps; Show observed counts and unassigned records separately; local gaps do not erase known counts |
+| U10 / D3 | Pure timing, coverage, and context algorithms; core/timing | U02; integrate after U05, U07 | Union/exclusive coverage conservation, native scalar versus observed interval, historical windows and quantile truth, resource limits, sharing allowlist; Return recorded, calculated, or estimated bases and local explanations per metric; retain independent native durations and complete the MCP phase timeline |
+| U11 / R1 | Independent rule evaluation; core/optimize | U02 | Reuse static algorithms; every rule directly returns five assessment outcomes; isolate failures and derive suggestions from hits; Separate check facts from inspection suggestions; positive partial observations may support scoped suggestions |
+| U12 / R2 | Rule inputs and dependency updates; core/config, optimize | U08, U09, U11 | Reuse counts across inventory/rules/follow-up; fixed cutoff; correct invalidation for configuration, windows, and late events; unrelated appends preserve static judgments; Declare acceptable metric bases, assumptions, and scope for each rule and reuse shared analysis |
 | U13 / R2 | Finding identity, decisions, and rechecks; core/optimize/reviews, store | U12, U07 | Separate finding/assessment identity; missing evidence never proves resolution, upgrades never claim comparability; rebuilding preserves decisions/reasons/baselines without widening scope |
 
 ##### Batch four: interfaces and user entry points
 
 | ID / design stage | Task and primary ownership | Dependencies | Completion gate |
 |---|---|---|---|
-| U14 / D4, R3 | Generated DTOs and restricted transports; core, client, web host | U03, U07, U09, U10; rules additionally need U12, U13 | Version-bound live/fixed-snapshot, assessment/evidence interfaces; consistent authorization, cancellation, errors, and budgets; timing never implicitly collects configuration or fetches prices |
-| U15 / D5, R3 | CLI text and JSON; cli, client/locale | Corresponding U14 interfaces | Non-TTY queries, states/evidence pagination, exit/cancellation, bilingual equivalence; missing values never zero |
-| U16 / D5 | Integrated turn detail; ui | U03, U14 timing/usage interfaces | Reuse summary; timeline/list fallback, Skill/MCP, evidence and sharing; browser acceptance for group refresh, focus/return, and late responses |
-| U17 / R3 | Rule assessment and recheck pages; ui | U03, U14 rule interfaces | Separate facts/decisions; evidence gaps, version changes, keep/redisplay/recheck journeys in both languages and narrow layouts |
+| U14 / D4, R3 | Generated DTOs and restricted transports; core, client, web host | U03, U07, U09, U10; rules additionally need U12, U13 | Version-bound live/fixed-snapshot, assessment/evidence interfaces; consistent authorization, cancellation, errors, and budgets; timing never implicitly collects configuration or fetches prices; Share value basis, observed scope, and explanation semantics across domain DTOs without one oversized response |
+| U15 / D5, R3 | CLI text and JSON; cli, client/locale | Corresponding U14 interfaces | Non-TTY queries, states/evidence pagination, exit/cancellation, bilingual equivalence; missing values never zero; Prioritize useful results and relevant explanations; label estimates without standalone unknown badges |
+| U16 / D5 | Integrated turn detail; ui | U03, U14 timing/usage interfaces | Reuse summary; timeline/list fallback, Skill/MCP, evidence and sharing; browser acceptance for group refresh, focus/return, and late responses; Use shared explanations for observed portions and unassigned records; missing time does not hide use or outcome evidence |
+| U17 / R3 | Rule assessment and recheck pages; ui | U03, U14 rule interfaces | Separate facts/decisions; evidence gaps, version changes, keep/redisplay/recheck journeys in both languages and narrow layouts; Suggestions show scope and basis without turning local signals into definite faults or savings |
 
 ##### Batch five: module verification closure
 
 | ID / design stage | Task and primary ownership | Dependencies | Completion gate |
 |---|---|---|---|
-| U18 / D5, R3 | Changed-module verification closure | U15, U16, U17 | Collect targeted independent module evidence and fix gaps; use synthetic or mocked inputs for UI/CLI tests; no integration or end-to-end tests in intermediate batches |
+| U18 / D5, R3 | Changed-module verification closure | U15, U16, U17 | Collect targeted independent module evidence and fix gaps; use synthetic or mocked inputs for UI/CLI tests; no integration or end-to-end tests in intermediate batches; Add module properties for optional-gap isolation, conflict preservation, estimate replacement, and independent synthetic truth |
 
 ##### Batch six: final integration and delivery
 

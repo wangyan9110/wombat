@@ -10,6 +10,8 @@ This record owns all design responsibilities from section 20 of the [upgrade ove
 
 ## Proposal
 
+The [statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) updates observation semantics, partial results, fallback calculations, and suggestion requirements. It takes precedence over older whole-result unavailability constraints below. Privacy, use-count semantics, identity protection, and final acceptance remain applicable.
+
 ### 20. Rule architecture based on unified evidence
 
 This section describes the complete target: fixed evidence and shared analysis → independent rule evaluation → assessments → findings → suggestions and handling views. Current implementation and limits belong to the [core reference](../../../../core/README.en.md): rule caching, independent method versions, finding identities, and immutable review baselines are implemented. U12/U13 still require final shared-use integration and cross-entry and rebuild acceptance; partial delivery does not close either task. Whether a suggestion exists does not determine an assessment outcome.

@@ -10,6 +10,8 @@ This record owns all design responsibilities from section 7, section 8, section 
 
 ## Proposal
 
+The [statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) updates observation semantics, partial results, fallback calculations, and suggestion requirements. It takes precedence over older whole-result unavailability constraints below. Privacy, use-count semantics, identity protection, and final acceptance remain applicable.
+
 ### 7. Minimum CLI and JSON contract
 
 The CLI contract has three actions; current usage is documented in the [CLI guide](../../../guides/cli.en.md):

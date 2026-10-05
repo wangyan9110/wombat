@@ -1,0 +1,114 @@
+# Decision Note: Observation and calculation architecture for statistical analysis
+
+[中文](2026-10-05-analysis-first-events.md) | English
+
+Status: proposed
+
+## Problem
+
+Wombat supports statistical analysis and improvement suggestions. It is not a transaction settlement or exhaustive audit system. The event upgrade provides safe storage, source identities, and replay paths, but it does not yet unify observation semantics and downstream use. Placing records in one logical log does not by itself prevent information loss, repeated association, or excessively conservative presentation.
+
+This decision partially supersedes the assumption in [sections 13 and 18 of the event foundation](2026-10-04-event-foundation.en.md) that retaining existing projection semantics is sufficient for unification. It also replaces parts of the [metrics](2026-10-04-event-metrics.en.md), [rules](2026-10-04-event-rules.en.md), and [delivery](2026-10-04-event-delivery.en.md) designs that make completeness a prerequisite for an entire result. Privacy, source isolation, use-count semantics, user-decision protection, storage transactions, and final acceptance remain applicable. This revises the current upgrade under [U01–U20](2026-10-04-codex-task-timing.en.md), without a parallel task list. The target below is not fully implemented.
+
+| Structural issue found | Code evidence and consequence |
+|---|---|
+| Missing and conflicting values collapse into the same empty value | Consumers cannot identify the cause directly from `wire`, `merge_optional`, and separate conflict sets; local guards already prevent some refills, but other consumers must not restore conflicting values |
+| Operation projections compress phase observations | Operation merging retains the earliest time; safe events still retain phases separately, but consumers lack shared phase associations |
+| Association and fallback calculations are spread across consumers | Usage summaries, pricing, use observations, and timing handle identity or fallbacks separately; one semantic change needs multiple edits |
+| Complete totals and observed portions are conflated | Unlocated use targets or limits on facts read for timing computation can still affect existing values; this is distinct from evidence pagination limits; usage summaries already protect some optional breakdown gaps, which other consumers must not reintroduce |
+| Versions and cache dependencies are assembled repeatedly by hand | Parser state, live projections, and fixed snapshots each add observation headers; a new field can miss a restore or reuse path |
+
+Evidence entry points are [Codex normalization](../../../../core/src/adapters/codex/wire.rs), [reconciliation](../../../../core/src/adapters/codex/accounting.rs), [operation phases](../../../../core/src/adapters/codex/operations/merge.rs), [use observations](../../../../core/src/usage_observations.rs), [timing queries](../../../../core/src/timing/query.rs), and [usage summaries](../../../../core/src/usage_app/summary.rs). These issues do not mean every current result is wrong. They show why individual patches cannot constrain future consumers.
+
+## Proposal
+
+### Product purpose and boundaries
+
+Prioritize questions that help users act: recorded usage, where time went, which tools were used, and which configuration merits inspection. Use authorized logs, related records in the same source domain, and fixed configuration observations before choosing fallback calculations. Exact values are not required for presentation. Supported calculations, estimates, ranges, and partial results are useful when their meaning is explained.
+
+Incomplete records do not mean an absence of useful analysis. Explain a limitation when it affects the current conclusion; missing optional fields must not suppress independent primary metrics. Storage and user decisions remain reliable, while analytical precision follows its purpose. Estimates must not become source facts, absent observations must not become claims that nothing happened, and unsupported savings must not be promised.
+
+### Data flow and responsibilities
+
+```mermaid
+flowchart LR
+  S[Authorized sources] --> O[Safe observations]
+  O --> R[Shared association and reconciliation]
+  R --> A[Domain analysis]
+  V[Fixed configuration and price observations] --> A
+  A --> P[Explanations and suggestions]
+  P --> C[CLI and Web]
+  D[User decisions and recheck records] --> P
+```
+
+| Layer | Shared responsibility | Excluded responsibility |
+|---|---|---|
+| Source adapters and safe observations | Parse once; retain allowlisted native fields, phases, occurrence and collection times, source positions, field presence, and conflict evidence | Select a plausible conflicting value early; retain bodies or arbitrary raw payloads |
+| Shared association and reconciliation | Source-domain identity, explicit references and aliases, replay deduplication, object and turn links, context inheritance, phase links, and association reasons | Infer definite identity from time proximity; calculate costs or interval unions |
+| Domain analysis | Token reconciliation, pricing, intervals, use counts, and configuration measurements; declare dependencies and fallback order | Read raw logs again; duplicate identity merging; spread one metric's gap to all metrics |
+| Explanations and suggestions | Combine values, scope, methods, assumptions, and local limitations into useful conclusions; rules consume the same analysis results | Infer business state from translated text; treat suggestions as confirmed faults or completed actions |
+| CLI and Web | Format and localize the same semantics, with navigation and progressive detail | Fill counts, select prices, repeat association, or independently declare resolution |
+
+Keep the Rust modular monolith. Do not add an event bus, workflow engine, microservices, or another ledger. Extract existing shared behavior while retaining domain algorithms. Keep narrow query entries instead of combining all responses into one large DTO.
+
+### Minimum shared contracts
+
+At the source boundary, represent meaningful observation states only for fields that affect inheritance, association, or fallback calculations: a recorded value, not recorded, or an unusable observation with a reason. The last form can express invalid fields or conflicting observations, with bounded safe evidence and an indication of truncation. `None` alone must not represent these different meanings. Do not recursively wrap every scalar. A shared field merge must process values and evidence together; consumers must not extract a value and refill it independently.
+
+`ObservationMeta` unifies source, file generation, position, occurrence time, collection time, and subject references. Payloads remain concrete usage, tool-phase, lifecycle, and configuration types. `ResolvedOperation` retains canonical identity, phase references, targets, and association evidence instead of reducing phase observations to one timestamp. Native counters and cumulative report identities remain separate; the existing accounting algorithm owns differences and deduplication.
+
+`EvidenceView` fixes authorization scope, observation versions, and the calculation cutoff. Sessions, configuration, host observations, and prices retain separate sources; current configuration does not become historical evidence. Existing snapshots and configuration views use a shared version-selection contract without requiring another data copy.
+
+Analysis results share three semantic parts:
+
+- Values and interpretation: typed domain metrics, units, recorded/calculated/estimated basis, method versions, and necessary assumptions. Converge existing metric types gradually; do not add unsupported confidence percentages.
+- Observed scope: included sources, turns, and records, with associated and unassigned portions counted separately. Collection coverage, calculation basis, and execution failure remain distinct instead of sharing a global quality state.
+- Explanations: stable reason codes, parameters, affected metrics, evidence references, and the effect on user judgment. Show relevant explanations by default, with technical evidence on demand.
+
+A missing analytical value must have an explanation, but does not need another status label. Preserve genuine zero values and omit inapplicable breakdowns. Store source measurements and analytical estimates separately; adding them must not create a purported complete usage total.
+
+### Fallback calculations and partial results
+
+Each analysis declares its fallback order centrally: valid native observations, reproducible linked calculations, then defined estimates or proxies. This is not a universal blind `or_else`. If identity, meaning, or scope does not meet a method's requirements, retain other results and explain the limitation.
+
+| Scenario | User-facing result | Constraint |
+|---|---|---|
+| Total input is recorded but cache writes are absent | Show total input and a calculable cache-read ratio; explain the missing breakdown | Do not fill cache writes with zero |
+| Total tokens are absent but input and output can be associated with clear semantics | Show a calculated total with its basis | Preserve the missing native total; later native records replace the same identity's result rather than adding to it |
+| Native values conflict but independent categories remain useful | Show reliable categories and the discrepancy; provide an independent calculated result when a defined method permits it | Do not claim the source conflict is resolved or default to the largest, smallest, or latest value |
+| Three uses are associated and two records remain unassigned | Show “3 uses observed; 2 records are not associated” | Separate observed counts from complete totals; one operation's start and result still count once |
+| Only some operations can be placed on the timeline | Show located intervals, native duration, and other operation records | Do not invent positions without usable endpoints; missing time does not erase use or outcome evidence |
+| Only part of the usage can be priced | Show the priced subtotal and reasons; a method with explicit assumptions can separately provide an estimate | API-equivalent amounts are not invoices; estimates do not replace recorded amounts or silently select a conflicting model |
+| Collection is incomplete but repeated reads or failures are observed | Provide a scoped suggestion to inspect them | Do not infer all problems, loading failure, or definite savings from local observations |
+
+Estimates cover explicitly identified gaps and carry their method, assumptions, and replacement relationship. New native evidence recalculates that scope instead of adding to the old estimate. When no reasonable method exists, deliver existing values and an explanation rather than inventing a number. Analysis can describe the current records without requiring a complete population denominator.
+
+### Rules and suggestions
+
+Retain independent check outcomes and user decisions. Rules declare their metric dependencies and acceptable bases. Static format errors can establish definite findings; repeated reads, a high observed failure share, or context growth can support scoped inspection suggestions. Suggestions do not require proof of the ultimate cause, but need positive observations. Missing use records alone do not justify disabling a configuration.
+
+Separate check facts from suggestions: facts describe observations; suggestions explain what merits inspection and why. Partial results can produce local suggestions. Unsupported checks and individual failures do not block unrelated suggestions. Confirming resolution still requires the same problem, scope, and a comparable method; keep and not-applicable decisions do not become passing checks. A suggestion does not establish reduced cost, reduced time, or adoption.
+
+### Versions, storage, and queries
+
+Define observation formats and source mapping versions centrally. A typed version descriptor supplies validation and writing for parser state, projections, and fixed snapshots, avoiding another manually copied header set for each field. Protocol, storage, source mapping, association methods, domain algorithms, and prices retain distinct responsibilities rather than one constantly changing global version. Unreleased intermediate formats converge on the current format, preserving old data without an automatic migration path.
+
+All reconciliation uses one entry with the same semantics during initial collection, append, replay, and restart. Fixed views bind observations and analysis methods; a method change explicitly recalculates and creates a new analysis version. Cache keys follow actual analysis dependencies rather than hidden conditions assembled by each view. User decisions remain outside rebuildable caches.
+
+Query statistical summaries separately from evidence details. Summaries retain observed counts, usable measures, and scope. Pagination or detail-budget limits affect details without removing completed summaries. If a summary itself reaches a limit, state which portions were processed and which values are unavailable; do not present truncated values as complete. Full-source residency and resource costs still require measurement. This does not promise persistent MVCC or unlimited streaming scale.
+
+### Treatment of existing work
+
+Reuse existing native-input-total protection, optional cache-breakdown isolation, identity deduplication, interval algorithms, use semantics, fixed views, rule evaluation, and user records. The context-conflict fixes being finalized in the worktree prevent incorrect inheritance and pricing; retain them as regression cases and transitional protection. Their additional local flags do not establish the target architecture. Shared observation and reconciliation must absorb their semantics and remove repeated fallback and validation paths.
+
+Adjust the order within existing tasks: U02 establishes shared semantics and analytical purposes; U04–U08 establish observations, shared association, and version entry points; U09–U13 align token/use/timing partial results and fallback calculations with rules; U14–U18 connect shared explanations and existing components and complete independent checks; U19/U20 finish cross-entry, resource, documentation, and installation acceptance. The main task table remains the detailed owner of closure conditions.
+
+## Alternatives considered
+
+Adding null branches and observation headers for each symptom is a small change but cannot prevent future consumers from repeating the error; it is not the long-term approach. Replacing the system with a generic event-sourcing framework adds infrastructure unrelated to current consumers and does not define domain meaning. Making every result an unspecified estimate is also unsuitable because users cannot compare trends or understand advice. Use shared observation, association, and explanation contracts within current modules, migrate by domain, and prioritize useful analysis.
+
+## Acceptance criteria
+
+Add architectural properties to U02–U18 rather than treating test counts as completion: one synthetic observation set produces the same domain results through initial collection, batched append, restart, and replay; duplicate evidence does not increase uses or tokens; missing and conflicting fields do not turn into each other; native values replace corresponding estimates; optional breakdown gaps do not hide independent primary metrics; unassigned records remain visible alongside observed counts; detail pagination failure does not invalidate a completed summary; CLI, Web, and rules share the same analysis semantics.
+
+Each estimate needs independent synthetic cases for its method, scope, visible assumptions, and prevention of double counting. An explanation is sufficient when no estimate method is available. Suggestions must trace to metrics and observed scope without claiming a fault, savings, or resolution. Existing privacy, read-only-source, and user-decision protections remain. Intermediate stages run only affected independent module tests; integration, browsers, platforms, and resource acceptance remain in U19.

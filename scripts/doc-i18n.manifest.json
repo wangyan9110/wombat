@@ -259,6 +259,11 @@
       "zh": "docs/decisions/proposed/architecture/2026-10-04-event-delivery.md",
       "en": "docs/decisions/proposed/architecture/2026-10-04-event-delivery.en.md",
       "record": "docs/decisions/proposed/architecture/2026-10-04-event-delivery.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/architecture/2026-10-05-analysis-first-events.md",
+      "en": "docs/decisions/proposed/architecture/2026-10-05-analysis-first-events.en.md",
+      "record": "docs/decisions/proposed/architecture/2026-10-05-analysis-first-events.i18n.json"
     }
   ],
   "legacyUnpaired": [],
