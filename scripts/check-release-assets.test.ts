@@ -19,6 +19,17 @@ test('reused candidates retain exact identity and archive hashes without rebuild
   assert.equal(verifyReleaseAssets(root, set.version, set.source).length, 5);
   assert.throws(() => verifyReleaseAssets(root, '1.0.1', set.source), /identity differs/);
   assert.throws(() => verifyReleaseAssets(root, set.version, 'c'.repeat(40)), /identity differs/);
+  const assets = set.assets.map(asset => ({name: asset.archive, size: asset.bytes, digest: `sha256:${asset.sha256}`}));
+  for (const asset of set.assets.slice(1)) rmSync(path.join(root, asset.archive));
+  const published = {target: nativeTargets[0], assets};
+  assert.equal(verifyReleaseAssets(root, set.version, set.source, published).length, 1);
+  assert.throws(() => verifyReleaseAssets(root, set.version, set.source), /ENOENT/);
+  for (const changes of [{size: 0}, {digest: `sha256:${'c'.repeat(64)}`}]) {
+    const drifted = assets.map((asset, index) => index === 1 ? {...asset, ...changes} : asset);
+    assert.throws(() => verifyReleaseAssets(root, set.version, set.source, {...published, assets: drifted}), /Published archive differs/);
+  }
+  assert.throws(() => verifyReleaseAssets(root, set.version, set.source, {...published, assets: assets.slice(1)}), /Published archive differs/);
+  assert.throws(() => verifyReleaseAssets(root, set.version, set.source, {...published, assets: [...assets, assets[1]]}), /Published archive differs/);
   writeFileSync(path.join(root, set.assets[0].archive), 'corrupt');
-  assert.throws(() => verifyReleaseAssets(root, set.version, set.source), /SHA-256 mismatch/);
+  assert.throws(() => verifyReleaseAssets(root, set.version, set.source, published), /SHA-256 mismatch/);
 });

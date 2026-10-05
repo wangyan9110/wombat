@@ -10,7 +10,20 @@ import {
   selectWorkflowRun,
   type WorkflowRun,
   releaseRecoveryState,
+  verificationDownloads,
 } from './publish-release.ts';
+import {nativeTargets} from './native-platforms.ts';
+
+test('public verification downloads only the host archive while requiring the complete immutable release', () => {
+  const view = {assets: expectedReleaseAssets().map(name => ({name, size: 1, digest: `sha256:${'a'.repeat(64)}`})),
+    isDraft: false, isImmutable: true, isPrerelease: false, tagName: 'v1.0.0', url: 'https://github.com/owner/repo/releases/tag/v1.0.0'};
+  for (const target of nativeTargets) {
+    assert.deepEqual(verificationDownloads(view, target).map(asset => asset.name).sort(),
+      ['install.sh', 'install.ps1', 'release-set.json', 'SHA256SUMS', `wombat-${target}.tar.gz`].sort());
+  }
+  assert.throws(() => verificationDownloads({...view, assets: view.assets.slice(1)}, nativeTargets[0]), /Release assets differ/);
+  assert.throws(() => verificationDownloads({...view, isImmutable: false}, nativeTargets[0]), /not immutable/);
+});
 
 test('parses one explicit release identity and rejects ambiguous input', () => {
   assert.deepEqual(parsePublishArgs([], '0.1.0-beta.1'), {

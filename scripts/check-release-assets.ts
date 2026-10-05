@@ -5,12 +5,24 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { GitHubReleaseSet } from './github-release.ts';
 import { validateReleaseSet } from './generate-release-notes.ts';
 import { releaseVersion } from './release-version.ts';
+import type { PublishedAsset } from './release-cache.ts';
+import type { NativeTarget } from './native-platforms.ts';
 
-export function verifyReleaseAssets(directory: string, version: string, source: string): string[] {
+export function verifyReleaseAssets(directory: string, version: string, source: string,
+  published?: {target: NativeTarget; assets: PublishedAsset[]}): string[] {
   const set = JSON.parse(readFileSync(path.join(directory, 'release-set.json'), 'utf8')) as GitHubReleaseSet;
   validateReleaseSet(set);
   if (set.version !== version || set.source !== source || set.candidateOnly !== false) throw new Error('Release candidate identity differs from the exact source');
-  const files = set.assets.map(asset => {
+  if (published) {
+    if (!set.targets.includes(published.target)) throw new Error('Published verification target is unsupported');
+    for (const asset of set.assets) {
+      const matches = published.assets.filter(item => item.name === asset.archive);
+      if (matches.length !== 1 || matches[0].size !== asset.bytes || matches[0].digest !== `sha256:${asset.sha256}`) {
+        throw new Error(`Published archive differs from the verified release set: ${asset.archive}`);
+      }
+    }
+  }
+  const files = set.assets.filter(asset => !published || asset.target === published.target).map(asset => {
     const file = path.join(directory, asset.archive);
     if (!statSync(file).isFile() || statSync(file).size !== asset.bytes
       || createHash('sha256').update(readFileSync(file)).digest('hex') !== asset.sha256) throw new Error(`Release archive size or SHA-256 mismatch: ${asset.archive}`);

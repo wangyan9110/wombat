@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { releaseArchive } from './github-release.ts';
-import { nativeTargets } from './native-platforms.ts';
+import { currentNativeTarget, nativeTargets, type NativeTarget } from './native-platforms.ts';
 import { releaseVersion, validateVersion } from './release-version.ts';
 import { consistencyErrors } from './prepare-release.ts';
 import { readReleaseNotesInput } from './generate-release-notes.ts';
@@ -233,7 +233,7 @@ function waitForRun(repository: string, workflow: string, source: string, headBr
   }
   if (!selected) throw new Error(`No ${workflow} push run appeared for ${source} on ${headBranch}`);
   if (selected.status !== 'completed') {
-    run('gh', ['run', 'watch', String(selected.databaseId), '--repo', repository, '--compact', '--exit-status'], 90 * 60_000);
+    run('gh', ['run', 'watch', String(selected.databaseId), '--repo', repository, '--compact', '--exit-status', '--interval', '30'], 90 * 60_000);
     selected = selectWorkflowRun(workflowRuns(repository, workflow, source), source, headBranch);
   }
   if (!selected || selected.status !== 'completed' || selected.conclusion !== 'success') {
@@ -433,35 +433,53 @@ async function main(): Promise<void> {
 
   stage('Wait for GitHub Release');
   const releaseRun = recovery === 'verify' ? existingRun : waitForRun(repository, 'release.yml', source, tag);
-  const view = releaseView(repository, tag);
-  const releaseErrors = publishedReleaseErrors(view, options.version);
-  if (releaseErrors.length) throw new Error(releaseErrors.join('\n'));
-
-  stage('Verify published assets and attestations');
-  run('gh', ['release', 'verify', tag, '--repo', repository], 5 * 60_000);
-  const download = releaseCacheDirectory(process.env.WOMBAT_RELEASE_CACHE ?? path.join(os.tmpdir(), 'wombat-release-cache'), repository, options.version, source);
-  const cached = cacheReleaseAssets(download, view.assets, (missing, destination) => {
-    run('gh', ['release', 'download', tag, '--repo', repository, '--dir', destination,
-      ...missing.flatMap(asset => ['--pattern', asset.name])], 15 * 60_000);
-  }, file => run('gh', ['release', 'verify-asset', tag, file, '--repo', repository], 5 * 60_000));
-  for (const result of cached) console.log(`${path.basename(result.file)}: ${result.reused ? 'verified cache' : 'verified download'}`);
-  const archives = verifyReleaseAssets(download, options.version, source);
-  for (const archive of archives) {
-    run('gh', ['attestation', 'verify', archive, '--repo', repository], 5 * 60_000);
-  }
-  const scratch = mkdtempSync(path.join(os.tmpdir(), `wombat-${tag}-`));
-  try {
-    stage('Clean install and update check');
-    await cleanInstall(options.version, source, repository, scratch, download);
-  } finally {
-    rmSync(scratch, { recursive: true, force: true });
-  }
+  const view = await verifyPublishedRelease(repository, options.version, source);
 
   console.log(JSON.stringify({
     version: options.version, tag, source, repository, ciUrl: ci.url,
     releaseRunUrl: releaseRun?.url, releaseUrl: view.url, immutable: view.isImmutable,
     assets: view.assets.map(asset => asset.name).sort(),
   }, null, 2));
+}
+
+export function verificationDownloads(view: ReleaseView, target: NativeTarget): PublishedAsset[] {
+  if (!nativeTargets.includes(target)) throw new Error('Unsupported verification target');
+  const names = new Set(['install.sh', 'install.ps1', 'release-set.json', 'SHA256SUMS', releaseArchive(target)]);
+  const errors = publishedReleaseErrors(view, view.tagName.replace(/^v/, ''));
+  if (errors.length) throw new Error(errors.join('\n'));
+  return view.assets.filter(asset => names.has(asset.name));
+}
+
+/** Whole-release signatures and metadata cover every target; local installation needs only this host's archive. */
+export async function verifyPublishedRelease(repository: string, version: string, source: string): Promise<ReleaseView> {
+  const tag = `v${version}`;
+  if (readRemoteRef(repository, `refs/tags/${tag}`) !== source) throw new Error('Published tag source differs from the requested verification identity');
+  const view = releaseView(repository, tag);
+  const releaseErrors = publishedReleaseErrors(view, version);
+  if (releaseErrors.length) throw new Error(releaseErrors.join('\n'));
+
+  stage('Verify published assets and attestations');
+  run('gh', ['release', 'verify', tag, '--repo', repository], 5 * 60_000);
+  const target = currentNativeTarget();
+  const download = releaseCacheDirectory(process.env.WOMBAT_RELEASE_CACHE ?? path.join(os.tmpdir(), 'wombat-release-cache'), repository, version, source);
+  const cached = cacheReleaseAssets(download, verificationDownloads(view, target), (missing, destination) => {
+    run('gh', ['release', 'download', tag, '--repo', repository, '--dir', destination,
+      ...missing.flatMap(asset => ['--pattern', asset.name])], 15 * 60_000);
+  }, file => run('gh', ['release', 'verify-asset', tag, file, '--repo', repository], 5 * 60_000));
+  for (const result of cached) console.log(`${path.basename(result.file)}: ${result.reused ? 'verified cache' : 'verified download'}`);
+  const archives = verifyReleaseAssets(download, version, source, {target, assets: view.assets});
+  for (const archive of archives) {
+    run('gh', ['attestation', 'verify', archive, '--repo', repository], 5 * 60_000);
+  }
+  const scratch = mkdtempSync(path.join(os.tmpdir(), `wombat-${tag}-`));
+  try {
+    stage('Clean install and update check');
+    await cleanInstall(version, source, repository, scratch, download);
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+
+  return view;
 }
 
 const entry = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : '';
