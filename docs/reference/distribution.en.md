@@ -34,9 +34,11 @@ For a pre-release:
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version PREVIEW_VERSION
 ```
 
-The installer detects the local target, downloads `wombat-<target>.tar.gz` and `SHA256SUMS`, verifies the archive, and installs under `~/.local`. `WOMBAT_INSTALL_PREFIX` or `--prefix` changes the destination; `--version` selects a release; `--base-url` supports development candidates or controlled mirrors. The installer replaces only directories and commands carrying Wombat's management marker.
+The installer detects the local target, downloads `wombat-<target>.tar.gz` and `SHA256SUMS`, verifies the archive, and installs under `~/.local`. It adds the default bin directory to the user's shell profile or Windows user `PATH`; `--no-modify-path` disables that change. `WOMBAT_INSTALL_PREFIX` or `--prefix` changes the destination; `--version` selects a release; `--base-url` supports development candidates or controlled mirrors. The installer replaces only directories and commands carrying Wombat's management marker.
 
 After an installer-managed deployment, `wombat update` downloads and installs the latest stable Release. `wombat update --check` checks only, and `--version X.Y.Z` selects a version. Previews do not enter `latest`, so moving to a later preview requires an explicit version. Releases live in sibling directories. The updater verifies metadata, size, and SHA-256 before atomically switching `current.txt`. It never overwrites the running version, including on Windows, keeps the selected and previously running versions, and cleans older managed versions. Source builds and manually extracted archives have no installation pointer and are rejected explicitly.
+
+`wombat doctor` checks the managed installation, command path, runtime, local core, and Codex source directory. It does not scan source records, use the network, or change product data; `--json` returns one machine-readable result.
 
 ## GitHub Release structure
 

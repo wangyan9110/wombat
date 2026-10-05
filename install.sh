@@ -5,13 +5,15 @@ repo="wangyan9110/wombat"
 version="latest"
 prefix="${WOMBAT_INSTALL_PREFIX:-$HOME/.local}"
 base_url=""
+modify_path=1
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --version) version=${2:?missing version}; shift 2 ;;
     --prefix) prefix=${2:?missing prefix}; shift 2 ;;
     --base-url) base_url=${2:?missing base URL}; shift 2 ;;
-    -h|--help) echo "Usage: install.sh [--version v0.1.0|latest] [--prefix PATH] [--base-url URL]"; exit 0 ;;
+    --no-modify-path) modify_path=0; shift ;;
+    -h|--help) echo "Usage: install.sh [--version v0.1.0|latest] [--prefix PATH] [--base-url URL] [--no-modify-path]"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -86,4 +88,39 @@ chmod 755 "$launcher"
 installed_version=$("$launcher" --version --json | "$destination/runtime/node" -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).version))')
 echo "Installed Wombat $installed_version for $target"
 echo "Command: $launcher"
-case ":$PATH:" in *":$bin_dir:"*) ;; *) echo "Add $bin_dir to PATH to run: wombat web --open" ;; esac
+configure_path() {
+  case ":${PATH:-}:" in
+    *":$bin_dir:"*) return ;;
+  esac
+  if [ "$modify_path" -eq 1 ] && [ "$prefix" = "$HOME/.local" ]; then
+    shell_path=${SHELL:-}
+    shell_name=${shell_path##*/}
+    case "$shell_name" in
+      zsh) profile="$HOME/.zshrc"; path_lines='# Wombat PATH
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac' ;;
+      bash) profile="$HOME/.bashrc"; path_lines='# Wombat PATH
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac' ;;
+      fish) profile="$HOME/.config/fish/config.fish"; path_lines='# Wombat PATH
+fish_add_path "$HOME/.local/bin"' ;;
+      *) profile="$HOME/.profile"; path_lines='# Wombat PATH
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac' ;;
+    esac
+    mkdir -p "${profile%/*}"
+    if [ ! -f "$profile" ] || ! grep -Fq '# Wombat PATH' "$profile"; then
+      printf '\n%s\n' "$path_lines" >> "$profile"
+    fi
+    echo "Added $bin_dir to PATH in $profile. Open a new terminal to use: wombat web --open"
+  else
+    echo "Add $bin_dir to PATH to run: wombat web --open"
+  fi
+}
+configure_path

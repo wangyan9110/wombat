@@ -5,6 +5,7 @@ import { queryLive } from './live.js';
 import { queryPrices } from './prices.js';
 import { createDirectoryTransport } from './directories.js';
 import type {CodexOptions} from './codex/process.js';
+export {binaryPath as resolveCoreBinary} from './core.js';
 
 export interface NodeClientOptions extends CoreProcessOptions,CodexOptions { automaticPrices?: boolean; directoryPicker?:(signal?:AbortSignal)=>Promise<string> }
 

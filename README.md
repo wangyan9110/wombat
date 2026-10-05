@@ -33,7 +33,7 @@ Self-contained archives support macOS arm64/x64, Linux glibc arm64/x64, and Wind
    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
    ```
 
-2. Start Wombat. On macOS or Linux, run:
+2. Open a new terminal after the first installation, then start Wombat. On macOS or Linux, run:
 
    ```sh
    wombat web --open
@@ -49,7 +49,9 @@ Self-contained archives support macOS arm64/x64, Linux glibc arm64/x64, and Wind
 
 If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources**, check the source location and folder permissions, and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
 
-The default installation prefix is `~/.local`. If the shell cannot find `wombat`, add its `bin` directory to `PATH` as the installer instructs.
+Run `wombat doctor` to check the installation, `PATH`, runtime, local core, and Codex source without scanning records or using the network.
+
+The default installation prefix is `~/.local`. The installer adds its `bin` directory to your user `PATH`; pass `--no-modify-path` when you want to manage `PATH` yourself.
 
 ### Update Wombat
 
@@ -117,6 +119,7 @@ The CLI provides JSON output for scripts:
 wombat usage --json
 wombat threads --sort tokens --json
 wombat turns --thread THREAD_ID --sort tokens --json
+wombat doctor --json
 wombat optimize inventory --project-root /path/to/project --json
 wombat optimize list --project-root /path/to/project --json
 ```

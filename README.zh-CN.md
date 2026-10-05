@@ -33,7 +33,7 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))
    ```
 
-2. 启动 Wombat。在 macOS 或 Linux 中执行：
+2. 首次安装后打开一个新终端，再启动 Wombat。在 macOS 或 Linux 中执行：
 
    ```sh
    wombat web --open
@@ -49,7 +49,9 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 
 浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」，核对来源位置和目录权限，然后选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
 
-默认安装位置是 `~/.local`。系统找不到 `wombat` 时，按安装器提示将对应的 `bin` 目录加入 `PATH`。
+运行 `wombat doctor` 可检查安装、`PATH`、运行时、本机内核和 Codex 来源；该命令不扫描记录，也不访问网络。
+
+默认安装位置是 `~/.local`。安装器会将对应的 `bin` 目录加入用户 `PATH`；如需自行管理 `PATH`，安装时传入 `--no-modify-path`。
 
 ### 更新 Wombat
 
@@ -113,6 +115,7 @@ CLI 支持 JSON 输出，方便接入脚本：
 wombat usage --json
 wombat threads --sort tokens --json
 wombat turns --thread THREAD_ID --sort tokens --json
+wombat doctor --json
 wombat optimize inventory --project-root /path/to/project --json
 wombat optimize list --project-root /path/to/project --json
 ```

@@ -70,6 +70,9 @@ try {
   };
   const query = (args: string[], status = 0) => JSON.parse(run(runtime, [cli, ...args, '--json'], status));
   assert.equal(query(['--version']).version, set.version);
+  const doctor = query(['doctor'], 2);
+  assert.equal(doctor.action, 'doctor'); assert.equal(doctor.scannedSources, false); assert.equal(doctor.networkUsed, false);
+  assert.equal(doctor.checks.find((check: {id: string}) => check.id === 'core')?.status, 'pass');
   service = spawn(core, ['--serve-usage'], {env, windowsHide: true, stdio: 'ignore'});
   await once(service, 'spawn');
   await delay(150);

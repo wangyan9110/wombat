@@ -1,7 +1,8 @@
 param(
   [string]$Version = "latest",
   [string]$Prefix = "$HOME\.local",
-  [string]$BaseUrl = ""
+  [string]$BaseUrl = "",
+  [switch]$NoModifyPath
 )
 $ErrorActionPreference = "Stop"
 
@@ -69,7 +70,24 @@ set /p WOMBAT_RELEASE=<"%~dp0..\lib\wombat\current.txt"
   $installedVersion = (& $launcher --version --json | ConvertFrom-Json).version
   Write-Host "Installed Wombat $installedVersion for $target"
   Write-Host "Command: $launcher"
-  if (($env:PATH -split ';') -notcontains $binDir) { Write-Host "Add $binDir to PATH to run: wombat web --open" }
+  if (-not $NoModifyPath) {
+    $normalizedBin = [IO.Path]::GetFullPath($binDir).TrimEnd('\')
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $hasUserPath = ($userPath -split ';' | Where-Object { $_ } | Where-Object {
+      try { [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($_)).TrimEnd('\') -eq $normalizedBin } catch { $false }
+    }).Count -gt 0
+    if (-not $hasUserPath) {
+      $nextUserPath = if ($userPath) { "$userPath;$binDir" } else { $binDir }
+      [Environment]::SetEnvironmentVariable("Path", $nextUserPath, "User")
+    }
+    $hasProcessPath = ($env:PATH -split ';' | Where-Object { $_ } | Where-Object {
+      try { [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($_)).TrimEnd('\') -eq $normalizedBin } catch { $false }
+    }).Count -gt 0
+    if (-not $hasProcessPath) { $env:PATH = "$binDir;$env:PATH" }
+    $resolvedLauncher = Get-Command wombat.cmd -ErrorAction SilentlyContinue
+    if (-not $resolvedLauncher -or [IO.Path]::GetFullPath($resolvedLauncher.Source) -ne [IO.Path]::GetFullPath($launcher)) { throw "Could not activate Wombat on PATH" }
+    Write-Host "Added $binDir to the user PATH."
+  }
 }
 finally {
   if (Test-Path $temp) { Remove-Item -Recurse -Force $temp }

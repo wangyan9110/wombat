@@ -34,9 +34,11 @@ irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1 | iex
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version PREVIEW_VERSION
 ```
 
-安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。`WOMBAT_INSTALL_PREFIX` 或 `--prefix` 可改安装位置；`--version` 可安装指定版本；`--base-url` 供开发候选或受控镜像验收。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
+安装器识别本机平台，下载对应的 `wombat-<target>.tar.gz` 和 `SHA256SUMS`，校验后安装到 `~/.local`。安装器会将默认命令目录加入用户的 shell 配置或 Windows 用户 `PATH`，`--no-modify-path` 可关闭这项修改。`WOMBAT_INSTALL_PREFIX` 或 `--prefix` 可改安装位置；`--version` 可安装指定版本；`--base-url` 供开发候选或受控镜像验收。安装器只替换带 Wombat 管理标记的目录和命令，不覆盖不明文件。
 
 通过安装器部署后，执行 `wombat update` 下载并安装最新稳定 Release；`wombat update --check` 只检查，`--version X.Y.Z` 安装指定版本。预览版不会进入 `latest`，升级到后续预览版时须显式指定版本。版本保存在并列目录，校验元数据、文件大小和 SHA-256 后原子切换 `current.txt`。正在运行的旧版本不会被覆盖，适用于 Windows 的占用规则；升级器保留当前和上一运行版本，并清理更早的受管版本。源码构建或手工解压副本不带安装指针，升级命令会明确拒绝。
+
+`wombat doctor` 检查受管安装、命令路径、运行时、本机内核和 Codex 来源目录。该命令不扫描来源记录、不访问网络，也不修改产品数据；`--json` 返回一项机器可读结果。
 
 ## GitHub Release 结构
 
