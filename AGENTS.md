@@ -32,6 +32,6 @@ Select checks by scope; do not repeat unaffected passing checks. Runtime require
 - CLI/cross-language: run `corepack pnpm build` before relevant tests and `corepack pnpm typecheck`. Full-chain changes require `corepack pnpm test`. Source checks must not rely on built artifacts.
 - Performance: fixed fixtures, release build, explicit cache/scope, elapsed time, peak memory, and consistent results. Parsing alone is not scan performance; mapped pages still use memory. Releases require target-platform and clean-install verification.
 - Dependency changes: run `licenses:generate` and `licenses:check`. Before publication run `repo:check`, `public:check`, and `github:pack`; checks do not replace review or platform acceptance.
-- Authorized public releases use `corepack pnpm release:publish -- --version <version>`.
+- Root package.json alone owns the version. Authorized releases use `corepack pnpm release:publish`.
 
 Report scope, actual checks, limits, and how to run. Record [decisions](docs/decisions/README.en.md) only for lasting rationale absent from code, tests, and current docs; mechanical/local edits are exempt.

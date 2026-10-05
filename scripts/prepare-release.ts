@@ -6,6 +6,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { toolCommand } from './run-tool.ts';
 import { actionPinErrors, repositorySlug, rootReadmeReleaseErrors } from './release-policy.ts';
 import { applyReleaseCopy } from './release-copy.ts';
+import { releaseVersion, validateVersion } from './release-version.ts';
+import { readReleaseNotesInput } from './generate-release-notes.ts';
+export { validateVersion } from './release-version.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -20,7 +23,6 @@ export const packageFiles = [
 export const releaseTextFiles = [
   'README.md',
   'README.zh-CN.md',
-  'install.sh',
   'docs/guides/installation.md',
   'docs/guides/installation.en.md',
 ] as const;
@@ -29,14 +31,6 @@ const translatedDocs = [
   'README.zh-CN.md',
   'docs/guides/installation.md',
 ] as const;
-
-const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/;
-
-export function validateVersion(version: string): void {
-  if (!semver.test(version)) {
-    throw new Error(`Invalid release version: ${version}. Use SemVer without a leading v or build metadata.`);
-  }
-}
 
 function read(projectRoot: string, file: string): string {
   return readFileSync(path.join(projectRoot, file), 'utf8');
@@ -64,7 +58,16 @@ function replaceCargoVersion(content: string, version: string, file: string): st
   return content.replace(cargoVersionPattern(file), `$1${version}$3`);
 }
 
-export function prepareVersionFiles(projectRoot: string, version: string): string {
+function versionedText(file: string, content: string, version: string): string {
+  if (file.startsWith('README')) return applyReleaseCopy(file, content, version);
+  const pattern = /^(Wombat `v)([^`]+)(`)/m;
+  const match = content.match(pattern);
+  if (!match) throw new Error(`${file}: cannot locate current Wombat version`);
+  validateVersion(match[2]);
+  return content.replace(pattern, `$1${version}$3`);
+}
+
+export function prepareVersionFiles(projectRoot: string, version = releaseVersion(projectRoot)): string {
   validateVersion(version);
   const current = packageVersion(projectRoot, 'package.json');
   validateVersion(current);
@@ -72,9 +75,8 @@ export function prepareVersionFiles(projectRoot: string, version: string): strin
   const updates = new Map<string, string>();
   for (const file of packageFiles) {
     const parsed = JSON.parse(read(projectRoot, file));
-    if (parsed.version !== current) {
-      throw new Error(`${file}: expected current version ${current}, found ${String(parsed.version)}`);
-    }
+    if (typeof parsed.version !== 'string') throw new Error(`${file}: missing string version`);
+    validateVersion(parsed.version);
     parsed.version = version;
     updates.set(file, `${JSON.stringify(parsed, null, 2)}\n`);
   }
@@ -82,17 +84,13 @@ export function prepareVersionFiles(projectRoot: string, version: string): strin
   for (const file of ['core/Cargo.toml', 'core/Cargo.lock']) {
     const content = read(projectRoot, file);
     const found = cargoVersion(content, file);
-    if (found !== current) throw new Error(`${file}: expected current version ${current}, found ${found}`);
+    validateVersion(found);
     updates.set(file, replaceCargoVersion(content, version, file));
   }
 
   for (const file of releaseTextFiles) {
     const content = read(projectRoot, file);
-    if (current !== version && !content.includes(current)) {
-      throw new Error(`${file}: expected current release version ${current}`);
-    }
-    const versioned = current === version ? content : content.replaceAll(current, version);
-    updates.set(file, applyReleaseCopy(file, versioned, version));
+    updates.set(file, versionedText(file, content, version));
   }
 
   for (const [file, content] of updates) writeFileSync(path.join(projectRoot, file), content);
@@ -127,7 +125,8 @@ export function consistencyErrors(projectRoot: string): string[] {
   }
   for (const file of releaseTextFiles) {
     try {
-      if (!read(projectRoot, file).includes(version)) errors.push(`${file}: current release version ${version} is missing`);
+      const content = read(projectRoot, file);
+      if (versionedText(file, content, version) !== content) errors.push(`${file}: generated release copy differs from package.json ${version}; run release:prepare`);
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));
     }
@@ -143,6 +142,7 @@ function run(program: string, args: string[], timeout = 120_000): void {
 }
 
 function checkRepository(): void {
+  readReleaseNotesInput(root);
   const errors = consistencyErrors(root);
   const pkg: unknown = JSON.parse(read(root, 'package.json'));
   const packageRecord = typeof pkg === 'object' && pkg !== null && !Array.isArray(pkg) ? pkg : undefined;
@@ -177,7 +177,7 @@ function checkRepository(): void {
 }
 
 function usage(): never {
-  console.error('Usage: corepack pnpm release:prepare -- --version <semver> | --check');
+  console.error('Usage: corepack pnpm release:prepare [-- --version <semver> | --check]');
   process.exit(2);
 }
 
@@ -187,9 +187,9 @@ function main(): void {
     checkRepository();
     return;
   }
-  if (args.length !== 2 || args[0] !== '--version') usage();
+  if (args.length && (args.length !== 2 || args[0] !== '--version')) usage();
 
-  const version = args[1];
+  const version = args[1] ?? releaseVersion(root);
   const previous = prepareVersionFiles(root, version);
   if (previous === version) {
     console.log(`Release files already use ${version}; refreshing generated records.`);

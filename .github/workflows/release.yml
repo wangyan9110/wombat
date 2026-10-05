@@ -16,12 +16,19 @@ jobs:
       contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    outputs:
+      ci_run_id: ${{ steps.candidate.outputs.ci_run_id }}
+      artifact_id: ${{ steps.candidate.outputs.artifact_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '26.4.0'
       - name: Require a matching version, main ancestry and successful prior CI
+        id: candidate
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
@@ -33,8 +40,8 @@ jobs:
             echo "Tagged commit $GITHUB_SHA is not on $default_branch" >&2
             exit 1
           }
-          ci_url=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --branch "$default_branch" --event push --status success --limit 1 --json conclusion,status,url --jq '.[] | select(.status == "completed" and .conclusion == "success") | .url')
-          test -n "$ci_url" || {
+          ci_run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --branch "$default_branch" --event push --status success --limit 1 --json conclusion,status,databaseId --jq '.[] | select(.status == "completed" and .conclusion == "success") | .databaseId')
+          test -n "$ci_run" || {
             echo "No successful CI push run found for $GITHUB_SHA on $default_branch" >&2
             exit 1
           }
@@ -46,136 +53,15 @@ jobs:
             cat "$release_error" >&2
             exit 1
           fi
-          echo "Prior CI: $ci_url"
-
-  build:
-    name: Build ${{ matrix.target }}
-    if: ${{ github.event.repository.private == false }}
-    needs: preflight
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { runner: macos-15, target: darwin-arm64 }
-          - { runner: macos-15-intel, target: darwin-x64 }
-          - { runner: ubuntu-24.04, target: linux-x64 }
-          - { runner: ubuntu-24.04-arm, target: linux-arm64 }
-          - { runner: windows-2025, target: win32-x64 }
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
-    defaults:
-      run:
-        shell: bash
-    env:
-      WOMBAT_AUTO_PRICES: '0'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '26.4.0'
-      - name: Validate tag and install locked tools
-        run: |
-          node -e 'const p=require("./package.json");if(process.env.GITHUB_REF_NAME!==`v${p.version}`)throw new Error(`tag ${process.env.GITHUB_REF_NAME} does not match package ${p.version}`)'
-          npm install --global corepack@0.33.0 --force
-          corepack pnpm install --frozen-lockfile
-          rustup component add rustfmt clippy
-          cargo fetch --locked --manifest-path core/Cargo.toml
-      - name: Inventory native dependencies on this target
-        if: matrix.target != 'darwin-arm64'
-        run: corepack pnpm licenses:generate
-      - name: Run release gate and export platform payload
-        run: |
-          corepack pnpm release:check
-          corepack pnpm native:export
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: native-${{ matrix.target }}
-          path: dist/native-artifacts/
-          if-no-files-found: error
-          retention-days: 1
-
-  assemble:
-    name: Assemble release archives
-    if: ${{ github.event.repository.private == false }}
-    needs: build
-    runs-on: macos-15
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '26.4.0'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: native-*
-          path: native-artifacts
-          merge-multiple: true
-      - name: Assemble archives
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          npm install --global corepack@0.33.0 --force
-          corepack pnpm install --frozen-lockfile
-          corepack pnpm build
-          corepack pnpm github:pack -- --native-dir native-artifacts --reuse-build
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: release-candidate
-          path: dist/github/
-          if-no-files-found: error
-          retention-days: 1
-
-  verify:
-    name: Verify release on ${{ matrix.target }}
-    if: ${{ github.event.repository.private == false }}
-    needs: assemble
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { runner: macos-15, target: darwin-arm64 }
-          - { runner: macos-15-intel, target: darwin-x64 }
-          - { runner: ubuntu-24.04, target: linux-x64 }
-          - { runner: ubuntu-24.04-arm, target: linux-arm64 }
-          - { runner: windows-2025, target: win32-x64 }
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '26.4.0'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: release-candidate
-          path: candidate
-      - name: Prepare upgrade acceptance dependencies
-        run: |
-          npm install --global corepack@0.33.0 --force
-          corepack pnpm install --frozen-lockfile
-          corepack pnpm --filter @wombat/client build
-      - env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/verify-github-release.ts --set candidate/release-set.json
+          node scripts/ci-release-candidate.ts --run "$ci_run" --output "$GITHUB_OUTPUT"
 
   publish:
     name: Publish GitHub Release
     if: ${{ github.event.repository.private == false }}
-    needs: verify
+    needs: preflight
     runs-on: ubuntu-24.04
     permissions:
+      actions: read
       attestations: write
       contents: write
       id-token: write
@@ -189,8 +75,13 @@ jobs:
           node-version: '26.4.0'
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: release-candidate
+          artifact-ids: ${{ needs.preflight.outputs.artifact_id }}
+          run-id: ${{ needs.preflight.outputs.ci_run_id }}
+          github-token: ${{ github.token }}
+          digest-mismatch: error
           path: candidate
+      - name: Verify reused archive identity and hashes
+        run: node scripts/check-release-assets.ts candidate
       - name: Attest release archives
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:

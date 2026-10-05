@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { consistencyErrors, validateVersion } from './prepare-release.ts';
+import { readRemoteRef } from './github-release-ref.ts';
 import {
   actionPinErrors,
   type CiRun,
@@ -186,16 +187,15 @@ function main(): void {
   const origin = required('git', ['remote', 'get-url', 'origin']);
   if (repositorySlug(origin) !== repository) throw new Error(`origin ${origin} does not match ${repository}`);
 
-  const remoteLine = required('git', ['ls-remote', '--heads', 'origin', `refs/heads/${options.branch}`], 120_000);
-  const remoteSource = remoteLine.split(/\s+/)[0];
-  if (!/^[0-9a-f]{40}$/.test(remoteSource)) throw new Error(`Remote branch origin/${options.branch} is missing`);
+  const remoteSource = readRemoteRef(repository, `refs/heads/${options.branch}`);
+  if (!remoteSource) throw new Error(`Remote branch origin/${options.branch} is missing`);
   if (remoteSource !== source) throw new Error(`HEAD ${source} does not match origin/${options.branch} ${remoteSource}`);
 
   const tag = `v${options.version}`;
   if (command('git', ['show-ref', '--verify', '--quiet', `refs/tags/${tag}`]).status === 0) {
-    throw new Error(`Local tag already exists: ${tag}`);
+    if (required('git', ['rev-list', '-n', '1', tag]) !== source) throw new Error(`Local tag ${tag} does not match HEAD ${source}; it will not be replaced`);
   }
-  const remoteTag = required('git', ['ls-remote', '--tags', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`], 120_000);
+  const remoteTag = readRemoteRef(repository, `refs/tags/${tag}`);
   if (remoteTag) throw new Error(`Remote tag already exists: ${tag}`);
 
   const repo = repositoryView(repository);
@@ -219,7 +219,7 @@ function main(): void {
     repository,
     repositoryUrl: repo.url,
     ciUrl: ci.url,
-    checks: ['version-consistency', 'root-readme-current', 'action-sha-pins', 'clean-tree', 'no-git-operation', 'origin-main', 'tag-absent',
+    checks: ['version-consistency', 'root-readme-current', 'action-sha-pins', 'clean-tree', 'no-git-operation', 'origin-main', 'remote-tag-absent', 'local-tag-absent-or-matching',
       'release-absent', 'public-repository', 'successful-ci'],
   };
   if (options.json) console.log(JSON.stringify(evidence));

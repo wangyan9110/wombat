@@ -1,5 +1,4 @@
 {
-  "version": "0.1.1",
   "summary": "The first stable Wombat release helps Codex users review local usage and configuration, act on evidence-backed findings, and verify the result.",
   "highlights": [
     "Review token usage, API cost estimates, tasks, turns, and timing from local Codex records.",

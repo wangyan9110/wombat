@@ -13,7 +13,7 @@
 | Check preparation | `corepack pnpm release:prepare -- --check` | Fast version, pairing, license, and diff checks; not full release acceptance |
 | Generate Release notes | `corepack pnpm release:notes -- --set <release-set.json> --output <notes.md>` | Produces the canonical English body from reviewed user impact plus verified version, source, targets, and comparison facts |
 | Pre-tag remote preflight | `corepack pnpm release:preflight -- --version <version>` | Requires current root READMEs, a clean `main`, exact `origin/main`, no existing tag/Release, a public unarchived repository, and successful CI for the exact commit; no mutation |
-| Publish end to end | `corepack pnpm release:publish -- --version <version>` | Resumable primary path: prepares/checks/commits/pushes, waits exact-source CI, runs preflight, tags, waits publication, verifies immutable assets/attestations, and tests a clean install/update |
+| Publish end to end | `corepack pnpm release:publish` | Uses root version; synchronizes/checks/commits/pushes, waits exact-source CI, reuses its verified archives, tags/publishes and verifies public install/update |
 | Local build | `corepack pnpm build` | Compiles core, client, Web, and CLI |
 | Startup probe without scanning | `corepack pnpm release:probe` | Starts the shared service with nonexistent source directories and reads capabilities to check process startup, sockets, and the CLI protocol; requires built dist/ |
 | Full release gate | `corepack pnpm release:check` | Formatting, Rust lint, build, types, contracts, product tests, licenses, repository rules, and public-source checks |

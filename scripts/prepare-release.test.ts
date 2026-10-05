@@ -23,7 +23,10 @@ function fixture(): string {
   writeFileSync(path.join(root, 'core/Cargo.lock'), '[[package]]\nname = "another-package"\nversion = "0.1.0-dev.1"\n\n[[package]]\nname = "wombat-core"\nversion = "0.1.0-dev.1"\n');
   for (const file of releaseTextFiles) {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
-    writeFileSync(path.join(root, file), 'Install Wombat v0.1.0-dev.1 with 0.1.0-dev.1.\n');
+    const chinese = file === 'README.zh-CN.md';
+    writeFileSync(path.join(root, file), file.startsWith('README')
+      ? `**${chinese ? '开发者预览版：' : 'Development Preview: '}[\`v0.1.0-dev.1\`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-dev.1)${chinese ? '。' : '.'}**\n\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1\n\n### ${chinese ? '更新 Wombat' : 'Update Wombat'}\n\nold\n\n## Uses\n`
+      : 'Wombat `v0.1.0-dev.1` supports these platforms. Node 26.4.0 remains independent.\n');
   }
   return root;
 }
@@ -53,9 +56,30 @@ test('rejects malformed versions and incomplete release surfaces before writing'
 
   const driftedRoot = fixture();
   t.after(() => rmSync(driftedRoot, { recursive: true, force: true }));
-  writeFileSync(path.join(driftedRoot, 'core/Cargo.toml'), '[package]\nname = "wombat-core"\nversion = "0.1.0-dev.0"\n');
-  assert.throws(() => prepareVersionFiles(driftedRoot, '0.1.0-dev.2'), /core\/Cargo\.toml: expected current version/);
+  writeFileSync(path.join(driftedRoot, 'core/Cargo.toml'), '[package]\nname = "wombat-core"\n');
+  assert.throws(() => prepareVersionFiles(driftedRoot, '0.1.0-dev.2'), /core\/Cargo\.toml: cannot locate/);
   assert.equal(JSON.parse(readFileSync(path.join(driftedRoot, 'package.json'), 'utf8')).version, '0.1.0-dev.1');
+});
+
+test('the root manifest repairs partially synchronized mirrors and preparation is idempotent', t => {
+  const root = fixture();
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  writeFileSync(path.join(root, 'package.json'), JSON.stringify({name: 'wombat', version: '0.2.0-beta.1'}));
+  writeFileSync(path.join(root, 'cli/package.json'), JSON.stringify({name: '@wombat/cli', version: '0.1.1'}));
+  writeFileSync(path.join(root, 'core/Cargo.toml'), '[package]\nname = "wombat-core"\nversion = "0.1.0-dev.0"\n');
+  assert.ok(consistencyErrors(root).length);
+  prepareVersionFiles(root);
+  assert.deepEqual(consistencyErrors(root), []);
+  const files = [...packageFiles, ...releaseTextFiles, 'core/Cargo.toml', 'core/Cargo.lock'];
+  const before = files.map(file => readFileSync(path.join(root, file), 'utf8'));
+  prepareVersionFiles(root);
+  assert.deepEqual(files.map(file => readFileSync(path.join(root, file), 'utf8')), before);
+  const readme = readFileSync(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /\*\*Beta:/);
+  assert.match(readme, /--version 0\.2\.0-beta\.1 --open/);
+  assert.match(readme, /-Version 0\.2\.0-beta\.1 -Open/);
+  assert.equal(readme.match(/wombat update --check/g)?.length, 1);
+  assert.match(readFileSync(path.join(root, 'docs/guides/installation.en.md'), 'utf8'), /Node 26\.4\.0/);
 });
 
 test('release preparation leaves proposal and historical acceptance text unchanged', t => {

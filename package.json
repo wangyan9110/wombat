@@ -26,7 +26,7 @@
     "docs:i18n:check": "node scripts/check-doc-i18n.mjs",
     "docs:i18n:record": "node scripts/check-doc-i18n.mjs --write",
     "docs:check": "pnpm run skills:check && pnpm run notes:check && pnpm run docs:budget && pnpm run docs:structure && pnpm run docs:i18n:check && pnpm run public:check",
-    "repo:check": "pnpm run docs:check && node scripts/check-module-boundaries.mjs && pnpm run i18n:check && pnpm run test:repo",
+    "repo:check": "pnpm run release:source-check && pnpm run docs:check && node scripts/check-module-boundaries.mjs && pnpm run i18n:check && pnpm run test:repo",
     "licenses:generate": "node scripts/dependency-licenses.mjs",
     "licenses:check": "node scripts/dependency-licenses.mjs --check",
     "public:check": "node scripts/check-public-release.mjs",
@@ -46,7 +46,8 @@
     "benchmark:live": "node --import tsx scripts/benchmark-live.ts",
     "docs:structure": "node scripts/check-doc-structure.ts",
     "skills:scope": "node .agents/skills/wombat-review/scripts/scope.ts",
-    "skills:verify": "node .agents/skills/wombat-verify/scripts/verify.ts"
+    "skills:verify": "node .agents/skills/wombat-verify/scripts/verify.ts",
+    "release:source-check": "node scripts/check-release-source.ts"
   },
   "devDependencies": {
     "@types/node": "26.0.0",

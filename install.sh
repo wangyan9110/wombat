@@ -15,7 +15,7 @@ while [ "$#" -gt 0 ]; do
     --base-url) base_url=${2:?missing base URL}; shift 2 ;;
     --no-modify-path) modify_path=0; shift ;;
     --open) open_app=1; shift ;;
-    -h|--help) echo "Usage: install.sh [--version v0.1.1|latest] [--prefix PATH] [--base-url URL] [--no-modify-path] [--open]"; exit 0 ;;
+    -h|--help) echo "Usage: install.sh [--version VERSION|latest] [--prefix PATH] [--base-url URL] [--no-modify-path] [--open]"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done

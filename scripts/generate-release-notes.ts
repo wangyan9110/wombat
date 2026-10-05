@@ -6,9 +6,28 @@ import type {GitHubReleaseSet} from './github-release.ts';
 import {nativeTargets} from './native-platforms.ts';
 import {previousReleaseTag, readPublishedReleaseTags} from './release-history.ts';
 import {repositorySlug} from './release-policy.ts';
+import {releaseVersion} from './release-version.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-interface ReleaseNotesInput {version: string; summary: string; highlights: string[]; knownLimitations: string[]}
+export interface ReleaseNotesInput {summary: string; highlights: string[]; knownLimitations: string[]}
+
+export function readReleaseNotesInput(projectRoot: string): ReleaseNotesInput {
+  const value: unknown = JSON.parse(readFileSync(path.join(projectRoot, 'scripts/release-notes/current.json'), 'utf8'));
+  return validateReleaseNotesInput(value);
+}
+
+export function validateReleaseNotesInput(value: unknown): ReleaseNotesInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || 'version' in value
+    || !('summary' in value) || typeof value.summary !== 'string' || !value.summary.trim()
+    || !('highlights' in value) || !('knownLimitations' in value)) throw new Error('Release notes require unversioned summary, highlights and knownLimitations in scripts/release-notes/current.json');
+  for (const items of [value.highlights, value.knownLimitations]) {
+    if (!Array.isArray(items) || !items.length || items.some(item => typeof item !== 'string' || !item.trim())) {
+      throw new Error('Release notes require nonempty text lists');
+    }
+  }
+  if (/\b(?:TODO|TBD|NEXT_PREVIEW_VERSION)\b/.test(JSON.stringify(value))) throw new Error('Release notes contain an unresolved placeholder');
+  return value as ReleaseNotesInput;
+}
 
 function list(values: string[]): string { return values.map(value => `- ${value}`).join('\n'); }
 
@@ -19,14 +38,13 @@ export function validateReleaseSet(set: GitHubReleaseSet): void {
   if (JSON.stringify(targets) !== JSON.stringify(expected)) throw new Error(`Release set must contain exactly: ${expected.join(', ')}`);
   if (set.assets.length !== expected.length || new Set(set.assets.map(asset => asset.target)).size !== expected.length) throw new Error('Release set must contain one archive for each target');
   for (const asset of set.assets) {
-    if (asset.archive !== `wombat-${asset.target}.tar.gz` || !/^[0-9a-f]{64}$/.test(asset.sha256) || !Number.isSafeInteger(asset.bytes) || asset.bytes <= 0)
+    if (!expected.includes(asset.target) || asset.archive !== `wombat-${asset.target}.tar.gz` || !/^[0-9a-f]{64}$/.test(asset.sha256) || !Number.isSafeInteger(asset.bytes) || asset.bytes <= 0)
       throw new Error(`Release asset is invalid: ${asset.target}`);
   }
 }
 
 export function renderReleaseNotes(input: ReleaseNotesInput, set: GitHubReleaseSet, repository: string, previousTag?: string): string {
-  if (input.version !== set.version || !input.summary.trim() || !input.highlights.length || !input.knownLimitations.length)
-    throw new Error('Release notes input is incomplete or does not match the release set');
+  validateReleaseNotesInput(input);
   validateReleaseSet(set);
   const prerelease = set.version.includes('-');
   const tag = `v${set.version}`;
@@ -51,7 +69,8 @@ export function parseReleaseNotesArgs(argv: string[]): {set: string; output: str
 function main(): void {
   const values = parseReleaseNotesArgs(process.argv.slice(2));
   const set = JSON.parse(readFileSync(path.resolve(values.set), 'utf8')) as GitHubReleaseSet;
-  const input = JSON.parse(readFileSync(path.join(root, 'scripts/release-notes', `${set.version}.json`), 'utf8')) as ReleaseNotesInput;
+  releaseVersion(root, set.version);
+  const input = readReleaseNotesInput(root);
   const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')) as {repository: string | {url: string}};
   const repository = repositorySlug(typeof pkg.repository === 'string' ? pkg.repository : pkg.repository.url);
   const tags = readPublishedReleaseTags(repository);

@@ -1,14 +1,19 @@
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { releaseArchive } from './github-release.ts';
 import { nativeTargets } from './native-platforms.ts';
-import { validateVersion } from './prepare-release.ts';
+import { releaseVersion, validateVersion } from './release-version.ts';
+import { consistencyErrors } from './prepare-release.ts';
+import { readReleaseNotesInput } from './generate-release-notes.ts';
+import { readCiCandidate } from './ci-release-candidate.ts';
+import { verifyReleaseAssets } from './check-release-assets.ts';
+import { cacheReleaseAssets, releaseCacheDirectory, type PublishedAsset } from './release-cache.ts';
 import { repositorySlug } from './release-policy.ts';
+import { readRemoteRef } from './github-release-ref.ts';
 import { toolCommand } from './run-tool.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,6 +24,7 @@ const managedReleaseFiles = new Set([
   'docs/dependency-licenses.json', 'docs/guides/installation.en.md',
   'docs/guides/installation.i18n.json', 'docs/guides/installation.md',
   'install.sh', 'package.json', 'ui/package.json', 'web/package.json',
+  'scripts/release-notes/current.json',
 ]);
 
 export interface PublishOptions {
@@ -37,8 +43,8 @@ export interface WorkflowRun {
   url: string;
 }
 
-interface ReleaseView {
-  assets: Array<{ name: string; size: number }>;
+export interface ReleaseView {
+  assets: PublishedAsset[];
   isDraft: boolean;
   isImmutable: boolean;
   isPrerelease: boolean;
@@ -46,26 +52,22 @@ interface ReleaseView {
   url: string;
 }
 
-interface ReleaseSet {
-  format: number;
-  version: string;
-  source: string;
-  candidateOnly: boolean;
-  targets: string[];
-  assets: Array<{ archive: string; bytes: number; sha256: string; target: string }>;
-}
-
 function usage(): never {
-  throw new Error('Usage: corepack pnpm release:publish -- --version <semver> [--branch main] [--repo owner/repo]');
+  throw new Error('Usage: corepack pnpm release:publish [-- --version <root-version> --branch main --repo owner/repo --status]');
 }
 
-export function parsePublishArgs(argv: string[]): PublishOptions {
+export function parsePublishArgs(argv: string[], canonicalVersion = releaseVersion(root)): PublishOptions & {status: boolean} {
   const args = argv.filter(arg => arg !== '--');
   let version = '';
   let branch = 'main';
   let repository: string | undefined;
+  let status = false;
+  const seen = new Set<string>();
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
+    if (seen.has(arg)) throw new Error(`Duplicate release option: ${arg}`);
+    seen.add(arg);
+    if (arg === '--status') { status = true; continue; }
     if (arg !== '--version' && arg !== '--branch' && arg !== '--repo') usage();
     const value = args[++index];
     if (!value || value.startsWith('-')) usage();
@@ -73,15 +75,16 @@ export function parsePublishArgs(argv: string[]): PublishOptions {
     else if (arg === '--branch') branch = value;
     else repository = value;
   }
-  if (!version) usage();
+  version ||= canonicalVersion;
   validateVersion(version);
+  if (version !== canonicalVersion) throw new Error(`Requested version ${version} differs from package.json ${canonicalVersion}; run release:prepare -- --version ${version} first.`);
   if (!/^[A-Za-z0-9._/-]+$/.test(branch) || branch.startsWith('/') || branch.endsWith('/')) {
     throw new Error(`Invalid release branch: ${branch}`);
   }
   if (repository && !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
     throw new Error(`Invalid GitHub repository: ${repository}`);
   }
-  return { version, branch, repository };
+  return { version, branch, repository, status };
 }
 
 export function expectedReleaseAssets(): string[] {
@@ -94,7 +97,24 @@ export function expectedReleaseAssets(): string[] {
 export function selectWorkflowRun(
   runs: WorkflowRun[], source: string, headBranch: string,
 ): WorkflowRun | undefined {
-  return runs.find(run => run.event === 'push' && run.headSha === source && run.headBranch === headBranch);
+  return runs.filter(run => run.event === 'push' && run.headSha === source && run.headBranch === headBranch)
+    .sort((a, b) => b.databaseId - a.databaseId)[0];
+}
+
+export function releaseRecoveryState(
+  head: string, tagSource: string | undefined, release: ReleaseView | undefined, run: WorkflowRun | undefined,
+): 'prepare' | 'wait' | 'verify' {
+  if (!tagSource) {
+    if (release) throw new Error('GitHub Release exists without its remote tag; inspect the remote identity before continuing.');
+    return 'prepare';
+  }
+  if (head !== tagSource) throw new Error('The existing tag differs from HEAD; prepare a new version after fixes. Public tags cannot move.');
+  if (release && !release.isDraft) return 'verify';
+  if (run?.status === 'completed' && run.conclusion !== 'success') {
+    throw new Error(`Tagged workflow failed or was cancelled: ${run.url}. Analyze the failure and prepare a new version; do not retag or publish a partial draft.`);
+  }
+  if (run?.status === 'completed') throw new Error('Tagged workflow succeeded but no complete published Release exists; inspect the publication stage.');
+  return 'wait';
 }
 
 export function publishedReleaseErrors(view: ReleaseView, version: string): string[] {
@@ -112,6 +132,7 @@ export function publishedReleaseErrors(view: ReleaseView, version: string): stri
   for (const asset of view.assets) if (!Number.isSafeInteger(asset.size) || asset.size <= 0) {
     errors.push(`Release asset has an invalid size: ${asset.name}`);
   }
+  for (const asset of view.assets) if (!/^sha256:[0-9a-f]{64}$/.test(asset.digest)) errors.push(`Release asset SHA-256 is missing: ${asset.name}`);
   return errors;
 }
 
@@ -186,14 +207,6 @@ function assertBranch(branch: string): void {
   if (current !== branch) throw new Error(`Release must run from ${branch}; current branch is ${current}`);
 }
 
-function remoteRef(ref: string): string | undefined {
-  const value = required('git', ['ls-remote', 'origin', ref], 120_000);
-  if (!value) return undefined;
-  const source = value.split(/\s+/)[0];
-  if (!/^[0-9a-f]{40}$/.test(source)) throw new Error(`Invalid remote ref response for ${ref}`);
-  return source;
-}
-
 function workflowRuns(repository: string, workflow: string, source: string): WorkflowRun[] {
   const value = parsedJson('gh', [
     'run', 'list', '--repo', repository, '--workflow', workflow, '--commit', source, '--limit', '20',
@@ -238,11 +251,6 @@ function immutableReleasesEnabled(repository: string): void {
   if (!record(value) || value.enabled !== true) throw new Error('GitHub immutable Releases must be enabled before tagging');
 }
 
-function remoteTagSource(tag: string): string | undefined {
-  const peeled = remoteRef(`refs/tags/${tag}^{}`);
-  return peeled ?? remoteRef(`refs/tags/${tag}`);
-}
-
 function releaseView(repository: string, tag: string): ReleaseView {
   const value = parsedJson('gh', [
     'release', 'view', tag, '--repo', repository,
@@ -254,78 +262,62 @@ function releaseView(repository: string, tag: string): ReleaseView {
     throw new Error('gh release view returned an invalid response');
   }
   const assets = value.assets.map((asset, index) => {
-    if (!record(asset) || typeof asset.name !== 'string' || typeof asset.size !== 'number') {
+    if (!record(asset) || typeof asset.name !== 'string' || typeof asset.size !== 'number' || typeof asset.digest !== 'string') {
       throw new Error(`gh release view returned an invalid asset at index ${index}`);
     }
-    return { name: asset.name, size: asset.size };
+    return { name: asset.name, size: asset.size, digest: asset.digest };
   });
   return { ...value, assets } as ReleaseView;
 }
 
-function sha256(file: string): string {
-  return createHash('sha256').update(readFileSync(file)).digest('hex');
+function optionalReleaseView(repository: string, tag: string): ReleaseView | undefined {
+  const lookup = command('gh', ['api', '--silent', `repos/${repository}/releases/tags/${tag}`]);
+  if (lookup.status === 0 && !lookup.error) return releaseView(repository, tag);
+  if (!lookup.error && /HTTP 404/.test(String(lookup.stderr))) return undefined;
+  throw new Error(`Cannot determine remote Release state: ${failure('gh', [], lookup)}`);
 }
 
-function verifyDownloadedRelease(directory: string, version: string, source: string): string[] {
-  const value: unknown = JSON.parse(readFileSync(path.join(directory, 'release-set.json'), 'utf8'));
-  if (!record(value) || value.format !== 1 || value.version !== version || value.source !== source
-    || value.candidateOnly !== false || !Array.isArray(value.targets) || !Array.isArray(value.assets)) {
-    throw new Error('Published release-set.json has an invalid release identity');
-  }
-  const set = value as unknown as ReleaseSet;
-  if (JSON.stringify([...set.targets].sort()) !== JSON.stringify([...nativeTargets].sort())) {
-    throw new Error(`Published targets differ: ${set.targets.join(', ')}`);
-  }
-  const identities = set.assets.map(asset => `${asset.target}:${asset.archive}`).sort();
-  const expectedIdentities = nativeTargets.map(target => `${target}:${releaseArchive(target)}`).sort();
-  if (JSON.stringify(identities) !== JSON.stringify(expectedIdentities)) {
-    throw new Error(`Published release asset identities differ: ${identities.join(', ')}`);
-  }
-  const archives: string[] = [];
-  for (const asset of set.assets) {
-    if (!asset || typeof asset.archive !== 'string' || typeof asset.sha256 !== 'string'
-      || typeof asset.bytes !== 'number' || typeof asset.target !== 'string') {
-      throw new Error('Published release-set.json contains an invalid asset');
-    }
-    const file = path.join(directory, asset.archive);
-    if (statSync(file).size !== asset.bytes || sha256(file) !== asset.sha256) {
-      throw new Error(`Published archive hash or size mismatch: ${asset.archive}`);
-    }
-    archives.push(file);
-  }
-  const checksums = readFileSync(path.join(directory, 'SHA256SUMS'), 'utf8').trim().split('\n').sort();
-  const expected = set.assets.map(asset => `${asset.sha256}  ${asset.archive}`).sort();
-  if (JSON.stringify(checksums) !== JSON.stringify(expected)) throw new Error('Published SHA256SUMS differs from release-set.json');
-  return archives;
-}
-
-async function cleanInstall(version: string, scratch: string, releaseDirectory: string): Promise<void> {
+async function cleanInstall(version: string, source: string, repository: string, scratch: string, releaseDirectory: string): Promise<void> {
   const prefix = path.join(scratch, 'install');
   const baseUrl = pathToFileURL(releaseDirectory).href.replace(/\/$/, '');
   let entryFile: string;
+  let runtime: string;
   if (process.platform === 'win32') {
-    run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'install.ps1'),
-      '-Version', version, '-Prefix', prefix, '-BaseUrl', baseUrl], 10 * 60_000);
+    run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(releaseDirectory, 'install.ps1'),
+      '-Version', version, '-Prefix', prefix, '-BaseUrl', baseUrl, '-NoModifyPath'], 10 * 60_000);
     const installRoot = path.join(prefix, 'lib', 'wombat');
     const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
     if (!/^[0-9A-Za-z._-]+$/.test(releaseId)) throw new Error('Windows installation pointer is invalid');
     const installed = path.join(installRoot, 'versions', releaseId);
-    const runtime = path.join(installed, 'runtime', 'node.exe');
+    runtime = path.join(installed, 'runtime', 'node.exe');
     entryFile = path.join(installed, 'lib', 'wombat.js');
-    run(runtime, [entryFile, '--version', '--json']);
+
   } else {
-    run('sh', [path.join(root, 'install.sh'), '--version', version, '--prefix', prefix, '--base-url', baseUrl], 10 * 60_000);
-    const launcher = path.join(prefix, 'bin', 'wombat');
-    run(launcher, ['--version', '--json']);
+    run('sh', [path.join(releaseDirectory, 'install.sh'), '--version', version, '--prefix', prefix, '--base-url', baseUrl, '--no-modify-path'], 10 * 60_000);
+
     const installRoot = path.join(prefix, 'lib', 'wombat');
     const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
     if (!/^[0-9A-Za-z._-]+$/.test(releaseId)) throw new Error('Installation pointer is invalid');
     entryFile = path.join(installRoot, 'versions', releaseId, 'lib', 'wombat.js');
+    runtime = path.join(installRoot, 'versions', releaseId, 'runtime', 'node');
   }
-  const clientEntry = path.join(root, 'client', 'dist', 'index.js');
-  if (!existsSync(clientEntry)) run('corepack', ['pnpm', '--filter', '@wombat/client', 'build'], 10 * 60_000);
-  const { updateInstalled } = await import('../cli/src/update-cli.ts');
-  const update = await updateInstalled({ version, check: true, entryFile, baseUrl });
+  const versionResult = parsedJson(runtime, [entryFile, '--version', '--json']);
+  if (!record(versionResult) || versionResult.version !== version) throw new Error('Installed CLI version differs from the published version');
+  const installedRelease: unknown = JSON.parse(readFileSync(path.join(path.dirname(path.dirname(entryFile)), 'release.json'), 'utf8'));
+  if (!record(installedRelease) || installedRelease.version !== version || installedRelease.source !== source) {
+    throw new Error('Clean installation differs from the published release identity');
+  }
+  // The documented raw URLs must work without authentication and match this source.
+  for (const installer of ['install.sh', 'install.ps1']) {
+    const response = await fetch(`https://raw.githubusercontent.com/${repository}/main/${installer}`, { signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) throw new Error(`Public installer URL failed: ${installer} (${response.status})`);
+    const content = await response.text();
+    if (Buffer.byteLength(content) > 1024 * 1024 || content !== readFileSync(path.join(releaseDirectory, installer), 'utf8')) {
+      throw new Error(`Public installer differs from the published source: ${installer}`);
+    }
+  }
+  const update = parsedJson(runtime, [entryFile, 'update', '--check', '--json', ...(version.includes('-') ? ['--version', version] : [])]);
+  if (!record(update)) throw new Error('Installed updater returned an invalid response');
   if (!update.checked || update.updated || update.updateAvailable
     || update.currentVersion !== version || update.availableVersion !== version) {
     throw new Error(`Clean update check returned an invalid result: ${JSON.stringify(update)}`);
@@ -335,7 +327,7 @@ async function cleanInstall(version: string, scratch: string, releaseDirectory: 
 
 async function main(): Promise<void> {
   if (process.argv.slice(2).some(arg => arg === '-h' || arg === '--help')) {
-    console.log('Usage: corepack pnpm release:publish -- --version <semver> [--branch main] [--repo owner/repo]');
+    console.log('Usage: corepack pnpm release:publish [-- --version <root-version> --branch main --repo owner/repo --status]');
     return;
   }
   const options = parsePublishArgs(process.argv.slice(2));
@@ -343,26 +335,38 @@ async function main(): Promise<void> {
   assertBranch(options.branch);
   run('gh', ['auth', 'status'], 60_000);
 
-  let metadata = packageMetadata();
+  const metadata = packageMetadata();
   const repository = options.repository ?? repositorySlug(metadata.repository);
   const origin = required('git', ['remote', 'get-url', 'origin']);
   if (repositorySlug(origin) !== repository) throw new Error(`origin ${origin} does not match ${repository}`);
 
-  if (metadata.version !== options.version) {
-    const dirty = changedFiles();
-    if (dirty.length) throw new Error(`Start a new release from a clean tree; found: ${dirty.join(', ')}`);
-    stage('Prepare version');
-    run('corepack', ['pnpm', 'release:prepare', '--', '--version', options.version], 10 * 60_000);
-    metadata = packageMetadata();
+  const existingTag = readRemoteRef(repository, `refs/tags/${tag}`);
+  const existingRelease = optionalReleaseView(repository, tag);
+  const head = required('git', ['rev-parse', 'HEAD']);
+  const existingRun = existingTag ? selectWorkflowRun(workflowRuns(repository, 'release.yml', existingTag), existingTag, tag) : undefined;
+  if (options.status) {
+    let recovery: string;
+    try { recovery = releaseRecoveryState(head, existingTag, existingRelease, existingRun); }
+    catch (error) { recovery = `blocked: ${error instanceof Error ? error.message : String(error)}`; }
+    console.log(JSON.stringify({version: options.version, tag, source: head, tagSource: existingTag,
+      recovery, releaseUrl: existingRelease?.url, workflow: existingRun, versionErrors: consistencyErrors(root),
+      changedFiles: changedFiles()}, null, 2));
+    return;
   }
-  if (metadata.version !== options.version) throw new Error(`package.json remains at ${metadata.version}`);
-
-  const existingTag = remoteTagSource(tag);
+  const recovery = releaseRecoveryState(head, existingTag, existingRelease, existingRun);
+  readReleaseNotesInput(root);
+  const remoteRef = (ref: string) => readRemoteRef(repository, ref);
+  const remoteMainSource = remoteRef(`refs/heads/${options.branch}`);
+  if (remoteMainSource && command('git', ['cat-file', '-e', `${remoteMainSource}^{commit}`]).status !== 0) {
+    run('git', ['fetch', '--no-tags', 'origin', options.branch], 120_000);
+  }
   let source: string;
   let ci: WorkflowRun;
   if (existingTag) {
     const dirty = changedFiles();
     if (dirty.length) throw new Error(`Resume an existing release from a clean tree; found: ${dirty.join(', ')}`);
+    const errors = consistencyErrors(root);
+    if (errors.length) throw new Error(errors.join('\n'));
     const remoteMain = remoteRef(`refs/heads/${options.branch}`);
     if (!remoteMain || command('git', ['merge-base', '--is-ancestor', existingTag, remoteMain]).status !== 0) {
       throw new Error(`${tag} source ${existingTag} is not on origin/${options.branch}`);
@@ -375,16 +379,26 @@ async function main(): Promise<void> {
     let dirty = changedFiles();
     const unexpected = dirty.filter(file => !managedReleaseFiles.has(file));
     if (unexpected.length) throw new Error(`Release automation will not commit unrelated files: ${unexpected.join(', ')}`);
+    if (consistencyErrors(root).length) {
+      stage('Synchronize root-version mirrors');
+      run('corepack', ['pnpm', 'release:prepare'], 10 * 60_000);
+    }
+    dirty = changedFiles();
+    const changedDuringChecks = dirty.filter(file => !managedReleaseFiles.has(file));
+    if (changedDuringChecks.length) throw new Error(`Unrelated changes appeared during preparation: ${changedDuringChecks.join(', ')}`);
     const remoteMainBefore = remoteRef(`refs/heads/${options.branch}`);
     source = required('git', ['rev-parse', 'HEAD']);
     if (dirty.length || remoteMainBefore !== source) {
-      stage('Local release gate');
-      run('corepack', ['pnpm', 'release:prepare', '--', '--check'], 10 * 60_000);
-      run('corepack', ['pnpm', 'release:check'], 90 * 60_000);
+      stage('Local source checks; platform gates run once in exact-source CI');
+      run('corepack', ['pnpm', 'repo:check'], 10 * 60_000);
+    }
+    if (required('git', ['rev-parse', 'HEAD']) !== source || releaseVersion(root) !== options.version) {
+      throw new Error('Release source or root version changed during source checks; inspect before resuming');
     }
     dirty = changedFiles();
     if (dirty.length) {
       stage('Commit release candidate');
+      if (dirty.some(file => !managedReleaseFiles.has(file))) throw new Error('Working tree changed during source checks; inspect before resuming');
       run('git', ['add', '--', ...dirty]);
       run('git', ['diff', '--cached', '--check']);
       run('git', ['commit', '-m', `Prepare ${tag}`]);
@@ -401,12 +415,16 @@ async function main(): Promise<void> {
     if (changedFiles().length) throw new Error('Working tree changed during release preparation');
     stage('Wait for exact-source CI');
     ci = waitForRun(repository, 'ci.yml', source, options.branch);
+    readCiCandidate(repository, ci.databaseId, source, options.branch);
     immutableReleasesEnabled(repository);
     stage('Pre-tag verification');
+    if (required('git', ['rev-parse', 'HEAD']) !== source || releaseVersion(root) !== options.version) {
+      throw new Error('Release source or root version changed while waiting for CI; inspect before tagging');
+    }
     run('corepack', ['pnpm', 'release:preflight', '--', '--version', options.version, '--branch', options.branch, '--repo', repository], 5 * 60_000);
     stage('Create and push immutable release tag');
     if (command('git', ['show-ref', '--verify', '--quiet', `refs/tags/${tag}`]).status !== 0) {
-      run('git', ['tag', '-a', tag, '-m', `Wombat ${tag}`]);
+      run('git', ['tag', '-a', tag, source, '-m', `Wombat ${tag}`]);
     } else if (required('git', ['rev-list', '-n', '1', tag]) !== source) {
       throw new Error(`Local ${tag} does not point to ${source}`);
     }
@@ -414,31 +432,34 @@ async function main(): Promise<void> {
   }
 
   stage('Wait for GitHub Release');
-  const releaseRun = waitForRun(repository, 'release.yml', source, tag);
+  const releaseRun = recovery === 'verify' ? existingRun : waitForRun(repository, 'release.yml', source, tag);
   const view = releaseView(repository, tag);
   const releaseErrors = publishedReleaseErrors(view, options.version);
   if (releaseErrors.length) throw new Error(releaseErrors.join('\n'));
 
   stage('Verify published assets and attestations');
   run('gh', ['release', 'verify', tag, '--repo', repository], 5 * 60_000);
+  const download = releaseCacheDirectory(process.env.WOMBAT_RELEASE_CACHE ?? path.join(os.tmpdir(), 'wombat-release-cache'), repository, options.version, source);
+  const cached = cacheReleaseAssets(download, view.assets, (missing, destination) => {
+    run('gh', ['release', 'download', tag, '--repo', repository, '--dir', destination,
+      ...missing.flatMap(asset => ['--pattern', asset.name])], 15 * 60_000);
+  }, file => run('gh', ['release', 'verify-asset', tag, file, '--repo', repository], 5 * 60_000));
+  for (const result of cached) console.log(`${path.basename(result.file)}: ${result.reused ? 'verified cache' : 'verified download'}`);
+  const archives = verifyReleaseAssets(download, options.version, source);
+  for (const archive of archives) {
+    run('gh', ['attestation', 'verify', archive, '--repo', repository], 5 * 60_000);
+  }
   const scratch = mkdtempSync(path.join(os.tmpdir(), `wombat-${tag}-`));
   try {
-    const download = path.join(scratch, 'release');
-    mkdirSync(download, { recursive: true });
-    run('gh', ['release', 'download', tag, '--repo', repository, '--dir', download], 15 * 60_000);
-    const archives = verifyDownloadedRelease(download, options.version, source);
-    for (const archive of archives) {
-      run('gh', ['attestation', 'verify', archive, '--repo', repository], 5 * 60_000);
-    }
     stage('Clean install and update check');
-    await cleanInstall(options.version, scratch, download);
+    await cleanInstall(options.version, source, repository, scratch, download);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
 
   console.log(JSON.stringify({
     version: options.version, tag, source, repository, ciUrl: ci.url,
-    releaseRunUrl: releaseRun.url, releaseUrl: view.url, immutable: view.isImmutable,
+    releaseRunUrl: releaseRun?.url, releaseUrl: view.url, immutable: view.isImmutable,
     assets: view.assets.map(asset => asset.name).sort(),
   }, null, 2));
 }

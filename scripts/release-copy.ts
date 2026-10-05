@@ -18,26 +18,37 @@ function replaceSection(content: string, start: RegExp, endHeading: RegExp, repl
   return content.slice(0, match.index) + replacement.trimEnd() + '\n\n' + content.slice(end);
 }
 
-function stableReadme(content: string, version: string, chinese: boolean, file: string): string {
+function releaseReadme(content: string, version: string, chinese: boolean, file: string): string {
+  const stage = releaseStage(version);
+  const labels: Record<ReleaseStage, [string, string]> = {
+    'development-preview': ['Development Preview:', '开发者预览版：'],
+    beta: ['Beta:', 'Beta 测试版：'],
+    'release-candidate': ['Release Candidate:', 'RC 候选版：'],
+    stable: ['Stable:', '正式版：'],
+  };
+  const label = labels[stage][chinese ? 1 : 0];
+  const preview = version.includes('-');
   const status = chinese
-    ? `**正式版：[\`v${version}\`](https://github.com/wangyan9110/wombat/releases/tag/v${version})。**`
-    : `**Stable: [\`v${version}\`](https://github.com/wangyan9110/wombat/releases/tag/v${version}).**`;
-  let next = content.replace(/\*\*(?:Beta:|Development Preview:|Release Candidate:|Stable:|Beta 测试版：|开发者预览版：|RC 候选版：|正式版：)[^\n]+/, status);
+    ? `**${label}[\`v${version}\`](https://github.com/wangyan9110/wombat/releases/tag/v${version})。**`
+    : `**${label} [\`v${version}\`](https://github.com/wangyan9110/wombat/releases/tag/v${version}).**`;
+  const statusPattern = /\*\*(?:Beta:|Development Preview:|Release Candidate:|Stable:|Beta 测试版：|开发者预览版：|RC 候选版：|正式版：)[^\n]+/;
+  if (!statusPattern.test(content)) throw new Error(`${file}: cannot locate release status`);
+  let next = content.replace(statusPattern, status);
   next = next
     .replace(/^\s*curl -fsSL https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/install\.sh.*$/m,
-      '   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --open')
+      `   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s --${preview ? ` --version ${version}` : ''} --open`)
     .replace(/^\s*& \(\[scriptblock\]::Create\(\(irm https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/install\.ps1\)\)\).*$/m,
-      '   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Open');
+      `   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))${preview ? ` -Version ${version}` : ''} -Open`);
+  const commands = preview ? `wombat update --check --version ${version}\nwombat update --version ${version}` : 'wombat update --check\nwombat update';
   const update = chinese
-    ? `### 更新 Wombat\n\n检查或安装最新稳定版：\n\n\`\`\`sh\nwombat update --check\nwombat update\n\`\`\``
-    : `### Update Wombat\n\nCheck for or install the latest stable release:\n\n\`\`\`sh\nwombat update --check\nwombat update\n\`\`\``;
+    ? `### 更新 Wombat\n\n${preview ? '检查或安装此预发行版本' : '检查或安装最新稳定版'}：\n\n\`\`\`sh\n${commands}\n\`\`\``
+    : `### Update Wombat\n\nCheck for or install ${preview ? 'this pre-release' : 'the latest stable release'}:\n\n\`\`\`sh\n${commands}\n\`\`\``;
   return replaceSection(next, chinese ? /^### (?:更新预发行版本|更新 Wombat)$/m : /^### (?:Update a pre-release|Update Wombat)$/m,
     /^## /m, update, file);
 }
 
 export function applyReleaseCopy(file: string, content: string, version: string): string {
-  if (releaseStage(version) !== 'stable') return content;
-  if (file === 'README.md') return stableReadme(content, version, false, file);
-  if (file === 'README.zh-CN.md') return stableReadme(content, version, true, file);
+  if (file === 'README.md') return releaseReadme(content, version, false, file);
+  if (file === 'README.zh-CN.md') return releaseReadme(content, version, true, file);
   return content;
 }
