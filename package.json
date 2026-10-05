@@ -31,6 +31,7 @@
     "licenses:check": "node scripts/dependency-licenses.mjs --check",
     "public:check": "node scripts/check-public-release.mjs",
     "release:prepare": "node scripts/prepare-release.ts",
+    "release:notes": "node scripts/generate-release-notes.ts",
     "release:preflight": "node scripts/release-preflight.ts",
     "release:publish": "node scripts/publish-release.ts",
     "release:probe": "node scripts/probe-release-startup.ts",

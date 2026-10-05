@@ -20,6 +20,7 @@ Follow [repository rules](../../../AGENTS.md), [development](../../../docs/devel
 |---|---|---|
 | Prepare version | `corepack pnpm release:prepare -- --version <version>` | Updates versions, current release docs, named bilingual records, and licenses; no commit/tag/publication |
 | Check preparation | `corepack pnpm release:prepare -- --check` | Fast version, pairing, license, and diff checks; not full release acceptance |
+| Generate Release notes | `corepack pnpm release:notes -- --set <release-set.json> --output <notes.md>` | Produces the canonical English body from reviewed user impact plus verified version, source, targets, and comparison facts |
 | Pre-tag remote preflight | `corepack pnpm release:preflight -- --version <version>` | Requires current root READMEs, a clean `main`, exact `origin/main`, no existing tag/Release, a public unarchived repository, and successful CI for the exact commit; no mutation |
 | Publish end to end | `corepack pnpm release:publish -- --version <version>` | Resumable primary path: prepares/checks/commits/pushes, waits exact-source CI, runs preflight, tags, waits publication, verifies immutable assets/attestations, and tests a clean install/update |
 | Local build | `corepack pnpm build` | Compiles core, client, Web, and CLI |
@@ -35,16 +36,16 @@ Packing runs release:check by default. Use --reuse-build only after gates passed
 
 1. Run the scoped entry with locked dependencies in isolation. Record and fix the failing stage instead of bypassing gates.
 2. Inspect dist/github/release-set.json, SHA256SUMS, and every archive against the payload and platform requirements owned by the distribution guide. Check release.json and project, dependency, and runtime notices.
-3. verify-github-release.ts uses the bundled runtime for version, empty-snapshot, live, append, fixed-snapshot, task, and Web tests with an empty application PATH, synthetic sources, and temporary data directories.
+3. verify-github-release.ts uses the bundled runtime for version, empty-snapshot, live, append, fixed-snapshot, task, and Web tests with an empty application PATH, synthetic sources, and temporary data directories. It also installs the preceding public release and upgrades that managed installation to the candidate, preserving the previous version while switching the current pointer.
 4. Run install.sh --base-url file://<dist/github> into a repository-external prefix. Verify the managed marker, version directory, current.txt, launcher, and empty-PATH operation. Verify install.ps1 -BaseUrl <URL> on Windows itself.
-5. cli/tests/update.test.ts covers check-only, size/hash, archive safety, and atomic switching with a simulated Release. After actual publication, test wombat update --check and a real cross-version remote upgrade.
+5. cli/tests/update.test.ts covers check-only, size/hash, archive safety, and atomic switching with a simulated Release. Candidate CI performs the real cross-version upgrade on all five targets. After publication, test `wombat update --check` through the stable public endpoint.
 6. Report archive paths, size, SHA-256, source commit, verified platforms, and omissions. Changed archives or rebuilds invalidate previous hash/install evidence.
 
 ## Publish and verify
 
 Prefer `release:publish` for an authorized public release. It accepts an explicit version, refuses unrelated worktree changes, runs the local gates before committing, waits for CI on the exact pushed source, and calls `release:preflight` immediately before creating a missing tag. Rerunning it resumes from remote CI, tag, or Release state only when the existing identity still matches. It never replaces a tag or published asset. Use the lower-level entries only for diagnosis, candidate-only work, or recovery that the primary path explicitly requests.
 
-The tag workflow independently checks that the tagged commit belongs to the default branch and already passed CI. It then runs gates and native export on five platforms, assembles archives, verifies the final files on each platform, creates provenance, uploads every asset to a draft, and publishes that complete draft. The primary script then requires an immutable complete Release, verifies its release and archive attestations, downloads and hashes all five archives, and exercises the public installer and update check on the operator's platform.
+The tag workflow independently checks that the tagged commit belongs to the default branch and already passed CI. It then runs gates and native export on five platforms, assembles archives, verifies the final files and a preceding-release upgrade on each platform, generates the English notes from the verified release set, creates provenance, uploads every asset to a draft, and publishes that complete draft. The primary script then requires an immutable complete Release, verifies its release and archive attestations, downloads and hashes all five archives, and exercises the public installer and update check on the operator's platform.
 
 Before publication present version, tag, commit, archives/hashes, verification, and coverage gaps. Without publication authorization stop at the candidate. Upload the exact validated files, not manually repacked variants. Do not bypass failed tagged workflows with replacement tags; fix and issue a new version without overwriting a published one.
 

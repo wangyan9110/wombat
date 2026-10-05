@@ -6,7 +6,7 @@
 
 Wombat uses GitHub Releases as its only product distribution channel and does not publish an npm package. The root npm workspace stays `private: true` for source development. `v0.1.0-dev.2` was the first public Development Preview; `v0.1.0-beta.1` is the current Beta and remains a GitHub Pre-release. Pre-release features, data formats, and commands may change. Source tools require Node.js 26.4.0 or newer. User archives bundle a fixed Node.js 26.4.0 runtime, CLI/Web, and the local Rust core, so users do not install Node, npm, Rust, pnpm, or a compiler.
 
-Release automation uses only free GitHub capabilities. GitHub-hosted builds stay disabled while the repository is private. After it becomes public, CI and tag releases use standard GitHub-hosted runners; paid larger runners are not used. Intermediate Actions artifacts expire after one day, while final archives become GitHub Release assets. Versions with a prerelease component create a Pre-release and do not occupy the stable `latest` endpoint.
+Release automation uses only free GitHub capabilities. The public repository runs CI and tag releases on standard GitHub-hosted runners; paid larger runners are not used. Intermediate Actions artifacts expire after one day, while final archives become GitHub Release assets. Versions with a prerelease component create a Pre-release and do not occupy the stable `latest` endpoint.
 
 ## One-command installation and updates
 
@@ -71,12 +71,12 @@ These rules apply to the root `README.md` and `README.zh-CN.md`. Follow the [Git
 
 ## GitHub description
 
-The About description is applied on GitHub, while the repository remains private. Topics are candidates for the public repository and have not been synchronized yet:
+The repository is public. Its About description and Topics are synchronized with the current product scope:
 
 ```json
 {
   "about": "Review Codex token usage and task timing locally. Estimate API costs, inspect AGENTS.md, Skills, MCP, and Hooks, and send evidence-backed recommendations to Codex.",
-  "topicsCandidate": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
+  "topics": ["codex", "token-usage", "usage-tracker", "agent-skills", "agents-md", "mcp", "cli", "web"],
   "summaryZh": "在本机回看 Codex 任务、追踪 Token 用量与 API 估算金额，检查 AGENTS.md 和 Skill 文件，盘点 MCP 配置及调用尝试记录。"
 }
 ```

@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0",
+  "summary": "The first stable Wombat release helps Codex users review local usage and configuration, act on evidence-backed findings, and verify the result.",
+  "highlights": [
+    "Review token usage, API cost estimates, tasks, turns, and timing from local Codex records.",
+    "Inspect AGENTS.md, Skills, MCP entries, and Hooks, then send selected findings to a compatible local Codex and recheck them.",
+    "Install self-contained archives with one command and use atomic, checksum-verified updates without a system Node.js, npm, Rust, pnpm, or compiler installation."
+  ],
+  "knownLimitations": [
+    "Codex is the only production data source in this release; support for other agents is planned.",
+    "API costs are estimates. Unpriced or partial data stays explicit and is separate from subscription allowance.",
+    "Large first reads can take time. Project-level progress and per-project retry remain planned.",
+    "Optimization findings can remain unknown when runtime or history evidence is incomplete. A passed file check does not prove lower token usage.",
+    "Native handoff requires a compatible local Codex installation. Wombat currently provides local Web and CLI interfaces."
+  ]
+}

@@ -134,7 +134,7 @@ jobs:
     if: ${{ github.event.repository.private == false }}
     needs: assemble
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -150,6 +150,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -158,6 +159,10 @@ jobs:
         with:
           name: release-candidate
           path: candidate
+      - name: Install locked dependencies for the upgrade acceptance test
+        run: |
+          npm install --global corepack@0.33.0 --force
+          corepack pnpm install --frozen-lockfile
       - run: node scripts/verify-github-release.ts --set candidate/release-set.json
 
   publish:
@@ -172,7 +177,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '26.4.0'
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-candidate
@@ -181,11 +190,15 @@ jobs:
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: candidate/wombat-*.tar.gz
+      - name: Generate English release notes from the verified candidate
+        run: |
+          npm install --global corepack@0.33.0 --force
+          corepack pnpm release:notes -- --set candidate/release-set.json --output candidate/RELEASE_NOTES.md
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           draft: true
-          generate_release_notes: true
+          body_path: candidate/RELEASE_NOTES.md
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
             candidate/wombat-*.tar.gz

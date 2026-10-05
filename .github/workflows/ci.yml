@@ -158,7 +158,7 @@ jobs:
     if: ${{ github.event.repository.private == false && (github.event_name != 'workflow_dispatch' || inputs.target == 'all') }}
     needs: github-candidate
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -174,6 +174,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -182,6 +183,10 @@ jobs:
         with:
           name: github-candidate
           path: candidate
+      - name: Install locked dependencies for the upgrade acceptance test
+        run: |
+          npm install --global corepack@0.33.0 --force
+          corepack pnpm install --frozen-lockfile
       - name: Exercise the exact self-contained archive
         run: node scripts/verify-github-release.ts --set candidate/release-set.json
 

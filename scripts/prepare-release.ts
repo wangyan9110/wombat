@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { toolCommand } from './run-tool.ts';
 import { actionPinErrors, repositorySlug, rootReadmeReleaseErrors } from './release-policy.ts';
+import { applyReleaseCopy } from './release-copy.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -90,7 +91,8 @@ export function prepareVersionFiles(projectRoot: string, version: string): strin
     if (current !== version && !content.includes(current)) {
       throw new Error(`${file}: expected current release version ${current}`);
     }
-    updates.set(file, current === version ? content : content.replaceAll(current, version));
+    const versioned = current === version ? content : content.replaceAll(current, version);
+    updates.set(file, applyReleaseCopy(file, versioned, version));
   }
 
   for (const [file, content] of updates) writeFileSync(path.join(projectRoot, file), content);

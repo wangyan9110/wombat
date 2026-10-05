@@ -76,6 +76,15 @@ test('requires the README stage to match beta versions', () => {
   }, version, repository).join('\n'), /missing Beta/);
 });
 
+test('requires stable README installation and update facts without preview flags', () => {
+  const repository = 'owner/repo', version = '0.1.0';
+  const url = `https://github.com/${repository}/releases/tag/v${version}`;
+  const raw = `https://raw.githubusercontent.com/${repository}/main`;
+  const common = `[\`v${version}\`](${url}) ${raw}/install.sh ${raw}/install.ps1 macOS arm64/x64 Linux glibc arm64/x64 Windows x64\nwombat update --check\nwombat update\n`;
+  assert.deepEqual(rootReadmeReleaseErrors({english: `Stable: ${common}`, chinese: `正式版：${common}`}, version, repository), []);
+  assert.match(rootReadmeReleaseErrors({english: `Beta: ${common}`, chinese: `Beta 测试版：${common}`}, version, repository).join('\n'), /missing Stable/);
+});
+
 test('requires immutable external Action references', () => {
   const sha = '1'.repeat(40);
   assert.deepEqual(actionPinErrors({

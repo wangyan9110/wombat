@@ -7,11 +7,14 @@ import os from 'node:os';
 import path from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
+import {pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 import {hashFile, inventory} from './artifact-files.ts';
 import {releaseNodeVersion, type GitHubReleaseSet} from './github-release.ts';
 import {nodeRuntimeBinary} from './native-platforms.ts';
 import {toolCommand} from './run-tool.ts';
+import {previousReleaseTag} from './release-history.ts';
+import {updateInstalled} from '../cli/src/update-cli.ts';
 
 const {values} = parseArgs({options: {set: {type: 'string'}}});
 assert(values.set, '--set is required');
@@ -87,12 +90,39 @@ try {
     assert.equal(JSON.parse(run(command, ['/d', '/s', '/c', `""${launcher}" --version --json"`])).version, set.version);
   } else assert.equal(JSON.parse(run(launcher, ['--version', '--json'])).version, set.version);
 
+  const tagList = spawnSync('git', ['tag', '--merged', 'HEAD', '--sort=-version:refname'],
+    {cwd: path.resolve('.'), encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024});
+  assert.ifError(tagList.error); assert.equal(tagList.status, 0, tagList.stderr);
+  const mergedTags = tagList.stdout.split(/\r?\n/);
+  const previousTag = previousReleaseTag(mergedTags, set.version);
+  assert(previousTag, `No previous public release tag is available for the ${set.version} upgrade test`);
+  const upgradePrefix = path.join(scratch, 'upgrade-prefix');
+  const installer = process.platform === 'win32'
+    ? spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.resolve('install.ps1'), '-Version', previousTag, '-Prefix', upgradePrefix],
+      {cwd: path.resolve('.'), encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024, windowsHide: true})
+    : spawnSync('sh', [path.resolve('install.sh'), '--version', previousTag, '--prefix', upgradePrefix],
+      {cwd: path.resolve('.'), encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024});
+  assert.ifError(installer.error); assert.equal(installer.status, 0, installer.stderr + installer.stdout);
+  const upgradeRoot = path.join(upgradePrefix, 'lib', 'wombat');
+  const previousId = readFileSync(path.join(upgradeRoot, 'current.txt'), 'utf8').trim();
+  const previousEntry = path.join(upgradeRoot, 'versions', previousId, 'lib', 'wombat.js');
+  const updated = await updateInstalled({entryFile: previousEntry, baseUrl: pathToFileURL(releaseDirectory).href});
+  assert.deepEqual({currentVersion: updated.currentVersion, availableVersion: updated.availableVersion, updateAvailable: updated.updateAvailable, updated: updated.updated},
+    {currentVersion: previousTag.slice(1), availableVersion: set.version, updateAvailable: true, updated: true});
+  const currentId = readFileSync(path.join(upgradeRoot, 'current.txt'), 'utf8').trim();
+  assert.notEqual(currentId, previousId); assert(existsSync(path.join(upgradeRoot, 'versions', previousId)));
+  const upgradedLauncher = path.join(upgradePrefix, 'bin', process.platform === 'win32' ? 'wombat.cmd' : 'wombat');
+  if (process.platform === 'win32') {
+    const command = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe');
+    assert.equal(JSON.parse(run(command, ['/d', '/s', '/c', `""${upgradedLauncher}" --version --json"`])).version, set.version);
+  } else assert.equal(JSON.parse(run(upgradedLauncher, ['--version', '--json'])).version, set.version);
+
   await stopService(); service = undefined;
   run(process.execPath, ['--test', fileURLToPath(new URL('../tests/e2e/web.test.ts', import.meta.url))], 0,
     {...env, WOMBAT_WEB_TEST_ENTRY: cli, WOMBAT_WEB_TEST_CORE: core, WOMBAT_WEB_TEST_NODE: runtime});
   console.log(JSON.stringify({version: set.version, source: set.source, target, runtime: run(runtime, ['--version']).trim(),
     archive: asset.archive, archiveBytes: asset.bytes, installedBytes: inventory(installed).reduce((total, file) => total + file.size, 0),
-    extractMs: installMs, launcher: true, emptyAppPath: true, live: true, append: true, fixedSnapshot: true, web: true}));
+    extractMs: installMs, launcher: true, upgradedFrom: previousTag.slice(1), emptyAppPath: true, live: true, append: true, fixedSnapshot: true, web: true}));
 } finally {
   await stopService();
   rmSync(scratch, {recursive: true, force: true, maxRetries: 20, retryDelay: 500});
