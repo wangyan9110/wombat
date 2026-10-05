@@ -11,8 +11,18 @@ import {
   type WorkflowRun,
   releaseRecoveryState,
   verificationDownloads,
+  installSourceArgs,
+  assertHostedVerificationJobs,
 } from './publish-release.ts';
 import {nativeTargets} from './native-platforms.ts';
+
+test('hosted recovery requires complete evidence and the dedicated public installation job to pass', () => {
+  const job = {name: 'Verify public installation and update', status: 'completed', conclusion: 'success'};
+  assert.doesNotThrow(() => assertHostedVerificationJobs({total_count: 1, jobs: [job]}));
+  for (const value of [undefined, {total_count: 2, jobs: [job]}, {total_count: 0, jobs: []},
+    {total_count: 2, jobs: [job, job]}, {total_count: 1, jobs: [{...job, conclusion: 'skipped'}]},
+    {total_count: 1, jobs: [{...job, status: 'in_progress'}]}]) assert.throws(() => assertHostedVerificationJobs(value));
+});
 
 test('public verification downloads only the host archive while requiring the complete immutable release', () => {
   const view = {assets: expectedReleaseAssets().map(name => ({name, size: 1, digest: `sha256:${'a'.repeat(64)}`})),
@@ -27,20 +37,32 @@ test('public verification downloads only the host archive while requiring the co
 
 test('parses one explicit release identity and rejects ambiguous input', () => {
   assert.deepEqual(parsePublishArgs([], '0.1.0-beta.1'), {
-    version: '0.1.0-beta.1', branch: 'main', repository: undefined, status: false,
+    version: '0.1.0-beta.1', branch: 'main', repository: undefined, status: false, verifyPublished: false, hosted: false,
   });
   assert.deepEqual(parsePublishArgs(['--', '--version', '1.0.0', '--branch', 'release', '--repo', 'owner/repo', '--status'], '1.0.0'), {
-    version: '1.0.0', branch: 'release', repository: 'owner/repo', status: true,
+    version: '1.0.0', branch: 'release', repository: 'owner/repo', status: true, verifyPublished: false, hosted: false,
   });
   assert.throws(() => parsePublishArgs(['--version', 'v1.0.0']));
   assert.throws(() => parsePublishArgs(['--version', '1.0.0', '--unknown']));
   assert.throws(() => parsePublishArgs(['--version', '1.0.1'], '1.0.0'), /differs from package.json/);
   assert.throws(() => parsePublishArgs(['--version', '1.0.0', '--version', '1.0.0'], '1.0.0'), /Duplicate/);
+  assert.equal(parsePublishArgs(['--verify-published'], '1.0.0').verifyPublished, true);
+  assert.throws(() => parsePublishArgs(['--status', '--verify-published']), /Choose status/);
+  assert.equal(parsePublishArgs(['--verify-published', '--hosted'], '1.0.0').hosted, true);
+  assert.throws(() => parsePublishArgs(['--hosted']), /requires --verify-published/);
 });
 
-test('the actual status entry permits only read operations and never treats network failures as absence', () => {
+test('published installation uses the public latest stable route and explicit public preview versions', () => {
+  for (const windows of [false, true]) {
+    assert.deepEqual(installSourceArgs('1.0.0', 'file:///cache', true, windows), []);
+    assert.deepEqual(installSourceArgs('1.0.0-beta.1', 'file:///cache', true, windows), windows ? ['-Version', '1.0.0-beta.1'] : ['--version', '1.0.0-beta.1']);
+    assert.deepEqual(installSourceArgs('1.0.0', 'file:///cache', false, windows), windows ? ['-Version', '1.0.0', '-BaseUrl', 'file:///cache'] : ['--version', '1.0.0', '--base-url', 'file:///cache']);
+  }
+});
+
+test('preliminary status and verification checks never publish missing releases or hide network failures', () => {
   const file = fileURLToPath(new URL('./publish-release.ts', import.meta.url));
-  for (const networkFailure of [false, true]) {
+  for (const mode of ['--status', '--verify-published']) for (const networkFailure of [false, true]) {
     const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
       import childProcess from 'node:child_process';
       import {syncBuiltinESMExports} from 'node:module';
@@ -59,7 +81,7 @@ test('the actual status entry permits only read operations and never treats netw
         throw new Error('Forbidden status operation: ' + key);
       };
       syncBuiltinESMExports();
-      process.argv = [process.execPath, ${JSON.stringify(file)}, '--status'];
+      process.argv = [process.execPath, ${JSON.stringify(file)}, ${JSON.stringify(mode)}];
       await import(pathToFileURL(${JSON.stringify(file)}).href);
     `], {encoding: 'utf8', timeout: 10_000, maxBuffer: 1024 * 1024});
     assert.ifError(result.error);
@@ -67,9 +89,12 @@ test('the actual status entry permits only read operations and never treats netw
     if (networkFailure) {
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /GitHub ref query failed: network unavailable/);
-    } else {
+    } else if (mode === '--status') {
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /"recovery": "prepare"/);
+    } else {
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /requires an existing tag and Release; no publication/);
     }
   }
 });
@@ -85,6 +110,10 @@ test('selects only the exact push workflow run', () => {
     run({ databaseId: 3, headSha: 'b'.repeat(40) }),
     expected,
   ], 'a'.repeat(40), 'main'), expected);
+  const dispatched = run({databaseId: 5, event: 'workflow_dispatch'});
+  assert.equal(selectWorkflowRun([expected, dispatched], 'a'.repeat(40), 'main', 'workflow_dispatch', 4), dispatched);
+  assert.equal(selectWorkflowRun([expected, dispatched], 'a'.repeat(40), 'main', 'workflow_dispatch', 5), undefined);
+  assert.equal(selectWorkflowRun([dispatched], 'b'.repeat(40), 'main', 'workflow_dispatch'), undefined);
 });
 
 test('requires the complete immutable release asset set', () => {

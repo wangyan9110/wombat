@@ -53,21 +53,25 @@ export interface ReleaseView {
 }
 
 function usage(): never {
-  throw new Error('Usage: corepack pnpm release:publish [-- --version <root-version> --branch main --repo owner/repo --status]');
+  throw new Error('Usage: corepack pnpm release:publish [-- --version <root-version> --branch main --repo owner/repo --status | --verify-published [--hosted]]');
 }
 
-export function parsePublishArgs(argv: string[], canonicalVersion = releaseVersion(root)): PublishOptions & {status: boolean} {
+export function parsePublishArgs(argv: string[], canonicalVersion = releaseVersion(root)): PublishOptions & {status: boolean; verifyPublished: boolean; hosted: boolean} {
   const args = argv.filter(arg => arg !== '--');
   let version = '';
   let branch = 'main';
   let repository: string | undefined;
   let status = false;
+  let verifyPublished = false;
+  let hosted = false;
   const seen = new Set<string>();
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     if (seen.has(arg)) throw new Error(`Duplicate release option: ${arg}`);
     seen.add(arg);
     if (arg === '--status') { status = true; continue; }
+    if (arg === '--verify-published') { verifyPublished = true; continue; }
+    if (arg === '--hosted') { hosted = true; continue; }
     if (arg !== '--version' && arg !== '--branch' && arg !== '--repo') usage();
     const value = args[++index];
     if (!value || value.startsWith('-')) usage();
@@ -84,7 +88,9 @@ export function parsePublishArgs(argv: string[], canonicalVersion = releaseVersi
   if (repository && !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
     throw new Error(`Invalid GitHub repository: ${repository}`);
   }
-  return { version, branch, repository, status };
+  if (status && verifyPublished) throw new Error('Choose status inspection or published verification');
+  if (hosted && !verifyPublished) throw new Error('Hosted execution requires --verify-published');
+  return { version, branch, repository, status, verifyPublished, hosted };
 }
 
 export function expectedReleaseAssets(): string[] {
@@ -95,10 +101,16 @@ export function expectedReleaseAssets(): string[] {
 }
 
 export function selectWorkflowRun(
-  runs: WorkflowRun[], source: string, headBranch: string,
+  runs: WorkflowRun[], source: string, headBranch: string, event = 'push', afterRunId = 0,
 ): WorkflowRun | undefined {
-  return runs.filter(run => run.event === 'push' && run.headSha === source && run.headBranch === headBranch)
+  return runs.filter(run => run.event === event && run.headSha === source && run.headBranch === headBranch && run.databaseId > afterRunId)
     .sort((a, b) => b.databaseId - a.databaseId)[0];
+}
+
+export function assertHostedVerificationJobs(evidence: unknown): void {
+  if (!record(evidence) || !Array.isArray(evidence.jobs) || evidence.total_count !== evidence.jobs.length) throw new Error('Hosted verification job evidence is incomplete');
+  const jobs = evidence.jobs.filter(job => record(job) && job.name === 'Verify public installation and update');
+  if (jobs.length !== 1 || !record(jobs[0]) || jobs[0].status !== 'completed' || jobs[0].conclusion !== 'success') throw new Error('The public installation and update job did not succeed');
 }
 
 export function releaseRecoveryState(
@@ -223,18 +235,18 @@ function workflowRuns(repository: string, workflow: string, source: string): Wor
   });
 }
 
-function waitForRun(repository: string, workflow: string, source: string, headBranch: string): WorkflowRun {
+function waitForRun(repository: string, workflow: string, source: string, headBranch: string, event = 'push', afterRunId = 0): WorkflowRun {
   const deadline = Date.now() + 180_000;
   let selected: WorkflowRun | undefined;
   while (Date.now() < deadline) {
-    selected = selectWorkflowRun(workflowRuns(repository, workflow, source), source, headBranch);
+    selected = selectWorkflowRun(workflowRuns(repository, workflow, source), source, headBranch, event, afterRunId);
     if (selected) break;
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 3_000);
   }
-  if (!selected) throw new Error(`No ${workflow} push run appeared for ${source} on ${headBranch}`);
+  if (!selected) throw new Error(`No ${workflow} ${event} run appeared for ${source} on ${headBranch}`);
   if (selected.status !== 'completed') {
     run('gh', ['run', 'watch', String(selected.databaseId), '--repo', repository, '--compact', '--exit-status', '--interval', '30'], 90 * 60_000);
-    selected = selectWorkflowRun(workflowRuns(repository, workflow, source), source, headBranch);
+    selected = selectWorkflowRun(workflowRuns(repository, workflow, source), source, headBranch, event, afterRunId);
   }
   if (!selected || selected.status !== 'completed' || selected.conclusion !== 'success') {
     throw new Error(`${workflow} did not complete successfully: ${selected?.url ?? 'unknown run'}`);
@@ -277,14 +289,19 @@ function optionalReleaseView(repository: string, tag: string): ReleaseView | und
   throw new Error(`Cannot determine remote Release state: ${failure('gh', [], lookup)}`);
 }
 
-async function cleanInstall(version: string, source: string, repository: string, scratch: string, releaseDirectory: string): Promise<void> {
+export function installSourceArgs(version: string, baseUrl: string, publicDownload: boolean, windows: boolean): string[] {
+  if (!publicDownload) return windows ? ['-Version', version, '-BaseUrl', baseUrl] : ['--version', version, '--base-url', baseUrl];
+  return version.includes('-') ? (windows ? ['-Version', version] : ['--version', version]) : [];
+}
+
+async function cleanInstall(version: string, source: string, repository: string, scratch: string, releaseDirectory: string, publicDownload: boolean): Promise<void> {
   const prefix = path.join(scratch, 'install');
   const baseUrl = pathToFileURL(releaseDirectory).href.replace(/\/$/, '');
   let entryFile: string;
   let runtime: string;
   if (process.platform === 'win32') {
     run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(releaseDirectory, 'install.ps1'),
-      '-Version', version, '-Prefix', prefix, '-BaseUrl', baseUrl, '-NoModifyPath'], 10 * 60_000);
+      ...installSourceArgs(version, baseUrl, publicDownload, true), '-Prefix', prefix, '-NoModifyPath'], 10 * 60_000);
     const installRoot = path.join(prefix, 'lib', 'wombat');
     const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
     if (!/^[0-9A-Za-z._-]+$/.test(releaseId)) throw new Error('Windows installation pointer is invalid');
@@ -293,7 +310,7 @@ async function cleanInstall(version: string, source: string, repository: string,
     entryFile = path.join(installed, 'lib', 'wombat.js');
 
   } else {
-    run('sh', [path.join(releaseDirectory, 'install.sh'), '--version', version, '--prefix', prefix, '--base-url', baseUrl, '--no-modify-path'], 10 * 60_000);
+    run('sh', [path.join(releaseDirectory, 'install.sh'), ...installSourceArgs(version, baseUrl, publicDownload, false), '--prefix', prefix, '--no-modify-path'], 10 * 60_000);
 
     const installRoot = path.join(prefix, 'lib', 'wombat');
     const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
@@ -327,12 +344,12 @@ async function cleanInstall(version: string, source: string, repository: string,
 
 async function main(): Promise<void> {
   if (process.argv.slice(2).some(arg => arg === '-h' || arg === '--help')) {
-    console.log('Usage: corepack pnpm release:publish [-- --version <root-version> --branch main --repo owner/repo --status]');
+    console.log('Usage: corepack pnpm release:publish [-- --version <root-version> --branch main --repo owner/repo --status | --verify-published [--hosted]]');
     return;
   }
   const options = parsePublishArgs(process.argv.slice(2));
   const tag = `v${options.version}`;
-  assertBranch(options.branch);
+  if (!options.verifyPublished) assertBranch(options.branch);
   run('gh', ['auth', 'status'], 60_000);
 
   const metadata = packageMetadata();
@@ -343,6 +360,25 @@ async function main(): Promise<void> {
   const existingTag = readRemoteRef(repository, `refs/tags/${tag}`);
   const existingRelease = optionalReleaseView(repository, tag);
   const head = required('git', ['rev-parse', 'HEAD']);
+  if (options.verifyPublished) {
+    if (!existingTag || !existingRelease) throw new Error('Published verification requires an existing tag and Release; no publication will be attempted');
+    const errors = publishedReleaseErrors(existingRelease, options.version);
+    if (errors.length) throw new Error(errors.join('\n'));
+    if (command('git', ['merge-base', '--is-ancestor', existingTag, head]).status !== 0) throw new Error('Published source is not an ancestor of this branch');
+    if (options.hosted) {
+      if (changedFiles().length || readRemoteRef(repository, `refs/heads/${options.branch}`) !== head) throw new Error('Hosted verification requires a clean checkout matching the pushed branch');
+      const prior = Math.max(0, ...workflowRuns(repository, 'ci.yml', head).map(item => item.databaseId));
+      run('gh', ['workflow', 'run', 'ci.yml', '--repo', repository, '--ref', options.branch, '-f', 'target=published-release']);
+      const verification = waitForRun(repository, 'ci.yml', head, options.branch, 'workflow_dispatch', prior);
+      const evidence = parsedJson('gh', ['api', `repos/${repository}/actions/runs/${verification.databaseId}/jobs?per_page=100`]);
+      assertHostedVerificationJobs(evidence);
+      console.log(JSON.stringify({version: options.version, source: existingTag, verificationSource: head, releaseUrl: existingRelease.url, verificationUrl: verification.url, publicDownload: true}));
+      return;
+    }
+    const view = await verifyPublishedRelease(repository, options.version, existingTag, true);
+    console.log(JSON.stringify({version: options.version, source: existingTag, releaseUrl: view.url, immutable: view.isImmutable, publicDownload: true}));
+    return;
+  }
   const existingRun = existingTag ? selectWorkflowRun(workflowRuns(repository, 'release.yml', existingTag), existingTag, tag) : undefined;
   if (options.status) {
     let recovery: string;
@@ -451,7 +487,7 @@ export function verificationDownloads(view: ReleaseView, target: NativeTarget): 
 }
 
 /** Whole-release signatures and metadata cover every target; local installation needs only this host's archive. */
-export async function verifyPublishedRelease(repository: string, version: string, source: string): Promise<ReleaseView> {
+export async function verifyPublishedRelease(repository: string, version: string, source: string, publicDownload = false): Promise<ReleaseView> {
   const tag = `v${version}`;
   if (readRemoteRef(repository, `refs/tags/${tag}`) !== source) throw new Error('Published tag source differs from the requested verification identity');
   const view = releaseView(repository, tag);
@@ -474,7 +510,7 @@ export async function verifyPublishedRelease(repository: string, version: string
   const scratch = mkdtempSync(path.join(os.tmpdir(), `wombat-${tag}-`));
   try {
     stage('Clean install and update check');
-    await cleanInstall(version, source, repository, scratch, download);
+    await cleanInstall(version, source, repository, scratch, download, publicDownload);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
