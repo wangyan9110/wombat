@@ -170,6 +170,8 @@ pub struct Operation {
     pub time_precision: Arc<str>,
     pub status: Arc<str>,
     pub exit_code: Option<i64>,
+    /// Sticky disagreement among reliable native results; no single exit code is asserted.
+    pub outcome_conflict: bool,
     pub duration_ms: Option<u64>,
     pub path: Option<String>,
     /// Safe source metadata; absent observations cannot establish zero work.

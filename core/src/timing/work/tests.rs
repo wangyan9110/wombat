@@ -4,7 +4,7 @@ fn thread() -> Thread {
     serde_json::from_value(serde_json::json!({"id":"thread","sourceInstanceId":"source","agentKind":"codex","upstreamId":"native","project":"/guessed/project"})).unwrap()
 }
 fn operation(id: &str, kind: &str, status: &str) -> Arc<Operation> {
-    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":"turn","callId":id,"kind":kind,"name":"safe","sequence":1,"timePrecision":"unknown","status":status,"evidence":[]})).unwrap())
+    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":"turn","callId":id,"kind":kind,"name":"safe","sequence":1,"timePrecision":"unknown","status":status,"outcomeConflict":false,"evidence":[]})).unwrap())
 }
 fn file(
     id: &str,
@@ -319,4 +319,29 @@ fn native_command_read_candidates_remain_one_dispatched_work_operation() {
     assert_eq!(out.closed_operations.value, Some(1));
     assert_eq!(out.failed_operations.value, Some(1));
     assert_eq!(out.file_change_records.value, Some(0));
+}
+
+#[test]
+fn result_conflict_facts_preserve_failure_but_distinct_canonical_witnesses_do_not_collapse() {
+    let clear = operation("canonical", "command", "failed");
+    let mut conflict = clear.as_ref().clone();
+    conflict.outcome_conflict = true;
+    let conflict = Arc::new(conflict);
+    let observed = run(&[conflict.clone(), conflict.clone()]);
+    assert_eq!(observed.operation_candidates.value, Some(1));
+    assert_eq!(observed.closed_operations.value, Some(1));
+    assert_eq!(observed.failed_operations.value, Some(1));
+    assert_eq!(observed.coverage.canonical_conflicts, 0);
+    for ops in [
+        [clear.clone(), conflict.clone()],
+        [conflict.clone(), clear.clone()],
+    ] {
+        let out = run(&ops);
+        assert_eq!(out.coverage.canonical_conflicts, 1);
+        assert_eq!(out.operation_candidates.value, None);
+        assert_eq!(out.closed_operations.value, None);
+        assert_eq!(out.failed_operations.value, None);
+        assert_eq!(out.file_change_records.value, Some(0));
+        assert_eq!(out.changed_files.value, Some(0));
+    }
 }

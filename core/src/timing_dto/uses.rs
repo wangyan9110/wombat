@@ -65,6 +65,7 @@ pub enum UseOutcome {
     Failed,
     Cancelled,
     Interrupted,
+    Declined,
     Unknown,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

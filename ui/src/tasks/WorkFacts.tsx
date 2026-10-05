@@ -15,8 +15,12 @@ type WorkLabel =
   | 'execution.work.reasoningMessageRecords';
 
 function countText(value: Count, unit = ''): string {
-  const count = value.value == null ? t('execution.work.unknown') : value.value.toLocaleString();
-  return `${count}${unit} · ${t(`execution.work.measure.${value.status}`)}`;
+  if (value.value == null) return basisText(value.basis);
+  return `${value.value.toLocaleString()}${unit} · ${t(`execution.work.measure.${value.status}`)} · ${basisText(value.basis)}`;
+}
+
+function omitUnavailable(value: Count): boolean {
+  return value.value == null && (value.basis === 'unsupported_method' || value.basis === 'missing_repository_baseline');
 }
 
 function basisText(basis: Basis): string {
@@ -45,7 +49,8 @@ function sourceText(status: string): string {
     case 'cancelled': return t('source.incomplete');
     case 'failed': return t('source.unreadable');
     case 'not_found': return t('source.notFound');
-    default: return t('webui.unknown');
+    case 'unknown': return t('execution.work.sourceStatusUnconfirmed');
+    default: return t('execution.work.sourceStatusUnconfirmed');
   }
 }
 
@@ -58,7 +63,7 @@ export function WorkFacts({
   sourceStatus: string;
   partial: boolean;
 }) {
-  const rows: Array<[WorkLabel, Count]> = [
+  const allRows: Array<[WorkLabel, Count]> = [
     ['execution.work.operationCandidates', work.operationCandidates],
     ['execution.work.closedOperations', work.closedOperations],
     ['execution.work.failedOperations', work.failedOperations],
@@ -68,8 +73,9 @@ export function WorkFacts({
     ['execution.work.injectedContextRecords', work.injectedContextRecords],
     ['execution.work.reasoningMessageRecords', work.reasoningMessageRecords],
   ];
+  const rows = allRows.filter(([, value]) => !omitUnavailable(value));
   const basisCodes = [
-    ...rows.map(([, value]) => value.basis),
+    ...allRows.map(([, value]) => value.basis),
     work.addedLines.basis,
     work.removedLines.basis,
     work.labelledCommandMs.basis,
@@ -84,21 +90,21 @@ export function WorkFacts({
         {rows.map(([label, value]) => (
           <div key={label}>
             <dt>{t(label)}</dt>
-            <dd>{countText(value)} · {basisText(value.basis)}</dd>
+            <dd>{countText(value)}</dd>
           </div>
         ))}
-        <div>
+        {!omitUnavailable(work.addedLines) && <div>
           <dt>{t('execution.work.addedLines')}</dt>
-          <dd>{countText(work.addedLines)} · {basisText(work.addedLines.basis)}</dd>
-        </div>
-        <div>
+          <dd>{countText(work.addedLines)}</dd>
+        </div>}
+        {!omitUnavailable(work.removedLines) && <div>
           <dt>{t('execution.work.removedLines')}</dt>
-          <dd>{countText(work.removedLines)} · {basisText(work.removedLines.basis)}</dd>
-        </div>
-        <div>
+          <dd>{countText(work.removedLines)}</dd>
+        </div>}
+        {!omitUnavailable(work.labelledCommandMs) && <div>
           <dt>{t('execution.work.commandDuration')}</dt>
-          <dd>{countText(work.labelledCommandMs, ' ms')} · {basisText(work.labelledCommandMs.basis)}</dd>
-        </div>
+          <dd>{countText(work.labelledCommandMs, ' ms')}</dd>
+        </div>}
       </dl>
       <p>{t('execution.work.note')}</p>
       <details>

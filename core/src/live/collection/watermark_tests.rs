@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn required_work_mapping_rejects_old_parser_and_projection_before_payload_without_mutation() {
+fn required_operation_and_work_mappings_reject_before_payload_without_mutation() {
     use std::io::Write;
     let root_a = tempfile::tempdir().unwrap();
     let root_b = tempfile::tempdir().unwrap();
@@ -24,65 +24,67 @@ fn required_work_mapping_rejects_old_parser_and_projection_before_payload_withou
     let saved_projection = crate::live_index::load_map(&db, &projection).unwrap();
     let saved_parser = crate::live_index::load_map(&db, &parser).unwrap();
     let saved_view = crate::live_index::load_map(&db, &format!("view:{key}")).unwrap();
-    for (scope, original) in [(&projection, &saved_projection), (&parser, &saved_parser)] {
-        assert_eq!(
-            original["workObservationVersion"],
-            json!(adapters::codex::incremental::WORK_OBSERVATION_VERSION)
-        );
-        for header in [
-            None,
-            Some(json!(1)),
-            Some(json!(
-                adapters::codex::incremental::WORK_OBSERVATION_VERSION + 1
-            )),
-        ] {
-            crate::live_index::save_map(&db, &projection, &saved_projection).unwrap();
-            crate::live_index::save_map(&db, &parser, &saved_parser).unwrap();
-            let mut tampered = original.clone();
-            tampered.remove("workObservationVersion");
-            if let Some(header) = header {
-                tampered.insert("workObservationVersion".into(), header);
-            }
-            // Future payload failure must not win over version rejection or enter source fallback.
-            tampered.insert("futureWorkField".into(), json!({"unknown":true}));
-            crate::live_index::save_map(&db, scope, &tampered).unwrap();
-            for append in [false, true] {
-                if append {
-                    fs::OpenOptions::new()
-                        .append(true)
-                        .open(&path)
-                        .unwrap()
-                        .write_all(b"\n")
-                        .unwrap();
+    for (field, current) in [
+        (
+            "workObservationVersion",
+            adapters::codex::incremental::WORK_OBSERVATION_VERSION,
+        ),
+        (
+            "operationObservationVersion",
+            adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
+        ),
+    ] {
+        for (scope, original) in [(&projection, &saved_projection), (&parser, &saved_parser)] {
+            assert_eq!(original[field], json!(current));
+            for header in [None, Some(json!(current - 1)), Some(json!(current + 1))] {
+                crate::live_index::save_map(&db, &projection, &saved_projection).unwrap();
+                crate::live_index::save_map(&db, &parser, &saved_parser).unwrap();
+                let mut tampered = original.clone();
+                tampered.remove(field);
+                if let Some(header) = header {
+                    tampered.insert(field.into(), header);
                 }
-                let error = sync(&mut db, &key, &roots, false, Some(&initial), &mut caches)
-                    .err()
-                    .unwrap();
-                assert_eq!(
-                    crate::live_index::failure_code(&error),
-                    "UNSUPPORTED_VERSION"
-                );
-                assert_eq!(crate::live_index::load_map(&db, scope).unwrap(), tampered);
-                assert_eq!(
-                    crate::live_index::load_map(&db, &format!("view:{key}")).unwrap(),
-                    saved_view
-                );
-            }
-            if scope == &projection {
-                let error = restore(&db, &key, &roots).err().unwrap();
-                assert_eq!(
-                    crate::live_index::failure_code(&error),
-                    "UNSUPPORTED_VERSION"
-                );
-                assert_eq!(
-                    crate::live_index::load_map(&db, &parser).unwrap(),
-                    saved_parser
-                );
-            } else {
-                assert_eq!(
-                    crate::live_index::load_map(&db, &projection).unwrap(),
-                    saved_projection
-                );
+                // Future payload failure must not win over version rejection or enter source fallback.
+                tampered.insert("futureWorkField".into(), json!({"unknown":true}));
+                crate::live_index::save_map(&db, scope, &tampered).unwrap();
+                for append in [false, true] {
+                    if append {
+                        fs::OpenOptions::new()
+                            .append(true)
+                            .open(&path)
+                            .unwrap()
+                            .write_all(b"\n")
+                            .unwrap();
+                    }
+                    let error = sync(&mut db, &key, &roots, false, Some(&initial), &mut caches)
+                        .err()
+                        .unwrap();
+                    assert_eq!(
+                        crate::live_index::failure_code(&error),
+                        "UNSUPPORTED_VERSION"
+                    );
+                    assert_eq!(crate::live_index::load_map(&db, scope).unwrap(), tampered);
+                    assert_eq!(
+                        crate::live_index::load_map(&db, &format!("view:{key}")).unwrap(),
+                        saved_view
+                    );
+                }
+                if scope == &projection {
+                    let error = restore(&db, &key, &roots).err().unwrap();
+                    assert_eq!(
+                        crate::live_index::failure_code(&error),
+                        "UNSUPPORTED_VERSION"
+                    );
+                    assert_eq!(
+                        crate::live_index::load_map(&db, &parser).unwrap(),
+                        saved_parser
+                    );
+                } else {
+                    assert_eq!(
+                        crate::live_index::load_map(&db, &projection).unwrap(),
+                        saved_projection
+                    );
+                }
             }
         }
     }

@@ -37,6 +37,9 @@ pub(super) fn row(
     if record.target_conflict {
         gaps.push("target_conflict".into());
     }
+    if op.outcome_conflict {
+        gaps.push("operation_result_conflict".into());
+    }
     if record.state != projection::UseState::Used {
         gaps.push("dispatch_not_proven".into());
     }
@@ -68,6 +71,7 @@ pub(super) fn row(
             "failed" => UseOutcome::Failed,
             "cancelled" => UseOutcome::Cancelled,
             "interrupted" => UseOutcome::Interrupted,
+            "declined" => UseOutcome::Declined,
             _ => UseOutcome::Unknown,
         },
         timestamp_ms,

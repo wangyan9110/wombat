@@ -13,7 +13,7 @@ const {TimingDetailReader}=await import('../src/tasks/TurnExecution.js');
 const render=(summary:ReturnType<typeof timingFixture>)=>renderToStaticMarkup(createElement(Execution,{summary,refresh(){},onEvidence(){},onShare(){}}));
 test('production execution consumes real DTOs, keeps zero unknown and five states distinct in both languages',()=>{
  const previous=locale.getSnapshot().locale;
- try{for(const language of ['zh','en'] as const){locale.setLocale(language);for(const state of ['completed','running','failed','cancelled','unknown'] as const){const summary=timingFixture();summary.time.state=state;summary.time.nativeWallClockMs.value=0;const html=render(summary);assert.match(html,language==='zh'?/执行过程/:/Execution/);if(state==='running')assert.doesNotMatch(html,/<strong>0 ms<\/strong>/);else assert.match(html,/<strong>0 ms<\/strong>/);assert.doesNotMatch(html,language==='zh'?/对象级使用投影尚未提供/:/Object-level use projection is not available/);}}}finally{locale.setLocale(previous);}
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);for(const state of ['completed','running','failed','cancelled','unknown'] as const){const summary=timingFixture();summary.time.state=state;summary.time.nativeWallClockMs.value=0;const html=render(summary);assert.match(html,language==='zh'?/执行过程/:/Execution/);if(state==='running')assert.doesNotMatch(html,/<strong>0 ms<\/strong>/);else assert.match(html,/<strong>0 ms<\/strong>/);if(state==='unknown')assert.doesNotMatch(html,language==='zh'?/现有时间记录不足以确认轮次状态/:/Available timing records do not establish the turn state/);assert.doesNotMatch(html,language==='zh'?/对象级使用投影尚未提供/:/Object-level use projection is not available/);}}}finally{locale.setLocale(previous);}
 });
 test('missing reliable window uses the same production list fallback and unknowns never become zero',()=>{
  const html=render(timingFixture('missing'));assert.match(html,/execution-no-window/);assert.doesNotMatch(html,/NaN|Infinity|<strong>0 ms<\/strong>/);assert.match(html,/missing_time/);
@@ -94,4 +94,8 @@ test('evidence timestamps show occurrence time in the selected timezone, with ep
   assert.match(primary,new RegExp(`2026-10-05 ${hour}`));assert.doesNotMatch(primary,new RegExp(`${timestampMs} ms`));assert.match(html.slice(html.indexOf('<details>')),new RegExp(`${timestampMs} ms`));
  }
  const unknown=renderToStaticMarkup(createElement(TimingEvidenceRecord,{row:{...row,timestampMs:undefined},selected:false,timezone:'UTC'}));assert.doesNotMatch(unknown,/NaN|Invalid Date|未记录 ms|Not recorded ms/);
+});
+test('events without an applicable phase do not receive a missing-state label',async()=>{
+ const {TimingEvidenceRecord}=await import('../src/tasks/TurnExecution.js');const row={reference:'event:no-phase',recordKind:'message',phase:null,timestampMs:null,gapCodes:[]};const previous=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);for(const phase of [null,'unknown'] as const){const html=renderToStaticMarkup(createElement(TimingEvidenceRecord,{row:{...row,phase},selected:false,timezone:'UTC'}));const primary=html.slice(0,html.indexOf('<details>'));assert.doesNotMatch(primary,language==='zh'?/现有时间记录不足以确认轮次状态|状态未知|未知/:/Available timing records do not establish the turn state|Status unknown|Unknown/);assert.match(primary,language==='zh'?/安全事实记录/:/Safe fact record/);if(phase==='unknown')assert.match(html,/unknown/);}}}finally{locale.setLocale(previous);}
 });

@@ -1,7 +1,7 @@
 use super::*;
 use crate::adapters::contract::{Collected, Operation, Thread, Turn};
 fn operation(id: &str, kind: &str) -> Arc<Operation> {
-    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":"turn","callId":id,"kind":kind,"name":"read_file","path":"/synthetic/skill/SKILL.md","server":"server","tool":"search","sequence":1,"timestamp":"2026-10-04T00:00:00Z","timePrecision":"second","status":"completed","evidence":[]})).unwrap())
+    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":"turn","callId":id,"kind":kind,"name":"read_file","path":"/synthetic/skill/SKILL.md","server":"server","tool":"search","sequence":1,"timestamp":"2026-10-04T00:00:00Z","timePrecision":"second","status":"completed","outcomeConflict":false,"evidence":[]})).unwrap())
 }
 fn data(operations: Vec<Arc<Operation>>) -> Collected {
     Collected {
@@ -103,6 +103,129 @@ fn production_objects_use_shared_counts_and_preserve_failed_replay_details() {
     assert!(matches!(last.rows[0].outcome, UseOutcome::Failed));
     assert_eq!(last.totals.record_count.value, Some(3));
     assert!(last.next_cursor.is_none());
+}
+#[test]
+fn declined_outcomes_remain_distinct_without_changing_use_counts() {
+    let operations = [
+        ("skill-declined", "skillRead", "declined"),
+        ("mcp-declined", "mcpTool", "declined"),
+        ("resource-declined", "mcpResource", "declined"),
+        ("skill-no-result", "skillRead", "unknown"),
+        ("mcp-failed", "mcpTool", "failed"),
+    ]
+    .into_iter()
+    .map(|(id, kind, status)| {
+        let mut op = operation(id, kind).as_ref().clone();
+        op.status = status.into();
+        Arc::new(op)
+    })
+    .collect();
+    let snapshot = snapshot(operations);
+    let Response::UseRecords(records) = run(&snapshot, &request(EvidenceSet::UseRecords, 200))
+    else {
+        panic!()
+    };
+    assert_eq!(records.total.value, Some(5));
+    assert_eq!(records.totals.record_count.value, Some(5));
+    assert_eq!(
+        records
+            .rows
+            .iter()
+            .filter(|row| matches!(row.outcome, UseOutcome::Declined))
+            .count(),
+        3
+    );
+    assert_eq!(
+        records
+            .rows
+            .iter()
+            .filter(|row| matches!(row.outcome, UseOutcome::Unknown))
+            .count(),
+        1
+    );
+    assert_eq!(
+        records
+            .rows
+            .iter()
+            .filter(|row| matches!(row.outcome, UseOutcome::Failed))
+            .count(),
+        1
+    );
+    assert!(
+        records
+            .rows
+            .iter()
+            .all(|row| matches!(row.state, UseState::Used))
+    );
+    assert_eq!(
+        serde_json::to_value(UseOutcome::Declined).unwrap(),
+        serde_json::json!("declined")
+    );
+    let Response::UseObjects(objects) = run(&snapshot, &request(EvidenceSet::UseObjects, 200))
+    else {
+        panic!()
+    };
+    for (kind, expected) in [(UseObjectKind::Skill, 2), (UseObjectKind::Mcp, 3)] {
+        let object = objects
+            .rows
+            .iter()
+            .find(|object| std::mem::discriminant(&object.kind) == std::mem::discriminant(&kind))
+            .unwrap();
+        assert_eq!(object.use_count.value, Some(expected));
+        assert_eq!(object.associated_use_count.value, Some(expected));
+        assert_eq!(object.record_count.value, Some(expected));
+    }
+}
+#[test]
+fn outcome_conflicts_keep_negative_results_and_independent_facts() {
+    let operations = [
+        ("skill-declined", "skillRead", "declined"),
+        ("mcp-failed", "mcpTool", "failed"),
+    ]
+    .into_iter()
+    .map(|(id, kind, status)| {
+        let mut op = operation(id, kind).as_ref().clone();
+        op.status = status.into();
+        op.outcome_conflict = true;
+        op.exit_code = None;
+        op.duration_ms = Some(25);
+        Arc::new(op)
+    })
+    .collect();
+    let snapshot = snapshot(operations);
+    let Response::UseRecords(records) = run(&snapshot, &request(EvidenceSet::UseRecords, 200))
+    else {
+        panic!()
+    };
+    assert_eq!(records.total.value, Some(2));
+    assert!(
+        records
+            .rows
+            .iter()
+            .any(|row| matches!(row.outcome, UseOutcome::Declined))
+    );
+    assert!(
+        records
+            .rows
+            .iter()
+            .any(|row| matches!(row.outcome, UseOutcome::Failed))
+    );
+    for row in &records.rows {
+        assert!(matches!(row.state, UseState::Used));
+        assert_eq!(row.exit_code, None);
+        assert_eq!(row.native_duration_ms, Some(25));
+        assert!(row.timestamp_ms.is_some());
+        assert!(row.identity_known);
+        assert_eq!(row.gap_codes, ["operation_result_conflict"]);
+    }
+    let Response::UseObjects(objects) = run(&snapshot, &request(EvidenceSet::UseObjects, 200))
+    else {
+        panic!()
+    };
+    assert_eq!(objects.totals.record_count.value, Some(2));
+    assert!(objects.rows.iter().all(|object| {
+        object.use_count.value == Some(1) && object.associated_use_count.value == Some(1)
+    }));
 }
 #[test]
 fn object_membership_gaps_do_not_turn_associated_uses_into_zero() {

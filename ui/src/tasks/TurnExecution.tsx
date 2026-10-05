@@ -6,7 +6,9 @@ import {QueryError} from '../Feedback.js';
 import {timestamp} from '../components.js';
 import {TurnUses} from './Uses.js';
 
-const phaseLabel=(phase?:string|null)=>t(phase==='started'?'execution.started':phase==='completed'?'execution.completed':phase==='failed'?'execution.failed':phase==='cancelled'?'execution.cancelled':phase==='running'?'execution.running':'execution.unknown');
+const phaseLabel=(phase?:string|null)=>{
+ switch(phase){case 'started':return t('execution.started');case 'completed':return t('execution.completed');case 'failed':return t('execution.failed');case 'cancelled':return t('execution.cancelled');case 'running':return t('execution.running');default:return undefined;}
+};
 type Evidence=Extract<TimingResult,{action:'evidence';collection:'turn_events'}>;
 type CopyStatus='execution.copied'|'execution.copyFailed';
 export class TimingDetailReader {
@@ -50,7 +52,8 @@ function evidenceTime(value:number|null|undefined,timezone:string){
  const date=new Date(value);return Number.isNaN(date.getTime())?t('execution.missing'):timestamp(date.toISOString(),timezone,'millisecond');
 }
 export function TimingEvidenceRecord({row,selected,timezone}:{row:Evidence['rows'][number];selected:boolean;timezone:string}){
- return <div className={selected?'evidence-selected':''}><p>{t('execution.record')} · {phaseLabel(row.phase)} · {evidenceTime(row.timestampMs,timezone)}</p>{row.gapCodes.length>0&&<p>{t('execution.recordGaps')}</p>}<details><summary>{t('execution.technical')}</summary><code>{row.reference}</code><p>{row.recordKind} · {row.phase??t('execution.missing')} · {row.timestampMs==null?t('execution.missing'):`${row.timestampMs} ms`}</p><p>{row.gapCodes.join(', ')}</p></details></div>;
+ const details=[row.recordKind,row.phase,row.timestampMs==null?t('execution.missing'):`${row.timestampMs} ms`].filter(Boolean).join(' · ');
+ return <div className={selected?'evidence-selected':''}><p>{[t('execution.record'),phaseLabel(row.phase),evidenceTime(row.timestampMs,timezone)].filter(Boolean).join(' · ')}</p>{row.gapCodes.length>0&&<p>{t('execution.recordGaps')}</p>}<details><summary>{t('execution.technical')}</summary><code>{row.reference}</code><p>{details}</p><p>{row.gapCodes.join(', ')}</p></details></div>;
 }
 export function TurnExecution({client,summary,loading=false,unavailable=false,errorCode,expired=false,snapshotId,threadId,turnId,refresh,timezone='UTC'}:{client:UsageClient;summary?:TimingLocalResult;loading?:boolean;unavailable?:boolean;errorCode?:string;expired?:boolean;snapshotId:string;threadId:string;turnId:string;refresh:()=>void;timezone?:string}){
  const [evidence,setEvidence]=useState<Evidence>(),[refs,setRefs]=useState<string[]>(),[share,setShare]=useState<TimingShareResult>(),[busy,setBusy]=useState(false),[error,setError]=useState<string>(),[detailExpired,setDetailExpired]=useState(false),[copy,setCopy]=useState<CopyStatus>();

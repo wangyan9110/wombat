@@ -37,7 +37,7 @@ fn operation(id: &str, kind: &str, object: &Item) -> Operation {
     serde_json::from_value(serde_json::json!({
         "id": id, "threadId": "thread", "turnId": "turn", "callId": id,
         "kind": kind, "name": "read_file", "sequence": 1, "timestamp": AT,
-        "timePrecision": "second", "status": "completed", "path": object.path,
+        "timePrecision": "second", "status": "completed", "outcomeConflict":false, "path": object.path,
         "server": object.native_key, "evidence": []
     }))
     .unwrap()

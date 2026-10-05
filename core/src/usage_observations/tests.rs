@@ -15,6 +15,7 @@ fn operation(id: &str, kind: &str) -> Operation {
         time_precision: "second".into(),
         status: "completed".into(),
         exit_code: None,
+        outcome_conflict: false,
         duration_ms: None,
         path: Some("/synthetic/skill/SKILL.md".into()),
         work: None,

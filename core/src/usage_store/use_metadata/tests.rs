@@ -2,7 +2,7 @@ use super::super::timing_evidence::{TimingReadBudget, TurnTarget};
 use super::*;
 use std::sync::atomic::AtomicBool;
 fn operation(id: &str, kind: &str, turn: Option<&str>) -> Arc<Operation> {
-    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":turn,"callId":id,"kind":kind,"name":"read_file","path":"/synthetic/skill/SKILL.md","server":"server","tool":"search","sequence":1,"timePrecision":"unknown","status":"failed","evidence":[]})).unwrap())
+    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":turn,"callId":id,"kind":kind,"name":"read_file","path":"/synthetic/skill/SKILL.md","server":"server","tool":"search","sequence":1,"timePrecision":"unknown","status":"failed","outcomeConflict":false,"evidence":[]})).unwrap())
 }
 fn data(operations: Vec<Arc<Operation>>) -> Collected {
     Collected {

@@ -214,6 +214,10 @@ test('nonempty canonical object and record pages validate and bind collection ob
   const recordRequest: TimingRequest = { ...objectRequest, collection: 'use_records', objectRef };
   assert.equal(await client(objects).timing!(objectRequest), objects);
   assert.equal(await client(records).timing!(recordRequest), records);
+  const declined = { ...records, rows: [{ ...useRecord, outcome: 'declined', exitCode: null }] };
+  assert.equal(await client(declined).timing!(recordRequest), declined);
+  const conflicting = { ...records, rows: [{ ...useRecord, exitCode: null, gapCodes: ['operation_result_conflict'] }] };
+  assert.equal(await client(conflicting).timing!(recordRequest), conflicting);
   const allRecordsRequest: TimingRequest = { ...objectRequest, collection: 'use_records' };
   const { objectRef: _filteredObject, ...unfilteredRecords } = records;
   assert.equal(await client(unfilteredRecords).timing!(allRecordsRequest), unfilteredRecords);
@@ -227,6 +231,7 @@ test('nonempty canonical object and record pages validate and bind collection ob
     { ...records, totals: { ...knownUseTotals, methodVersion: 99 } },
     { ...records, rows: Array.from({ length: 201 }, () => useRecord) },
     { ...records, rows: [{ ...useRecord, nativeDurationMs: Number.MAX_SAFE_INTEGER + 1 }] },
+    { ...records, rows: [{ ...useRecord, outcome: 'invented_success' }] },
   ]) await assert.rejects(client(invalid).timing!(recordRequest), { code: 'PROTOCOL_ERROR' });
   await assert.rejects(client({ ...objects, rows: Array.from({ length: 201 }, () => useObject) }).timing!(objectRequest), { code: 'PROTOCOL_ERROR' });
   let calls = 0;

@@ -23,7 +23,8 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
             };
         }
         match field {
-            "messageObservationVersion"
+            "operationObservationVersion"
+            | "messageObservationVersion"
             | "workObservationVersion"
             | "eventObservationVersion"
             | "titleObservationVersion" => {}
@@ -115,6 +116,10 @@ fn validate_message_mapping(db: &rusqlite::Connection, key: &str) -> Result<()> 
     let scope = format!("projection:{key}");
     if crate::live_index::has_scope(db, &scope)? {
         for (field, version) in [
+            (
+                "operationObservationVersion",
+                adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
+            ),
             (
                 "eventObservationVersion",
                 crate::session_events::EVENT_VERSION,
@@ -275,6 +280,13 @@ pub(super) fn sync(
                 "watermarkVersion",
                 "",
                 &WATERMARK_FORMAT_VERSION,
+            )?;
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "operationObservationVersion",
+                "",
+                &adapters::codex::incremental::OPERATION_OBSERVATION_VERSION,
             )?;
             crate::live_index::put(
                 &tx,

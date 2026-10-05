@@ -8,6 +8,8 @@ use std::time::UNIX_EPOCH;
 
 /// Required message mapping: version 2 retains boundaries for damaged nested items.
 pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 2;
+/// Canonical operation outcome mapping, including persistent conflict evidence.
+pub(crate) const OPERATION_OBSERVATION_VERSION: u32 = 1;
 pub(crate) use crate::adapters::contract::WORK_OBSERVATION_VERSION;
 
 #[derive(Default, Serialize, Deserialize)]
@@ -373,6 +375,11 @@ pub(crate) fn sync_cached(
         // payload, whose shape may be beyond this version's JSON decoding limits.
         for (field, version, message) in [
             (
+                "operationObservationVersion",
+                OPERATION_OBSERVATION_VERSION,
+                "不支持此操作结果观察映射",
+            ),
+            (
                 "eventObservationVersion",
                 crate::session_events::EVENT_VERSION,
                 "不支持此事件观察格式",
@@ -700,7 +707,7 @@ pub(crate) fn sync_cached(
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
-    let metadata = serde_json::json!({"eventObservationVersion": crate::session_events::EVENT_VERSION, "titleObservationVersion": crate::session_events::title_observations::TITLE_OBSERVATION_VERSION, "watermarkVersion": WATERMARK_FORMAT_VERSION, "messageObservationVersion": MESSAGE_OBSERVATION_VERSION, "workObservationVersion": WORK_OBSERVATION_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
+    let metadata = serde_json::json!({"operationObservationVersion": OPERATION_OBSERVATION_VERSION, "eventObservationVersion": crate::session_events::EVENT_VERSION, "titleObservationVersion": crate::session_events::title_observations::TITLE_OBSERVATION_VERSION, "watermarkVersion": WATERMARK_FORMAT_VERSION, "messageObservationVersion": MESSAGE_OBSERVATION_VERSION, "workObservationVersion": WORK_OBSERVATION_VERSION, "checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();

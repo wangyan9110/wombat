@@ -392,7 +392,7 @@ fn measurement_visitor_stops_before_parsing_an_over_budget_next_record() {
 fn canonical_operation_arrays_share_facts_bytes_and_metadata_budget() {
     let root = tempfile::tempdir().unwrap();
     let mut data = facts(vec![]);
-    let op:Operation=serde_json::from_value(serde_json::json!({"id":"op","threadId":"thread","turnId":"turn","callId":"native","kind":"tool","name":"read_file","sequence":1,"timePrecision":"unknown","status":"running","evidence":[]})).unwrap();
+    let op:Operation=serde_json::from_value(serde_json::json!({"id":"op","threadId":"thread","turnId":"turn","callId":"native","kind":"tool","name":"read_file","sequence":1,"timePrecision":"unknown","status":"running","outcomeConflict":false,"evidence":[]})).unwrap();
     data.operations = vec![Arc::new(op)];
     let (memory, disk) = pair(root.path(), data);
     let cancel = AtomicBool::new(false);
@@ -628,7 +628,7 @@ fn operation(id: &str) -> Arc<Operation> {
         serde_json::from_value(serde_json::json!({
             "id":id,"threadId":"thread","turnId":"turn","callId":"native-call",
             "kind":"skillRead","name":"read_file","path":"/synthetic/skills/query/SKILL.md",
-            "sequence":1,"timePrecision":"unknown","status":"failed","evidence":[]
+            "sequence":1,"timePrecision":"unknown","status":"failed","outcomeConflict":false,"evidence":[]
         }))
         .unwrap(),
     )

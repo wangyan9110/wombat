@@ -84,7 +84,7 @@ fn use_operation(id: &str, kind: &str, status: &str) -> crate::adapters::contrac
         "id": id, "threadId": "thread", "turnId": "turn", "callId": id,
         "kind": kind, "name": "read_file", "sequence": 1,
         "timestamp": "2026-10-04T00:00:00Z", "timePrecision": "second",
-        "status": status, "evidence": []
+        "status": status, "outcomeConflict":false, "evidence": []
     }))
     .unwrap()
 }

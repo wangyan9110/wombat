@@ -59,7 +59,7 @@ export type EvidenceAction = "evidence";
 export type UseObjectPageKind = "use_objects";
 export type UseRecordPageKind = "use_records";
 export type UseKind = "skill_read" | "mcp_tool" | "mcp_resource";
-export type UseOutcome = "running" | "completed" | "failed" | "cancelled" | "interrupted" | "unknown";
+export type UseOutcome = "running" | "completed" | "failed" | "cancelled" | "interrupted" | "declined" | "unknown";
 export type UseTimeBasis = "source_operation_time" | "unknown";
 export type CapabilitiesAction = "capabilities";
 

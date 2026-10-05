@@ -12,7 +12,7 @@ fn thread() -> Thread {
     }
 }
 fn operation(id: &str, kind: &str) -> Arc<Operation> {
-    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":"turn","callId":id,"kind":kind,"name":"read_file","path":"/synthetic/skill/SKILL.md","server":"server","tool":"search","sequence":1,"timestamp":"2026-10-04T00:00:00Z","timePrecision":"second","status":"completed","evidence":[]})).unwrap())
+    Arc::new(serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread","turnId":"turn","callId":id,"kind":kind,"name":"read_file","path":"/synthetic/skill/SKILL.md","server":"server","tool":"search","sequence":1,"timestamp":"2026-10-04T00:00:00Z","timePrecision":"second","status":"completed","outcomeConflict":false,"evidence":[]})).unwrap())
 }
 fn input<'a>(
     thread: &'a Thread,

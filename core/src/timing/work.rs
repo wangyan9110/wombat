@@ -191,6 +191,7 @@ fn same(left: &Operation, right: &Operation) -> bool {
     left.kind == right.kind
         && left.status == right.status
         && left.exit_code == right.exit_code
+        && left.outcome_conflict == right.outcome_conflict
         && left.work == right.work
 }
 fn metadata(operation: &Operation, meter: &mut Meter<'_>) -> Result<()> {

@@ -1205,7 +1205,7 @@ fn work_operation(
     status: &str,
     work: Option<crate::adapters::contract::WorkObservation>,
 ) -> Arc<crate::adapters::contract::Operation> {
-    let mut op:crate::adapters::contract::Operation=serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread-private","turnId":"turn-private","callId":id,"kind":kind,"name":"safe","sequence":1,"timePrecision":"unknown","status":status,"evidence":[]})).unwrap();
+    let mut op:crate::adapters::contract::Operation=serde_json::from_value(serde_json::json!({"id":id,"threadId":"thread-private","turnId":"turn-private","callId":id,"kind":kind,"name":"safe","sequence":1,"timePrecision":"unknown","status":status,"outcomeConflict":false,"evidence":[]})).unwrap();
     op.work = work;
     Arc::new(op)
 }

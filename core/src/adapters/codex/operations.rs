@@ -2,6 +2,7 @@
 use super::*;
 mod mcp;
 mod merge;
+mod outcome;
 mod replay;
 mod work;
 pub(super) use merge::merge_metadata;
@@ -33,6 +34,7 @@ pub(super) fn empty_operation(
         time_precision: precision(raw_time).into(),
         status: "unknown".into(),
         exit_code: None,
+        outcome_conflict: false,
         duration_ms: None,
         path: None,
         work: None,
@@ -129,20 +131,16 @@ pub(super) fn operation(
         _ => "running",
     }
     .into();
-    op.exit_code = item.exit_code;
     op.duration_ms = item
         .duration_ms
         .and_then(timing::safe_integer)
         .or_else(|| item.duration.and_then(mcp::duration));
-    if op.exit_code.is_some_and(|code| code != 0) {
-        op.status = "failed".into();
-    }
     op.path = item.path.as_deref().map(safe_text);
     if operation_kind == "file" {
         op.work = Some(work::file_changes(item, completed, report, &evidence));
         // Legacy success is outcome evidence, not permission to erase a declined status.
         if item.success.is_some_and(|r| r.get() == "false") && op.status.as_ref() != "declined" {
-            op.status = "failed".into();
+            outcome::result_status(&mut op, "failed");
         }
     } else if operation_kind == "command" {
         op.work = Some(work::command(item, completed, report, &evidence));
@@ -197,45 +195,13 @@ pub(super) fn operation(
             );
             return;
         }
-        if op.status.as_ref() != "failed"
-            && let Some(status) = item.result.and_then(mcp::result_status)
-        {
-            op.status = status.into();
+        if let Some(status) = item.result.and_then(mcp::result_status) {
+            outcome::result_status(&mut op, status);
         }
     } else {
         mcp::resource_request(item, &mut op);
     }
-    #[derive(Deserialize)]
-    struct ResultMetadata {
-        #[serde(alias = "isError")]
-        is_error: Option<bool>,
-        exit_code: Option<i64>,
-        duration_ms: Option<u64>,
-    }
-    if let Some(metadata) = item
-        .result
-        .or(item.output)
-        .filter(|r| r.get().starts_with('{'))
-        .and_then(|r| serde_json::from_str::<ResultMetadata>(r.get()).ok())
-    {
-        if metadata.is_error == Some(true) {
-            op.status = "failed".into();
-        } else if metadata.is_error == Some(false)
-            && completed
-            && op.status.as_ref() != "failed"
-            && operation_kind != "mcp"
-        {
-            op.status = "completed".into();
-        }
-        op.exit_code = metadata.exit_code.or(op.exit_code);
-        op.duration_ms = metadata
-            .duration_ms
-            .filter(|n| *n <= MAX_SAFE_INTEGER)
-            .or(op.duration_ms);
-        if op.exit_code.is_some_and(|code| code != 0) {
-            op.status = "failed".into();
-        }
-    }
+    outcome::apply(&mut op, item, completed, operation_kind == "mcp", report);
     facts.operation(op, report);
 }
 

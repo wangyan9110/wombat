@@ -12,8 +12,12 @@ export function UseObjectRow({object,disabled=false,inspect}:{object:Object;disa
 }
 export function UseRecordRow({row,timezone}:{row:UseRecordsPage['rows'][number];timezone:string}){
  const date=row.timestampMs==null?undefined:new Date(row.timestampMs);
- const time=date&&!Number.isNaN(date.getTime())?timestamp(date.toISOString(),timezone,'millisecond'):t('execution.missing');
- return <article><h4>{t(row.kind?`execution.useOperation.${row.kind}`:'execution.useUnclassified')} · {t(`execution.useState.${row.state}`)}</h4><p>{t(`execution.useOutcome.${row.outcome}`)} · {time}</p>{row.tool&&<p><code>{row.tool}</code></p>}<p>{t('execution.useNativeDuration')} · {row.nativeDurationMs==null?t('execution.missing'):`${row.nativeDurationMs} ms`}</p>{row.exitCode!=null&&<p>{t('execution.useExitCode')} · {row.exitCode}</p>}{row.replayOf&&<p>{t('execution.useReplay')}</p>}{row.targetConflict&&<p>{t('execution.useTargetConflict')}</p>}{row.gapCodes.length>0&&<p>{t('execution.useGaps')}</p>}<details><summary>{t('execution.technical')}</summary><code>{row.reference}</code><p>{row.objectRef} · {row.timeBasis} · {String(row.identityKnown)}</p><p>{row.replayOf}</p><p>{row.gapCodes.join(', ')}</p></details></article>;
+ const time=date&&!Number.isNaN(date.getTime())?timestamp(date.toISOString(),timezone,'millisecond'):undefined;
+ const nativeDuration=row.nativeDurationMs==null?undefined:`${row.nativeDurationMs} ms`;
+ const outcome=row.outcome==='unknown'?undefined:t(`execution.useOutcome.${row.outcome}`);
+ const resultConflict=row.gapCodes.includes('operation_result_conflict');
+ const otherGaps=row.gapCodes.some(code=>code!=='operation_result_conflict');
+ return <article><h4>{t(row.kind?`execution.useOperation.${row.kind}`:'execution.useRecord')} · {t(`execution.useState.${row.state}`)}</h4>{(outcome||time)&&<p>{[outcome,time].filter(Boolean).join(' · ')}</p>}{resultConflict&&<p>{t('execution.useOutcomeConflict')}</p>}{row.tool&&<p><code>{row.tool}</code></p>}{nativeDuration!==undefined&&<p>{t('execution.useNativeDuration')} · {nativeDuration}</p>}{row.exitCode!=null&&<p>{t('execution.useExitCode')} · {row.exitCode}</p>}{row.replayOf&&<p>{t('execution.useReplay')}</p>}{row.targetConflict&&<p>{t('execution.useTargetConflict')}</p>}{otherGaps&&<p>{t('execution.useGaps')}</p>}<details><summary>{t('execution.technical')}</summary><code>{row.reference}</code><p>{row.objectRef} · {row.timeBasis} · {String(row.identityKnown)}</p><p>{row.replayOf}</p><p>{row.gapCodes.join(', ')}</p></details></article>;
 }
 export function TurnUses({client,summary,blocked=false,refresh,onExpired,timezone}:{client:UsageClient;summary:TimingLocalResult;blocked?:boolean;refresh:()=>void;onExpired:()=>void;timezone:string}){
  const [objects,setObjects]=useState<UseObjectsPage>(),[records,setRecords]=useState<UseRecordsPage>(),[selected,setSelected]=useState<Object|null>(),[busy,setBusy]=useState(false),[error,setError]=useState<string>();

@@ -104,7 +104,11 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
 
   await details(page, 'execution.moreMetrics'); const ttft = await metric(page, '.turn[open] .execution', label('execution.nativeTtft'));
   assert.ok(ttft.startsWith('0 ms')); assert.ok(ttft.includes(label('execution.evidence')));
-  await text(page.locator('.work-facts'), label('execution.work.unknown')); // No repository baseline: line counts are unknown.
+  for (const key of ['execution.work.addedLines', 'execution.work.removedLines'] as const)
+    assert.equal(await page.locator('.work-facts dt').filter({ hasText: label(key) }).count(), 0);
+  await details(page, 'execution.work.technical');
+  await text(page.locator('.work-facts details'), 'missing_repository_baseline');
+  await details(page, 'execution.work.technical');
   const summaryRequest = requests.find(request => request.action === 'summary' && request.privacyProfile === 'local'); assert.ok(summaryRequest);
   assert.equal(typeof summaryRequest.snapshotId, 'string'); assert.equal(typeof summaryRequest.threadId, 'string'); assert.equal(typeof summaryRequest.turnId, 'string');
   const before = String(summaryRequest.snapshotId), thread = String(summaryRequest.threadId), turn = String(summaryRequest.turnId);

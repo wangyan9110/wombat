@@ -14,7 +14,7 @@ export function Execution({summary,refresh,onEvidence,onShare,updating=false,blo
  const evidence=(value:Metric)=><button className="link" disabled={blocked||!summary.evidence.available} onClick={()=>onEvidence(value.evidenceRefs)}>{t('execution.evidence')}</button>;
  return <section className={`execution ${timeline?'':'execution-no-window'}`} aria-label={t('execution.title')} aria-busy={updating}>
   <div className="section-head"><h3>{t('execution.title')}</h3><button className="link" onClick={refresh}>{t('execution.refresh')}</button>{updating&&<span role="status">{t('execution.updating')}</span>}</div>
-  <div className="execution-summary"><div><span>{t(native?'execution.nativeDuration':'execution.derivedDuration')}</span><strong>{durationText}</strong>{evidence(duration)}</div><p>{t(`execution.${time.state}`)}<br/><small>{t('execution.cutoff',{time:summary.freshness.checkedAt??t('execution.missing')})}</small></p></div>
+  <div className="execution-summary"><div><span>{t(native?'execution.nativeDuration':'execution.derivedDuration')}</span><strong>{durationText}</strong>{evidence(duration)}</div><p>{time.state!=='unknown'&&<>{t(`execution.${time.state}`)}<br/></>}<small>{t('execution.cutoff',{time:summary.freshness.checkedAt??t('execution.missing')})}</small></p></div>
   {(summary.quality.partial||summary.quality.running||summary.quality.censored)&&<p className="note">{t('execution.timeGap')}</p>}
   {timeline&&<p className="execution-axis">{t('execution.window',{range:`0–${window} ms`})}</p>}
   {!timeline&&<p className="note">{t('execution.listFallback')}</p>}
