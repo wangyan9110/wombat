@@ -30,6 +30,12 @@ Live freshness.initialScan identifies provisional task metadata from the first s
 
 Node's price transport downloads only the fixed official HTTPS document. The host request for the core `prices` operation includes document for update; status rejects it. Raw documents are absent from public request/response types. Rust parses and publishes them; other hosts must implement the same fixed-source retrieval flow.
 
+## Whole-turn timing contract v1
+
+`core/src/timing_dto.rs` defines the typed `timing` operation. Generated contracts include [requests](../schemas/timing-request-v1.schema.json), the [response union](../schemas/timing-response-v1.schema.json), [local](../schemas/timing-local-response-v1.schema.json) and [share](../schemas/timing-share-response-v1.schema.json) projections, and [safe errors](../schemas/timing-error-output-v1.schema.json). The client exports `TimingRequest` and `TimingResult`; do not maintain field lists separately from the Rust DTO and generated schemas.
+
+The request actions are `summary`, `evidence`, and `capabilities`. Summary requires full thread and turn identities and accepts an optional snapshot, source scope, `auto`/`fresh`/`cached` mode, and `local`/`share-v1` privacy profile. Evidence requires the same target and a fixed snapshot; its `turn_events`, `use_objects`, and `use_records` pages use opaque cursors bound to the view and scope. Capabilities performs no source scan. Summary output uses output version 1 and a method version; local output may include local identities and paths, while `share-v1` is a separate whitelist that omits them. Timing does not trigger price downloads, configuration, Hooks, or account observations. See the [CLI guide](../guides/cli.en.md) for invocation and error handling.
+
 ## Read-only configuration contract v1
 
 `core/src/config_dto.rs` generates [requests](../schemas/config-request-v1.schema.json) and [responses](../schemas/config-response-v1.schema.json). Node/HTTP supply `UsageClient.config`. list/detail/evidence/related_scopes/capabilities never write sources; capabilities does not scan. Omitted readView recollects configuration. Dates default to 30 days in UTC with an exclusive end; `scope.allTime` includes unknown dates and rejects simultaneous date bounds. Configuration scope has no model/effort attribution; current-content measurements are independent of dates.

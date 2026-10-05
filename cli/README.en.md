@@ -24,6 +24,10 @@ Summary exit codes follow core quality: 0 for complete inspected scope even when
 
 Localized `--text` summaries also print the core Work metrics: operation outcomes, file-change records and reported paths, and user-input/injected-context/reasoning records. Command-classified duration is currently unsupported; added and removed line counts are unknown because no historical repository baseline is available. Values keep their core-provided status and basis; unknown is not zero. Reported paths may include failed or declined terminal outcomes and do not prove writes or net changes. User-input totals count physical records, not requests, and failed outcomes are not code-defect judgments. Source coverage is shown by the existing coverage line.
 
+## Unsupported formats and recovery
+
+Wombat rejects unknown snapshot and index formats without migrating or deleting the original data. If an explicitly selected old fixed snapshot is unsupported, `wombat refresh` recollects the available sources through the current live path and publishes a current-format fixed snapshot; it does not convert the old snapshot. An upgrade refusal can come from the `live-v2` index container (`INDEX_UNSUPPORTED_VERSION`) or from a stored source mapping or observation header inside that index (`UNSUPPORTED_VERSION`), such as an older message-observation mapping. The CLI has no supported in-place repair or recollection command for either live-store error. `wombat refresh` uses that live path and does not repair incompatible stored state. Preserve the original data directory and user decisions; do not delete the index to recover. A different `WOMBAT_DATA_HOME` is an isolated data store, not a repair, and does not carry the original store's user decisions.
+
 ## Web Assembly
 
 `wombat web` dynamically loads the local host, injects a Node client, and serves packaged `dist/web/` assets. The CLI owns startup links and shutdown; startup arguments fix source scope.
