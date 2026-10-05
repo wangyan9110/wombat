@@ -63,14 +63,22 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
     const item = result.items.find(i => i.name === 'review')!;
     const failedItem = result.items.find(i => i.name === 'failed')!;
     assert.equal(failedItem.counts.failed, 1);
-    assert.equal(failedItem.observation, 'unknown', 'failed reads do not prove a file was loaded');
+    assert.equal(failedItem.observation, 'used', 'a dispatched read is a use even when its outcome is failed');
+    assert.equal(failedItem.usageCount, 1);
+    assert.equal(failedItem.counts.succeeded, 0, 'use does not establish successful loading');
+    assert.equal(failedItem.useBasis?.status, 'observed');
     assert.equal(item.counts.fileReads, 2); assert.equal(item.counts.toolCalls, 0);
-    // Skill use is an observed, intentionally approximate turn signal; read outcomes remain separate.
-    assert.equal(item.configuredState, 'enabled'); assert.equal(item.observation, 'used'); assert.equal(item.usageCount, 1);
+    // Each canonical dispatched read counts; declarations and catalogs do not.
+    assert.equal(item.configuredState, 'enabled'); assert.equal(item.observation, 'used'); assert.equal(item.usageCount, 2);
+    assert.equal(item.useBasis?.status, 'observed');
+    assert.deepEqual(item.useBasis?.coverage, { dispatchGaps: 0, identityGaps: 0, targetGaps: 0, timeGaps: 0, turnGaps: 0 });
     assert.equal(item.counts.outcomeUnknown, 2); assert.equal(item.counts.succeeded, 0); assert.equal(item.relatedTurns, 1); assert.equal(item.relatedTasks, 1);
     assert.equal(item.usage?.tokens.total, 110);
     assert.equal(result.items.find(i => i.kind === 'mcp')!.counts.toolCalls, 3, 'duplicate evidence counts once; failed attempts and distinct retries each count');
-    assert.equal(result.items.find(i => i.kind === 'mcp')!.usageCount,3);
+    const mcp = result.items.find(i => i.kind === 'mcp')!;
+    assert.equal(mcp.usageCount, 3, 'a prefix-only function name does not establish an MCP operation');
+    assert.equal(mcp.useBasis?.status, 'observed');
+    assert.deepEqual(mcp.useBasis?.coverage, { dispatchGaps: 0, identityGaps: 0, targetGaps: 0, timeGaps: 0, turnGaps: 0 });
     assert.equal(result.items.find(i => i.kind === 'mcp')!.counts.failed,1);
     assert.equal(result.summary.usage?.tokens.total, 110, 'shared turns must be counted once');
     const rule = result.items.find(i => i.kind === 'rule' && i.current)!;
@@ -88,7 +96,9 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
     // A reading page does not poll. Its configuration view must outlive the usage service's normal idle timeout.
     await new Promise(resolve => setTimeout(resolve, 16_100));
     const first = await browser.config!(request);
-    assert.equal(first.page.total, 4); assert.equal(first.page.nextOffset, 1);
+    assert.equal(first.page.total, 3); assert.equal(first.page.nextOffset, 1);
+    const allEvidence = await browser.config!({ ...request, limit: 10 });
+    assert.deepEqual(allEvidence.evidence.map(row => row.eventType).sort(), ['file_read', 'file_read', 'skill_available'], 'availability is retained separately; a declared use is not a dispatched read');
     const next = await browser.config!({ ...request, offset: 1 });
     assert.notEqual(first.evidence[0].id, next.evidence[0].id);
     const threadId = first.evidence[0].threadId, turnId = first.evidence[0].turnId!;

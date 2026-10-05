@@ -23,7 +23,7 @@ test('MCP attempts, resources, fork replay and append/restart share exact CLI an
  await mkdir(path.join(root,'sessions'),{recursive:true});await mkdir(project);await writeFile(path.join(root,'config.toml'),"[mcp_servers.docs]\ncommand='synthetic-not-executed'\n");
  const tokens={input_tokens:100,cached_input_tokens:20,cache_write_input_tokens:0,output_tokens:10,reasoning_output_tokens:2,total_tokens:110};
  const call=end('call','u','search',true),read=end('resource','u','read_mcp_resource');
- const parent=[meta('parent',project),context('u'),row('event_msg',{type:'token_usage_record',thread_id:'parent',turn_id:'u',response_id:'r1',usage:tokens}),request('call','mcp__misleading__search',{}),call,call,request('resource','read_mcp_resource',{server:'docs',uri:'synthetic://SECRET_URI'}),read,request('list','list_mcp_resources',{server:'docs'}),end('list','u','list_mcp_resources'),request('prefix','mcp__docs__unconfirmed',{}),end('ambiguous','u','read_mcp_resource')];
+ const parent=[meta('parent',project),context('u'),row('event_msg',{type:'token_usage_record',thread_id:'parent',turn_id:'u',response_id:'r1',usage:tokens}),request('call','mcp__misleading__search',{}),call,call,request('resource','read_mcp_resource',{server:'docs',uri:'synthetic://SECRET_URI'}),read,request('list','list_mcp_resources',{server:'docs'}),end('list','u','list_mcp_resources')];
  const parentFile=path.join(root,'sessions/parent.jsonl');await writeFile(parentFile,jsonl(parent));
  const old={WOMBAT_DATA_HOME:process.env.WOMBAT_DATA_HOME,WOMBAT_AUTO_PRICES:process.env.WOMBAT_AUTO_PRICES};Object.assign(process.env,{WOMBAT_DATA_HOME:path.join(dir,'data'),WOMBAT_AUTO_PRICES:'0'});
  const binary=path.resolve('dist',process.platform==='win32'?'wombat-core.exe':'wombat-core');let service=spawn(binary,['--serve-usage'],{stdio:'ignore',env:process.env});await once(service,'spawn');
@@ -33,6 +33,7 @@ test('MCP attempts, resources, fork replay and append/restart share exact CLI an
   const token=new URLSearchParams(new URL(host.url).hash.slice(1)).get('token')!;const http=createHttpClient({origin:host.origin,token,fetch:(url,init)=>fetch(url,{...init,headers:{...init?.headers,Origin:host.origin}})});
   const live=await http.live!({query:{action:'usage',scope:{allTime:true}},mode:'fresh'});
   const first=await http.config!({kind:'mcp',snapshotId:live.result.snapshotRef.snapshotId,scope:{allTime:true}}),item=first.items.find(i=>i.name==='docs')!;assert.ok(item);assert.equal(item.usageCount,2);assert.equal(item.counts.toolCalls,1);assert.equal(item.counts.resourceReads,1);assert.equal(item.counts.failed,1);assert.equal(item.counts.succeeded,1);assert.equal(item.usage?.tokens.total,110);assert.equal(first.coverage.absenceObservable,false);
+  assert.equal(item.useBasis?.status,'observed');assert.deepEqual(item.useBasis?.coverage,{dispatchGaps:0,identityGaps:0,targetGaps:0,timeGaps:0,turnGaps:0});
   const evidence=await http.config!({action:'evidence',itemId:item.id,readView:first.readView,scope:{allTime:true}});assert.deepEqual(evidence.evidence.map(e=>e.eventType).sort(),['resource_read','tool_call']);assert.ok(!JSON.stringify(evidence).includes('SECRET'));
   const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','inventory','--action','evidence','--root',root,'--project-root',project,'--item',item.id,'--read-view',first.readView!,'--all-time','--json'],{env:process.env,encoding:'utf8',timeout:15_000});assert.equal(cli.status,2,cli.stderr+cli.stdout);assert.deepEqual(JSON.parse(cli.stdout).evidence,evidence.evidence);
   // A child arrives later with copied completed events and a genuinely new retry.
@@ -42,5 +43,10 @@ test('MCP attempts, resources, fork replay and append/restart share exact CLI an
   await appendFile(parentFile,jsonl([end('next','u','read_file',true)]));const appended=await client.config!({...scope,kind:'mcp'});assert.equal(appended.items[0].usageCount,4);assert.equal(appended.items[0].counts.failed,2);
   service.kill('SIGTERM');await once(service,'exit');service=spawn(binary,['--serve-usage'],{stdio:'ignore',env:process.env});await once(service,'spawn');
   const restored=await client.config!({...scope,kind:'mcp'});assert.equal(restored.items[0].usageCount,4);assert.deepEqual(restored.items[0].counts,appended.items[0].counts);assert.equal(restored.items[0].usage?.tokens.total,110);
+  // An unclassified resource result creates a target gap; the prefix-only request remains unproven.
+  await appendFile(parentFile,jsonl([request('prefix','mcp__docs__unconfirmed',{}),end('ambiguous','u','read_mcp_resource')]));
+  const uncertain=await client.config!({...scope,kind:'mcp'}),unknown=uncertain.items[0];assert.equal(unknown.usageCount,null);assert.equal(unknown.useBasis?.status,'unknown');assert.ok((unknown.useBasis?.coverage.targetGaps??0)>0);assert.equal(uncertain.coverage.absenceObservable,false);
+  assert.deepEqual(unknown.counts,restored.items[0].counts,'unproven operations do not become confirmed uses');assert.equal(unknown.usage?.tokens.total,110);
+  assert.equal((await client.config!({...scope,readView:restored.readView,kind:'mcp'})).items[0].usageCount,4,'the retained complete view stays complete');
  }finally{await host.close();service.kill('SIGTERM');await once(service,'exit').catch(()=>{});for(const[k,v]of Object.entries(old)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
 });
