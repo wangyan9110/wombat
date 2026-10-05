@@ -20,6 +20,9 @@ done
 
 command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 1; }
 command -v tar >/dev/null 2>&1 || { echo "tar is required" >&2; exit 1; }
+download() {
+  curl -fL --http1.1 --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 15 "$1" -o "$2"
+}
 case "$(uname -s)" in
   Darwin) os=darwin ;;
   Linux) os=linux ;;
@@ -42,8 +45,8 @@ fi
 
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/wombat-install.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
-curl -fL --retry 3 --connect-timeout 15 "$base/$archive" -o "$tmp/$archive"
-curl -fL --retry 3 --connect-timeout 15 "$base/SHA256SUMS" -o "$tmp/SHA256SUMS"
+download "$base/$archive" "$tmp/$archive"
+download "$base/SHA256SUMS" "$tmp/SHA256SUMS"
 expected=$(awk -v file="$archive" '$2 == file {print $1}' "$tmp/SHA256SUMS")
 [ -n "$expected" ] || { echo "Checksum not found for $archive" >&2; exit 1; }
 if command -v sha256sum >/dev/null 2>&1; then actual=$(sha256sum "$tmp/$archive" | awk '{print $1}')

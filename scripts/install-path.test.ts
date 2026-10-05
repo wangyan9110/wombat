@@ -10,6 +10,11 @@ const functionMatch = installer.match(/(configure_path\(\) \{[\s\S]*?\n\})\nconf
 const functionSource = functionMatch?.[1];
 assert(functionSource, 'install.sh must expose the tested configure_path function');
 
+test('POSIX installer retries every download error over HTTP/1.1', () => {
+  assert.match(installer, /curl -fL --http1\.1 --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 15/);
+  assert.equal(installer.match(/^download "\$base\//gm)?.length, 2);
+});
+
 function exercise(home: string, shell: string, modifyPath: boolean, prefix = path.join(home, '.local')): string {
   const script = `${functionSource}\nconfigure_path\n`;
   const file = path.join(home, 'path-test.sh'); writeFileSync(file, script);
