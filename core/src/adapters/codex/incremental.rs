@@ -6,8 +6,8 @@ use rusqlite::Connection;
 
 use std::time::UNIX_EPOCH;
 
-/// Required resume mapping: older intermediate indexes did not emit Message facts.
-pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 1;
+/// Required message mapping: version 2 retains boundaries for damaged nested items.
+pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 2;
 pub(crate) use crate::adapters::contract::WORK_OBSERVATION_VERSION;
 
 #[derive(Default, Serialize, Deserialize)]

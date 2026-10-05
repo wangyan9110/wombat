@@ -2,6 +2,22 @@
 use super::*;
 use crate::session_events::{ActivityKind, ItemKind, NativeDuration};
 
+pub(super) fn item_kind(kind: &str) -> Option<ItemKind> {
+    Some(match kind {
+        "AgentMessage" | "agentMessage" | "agent_message" => ItemKind::Assistant,
+        "Reasoning" | "reasoning" => ItemKind::Reasoning,
+        "UserMessage" | "userMessage" | "user_message" => ItemKind::User,
+        "ContextCompaction" | "contextCompaction" | "context_compaction" => ItemKind::Compaction,
+        "CommandExecution" | "commandExecution" | "command_execution" | "command" => {
+            ItemKind::Command
+        }
+        "FileChange" | "fileChange" | "file_change" => ItemKind::File,
+        "McpToolCall" | "mcpToolCall" | "mcp_tool_call" => ItemKind::Mcp,
+        "FunctionCallOutput" | "function_call_output" | "custom_tool_call_output" => ItemKind::Tool,
+        _ => return None,
+    })
+}
+
 fn timestamp(raw: Option<&RawValue>) -> Option<i64> {
     raw.and_then(|r| serde_json::from_str::<i64>(r.get()).ok())
         .filter(|n| n.unsigned_abs() <= MAX_SAFE_INTEGER)
@@ -21,22 +37,8 @@ pub(super) fn observe(
     let kind = item.kind.as_deref().unwrap_or("");
     let native = matches!(event, "item_started" | "item_completed");
     if native {
-        let item_kind = match kind {
-            "AgentMessage" | "agentMessage" | "agent_message" => ItemKind::Assistant,
-            "Reasoning" | "reasoning" => ItemKind::Reasoning,
-            "UserMessage" | "userMessage" | "user_message" => ItemKind::User,
-            "ContextCompaction" | "contextCompaction" | "context_compaction" => {
-                ItemKind::Compaction
-            }
-            "CommandExecution" | "commandExecution" | "command_execution" | "command" => {
-                ItemKind::Command
-            }
-            "FileChange" | "fileChange" | "file_change" => ItemKind::File,
-            "McpToolCall" | "mcpToolCall" | "mcp_tool_call" => ItemKind::Mcp,
-            "FunctionCallOutput" | "function_call_output" | "custom_tool_call_output" => {
-                ItemKind::Tool
-            }
-            _ => return,
+        let Some(item_kind) = item_kind(kind) else {
+            return;
         };
         let started_at_ms = timestamp(p.started_at_ms);
         let completed_at_ms = timestamp(p.completed_at_ms);

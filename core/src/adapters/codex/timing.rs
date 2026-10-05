@@ -10,6 +10,34 @@ mod recording;
 use recording::record;
 pub(super) use recording::{Context, ancestry, discontinuity, measurement, operation};
 
+/// A valid outer record binds the damaged item to its known scope and source
+/// position. Preserve that boundary without retaining its undecodable payload.
+pub(super) fn invalid_item(
+    facts: &mut Facts,
+    thread: Option<String>,
+    turn: Option<String>,
+    report: &mut SourceReport,
+    evidence: &EvidenceRef,
+) {
+    use crate::session_events::{ContentPhase, ContentPresence, MessageOrigin, MessageRecordKind};
+    record(
+        facts,
+        thread,
+        turn,
+        SafePayload::Message {
+            origin: MessageOrigin::Unknown,
+            presence: ContentPresence::Unknown,
+            native_id: None,
+            record_kind: MessageRecordKind::Unknown,
+            record_phase: Phase::Unknown,
+            content_phase: ContentPhase::Unknown,
+        },
+        vec![Gap::SourcePartial],
+        report,
+        evidence,
+    );
+}
+
 pub(super) fn safe_integer(raw: &RawValue) -> Option<u64> {
     serde_json::from_str::<u64>(raw.get())
         .ok()

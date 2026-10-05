@@ -58,6 +58,16 @@ pub(super) fn process(
         Some(raw) => match serde_json::from_str::<Payload>(raw.get()) {
             Ok(item) => Some(item),
             Err(_) => {
+                let affected_turn = explicit_turn.clone().or_else(|| {
+                    (event != "task_started" && owner == state.thread)
+                        .then(|| state.turn.clone())
+                        .flatten()
+                });
+                timing::invalid_item(facts, owner.clone(), affected_turn, report, &evidence);
+                if owner == state.thread && (explicit_turn.is_none() || explicit_turn == state.turn)
+                {
+                    state.corrupt_boundary();
+                }
                 issue(
                     report,
                     "invalidOperation",
@@ -629,3 +639,6 @@ pub(super) fn legacy_measurement(
         report,
     );
 }
+
+#[cfg(test)]
+mod tests;

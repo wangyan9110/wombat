@@ -275,7 +275,13 @@ fn missing_or_future_projection_mapping_refuses_restore_and_cached_sync_without_
     let saved_view = crate::live_index::load_map(&db, &format!("view:{key}")).unwrap();
     let parser_scope = format!("parser:{source_id}:{}:1", adapters::codex::VERSION);
     let saved_parser = crate::live_index::load_map(&db, &parser_scope).unwrap();
-    for header in [None, Some(json!(2))] {
+    for header in [
+        None,
+        Some(json!(1)),
+        Some(json!(
+            adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION + 1
+        )),
+    ] {
         let mut old = original.clone();
         old.remove("messageObservationVersion");
         if let Some(header) = header {
@@ -349,7 +355,13 @@ fn unsupported_parser_mapping_propagates_despite_current_projection_and_mixed_so
         .unwrap()
         .write_all(b"\n")
         .unwrap();
-    for header in [None, Some(json!(2))] {
+    for header in [
+        None,
+        Some(json!(1)),
+        Some(json!(
+            adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION + 1
+        )),
+    ] {
         let mut old = original.clone();
         old.remove("messageObservationVersion");
         if let Some(header) = header {

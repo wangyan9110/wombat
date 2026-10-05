@@ -192,11 +192,15 @@ pub(super) fn observe(
                 MessageRecordKind::Unknown,
             )
         }
-        (_, _, _) if native && item.content.is_some() => (
-            MessageOrigin::Unknown,
-            ContentPresence::Unknown,
-            MessageRecordKind::Unknown,
-        ),
+        (_, _, _)
+            if native && (item.content.is_some() || super::items::item_kind(kind).is_none()) =>
+        {
+            (
+                MessageOrigin::Unknown,
+                ContentPresence::Unknown,
+                MessageRecordKind::Unknown,
+            )
+        }
         _ => return,
     };
     let metadata = item

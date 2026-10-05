@@ -178,6 +178,8 @@ pub(super) fn save_with_prices(
     let manifest = Manifest {
         schema_version: 4,
         event_observation_version: crate::session_events::EVENT_VERSION,
+        message_observation_version:
+            crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
         title_observation_version:
             crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
         title_observations: collected.title_observations,
@@ -277,6 +279,16 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
             .map_err(|_| corrupt("快照索引损坏"))?;
     if raw["schemaVersion"] != 4 {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
+    }
+    if raw["messageObservationVersion"].as_u64()
+        != Some(u64::from(
+            crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
+        ))
+    {
+        return Err(operation_error(
+            "UNSUPPORTED_VERSION",
+            "不支持此消息观察映射",
+        ));
     }
     crate::session_events::title_observations::check_headers(&raw)?;
     super::events::check_index_version(raw["events"]["version"].as_u64())?;

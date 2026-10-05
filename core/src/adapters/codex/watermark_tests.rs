@@ -270,7 +270,13 @@ fn missing_or_future_message_mapping_refuses_append_and_warm_parser_without_muta
     crate::live_index::save_map(&db, &facts_scope, &facts).unwrap();
     // A later visible record cannot fill the old mapping's unobserved history.
     fs::OpenOptions::new().append(true).open(&path).unwrap().write_all(b"{\"type\":\"event_msg\",\"timestamp\":\"2026-10-05T00:00:01Z\",\"payload\":{\"type\":\"agent_message\",\"turn_id\":\"turn\",\"message\":\"PRIVATE_LATER\"}}\n").unwrap();
-    for header in [None, Some(serde_json::json!(2))] {
+    for header in [
+        None,
+        Some(serde_json::json!(1)),
+        Some(serde_json::json!(
+            incremental::MESSAGE_OBSERVATION_VERSION + 1
+        )),
+    ] {
         let mut stored = original.clone();
         stored.remove("messageObservationVersion");
         if let Some(header) = header {
@@ -302,7 +308,13 @@ fn mapping_header_precedes_future_parser_payload_decoding() {
     let scope = format!("parser:{}:{VERSION}:1", source.id);
     let original = crate::live_index::load_map(&db, &scope).unwrap();
     let nested = format!("{}0{}", "[".repeat(200), "]".repeat(200));
-    for header in [None, Some(serde_json::json!(2))] {
+    for header in [
+        None,
+        Some(serde_json::json!(1)),
+        Some(serde_json::json!(
+            incremental::MESSAGE_OBSERVATION_VERSION + 1
+        )),
+    ] {
         let mut stored = original.clone();
         stored.remove("messageObservationVersion");
         if let Some(header) = header {

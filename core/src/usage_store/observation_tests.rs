@@ -56,6 +56,10 @@ fn memory_and_fixed_views_keep_safe_observations() {
     let fixed = load_at(root.path(), Some(&old.manifest.snapshot_ref.snapshot_id)).unwrap();
     for snapshot in [&live, &old, &fixed] {
         assert_eq!(
+            snapshot.manifest.message_observation_version,
+            crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION
+        );
+        assert_eq!(
             snapshot.manifest.title_observations,
             facts.title_observations
         );
@@ -74,6 +78,65 @@ fn memory_and_fixed_views_keep_safe_observations() {
     save_at(root.path(), newer).unwrap();
     let retained = load_at(root.path(), Some(&old.manifest.snapshot_ref.snapshot_id)).unwrap();
     assert_eq!(retained.manifest.title_observations[0].title, "safe title");
+}
+
+#[test]
+fn fixed_old_or_unknown_message_mapping_rejects_before_payload_and_preserves_snapshot() {
+    let root = tempfile::tempdir().unwrap();
+    let snapshot = save_at(root.path(), data()).unwrap();
+    let path = snapshot.directory.join("manifest.json");
+    let original = fs::read(&path).unwrap();
+    let latest = fs::read(root.path().join("latest.json")).unwrap();
+    let events = fs::read(
+        snapshot
+            .directory
+            .join(&snapshot.manifest.events.partitions[0].chunks[0].file.file),
+    )
+    .unwrap();
+    for version in [None, Some(1), Some(99)] {
+        let mut changed: serde_json::Value = serde_json::from_slice(&original).unwrap();
+        changed
+            .as_object_mut()
+            .unwrap()
+            .remove("messageObservationVersion");
+        if let Some(version) = version {
+            changed["messageObservationVersion"] = serde_json::json!(version);
+        }
+        // An unknown mapping must fail before decoding even an incompatible payload.
+        changed["threads"] = serde_json::json!("future shape");
+        fs::write(&path, serde_json::to_vec(&changed).unwrap()).unwrap();
+        let before = fs::read(&path).unwrap();
+        assert_eq!(
+            crate::live_index::failure_code(
+                &load_at(
+                    root.path(),
+                    Some(&snapshot.manifest.snapshot_ref.snapshot_id)
+                )
+                .err()
+                .unwrap()
+            ),
+            "UNSUPPORTED_VERSION"
+        );
+        assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::read(root.path().join("latest.json")).unwrap(), latest);
+        assert_eq!(
+            fs::read(
+                snapshot
+                    .directory
+                    .join(&snapshot.manifest.events.partitions[0].chunks[0].file.file)
+            )
+            .unwrap(),
+            events
+        );
+    }
+    fs::write(path, original).unwrap();
+    assert!(
+        load_at(
+            root.path(),
+            Some(&snapshot.manifest.snapshot_ref.snapshot_id)
+        )
+        .is_ok()
+    );
 }
 #[test]
 fn fixed_unknown_or_missing_observation_headers_reject_before_payload_and_preserve_files() {

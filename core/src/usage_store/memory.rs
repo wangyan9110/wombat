@@ -122,6 +122,8 @@ pub(crate) fn memory(
     let manifest = Manifest {
         schema_version: 4,
         event_observation_version: crate::session_events::EVENT_VERSION,
+        message_observation_version:
+            crate::adapters::codex::incremental::MESSAGE_OBSERVATION_VERSION,
         title_observation_version:
             crate::session_events::title_observations::TITLE_OBSERVATION_VERSION,
         title_observations: collected.title_observations,
