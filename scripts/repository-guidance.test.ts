@@ -84,20 +84,23 @@ test('decision records reject lifecycle drift, invalid dates and proposal sectio
 });
 
 
-test('Skill resource checks follow nested references and reject missing moved owners', () => {
-  const owner = '.agents/skills/sample';
-  const skill = '---\nname: sample\ndescription: Synthetic workflow\n---\nRead [procedure](references/procedure.md).\n';
-  const files: Record<string, string> = {
-    [owner + '/SKILL.md']: skill,
-    [owner + '/references/procedure.md']: '# Procedure\n\nRead [owner][facts].\n\n[facts]: ../../../../owner.md\n\n```md\n[example](missing-example.md)\n```\n',
-    'owner.md': '# Owner\n',
-  };
-  assert.equal(check('check-skills.mjs', files).status, 0);
-  delete files['owner.md'];
-  const missing = check('check-skills.mjs', files);
-  assert.equal(missing.status, 1);
-  assert.match(missing.output, /references\/procedure.md: missing linked resource/);
-  const entry = check('check-skills.mjs', { [owner + '/SKILL.md']: skill });
-  assert.equal(entry.status, 1);
-  assert.match(entry.output, /SKILL.md: missing linked resource references\/procedure.md/);
-});
+for (const skillRoot of ['.agents/skills', 'integrations/codex/skills']) {
+  test(`Skill resource checks use portable paths and follow nested references in ${skillRoot}`, () => {
+    const owner = `${skillRoot}/sample`;
+    const resource = path.posix.relative(`${owner}/references`, 'owner.md');
+    const skill = '---\nname: sample\ndescription: Synthetic workflow\n---\nRead [procedure](references/procedure.md).\n';
+    const files: Record<string, string> = {
+      [owner + '/SKILL.md']: skill,
+      [owner + '/references/procedure.md']: `# Procedure\n\nRead [owner][facts].\n\n[facts]: ${resource}\n\n\`\`\`md\n[example](missing-example.md)\n\`\`\`\n`,
+      'owner.md': '# Owner\n',
+    };
+    assert.equal(check('check-skills.mjs', files).status, 0);
+    delete files['owner.md'];
+    const missing = check('check-skills.mjs', files);
+    assert.equal(missing.status, 1);
+    assert.ok(missing.output.includes(`${owner}/references/procedure.md: missing linked resource ${resource}`));
+    const entry = check('check-skills.mjs', { [owner + '/SKILL.md']: skill });
+    assert.equal(entry.status, 1);
+    assert.ok(entry.output.includes(`${owner}/SKILL.md: missing linked resource references/procedure.md`));
+  });
+}

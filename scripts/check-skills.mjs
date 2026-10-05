@@ -25,7 +25,8 @@ function resourceLinks(directory) {
         const relative = target.split('#')[0];
         if (!relative) continue;
         if (!existsSync(path.resolve(path.dirname(file), relative))) {
-          errors.push(`${path.relative(root, file)}: missing linked resource ${target}`);
+          const relativeFile = path.relative(root, file).split(path.sep).join('/');
+          errors.push(`${relativeFile}: missing linked resource ${target}`);
         }
       }
     }
