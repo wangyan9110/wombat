@@ -1,11 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { updateInstalled } from '../cli/src/update-cli.ts';
 import { releaseArchive } from './github-release.ts';
 import { nativeTargets } from './native-platforms.ts';
 import { validateVersion } from './prepare-release.ts';
@@ -323,6 +322,9 @@ async function cleanInstall(version: string, scratch: string, releaseDirectory: 
     if (!/^[0-9A-Za-z._-]+$/.test(releaseId)) throw new Error('Installation pointer is invalid');
     entryFile = path.join(installRoot, 'versions', releaseId, 'lib', 'wombat.js');
   }
+  const clientEntry = path.join(root, 'client', 'dist', 'index.js');
+  if (!existsSync(clientEntry)) run('corepack', ['pnpm', '--filter', '@wombat/client', 'build'], 10 * 60_000);
+  const { updateInstalled } = await import('../cli/src/update-cli.ts');
   const update = await updateInstalled({ version, check: true, entryFile, baseUrl });
   if (!update.checked || update.updated || update.updateAvailable
     || update.currentVersion !== version || update.availableVersion !== version) {
