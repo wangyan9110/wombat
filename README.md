@@ -19,7 +19,7 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 **Stable: [`v0.1.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0).** This is the first stable Wombat release for local Codex usage review, configuration checks, and recommendation workflows.
 
-Release archives support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. They include the required runtime, so you do not need to install Node.js, npm, Rust, pnpm, or a compiler. Wombat reads local Codex records without an API key. You need at least one local Codex task to analyze usage; without task history, you can still inspect instructions and extensions in directories you authorize.
+Self-contained archives support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. No development toolchain or API key is required.
 
 1. Install Wombat. On macOS or Linux, run:
 
@@ -36,20 +36,20 @@ Release archives support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64
 2. Start Wombat. On macOS or Linux, run:
 
    ```sh
-   ~/.local/bin/wombat web --open
+   wombat web --open
    ```
 
    On Windows PowerShell, run:
 
    ```powershell
-   & "$HOME\.local\bin\wombat.cmd" web --open
+   wombat web --open
    ```
 
 3. Wombat automatically starts reading local records. The terminal prints a local URL, and the browser opens that address. You can view discovered tasks before the initial read finishes.
 
 If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources**, check the source location and folder permissions, and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
 
-The default installation prefix is `~/.local`. Add its `bin` directory to `PATH` to run `wombat` directly.
+The default installation prefix is `~/.local`. If the shell cannot find `wombat`, add its `bin` directory to `PATH` as the installer instructs.
 
 ### Update Wombat
 

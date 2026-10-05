@@ -19,7 +19,7 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 
 **正式版：[`v0.1.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0)。** 这是 Wombat 的首个稳定版本，面向本机 Codex 用量、配置检查和建议处理流程。
 
-发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64，并已包含所需运行环境，无需另装 Node.js、npm、Rust、pnpm 或编译器。Wombat 读取本机 Codex 记录时无需 API Key。分析用量前，至少需要一项本机 Codex 任务；没有任务历史时，仍可检查已授权目录中的指令和扩展。
+自包含发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64，无需开发工具链或 API Key。
 
 1. 安装 Wombat。在 macOS 或 Linux 中执行：
 
@@ -36,20 +36,20 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。详细�
 2. 启动 Wombat。在 macOS 或 Linux 中执行：
 
    ```sh
-   ~/.local/bin/wombat web --open
+   wombat web --open
    ```
 
    在 Windows PowerShell 中执行：
 
    ```powershell
-   & "$HOME\.local\bin\wombat.cmd" web --open
+   wombat web --open
    ```
 
 3. Wombat 会自动开始读取本机记录。终端会输出本机访问地址，并在浏览器中打开。首次读取完成前，可以先查看已发现的任务。
 
 浏览器未自动打开时，使用终端输出的完整地址。没有出现任务时，先完成一项 Codex 任务，再选择「更新数据」。读取失败时，打开「数据来源」，核对来源位置和目录权限，然后选择「重试」。如需检查任务历史尚未包含的项目配置，可在「数据来源」中添加项目目录。
 
-默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可直接运行 `wombat`。
+默认安装位置是 `~/.local`。系统找不到 `wombat` 时，按安装器提示将对应的 `bin` 目录加入 `PATH`。
 
 ### 更新 Wombat
 
