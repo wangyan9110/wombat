@@ -154,6 +154,10 @@ mod tests {
                         total: Some(110),
                         raw_input: Some(100),
                     },
+                    token_unavailable_reasons: TokenFields {
+                        reasoning: Some(TokenUnavailableReason::Missing),
+                        ..TokenFields::default()
+                    },
                     pricing_context_conflict: false,
                     request_scoped: false,
                     reported_cost: Some("1.234".into()),

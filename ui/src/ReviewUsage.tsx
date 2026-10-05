@@ -2,7 +2,7 @@ import { UseBasis } from './UseBasis.js';
 import { useState } from 'react';
 import type { ConfigResult, OptimizeSuggestion, UsageClient } from '@wombat/client';
 import { t, useBasisCount, relatedActivityText, eventStatusLabel, reviewFindingLabel } from '@wombat/client/locale';
-import { Pagination, Token, amount, timestamp } from './components.js';
+import { Pagination, SummaryToken, Token, amount, timestamp } from './components.js';
 import { QueryError } from './Feedback.js';
 import { configRequest, useConfig } from './useConfig.js';
 import { relatedTurnRoute, type Route } from './state.js';
@@ -21,7 +21,7 @@ export function RelatedUsageContent({result,route,navigate,onPage}:{result:Confi
  const uses=item?.kind==='mcp'||item?.kind==='skill';
  const records=useBasisCount(uses?item?.usageCount:item?.counts.fileReads,item?.useBasis);
  const rows=result.evidence;
- return <><dl className="review-metrics"><div><dt>{t(uses?'config.activity':'config.reads')}</dt><dd>{historyAvailable&&records!=null?t(uses?'config.usesCount':'config.fileReadsCount',{count:records}):'—'}</dd></div><div><dt>{t('optimize.relatedTokens')}</dt><dd><Token value={item?.usage?.tokens.total}/></dd></div><div><dt>{t(item?.usage?.price.status==='unknown'?'webui.amountUnknown':'optimize.relatedCost')}</dt><dd>{item?.usage&&item.usage.price.status!=='unknown'?amount(item.usage):'—'}</dd></div></dl><p className="note">{t('optimize.relatedSummary')}</p>
+ return <><dl className="review-metrics"><div><dt>{t(uses?'config.activity':'config.reads')}</dt><dd>{historyAvailable&&records!=null?t(uses?'config.usesCount':'config.fileReadsCount',{count:records}):'—'}</dd></div><div><dt>{t('optimize.relatedTokens')}</dt><dd>{item?.usage?<SummaryToken summary={item.usage}/>:<Token value={null}/>}</dd></div><div><dt>{t(item?.usage?.price.status==='unknown'?'webui.amountUnknown':'optimize.relatedCost')}</dt><dd>{item?.usage&&item.usage.price.status!=='unknown'?amount(item.usage):'—'}</dd></div></dl><p className="note">{t('optimize.relatedSummary')}</p>
  {item&&item.kind!=='hook'&&<UseBasis basis={item.useBasis}/>}
  {!historyAvailable?<p className="read-notice">{t('optimize.historyUnavailable')}</p>:records===0&&item?.useBasis?.status==='observed'?<p>{t('optimize.noAssociation')}</p>:null}
  {historyAvailable&&records==null&&<p className="note">{t('config.coverageNote')}</p>}

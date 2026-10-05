@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
@@ -11,9 +12,9 @@ import { publishTiming, timingAccess } from '../src/timing.js';
 import { capabilityResult, local, share } from './fixtures/timing.js';
 const summary: TimingRequest = { action: 'summary', threadId: 'thread', turnId: 'turn', snapshotId: local.readView.snapshotId, scope: { sourceInstanceId: 'source' } };
 const usage = (snapshotId = local.readView.snapshotId): UsageResult => ({
-  outputVersion: 3, action: 'usage', snapshotRef: { snapshotId, createdAt: local.readView.createdAt }, scope: {}, availableRange: {},
-  summary: { tokens: { input: 10, output: 2, total: 12 }, measurementCount: 1,
-    price: { currency: 'USD', policy: 'synthetic', priceRevision: 'synthetic', cost: '0.1', knownCost: '0.1', status: 'priced', components: [], basis: [], issues: [] } },
+  outputVersion: 4, action: 'usage', snapshotRef: { snapshotId, createdAt: local.readView.createdAt }, scope: {}, availableRange: {},
+  summary: withTokenAnalysis({ tokens: { input: 10, output: 2, total: 12 }, measurementCount: 1,
+    price: { currency: 'USD', policy: 'synthetic', priceRevision: 'synthetic', cost: '0.1', knownCost: '0.1', status: 'priced', components: [], basis: [], issues: [] } }),
   items: [], page: { offset: 0, limit: 50, total: 0 }, quality: { status: 'complete', issues: [], sources: [] },
 });
 async function fixture(patch: Partial<UsageClient> = {}) {

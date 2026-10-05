@@ -84,7 +84,7 @@ fn current_envelope_round_trips_but_unknown_versions_and_changed_identity_fail()
     let restored: Event = serde_json::from_value(json.clone()).unwrap();
     assert_eq!(restored.id(), original.id());
     for (field, value) in [
-        ("version", serde_json::json!(3)),
+        ("version", serde_json::json!(EVENT_VERSION + 1)),
         ("id", serde_json::json!("forged")),
         ("raw", serde_json::json!("SYNTHETIC_PRIVATE_BODY")),
     ] {

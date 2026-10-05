@@ -1,4 +1,4 @@
-import { automaticPriceText, pricingIssueText } from '@wombat/client/locale';
+import { automaticPriceText, pricingIssueText, tokenSummaryText, tokenSummaryPresentation, type SummaryTokenField } from '@wombat/client/locale';
 import { t, locale, labels, monthLabel } from '@wombat/client/locale';
 import stringWidth from 'string-width';
 import { terminalText } from './display-text.js';
@@ -33,8 +33,7 @@ export function tokens(value: number | null | undefined): string { return value 
 export function usageLabel(usage: UsageSummary, detail = false, compact = false): string {
   if (usage.measurementCount === 0) return t("common.no_usage_records");
   const price = usage.price.status === 'unknown' ? t("common.cost_unknown") : money(usage.price.cost ?? usage.price.knownCost, detail ? 4 : 2) + (usage.price.status === 'partial' ? '*' : '');
-  const total = usage.tokens.total;
-  const count = compact && total != null && total >= 10000 ? new Intl.NumberFormat(locale.getSnapshot().locale === 'zh' ? 'zh-CN' : 'en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(total) : tokens(total);
+  const count = tokenSummaryText(usage, 'total', compact);
   return `${count} Token · ${price}`;
 }
 function dateParts(value: string, timezone: string): Record<string, string> { return Object.fromEntries(new Intl.DateTimeFormat('zh-CN', { timeZone: timezone, year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(value)).map(p => [p.type, p.value])); }
@@ -107,6 +106,18 @@ export function usageTableHeader(width = 116): string {
   if (width < 68) return pad(t("cli.format.date_model_effort"), width - 16) + pad(t("cli.format.tokens_cost"), 16, true);
   return usageCells(width >= 110 ? [t("common.date"), t("common.model"), t("common.effort"), t("common.input"), t("common.output"), t("common.cache_write"), t("common.cache_read"), t("common.total_tokens"), t("common.cost_usd")] : [t("common.date"), t("common.model"), t("common.effort"), 'Token', t("common.cost_usd")], width);
 }
+function tokenTableCell(summary: UsageSummary, field: SummaryTokenField): string {
+  const value = tokenSummaryPresentation(summary, field);
+  return `${tableCount(value.value)}${value.state === 'partial' ? '*' : ''}`;
+}
+function tokenCoverageLines(summary: UsageSummary, width: number, fields: readonly SummaryTokenField[] = ['total']): string[] {
+  return fields.flatMap(field => {
+    const value = tokenSummaryPresentation(summary, field);
+    return value.state === 'partial' || value.state === 'unavailable'
+      ? wrapDisplay(`${field === 'total' ? 'Token' : categoryLabels[field] ?? field}: ${value.qualifier || value.unavailable} · ${value.description}`, width)
+      : [];
+  });
+}
 function reportCost(summary: UsageSummary): string {
   return summary.price.status === 'unknown' ? t("common.cost_unknown") : money(summary.price.cost ?? summary.price.knownCost) + (summary.price.status === 'partial' ? '*' : '');
 }
@@ -118,23 +129,23 @@ export function itemLines(item: UsageItem, result: UsageResult, width: number, g
   const reference = result.snapshotRef.createdAt;
   const timezone = result.scope.timezone ?? 'UTC';
   if (item.kind === 'usage') {
-    if (!result.distribution && item.date == null && item.isSubtotal) return headline(item.scope.project ?? (item.scope.projectUnknown ? t('webui.unassigned') : item.model ?? t('common.unknown_model')), usageLabel(item.usage, false, true), width);
+    if (!result.distribution && item.date == null && item.isSubtotal) return [...headline(item.scope.project ?? (item.scope.projectUnknown ? t('webui.unassigned') : item.model ?? t('common.unknown_model')), usageLabel(item.usage, false, true), width), ...tokenCoverageLines(item.usage, width)];
     const date = item.date ? group==='month'?monthLabel(item.date):rangeLabel(item.scope.since, item.scope.until, reference, timezone) : t("common.unknown_date");
     const name = item.isSubtotal ? `${date} ›` : `↳ ${modelLabel(item.model, item.reasoningEffort)}`;
-    if (width < 68) return [name, `  ${usageLabel(item.usage, false, true)}`];
+    if (width < 68) return [name, `  ${usageLabel(item.usage, false, true)}`, ...tokenCoverageLines(item.usage, width)];
     const cells = [item.isSubtotal ? date + ' ›' : '  ↳', item.isSubtotal ? '' : item.model ?? t("common.unknown_model"), item.isSubtotal ? '' : effort(item.reasoningEffort)];
-    if (width >= 110) cells.push(...[item.usage.tokens.input, item.usage.tokens.output, item.usage.tokens.cacheCreate, item.usage.tokens.cacheRead].map(tableCount));
-    cells.push(tableCount(item.usage.tokens.total), reportCost(item.usage));
+    if (width >= 110) cells.push(...(['input', 'output', 'cacheCreate', 'cacheRead'] as const).map(field => tokenTableCell(item.usage, field)));
+    cells.push(tokenTableCell(item.usage, 'total'), reportCost(item.usage));
     const widths = usageColumns(width);
     const wrapped = cells.map((cell, index) => wrapDisplay(cell, widths[index]));
-    return Array.from({ length: Math.max(...wrapped.map(lines => lines.length)) }, (_, line) => usageCells(wrapped.map(lines => lines[line] ?? ''), width));
+    return [...Array.from({ length: Math.max(...wrapped.map(lines => lines.length)) }, (_, line) => usageCells(wrapped.map(lines => lines[line] ?? ''), width)), ...tokenCoverageLines(item.usage, width, width >= 110 ? ['input', 'output', 'cacheCreate', 'cacheRead', 'total'] : ['total'])];
   }
   if (item.kind === 'thread') {
     const lines = [...headline(item.title ?? t("common.untitled_thread"), usageLabel(item.threadUsage, false, true), width),
       `  ${item.project?.split('/').filter(Boolean).at(-1) ?? t("common.unknown_project")} · ${activityRange(item.startedAt, item.lastActivityAt, reference, timezone)}`,
       `  ${item.models.join(' / ') || t("common.unknown_model")} · ${item.reasoningEfforts.map(effort).join(' / ') || '—'}`];
     if (item.matchedUsage.measurementCount !== item.threadUsage.measurementCount) lines.push(t("cli.format.selected_range_value", { p0: usageLabel(item.matchedUsage, false, true) }));
-    return lines;
+    return [...lines, ...tokenCoverageLines(item.threadUsage, width), ...(item.matchedUsage.measurementCount !== item.threadUsage.measurementCount ? tokenCoverageLines(item.matchedUsage, width) : [])];
   }
   if (item.kind === 'turn') {
     const lines = [...headline(item.ordinal == null ? t("common.other_records") : t("common.turn_value", { p0: item.ordinal }), usageLabel(item.usage, false, true), width - 2),
@@ -145,22 +156,22 @@ export function itemLines(item: UsageItem, result: UsageResult, width: number, g
       lines.push('  ' + '━'.repeat(filled) + '─'.repeat(size - filled));
     }
     if (item.matchedUsage.measurementCount !== item.usage.measurementCount) lines.push(t("cli.format.filtered_value", { p0: usageLabel(item.matchedUsage, false, true) }));
-    return lines;
+    return [...lines, ...tokenCoverageLines(item.usage, width), ...(item.matchedUsage.measurementCount !== item.usage.measurementCount ? tokenCoverageLines(item.matchedUsage, width) : [])];
   }
   if (item.kind === 'measurement')
-    return headline(`${dateLabel(item.timestamp, reference, timezone, true, item.timePrecision)} · ${modelLabel(item.model, item.reasoningEffort)}`, `${usageLabel(item.usage, true, true)} · ${percent(item.share)}`, width, true);
+    return [...headline(`${dateLabel(item.timestamp, reference, timezone, true, item.timePrecision)} · ${modelLabel(item.model, item.reasoningEffort)}`, `${usageLabel(item.usage, true, true)} · ${percent(item.share)}`, width, true), ...tokenCoverageLines(item.usage, width)];
   const extras = [statusLabel(item.status), item.exitCode != null ? t("common.exit_value", { p0: item.exitCode }) : '', item.durationMs != null ? `${item.durationMs} ms` : ''].filter(Boolean).join(' · ');
   return [...headline(`${dateLabel(item.timestamp, reference, timezone, true, item.timePrecision)}  ${item.name}`, extras, width), ...([item.server, item.tool, item.path].filter(Boolean).length ? ['  ' + [item.server, item.tool, item.path].filter(Boolean).join(' · ')] : [])];
 }
 const categoryLabels: Record<string, string> = labels({ input: "common.uncached_input", cacheRead: "common.cache_read", cacheCreate: "common.cache_write", output: "common.output", reasoning: "common.reasoning_portion", cache_read: "common.cache_read", cache_create: "common.cache_write" });
 export function summaryDetails(summary: UsageSummary): string[] {
   const categories = ['input', 'cacheRead', 'cacheCreate', 'output'] as const;
-  return [...categories.map(category => { const component = summary.price.components.find(part => part.category === category || part.category === ({ cacheRead: 'cache_read', cacheCreate: 'cache_create' } as Record<string, string>)[category]); return `${categoryLabels[category]}  ${tokens(summary.tokens[category])} Token · ${component?.status === 'partial' ? money(component.knownCost, 4) + '*' : component?.cost == null ? t("common.cost_unknown") : money(component.cost, 4)}`; }), t("cli.format.reasoning_portion_value_tokens", { p0: tokens(summary.tokens.reasoning) })];
+  return [...categories.map(category => { const component = summary.price.components.find(part => part.category === category || part.category === ({ cacheRead: 'cache_read', cacheCreate: 'cache_create' } as Record<string, string>)[category]); return `${categoryLabels[category]}  ${tokenSummaryText(summary, category)} Token · ${component?.status === 'partial' ? money(component.knownCost, 4) + '*' : component?.cost == null ? t("common.cost_unknown") : money(component.cost, 4)}`; }), t("cli.format.reasoning_portion_value_tokens", { p0: tokenSummaryText(summary, 'reasoning') })];
 }
 function qualityLine(result: UsageResult): string | undefined { return result.quality.status === 'partial' ? t("cli.format.data_status_value", { p0: result.quality.issues[0]?.message ?? t("cli.format.see_data_notes") }) : undefined; }
 export function renderUsageResult(result: UsageResult, width = 120, group?: 'day' | 'week' | 'month'): string {
   const title = { refresh: t("cli.format.updated"), usage: t("cli.format.usage"), threads: t("common.threads"), turns: t("cli.format.turns"), steps: t("cli.format.records") }[result.action];
-  const lines = [`Wombat · ${title}`, t("common.updated_value", { p0: dateLabel(result.snapshotRef.createdAt, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC', true) }), rangeLabel(result.scope.since, result.scope.until, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC'), usageLabel(result.summary), ''];
+  const lines = [`Wombat · ${title}`, t("common.updated_value", { p0: dateLabel(result.snapshotRef.createdAt, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC', true) }), rangeLabel(result.scope.since, result.scope.until, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC'), usageLabel(result.summary), ...tokenCoverageLines(result.summary, width), ''];
   if (result.action === 'usage' && result.distribution && width >= 110)
     lines.push(usageTableHeader(width));
   for (const item of result.items)

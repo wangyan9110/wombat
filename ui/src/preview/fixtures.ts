@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from './token-analysis.js';
 import {t} from '@wombat/client/locale';
 import {previewTiming} from './timing.js';
 import {accountScenarios,previewAccount} from './account.js';
@@ -14,12 +15,12 @@ export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'm
 export type Scenario = typeof scenarios[number];
 const at = '2026-10-04T02:00:00Z';
 const page = {offset:0,limit:20,total:0,nextOffset:null};
-export const summary: UsageSummary = {measurementCount:1,inputTotal:1000,tokens:{input:800,cacheRead:200,cacheCreate:0,output:100,reasoning:30,total:1100},price:{currency:'USD',policy:'synthetic',priceRevision:'preview',knownCost:'0.001',cost:'0.001',status:'priced',components:[],basis:[],issues:[]}};
+export const summary: UsageSummary = withTokenAnalysis({measurementCount:1,inputTotal:1000,tokens:{input:800,cacheRead:200,cacheCreate:0,output:100,reasoning:30,total:1100},price:{currency:'USD',policy:'synthetic',priceRevision:'preview',knownCost:'0.001',cost:'0.001',status:'priced',components:[],basis:[],issues:[]}});
 export function usageFixture(request:UsageRequest,scenario:Scenario):UsageResult {
  const scope=request.scope??{};
- const usage=scenario==='empty'?{...summary,measurementCount:0,inputTotal:0,tokens:{input:0,cacheRead:0,cacheCreate:0,output:0,total:0},price:{...summary.price,cost:'0',knownCost:'0'}}:summary;
+ const usage=scenario==='empty'?withTokenAnalysis({...summary,measurementCount:0,inputTotal:0,tokens:{input:0,cacheRead:0,cacheCreate:0,output:0,total:0},price:{...summary.price,cost:'0',knownCost:'0'}}):summary;
  const items:UsageResult['items']=scenario==='empty'?[]:request.action==='threads'?[{kind:'thread',id:'preview-task',upstreamId:'synthetic-task',agentKind:'codex',sourceInstanceId:'preview',title:t('preview.task'),project:'/synthetic/wombat',startedAt:at,lastActivityAt:at,matchedLastActivityAt:at,matchedTurnCount:1,models:['synthetic-model'],reasoningEfforts:['medium'],threadUsage:usage,matchedUsage:usage}]:request.action==='turns'?[{kind:'turn',id:'preview-turn',threadId:'preview-task',ordinal:1,startedAt:at,endedAt:scenario==='running'?null:'2026-10-04T02:01:40Z',status:scenario==='running'?'running':scenario==='cancelled'?'cancelled':scenario==='interrupted'?'unknown':scenario==='failed'?'failed':'completed',models:['synthetic-model'],reasoningEfforts:['medium'],usage,matchedUsage:usage}]:request.action==='steps'?[{kind:'measurement',id:'preview-measurement',threadId:'preview-task',turnId:'preview-turn',timestamp:at,model:'synthetic-model',usage,sequence:1,timePrecision:'second',matchesScope:true}]:[{kind:'usage',isSubtotal:false,usage,scope:{...scope,project:'/synthetic/wombat'},share:1,costShare:1}];
- return {outputVersion:3,action:request.action??'usage',snapshotRef:{snapshotId:'preview:1',createdAt:at},scope,availableRange:{since:'2026-10-04',until:'2026-10-05'},summary:usage,items,page:{...page,total:items.length},quality:{status:'complete',issues:[],sources:[]},facets:{directories:['/synthetic/wombat'],hasUnassigned:false,models:['synthetic-model'],reasoningEfforts:['medium'],agents:['codex'],discoveredThreadCount:scenario==='empty'?0:1}};
+ return {outputVersion:4,action:request.action??'usage',snapshotRef:{snapshotId:'preview:1',createdAt:at},scope,availableRange:{since:'2026-10-04',until:'2026-10-05'},summary:usage,items,page:{...page,total:items.length},quality:{status:'complete',issues:[],sources:[]},facets:{directories:['/synthetic/wombat'],hasUnassigned:false,models:['synthetic-model'],reasoningEfforts:['medium'],agents:['codex'],discoveredThreadCount:scenario==='empty'?0:1}};
 }
 export function createPreviewClient(scenario:Scenario):UsageClient {
  const account=previewAccount(scenario);

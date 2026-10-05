@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
@@ -29,7 +30,7 @@ test('separate configuration pages describe their own scope and extension column
 
 test('task titles do not fall back to hashes and fixed versions remain available behind closed disclosure',()=>{
  const saved=locale.getSnapshot().locale;
- const summary:UsageSummary={measurementCount:1,inputTotal:100,tokens:{input:100,cacheRead:0,cacheCreate:0,output:12,total:112},price:{currency:'USD',policy:'synthetic',priceRevision:'test',cost:null,knownCost:null,status:'unknown',components:[],basis:[],issues:[]}};
+ const summary:UsageSummary=withTokenAnalysis({measurementCount:1,inputTotal:100,tokens:{input:100,cacheRead:0,cacheCreate:0,output:12,total:112},price:{currency:'USD',policy:'synthetic',priceRevision:'test',cost:null,knownCost:null,status:'unknown',components:[],basis:[],issues:[]}});
  const route=parseRoute('?page=threads&timezone=UTC');
  const thread={kind:'thread',id:'internal-task-hash',upstreamId:'upstream-task-hash',sourceInstanceId:'synthetic-source',title:' ',project:'/synthetic',agentKind:'codex',matchedLastActivityAt:'2026-10-04T02:00:00Z',models:[],reasoningEfforts:[],matchedTurnCount:null,matchedUsage:summary,threadUsage:summary};
  const list={items:[thread],summary,snapshotRef:{snapshotId:'live:full-version-hash'},quality:{status:'partial'},page:{offset:0,limit:20,total:1,nextOffset:null}} as unknown as UsageResult;

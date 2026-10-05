@@ -426,9 +426,10 @@ pub(super) fn direct_measurement(
         issue(report, "missingUsage", "逐响应记录缺少用量", Some(evidence));
         return;
     };
-    let Some(tokens) = parse_tokens(raw, report, &evidence) else {
+    let Some(observed) = parse_tokens(raw, report, &evidence) else {
         return;
     };
+    let tokens = observed.tokens;
     let response = p.response_id.as_deref();
     let id = if let Some(response) = response {
         stable_id(&[
@@ -457,7 +458,8 @@ pub(super) fn direct_measurement(
     let cumulative = p
         .thread_token_usage
         .and_then(|raw| serde_json::from_str::<Counts>(raw.get()).ok())
-        .and_then(|c| c.total_tokens);
+        .and_then(|c| c.total_tokens)
+        .filter(|value| *value <= MAX_SAFE_INTEGER);
     let interval_start = cumulative
         .zip(tokens.total)
         .and_then(|(a, b)| a.checked_sub(b));
@@ -483,6 +485,7 @@ pub(super) fn direct_measurement(
                 model,
                 reasoning_effort: effort.map(Into::into),
                 tokens,
+                token_unavailable_reasons: observed.reasons,
                 pricing_context_conflict: conflicts
                     .iter()
                     .any(|field| *field != crate::session_events::MeasurementContextField::Effort),
@@ -532,7 +535,14 @@ pub(super) fn legacy_measurement(
     if total.is_none() && last.is_none() {
         return;
     }
-    let previous_total = state.previous.as_ref().and_then(|v| v.total).unwrap_or(0);
+    // Only the first counter observation with no preceding discontinuity has
+    // the protocol's zero origin. A cleared or incomplete baseline is unknown.
+    let initial = state.ordinal == 0 && state.previous.is_none() && !state.uncertain_counter;
+    let previous_total = state
+        .previous
+        .as_ref()
+        .and_then(|v| v.tokens.total)
+        .or(initial.then_some(0));
     if total
         .as_ref()
         .is_some_and(|new| state.previous.as_ref() == Some(new))
@@ -553,7 +563,7 @@ pub(super) fn legacy_measurement(
             Some(evidence.clone()),
         );
     }
-    let (tokens, request_scoped) = if state.uncertain_counter {
+    let (observed, request_scoped) = if state.uncertain_counter {
         issue(
             report,
             "counterGap",
@@ -564,7 +574,10 @@ pub(super) fn legacy_measurement(
         if let Some(last) = last {
             (last, true)
         } else {
-            (TokenUsage::default(), false)
+            (
+                TokenObservation::unavailable(TokenUnavailableReason::Indeterminate),
+                false,
+            )
         }
     } else if regression {
         if let Some(last) = last {
@@ -576,10 +589,13 @@ pub(super) fn legacy_measurement(
                 "累计回退缺少单次用量，保留未知计量",
                 Some(evidence.clone()),
             );
-            (TokenUsage::default(), false)
+            (
+                TokenObservation::unavailable(TokenUnavailableReason::Indeterminate),
+                false,
+            )
         }
     } else if let Some(total) = &total {
-        let delta = subtract(total, state.previous.as_ref());
+        let delta = subtract(total, state.previous.as_ref(), initial);
         let scoped = last.as_ref().is_some_and(|last| last == &delta);
         (delta, scoped)
     } else if let Some(last) = last {
@@ -587,13 +603,14 @@ pub(super) fn legacy_measurement(
     } else {
         return;
     };
-    let cumulative = total.as_ref().and_then(|v| v.total);
+    let tokens = observed.tokens;
+    let cumulative = total.as_ref().and_then(|v| v.tokens.total);
     let interval_start = if regression {
         cumulative
             .zip(tokens.total)
             .and_then(|(a, b)| a.checked_sub(b))
     } else {
-        Some(previous_total)
+        previous_total
     };
     state.previous = total;
     state.ordinal += 1;
@@ -643,6 +660,7 @@ pub(super) fn legacy_measurement(
                 model,
                 reasoning_effort: effort.map(Into::into),
                 tokens,
+                token_unavailable_reasons: observed.reasons,
                 pricing_context_conflict: conflicts
                     .iter()
                     .any(|field| *field != crate::session_events::MeasurementContextField::Effort),

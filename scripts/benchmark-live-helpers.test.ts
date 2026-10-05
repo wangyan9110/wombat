@@ -38,7 +38,7 @@ test('source identity frames sorted relative names and exact bytes; directory si
 
 test('oracle normalization excludes only changing view headers and retains amounts, page totals and event time', () => {
   const base = {
-    outputVersion: 3,
+    outputVersion: 4,
     action: 'usage',
     snapshotRef: { snapshotId: 'live:first', createdAt: '2026-10-01T00:00:00Z' },
     freshness: { status: 'current', revision: 'one', checkedAt: '2026-10-01T00:00:00Z' },

@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
@@ -16,11 +17,11 @@ test('trend labels keep missing Token totals distinct from observed zero in both
   const template = overview.items.find(item => item.kind === 'usage');
   assert.ok(template && template.kind === 'usage');
   const base = template;
-  const missing = { ...base, isSubtotal: true, date: '2026-10-03', usage: { ...base.usage, tokens: { ...base.usage.tokens, total: null } } };
-  const zero = { ...base, isSubtotal: true, date: '2026-10-04', usage: { ...base.usage, tokens: { ...base.usage.tokens, total: 0 } } };
+  const missing = { ...base, isSubtotal: true, date: '2026-10-03', usage: withTokenAnalysis({ ...base.usage, tokens: { ...base.usage.tokens, total: null } }) };
+  const zero = { ...base, isSubtotal: true, date: '2026-10-04', usage: withTokenAnalysis({ ...base.usage, tokens: { ...base.usage.tokens, total: 0 } }) };
   overview.items = [missing, zero];
   overview.page.total = 2;
-  overview.distribution = { maxTokens: null, maxCost: null, peakTokenDates: [], peakCostDates: [], peakTokenScopes: [], peakCostScopes: [] };
+  overview.distribution = { tokenBasis:'recorded_subtotals', maxTokens: null, maxCost: null, peakTokenDates: [], peakCostDates: [], peakTokenScopes: [], peakCostScopes: [] };
   const previous = locale.getSnapshot().locale;
   try {
     for (const language of ['zh', 'en'] as const) {

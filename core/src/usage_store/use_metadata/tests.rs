@@ -137,15 +137,21 @@ fn missing_current_metadata_is_corrupt_and_future_headers_precede_new_shapes_wit
     for (metadata, expected) in [
         (None, "SNAPSHOT_CORRUPT"),
         (
-            Some(serde_json::json!({"methodVersion":1,"skillRecords":0,"mcpRecords":0})),
+            Some(
+                serde_json::json!({"methodVersion":crate::usage_observations::METHOD_VERSION - 1,"skillRecords":0,"mcpRecords":0}),
+            ),
             "UNSUPPORTED_VERSION",
         ),
         (
-            Some(serde_json::json!({"methodVersion":2,"skillRecords":null,"mcpRecords":0})),
+            Some(
+                serde_json::json!({"methodVersion":crate::usage_observations::METHOD_VERSION,"skillRecords":null,"mcpRecords":0}),
+            ),
             "SNAPSHOT_CORRUPT",
         ),
         (
-            Some(serde_json::json!({"methodVersion":99,"futureFields":{"not":"current"}})),
+            Some(
+                serde_json::json!({"methodVersion":crate::usage_observations::METHOD_VERSION + 1,"futureFields":{"not":"current"}}),
+            ),
             "UNSUPPORTED_VERSION",
         ),
     ] {
@@ -184,7 +190,8 @@ fn typed_memory_metadata_unknown_version_does_not_become_zero() {
         None,
     )
     .unwrap();
-    snapshot.manifest.threads[0].unassigned_uses.method_version = 99;
+    snapshot.manifest.threads[0].unassigned_uses.method_version =
+        crate::usage_observations::METHOD_VERSION + 1;
     assert_eq!(
         code(
             snapshot
@@ -235,7 +242,10 @@ fn read_modes_native_multi_target_candidates_charge_one_unassigned_operation_and
                 &AtomicBool::new(false),
             )
             .unwrap();
-        assert_eq!(evidence.unassigned_uses.method_version, 2);
+        assert_eq!(
+            evidence.unassigned_uses.method_version,
+            crate::usage_observations::METHOD_VERSION
+        );
         assert_eq!(evidence.unassigned_uses.skill_records, 1);
     }
 }

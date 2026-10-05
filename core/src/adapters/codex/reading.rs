@@ -13,7 +13,7 @@ pub(super) struct State {
     pub(super) thread_context_conflicts: Vec<crate::session_events::MeasurementContextField>,
     pub(super) thread_model: ModelRef,
     pub(super) thread_effort: Option<String>,
-    pub(super) previous: Option<TokenUsage>,
+    pub(super) previous: Option<TokenObservation>,
     pub(super) ordinal: u64,
     pub(super) epoch: u64,
     pub(super) uncertain_counter: bool,

@@ -2,6 +2,7 @@
 
 export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
 export type Kind = "rule" | "skill" | "mcp" | "hook";
+export type TokenAnalysisScope = "selected_canonical_measurements";
 export type Observation = "used" | "loaded_only" | "unknown";
 export type UseBasisStatus = ("observed" | "unavailable") | "partial";
 export type UseUnit = "object_use" | "rule_read" | "rule_load_or_read";
@@ -81,6 +82,7 @@ export interface UsageSummary {
   cacheHitRate?: number | null;
   unpricedTokens?: number | null;
   tokens: TokenUsage;
+  tokenAnalysis: TokenAnalysis;
   price: PriceResult;
   measurementCount: number;
 }
@@ -98,6 +100,35 @@ export interface TokenUsage {
    * Source input including caches; retained for request-level price conditions.
    */
   rawInput?: number | null;
+}
+/**
+ * Token subtotals are scoped to the canonical measurements selected by this query.
+ * Existing `tokens` fields remain complete totals; partial observations live here.
+ */
+export interface TokenAnalysis {
+  methodVersion: number;
+  scope: TokenAnalysisScope;
+  fields: TokenFields;
+}
+export interface TokenFields {
+  input: ObservedTokenSubtotal;
+  cacheRead: ObservedTokenSubtotal;
+  cacheCreate: ObservedTokenSubtotal;
+  output: ObservedTokenSubtotal;
+  reasoning: ObservedTokenSubtotal;
+  total: ObservedTokenSubtotal;
+  rawInput: ObservedTokenSubtotal;
+}
+/**
+ * An observed subtotal never implies that unavailable records contributed zero.
+ */
+export interface ObservedTokenSubtotal {
+  observedSubtotal?: number | null;
+  coveredRecords: number;
+  missingRecords: number;
+  conflictingRecords: number;
+  invalidRecords: number;
+  indeterminateRecords: number;
 }
 export interface PriceResult {
   currency: string;

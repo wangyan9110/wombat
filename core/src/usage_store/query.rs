@@ -99,7 +99,10 @@ impl Snapshot {
         if crate::hash(&bytes) != self.manifest.ledger.sha256 {
             return Err(corrupt("计量分片校验失败"));
         }
-        serde_json::from_slice(&bytes).map_err(|e| corrupt(format!("计量分片无效：{e}")))
+        let rows: Vec<PricedMeasurement> =
+            serde_json::from_slice(&bytes).map_err(|e| corrupt(format!("计量分片无效：{e}")))?;
+        validate_measurements(&rows)?;
+        Ok(rows)
     }
     pub fn turn(&self, thread_id: &str, turn_id: &str) -> Result<TurnData> {
         if let Some(turns) = &self.memory_turns {
@@ -148,6 +151,20 @@ impl Snapshot {
         if crate::hash(&bytes) != entry.slice.sha256 {
             return Err(corrupt("轮次分片校验失败"));
         }
-        serde_json::from_slice(&bytes).map_err(|e| corrupt(format!("轮次分片无效：{e}")))
+        let data: TurnData =
+            serde_json::from_slice(&bytes).map_err(|e| corrupt(format!("轮次分片无效：{e}")))?;
+        validate_measurements(&data.measurements)?;
+        Ok(data)
     }
+}
+
+fn validate_measurements(rows: &[PricedMeasurement]) -> Result<()> {
+    for row in rows {
+        crate::adapters::contract::validate_token_observations(
+            &row.fact.tokens,
+            &row.fact.token_unavailable_reasons,
+        )
+        .map_err(|e| corrupt(format!("计量观察无效：{e}")))?;
+    }
+    Ok(())
 }

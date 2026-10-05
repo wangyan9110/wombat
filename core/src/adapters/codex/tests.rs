@@ -51,6 +51,7 @@ mod identity;
 mod incremental_projection;
 mod incremental_storage;
 mod prefix_integrity;
+mod token_observations;
 
 mod mcp;
 

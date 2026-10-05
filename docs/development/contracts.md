@@ -8,17 +8,19 @@ Rust 的 `core/src/usage_app_dto.rs` 定义请求与响应，`adapters/contract.
 
 - [实时请求 Schema](../schemas/live-request-v1.schema.json)和[实时响应 Schema](../schemas/live-response-v1.schema.json)，源头为`core/src/live.rs`；`live`封装v3结果与独立新鲜度。
 - [请求 Schema](../schemas/usage-request-v3.schema.json)
-- [响应 Schema](../schemas/usage-app-v3.schema.json)
+- [响应 Schema](../schemas/usage-app-v4.schema.json)
 - [价表请求 Schema](../schemas/pricing-request-v1.schema.json)和[价表响应 Schema](../schemas/pricing-response-v1.schema.json)，源头为 `core/src/pricing_sync.rs`
 - `client/src/generated/usage-request.ts`、`usage-app.ts` 和校验器
 
 运行 `corepack pnpm contracts:generate` 重生，`contracts:check` 拒绝漂移。通用客户端校验请求与响应，不提供通用 shell、任意文件写入或任意操作分派。
 
-`outputVersion=3` 是公共结果版本，`schemaVersion=4` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
+`outputVersion=4` 是公共结果版本，`schemaVersion=4` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
 
 公开操作、枚举、分页和错误详见[CLI](../guides/cli.md)。计量整数不能超过 JavaScript 安全整数；金额始终为十进制字符串。新字段及规则必须同时检查生成类型、Web、JSON 和当前快照。
 
-用量请求增加可选 `presentation`，默认明细，分布只保留时段小计；显式指定任一种 presentation 时 offset/limit/page.total 按时段计数，明细一页包含所选时段的全部模型行，不拆日期组；省略 presentation 维持原有逐行分页。`sort: cost` 与 Token 排序均由内核完成。响应 `distribution` 给出完整范围的最大值、并列峰值日期及准确筛选 Scope、未计价 Token 数；用量、轮次和计量的 `costShare` 以完整范围已计价金额为分母，未知或零分母返回缺失。对话按 matchedUsage 或最近匹配计量排序，threadUsage 保留全量。轮次默认完整；仅 turns 接受 matchedOnly 与 locateTurnId，先筛选排序再定位分页。匹配轮次只改变 items/page，不改变全对话汇总和份额分母；步骤仍完整。
+用量汇总同时保留完整值与逐字段已记录小计，并给出筛选后规范计量记录的覆盖数和缺口原因；分页不改变范围。字段没有可用记录时小计为空，有效零值仍为零。完整用量份额不使用部分小计补分母。公共类型、字段与枚举以 Rust 生成契约为准。
+
+用量请求增加可选 `presentation`，默认明细，分布只保留时段小计；显式指定任一种 presentation 时 offset/limit/page.total 按时段计数，明细一页包含所选时段的全部模型行，不拆日期组；省略 presentation 维持原有逐行分页。`sort: cost` 与按已记录小计的 Token 排序均由内核完成。响应 `distribution` 给出筛选范围内按已记录小计计算的 Token 最大值、并列峰值日期及准确筛选 Scope、金额最大值和未计价 Token 数；用量、轮次和计量的 `costShare` 以完整范围已计价金额为分母，未知或零分母返回缺失。对话按 matchedUsage 或最近匹配计量排序，threadUsage 保留全量。轮次默认完整；仅 turns 接受 matchedOnly 与 locateTurnId，先筛选排序再定位分页。匹配轮次只改变 items/page，不改变全对话汇总和份额分母；步骤仍完整。
 
 实时新鲜度initialScan表示仅包含首次扫描的临时任务元数据，来源partial且用量未知。预览不落盘，不属于无指定版本的cached结果；fresh/refresh仍等待完整同步。Web解除临时版本固定后保留任务和筛选，普通固定版本不变；边界见[首次任务视图决策](../decisions/implemented/architecture/2026-10-04-initial-task-preview.md)。
 

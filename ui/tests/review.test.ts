@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createElement} from 'react';
@@ -43,7 +44,7 @@ test('text comparison consumes core comparison identities and measured basis rat
  assert.deepEqual(textChanges(suggestion),[]);
 });
 test('related usage shows records and core turn usage with every operation record; missing history stays unknown',()=>{
- const result={items:[{...item,useBasis:syntheticUseBasis('object_use'),usageCount:2,counts:{fileReads:2,toolCalls:0,succeeded:2,failed:0,outcomeUnknown:0},relatedTurns:1,usage:{tokens:{total:110},price:{status:'priced',cost:'0.000265',knownCost:'0.000265'}}}],coverage:{status:'partial',historyStatus:'current'},evidence:[{id:'e1',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'completed'},{id:'e2',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'failed'}],usageRevision:'live:one',page:{total:2,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
+ const result={items:[{...item,useBasis:syntheticUseBasis('object_use'),usageCount:2,counts:{fileReads:2,toolCalls:0,succeeded:2,failed:0,outcomeUnknown:0},relatedTurns:1,usage:withTokenAnalysis({measurementCount:1,tokens:{total:110},price:{status:'priced',cost:'0.000265',knownCost:'0.000265'}})}],coverage:{status:'partial',historyStatus:'current'},evidence:[{id:'e1',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'completed'},{id:'e2',threadId:'thread',turnId:'turn',title:'synthetic',outcome:'failed'}],usageRevision:'live:one',page:{total:2,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
  const props={result,route:parseRoute('?page=optimize&suggestion=s'),navigate:()=>{},onPage:()=>{}};
  const html=renderToStaticMarkup(createElement(RelatedUsageContent,props));assert.match(html,/110/);assert.match(html,/\$0.0003/);assert.equal((html.match(/<strong>synthetic<\/strong>/g)??[]).length,2);assert.match(html,/2 条|2 records/);
  const unknown=renderToStaticMarkup(createElement(RelatedUsageContent,{...props,result:{...result,items:[{...result.items[0],usage:null}],coverage:{...result.coverage,historyStatus:'unavailable'},evidence:[]}}));assert.doesNotMatch(unknown,/\$0\.0000/);assert.match(unknown,/不可用|unavailable/);
@@ -60,7 +61,7 @@ test('follow-up states preserve unknown adoption, natural-work boundaries and En
 
 test('related records use task names with identities behind closed disclosure and retain usage boundaries',()=>{
  const saved=locale.getSnapshot().locale;
- const result={items:[{...item,counts:{fileReads:1,succeeded:0,failed:0,outcomeUnknown:1},relatedTurns:1,usage:{tokens:{total:112},price:{status:'unknown',cost:null,knownCost:null}}}],coverage:{status:'partial',historyStatus:'partial'},evidence:[{id:'event',threadId:'synthetic-task-hash',turnId:'synthetic-turn-hash',title:null,outcome:'unknown',timestamp:'2026-10-04T02:00:00Z'}],usageRevision:'live:pinned',page:{total:1,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
+ const result={items:[{...item,counts:{fileReads:1,succeeded:0,failed:0,outcomeUnknown:1},relatedTurns:1,usage:withTokenAnalysis({measurementCount:1,tokens:{total:112},price:{status:'unknown',cost:null,knownCost:null}})}],coverage:{status:'partial',historyStatus:'partial'},evidence:[{id:'event',threadId:'synthetic-task-hash',turnId:'synthetic-turn-hash',title:null,outcome:'unknown',timestamp:'2026-10-04T02:00:00Z'}],usageRevision:'live:pinned',page:{total:1,offset:0,limit:20,nextOffset:null}} as unknown as ConfigResult;
  try{for(const language of ['zh','en'] as const){locale.setLocale(language);
   const html=renderToStaticMarkup(createElement(RelatedUsageContent,{result,route:parseRoute('?timezone=UTC'),navigate:()=>{},onPage:()=>{}}));
   assert.match(html,/<strong>(?:Untitled task|未命名任务)<\/strong>/);

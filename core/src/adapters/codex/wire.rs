@@ -117,22 +117,62 @@ pub(super) struct UsageInfo<'a> {
 }
 #[derive(Default, Deserialize)]
 pub(super) struct Counts {
-    pub input_tokens: Option<u64>,
-    #[serde(alias = "cache_read_input_tokens")]
-    pub cached_input_tokens: Option<u64>,
-    #[serde(alias = "cache_creation_input_tokens")]
-    pub cache_write_input_tokens: Option<u64>,
-    pub output_tokens: Option<u64>,
-    pub reasoning_output_tokens: Option<u64>,
     pub total_tokens: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub(super) struct TokenObservation {
+    pub tokens: TokenUsage,
+    pub reasons: TokenFields<Option<TokenUnavailableReason>>,
+}
+impl TokenObservation {
+    pub(super) fn unavailable(reason: TokenUnavailableReason) -> Self {
+        let tokens = TokenUsage::default();
+        let reasons = tokens.unavailable_reasons(reason);
+        Self { tokens, reasons }
+    }
+}
+
+#[derive(Deserialize)]
+struct RawCounts<'a> {
+    #[serde(borrow, default, deserialize_with = "present_count")]
+    input_tokens: Option<&'a RawValue>,
+    #[serde(
+        borrow,
+        default,
+        deserialize_with = "present_count",
+        alias = "cache_read_input_tokens"
+    )]
+    cached_input_tokens: Option<&'a RawValue>,
+    #[serde(
+        borrow,
+        default,
+        deserialize_with = "present_count",
+        alias = "cache_creation_input_tokens"
+    )]
+    cache_write_input_tokens: Option<&'a RawValue>,
+    #[serde(borrow, default, deserialize_with = "present_count")]
+    output_tokens: Option<&'a RawValue>,
+    #[serde(borrow, default, deserialize_with = "present_count")]
+    reasoning_output_tokens: Option<&'a RawValue>,
+    #[serde(borrow, default, deserialize_with = "present_count")]
+    total_tokens: Option<&'a RawValue>,
+}
+
+// Deserialize an explicitly present null as a raw value. Option's usual null
+// handling would erase presence and incorrectly authorize protocol absence rules.
+fn present_count<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<&'de RawValue>, D::Error> {
+    <&RawValue>::deserialize(deserializer).map(Some)
 }
 
 pub(super) fn parse_tokens(
     raw: &RawValue,
     report: &mut SourceReport,
     evidence: &EvidenceRef,
-) -> Option<TokenUsage> {
-    let counts: Counts = match serde_json::from_str(raw.get()) {
+) -> Option<TokenObservation> {
+    let counts: RawCounts<'_> = match serde_json::from_str(raw.get()) {
         Ok(value) => value,
         Err(_) => {
             issue(
@@ -144,40 +184,72 @@ pub(super) fn parse_tokens(
             return None;
         }
     };
-    if [
-        counts.input_tokens,
-        counts.cached_input_tokens,
-        counts.cache_write_input_tokens,
-        counts.output_tokens,
-        counts.reasoning_output_tokens,
-        counts.total_tokens,
-    ]
-    .into_iter()
-    .flatten()
-    .any(|v| v > MAX_SAFE_INTEGER)
-    {
-        issue(
-            report,
-            "tokenOverflow",
-            "用量计数超过安全整数范围",
-            Some(evidence.clone()),
-        );
-        return None;
+    let mut observed = TokenObservation::unavailable(TokenUnavailableReason::Missing);
+    for (field, value) in [
+        (TokenField::RawInput, counts.input_tokens),
+        (TokenField::CacheRead, counts.cached_input_tokens),
+        (TokenField::CacheCreate, counts.cache_write_input_tokens),
+        (TokenField::Output, counts.output_tokens),
+        (TokenField::Reasoning, counts.reasoning_output_tokens),
+        (TokenField::Total, counts.total_tokens),
+    ] {
+        let Some(raw) = value else {
+            continue;
+        };
+        match serde_json::from_str::<u64>(raw.get()) {
+            Ok(value) if value <= MAX_SAFE_INTEGER => {
+                observed.tokens.set(field, Some(value));
+                *observed.reasons.get_mut(field) = None;
+            }
+            value => {
+                *observed.reasons.get_mut(field) = Some(TokenUnavailableReason::Invalid);
+                let (code, message) = if value.is_ok() {
+                    ("tokenOverflow", "用量计数超过安全整数范围")
+                } else {
+                    ("invalidTokens", "用量计数格式无效")
+                };
+                issue(report, code, message, Some(evidence.clone()));
+            }
+        }
     }
-    // Absent cache categories remain unknown. Codex input includes both cache subcategories.
-    let input = counts
-        .input_tokens
-        .zip(counts.cached_input_tokens)
-        .zip(counts.cache_write_input_tokens)
+    let tokens = &mut observed.tokens;
+    tokens.input = tokens
+        .raw_input
+        .zip(tokens.cache_read)
+        .zip(tokens.cache_create)
         .and_then(|((raw, read), write)| raw.checked_sub(read)?.checked_sub(write));
-    if counts
-        .input_tokens
-        .zip(counts.cached_input_tokens)
+    observed.reasons.input = if tokens.input.is_some() {
+        None
+    } else if [
+        observed.reasons.raw_input,
+        observed.reasons.cache_read,
+        observed.reasons.cache_create,
+    ]
+    .contains(&Some(TokenUnavailableReason::Invalid))
+        || tokens
+            .raw_input
+            .zip(tokens.cache_read)
+            .zip(tokens.cache_create)
+            .is_some()
+    {
+        Some(TokenUnavailableReason::Invalid)
+    } else {
+        Some(TokenUnavailableReason::Missing)
+    };
+    if tokens
+        .raw_input
+        .zip(tokens.cache_read)
         .is_some_and(|(input, cache)| cache > input)
-        || counts
-            .input_tokens
-            .zip(counts.cache_write_input_tokens)
+        || tokens
+            .raw_input
+            .zip(tokens.cache_create)
             .is_some_and(|(input, write)| write > input)
+        || (tokens
+            .raw_input
+            .zip(tokens.cache_read)
+            .zip(tokens.cache_create)
+            .is_some()
+            && tokens.input.is_none())
     {
         issue(
             report,
@@ -185,11 +257,12 @@ pub(super) fn parse_tokens(
             "缓存计数超过输入计数",
             Some(evidence.clone()),
         );
+        observed.reasons.input = Some(TokenUnavailableReason::Invalid);
     }
-    let mut output = counts.output_tokens;
-    if counts
-        .reasoning_output_tokens
-        .zip(output)
+    let native_output = tokens.output;
+    if tokens
+        .reasoning
+        .zip(tokens.output)
         .is_some_and(|(reasoning, output)| reasoning > output)
     {
         issue(
@@ -198,12 +271,15 @@ pub(super) fn parse_tokens(
             "推理计数超过输出计数",
             Some(evidence.clone()),
         );
-        output = None;
+        tokens.output = None;
+        observed.reasons.output = Some(TokenUnavailableReason::Invalid);
     }
-    if counts
-        .input_tokens
-        .zip(counts.output_tokens)
-        .zip(counts.total_tokens)
+    // Preserve explicit native totals even when their categories disagree. Pricing
+    // validates this relationship independently; no replacement total is invented.
+    if tokens
+        .raw_input
+        .zip(native_output)
+        .zip(tokens.total)
         .is_some_and(|((i, o), t)| i.checked_add(o) != Some(t))
     {
         issue(
@@ -213,67 +289,79 @@ pub(super) fn parse_tokens(
             Some(evidence.clone()),
         );
     }
-    Some(TokenUsage {
-        input,
-        cache_read: counts.cached_input_tokens,
-        cache_create: counts.cache_write_input_tokens,
-        output,
-        reasoning: counts.reasoning_output_tokens,
-        total: counts.total_tokens,
-        raw_input: counts.input_tokens,
-    })
+    Some(observed)
 }
 
 pub(super) fn parse_legacy_tokens(
     raw: &RawValue,
     report: &mut SourceReport,
     evidence: &EvidenceRef,
-) -> Option<TokenUsage> {
-    let mut tokens = parse_tokens(raw, report, evidence)?;
-    // Legacy Codex TokenUsage has no separate cache-write category. Its absent field
-    // means that category is not supported by that protocol, not an unknown modern value.
-    if tokens.cache_create.is_none() {
-        tokens.cache_create = Some(0);
-        tokens.input = tokens
+) -> Option<TokenObservation> {
+    let mut observed = parse_tokens(raw, report, evidence)?;
+    // Only protocol absence establishes unsupported cache writes as zero. An
+    // explicitly malformed cache-write value remains invalid.
+    if observed.reasons.cache_create == Some(TokenUnavailableReason::Missing) {
+        observed.tokens.cache_create = Some(0);
+        observed.reasons.cache_create = None;
+        observed.tokens.input = observed
+            .tokens
             .raw_input
-            .zip(tokens.cache_read)
+            .zip(observed.tokens.cache_read)
             .and_then(|(input, cache)| input.checked_sub(cache));
+        observed.reasons.input = if observed.tokens.input.is_some() {
+            None
+        } else if [observed.reasons.raw_input, observed.reasons.cache_read]
+            .contains(&Some(TokenUnavailableReason::Invalid))
+            || observed
+                .tokens
+                .raw_input
+                .zip(observed.tokens.cache_read)
+                .is_some()
+        {
+            Some(TokenUnavailableReason::Invalid)
+        } else {
+            Some(TokenUnavailableReason::Missing)
+        };
     }
-    Some(tokens)
+    Some(observed)
 }
 
-pub(super) fn counts_regress(old: &TokenUsage, new: &TokenUsage) -> bool {
+pub(super) fn counts_regress(old: &TokenObservation, new: &TokenObservation) -> bool {
     [
-        (old.raw_input, new.raw_input),
-        (old.cache_read, new.cache_read),
-        (old.cache_create, new.cache_create),
-        (old.output, new.output),
-        (old.total, new.total),
+        TokenField::RawInput,
+        TokenField::CacheRead,
+        TokenField::CacheCreate,
+        TokenField::Output,
+        TokenField::Total,
     ]
     .into_iter()
-    .any(|(a, b)| a.zip(b).is_some_and(|(a, b)| b < a))
+    .any(|field| {
+        old.tokens
+            .get(field)
+            .zip(new.tokens.get(field))
+            .is_some_and(|(a, b)| b < a)
+    })
 }
-pub(super) fn subtract(new: &TokenUsage, old: Option<&TokenUsage>) -> TokenUsage {
-    let zero = TokenUsage {
-        input: Some(0),
-        cache_read: Some(0),
-        cache_create: Some(0),
-        output: Some(0),
-        reasoning: Some(0),
-        total: Some(0),
-        raw_input: Some(0),
-    };
-    let old = old.unwrap_or(&zero);
-    let diff = |a: Option<u64>, b: Option<u64>| a.zip(b).and_then(|(a, b)| a.checked_sub(b));
-    TokenUsage {
-        input: diff(new.input, old.input),
-        cache_read: diff(new.cache_read, old.cache_read),
-        cache_create: diff(new.cache_create, old.cache_create),
-        output: diff(new.output, old.output),
-        reasoning: diff(new.reasoning, old.reasoning),
-        total: diff(new.total, old.total),
-        raw_input: diff(new.raw_input, old.raw_input),
+pub(super) fn subtract(
+    new: &TokenObservation,
+    old: Option<&TokenObservation>,
+    initial: bool,
+) -> TokenObservation {
+    let mut delta = TokenObservation::unavailable(TokenUnavailableReason::Indeterminate);
+    for field in TokenField::ALL {
+        let current = new.tokens.get(field);
+        let baseline = old.map_or(initial.then_some(0), |old| old.tokens.get(field));
+        let value = current.zip(baseline).and_then(|(a, b)| a.checked_sub(b));
+        delta.tokens.set(field, value);
+        *delta.reasons.get_mut(field) = if value.is_some() {
+            None
+        } else if current.is_none() {
+            *new.reasons.get(field)
+        } else {
+            Some(TokenUnavailableReason::Indeterminate)
+        };
     }
+    delta
 }
 
 pub(super) fn context_fields(

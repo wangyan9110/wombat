@@ -18,7 +18,75 @@ pub(super) fn checked_sum(
     }
     Ok(complete.then_some(sum))
 }
+
+fn token_analysis(rows: &[&PricedMeasurement]) -> Result<TokenAnalysis> {
+    let fields = TokenFields::from_fn(|_| ObservedTokenSubtotal {
+        observed_subtotal: None,
+        covered_records: 0,
+        missing_records: 0,
+        conflicting_records: 0,
+        invalid_records: 0,
+        indeterminate_records: 0,
+    });
+    let mut fields = fields;
+    for field in TokenField::ALL {
+        let aggregate = fields.get_mut(field);
+        let mut subtotal = 0_u64;
+        for row in rows {
+            let value = row.fact.tokens.get(field);
+            let reason = *row.fact.token_unavailable_reasons.get(field);
+            match (value, reason) {
+                (Some(value), None) => {
+                    aggregate.covered_records =
+                        checked_record_increment(aggregate.covered_records)?;
+                    subtotal = subtotal
+                        .checked_add(value)
+                        .filter(|sum| *sum <= MAX_SAFE_INTEGER)
+                        .ok_or_else(|| {
+                            operation_error("RESOURCE_LIMIT", "Token小计超出安全整数范围")
+                        })?;
+                }
+                (None, Some(TokenUnavailableReason::Missing)) => {
+                    aggregate.missing_records =
+                        checked_record_increment(aggregate.missing_records)?;
+                }
+                (None, Some(TokenUnavailableReason::Conflicting)) => {
+                    aggregate.conflicting_records =
+                        checked_record_increment(aggregate.conflicting_records)?;
+                }
+                (None, Some(TokenUnavailableReason::Invalid)) => {
+                    aggregate.invalid_records =
+                        checked_record_increment(aggregate.invalid_records)?;
+                }
+                (None, Some(TokenUnavailableReason::Indeterminate)) => {
+                    aggregate.indeterminate_records =
+                        checked_record_increment(aggregate.indeterminate_records)?;
+                }
+                _ => {
+                    return Err(operation_error(
+                        "INVALID_LEDGER",
+                        "Token值与不可用原因不一致",
+                    ));
+                }
+            }
+        }
+        aggregate.observed_subtotal = (aggregate.covered_records > 0).then_some(subtotal);
+    }
+    Ok(TokenAnalysis {
+        method_version: TokenAnalysis::METHOD_VERSION,
+        scope: TokenAnalysisScope::SelectedCanonicalMeasurements,
+        fields,
+    })
+}
+
+fn checked_record_increment(value: u64) -> Result<u64> {
+    value
+        .checked_add(1)
+        .ok_or_else(|| operation_error("RESOURCE_LIMIT", "Token记录数超出安全范围"))
+}
+
 pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
+    let token_analysis = token_analysis(rows)?;
     let input_total = checked_sum(rows, total_input)?;
     let cache_read = checked_sum(rows, |t| t.cache_read)?;
     // Validate stored parts even for a single row; preserve its request-specific basis.
@@ -41,6 +109,7 @@ pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
             total: checked_sum(rows, |t| t.total)?,
             raw_input: checked_sum(rows, |t| t.raw_input)?,
         },
+        token_analysis,
         price: if rows.len() == 1 {
             rows[0].price.as_ref().clone()
         } else {
@@ -130,8 +199,28 @@ pub(super) fn consumption_order(
     if *sort == Some(Sort::Cost) {
         known_cost(b).cmp(&known_cost(a))
     } else {
-        b.tokens.total.cmp(&a.tokens.total)
+        b.token_analysis
+            .field(TokenField::Total)
+            .observed_subtotal
+            .cmp(&a.token_analysis.field(TokenField::Total).observed_subtotal)
     }
+}
+
+pub(super) fn max_observed_tokens<'a>(
+    summaries: impl IntoIterator<Item = &'a UsageSummary>,
+) -> Option<u64> {
+    let mut maximum = None;
+    for summary in summaries {
+        let Some(value) = summary
+            .token_analysis
+            .field(TokenField::Total)
+            .observed_subtotal
+        else {
+            continue;
+        };
+        maximum = Some(maximum.map_or(value, |current: u64| current.max(value)));
+    }
+    maximum
 }
 
 #[cfg(test)]

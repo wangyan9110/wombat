@@ -21,7 +21,9 @@ use reports::{default_report_start, dimension_items, usage_items};
 pub(crate) use scope::validate;
 use scope::{available, date, dimensions, invalid, local_date, matches, quality, timezone};
 pub use summary::summarize;
-use summary::{consumption_order, cost_share, known_cost, share, unpriced_tokens};
+use summary::{
+    consumption_order, cost_share, known_cost, max_observed_tokens, share, unpriced_tokens,
+};
 pub fn dispatch(args: &Value) -> Result<Value> {
     let request: Request =
         serde_json::from_value(args.clone()).map_err(|e| invalid(format!("无效用量请求：{e}")))?;
@@ -68,7 +70,7 @@ pub fn execute(request: Request) -> Result<Response> {
             distribution: None,
             price_update: None,
             freshness: None,
-            output_version: 3,
+            output_version: 4,
             action: Action::Refresh,
             snapshot_ref: snapshot.manifest.snapshot_ref.clone(),
             scope: Scope::default(),
@@ -302,10 +304,7 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         if matches!(request.sort, Some(Sort::Tokens | Sort::Cost)) {
             groups.sort_by(|a, b| consumption_order(group_usage(a), group_usage(b), &request.sort));
         }
-        let max_tokens = groups
-            .iter()
-            .filter_map(|g| group_usage(g).tokens.total)
-            .max();
+        let max_tokens = max_observed_tokens(groups.iter().map(|g| group_usage(g)));
         let max_cost = groups
             .iter()
             .filter_map(|g| known_cost(group_usage(g)))
@@ -313,6 +312,7 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         let mut stats = Distribution {
             unpriced_tokens: unpriced_tokens(&selected)?,
             max_tokens,
+            token_basis: TokenBasis::RecordedSubtotals,
             max_cost: max_cost.map(|v| v.to_string()),
             peak_token_dates: vec![],
             peak_cost_dates: vec![],
@@ -338,7 +338,13 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
                     *ratio = share(usage.tokens.total, summary.tokens.total);
                     *money_ratio = cost_share(usage, &summary);
                     if *is_subtotal {
-                        if max_tokens.is_some_and(|v| v > 0) && usage.tokens.total == max_tokens {
+                        if max_tokens.is_some()
+                            && usage
+                                .token_analysis
+                                .field(TokenField::Total)
+                                .observed_subtotal
+                                == max_tokens
+                        {
                             stats.peak_token_dates.push(date.clone());
                             stats.peak_token_scopes.push(scope.clone());
                         }
@@ -415,7 +421,7 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         distribution,
         price_update: None,
         freshness: None,
-        output_version: 3,
+        output_version: 4,
         action: request.action,
         snapshot_ref: snapshot.manifest.snapshot_ref.clone(),
         scope: request.scope,

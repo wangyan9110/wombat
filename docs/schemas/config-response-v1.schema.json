@@ -280,6 +280,9 @@
         "tokens": {
           "$ref": "#/definitions/TokenUsage"
         },
+        "tokenAnalysis": {
+          "$ref": "#/definitions/TokenAnalysis"
+        },
         "price": {
           "$ref": "#/definitions/PriceResult"
         },
@@ -291,6 +294,7 @@
       },
       "required": [
         "tokens",
+        "tokenAnalysis",
         "price",
         "measurementCount"
       ]
@@ -357,6 +361,118 @@
           "maximum": 9007199254740991
         }
       }
+    },
+    "TokenAnalysis": {
+      "description": "Token subtotals are scoped to the canonical measurements selected by this query.\nExisting `tokens` fields remain complete totals; partial observations live here.",
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/TokenAnalysisScope"
+        },
+        "fields": {
+          "$ref": "#/definitions/TokenFields"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "scope",
+        "fields"
+      ]
+    },
+    "TokenAnalysisScope": {
+      "type": "string",
+      "enum": [
+        "selected_canonical_measurements"
+      ]
+    },
+    "TokenFields": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "cacheRead": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "cacheCreate": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "output": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "reasoning": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "total": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "rawInput": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "cacheRead",
+        "cacheCreate",
+        "output",
+        "reasoning",
+        "total",
+        "rawInput"
+      ]
+    },
+    "ObservedTokenSubtotal": {
+      "description": "An observed subtotal never implies that unavailable records contributed zero.",
+      "type": "object",
+      "properties": {
+        "observedSubtotal": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "coveredRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "missingRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "conflictingRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "invalidRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "indeterminateRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "coveredRecords",
+        "missingRecords",
+        "conflictingRecords",
+        "invalidRecords",
+        "indeterminateRecords"
+      ]
     },
     "PriceResult": {
       "type": "object",

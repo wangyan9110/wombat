@@ -177,7 +177,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateRequest(request)) throw new CoreError('INVALID_ARGUMENT', '查询参数不符合数据协议');
       const result = await transport(request, options);
-      if (!validateResponse(result) || result.outputVersion !== 3 || result.action !== request.action) {
+      if (!validateResponse(result) || result.outputVersion !== 4 || result.action !== request.action) {
         throw new CoreError('PROTOCOL_ERROR', '用量数据格式不正确');
       }
       return result;

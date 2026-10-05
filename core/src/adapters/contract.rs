@@ -9,6 +9,11 @@ use std::{
     },
 };
 
+mod tokens;
+pub use tokens::{
+    TokenField, TokenFields, TokenUnavailableReason, merge_token_observations,
+    validate_token_observations,
+};
 mod watermarks;
 mod work;
 pub(crate) use watermarks::validate_watermarks;
@@ -147,6 +152,8 @@ pub struct Measurement {
     pub model: ModelRef,
     pub reasoning_effort: Option<Arc<str>>,
     pub tokens: TokenUsage,
+    /// One explicit reason for each unavailable token field; known values have none.
+    pub token_unavailable_reasons: TokenFields<Option<TokenUnavailableReason>>,
     /// Explicit model/provider contradictions cannot be treated as absent price context.
     pub pricing_context_conflict: bool,
     pub request_scoped: bool,

@@ -7,7 +7,7 @@ use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub const EVENT_VERSION: u32 = 2;
+pub const EVENT_VERSION: u32 = 3;
 pub mod title_observations;
 
 /// A generation belongs to one physical source file, not to an entire source root.
@@ -401,6 +401,10 @@ impl TryFrom<StoredEvent> for Event {
                 context_conflicts,
                 ..
             } => {
+                crate::adapters::contract::validate_token_observations(
+                    &fact.tokens,
+                    &fact.token_unavailable_reasons,
+                )?;
                 ensure!(
                     thread == fact.thread_id.as_deref()
                         && turn == fact.turn_id.as_deref()

@@ -1,5 +1,6 @@
 //! Inventory lists, usage summaries, evidence and related scopes from one pinned view.
 use super::*;
+use crate::adapters::contract::TokenField;
 use crate::usage_observations::{self, Projection, TimeBasis};
 pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
     validate(&r)?;
@@ -733,8 +734,12 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             Sort::Tokens => b
                 .usage
                 .as_ref()
-                .and_then(|v| v.tokens.total)
-                .cmp(&a.usage.as_ref().and_then(|v| v.tokens.total)),
+                .and_then(|v| v.token_analysis.field(TokenField::Total).observed_subtotal)
+                .cmp(
+                    &a.usage
+                        .as_ref()
+                        .and_then(|v| v.token_analysis.field(TokenField::Total).observed_subtotal),
+                ),
             Sort::Activity => b.usage_count.cmp(&a.usage_count),
             Sort::Size => b.bytes.cmp(&a.bytes),
             Sort::Name => a.name.cmp(&b.name),

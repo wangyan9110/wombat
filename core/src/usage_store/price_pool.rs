@@ -76,7 +76,7 @@ impl<'a> PricePool<'a> {
 mod tests {
     use super::*;
     fn fact() -> Arc<Measurement> {
-        Arc::new(serde_json::from_value(serde_json::json!({"id":"a","agentKind":"test","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{"raw":"gpt-5.4","provider":"openai"},"tokens":{"input":100,"cacheRead":0,"cacheCreate":0,"output":10,"rawInput":100,"total":110},"requestScoped":true,"pricingContextConflict":false,"sequence":0,"evidence":[]})).unwrap())
+        Arc::new(serde_json::from_value(serde_json::json!({"id":"a","agentKind":"test","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{"raw":"gpt-5.4","provider":"openai"},"tokens":{"input":100,"cacheRead":0,"cacheCreate":0,"output":10,"rawInput":100,"total":110},"tokenUnavailableReasons":{"input":null,"cacheRead":null,"cacheCreate":null,"output":null,"reasoning":"missing","total":null,"rawInput":null},"requestScoped":true,"pricingContextConflict":false,"sequence":0,"evidence":[]})).unwrap())
     }
     #[test]
     fn hash_collisions_and_full_pool_never_substitute_another_price() {

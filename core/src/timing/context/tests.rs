@@ -7,6 +7,7 @@ fn measurement(id: &str, input: Option<u64>, scoped: bool) -> Measurement {
         "threadId":"thread", "turnId":"turn", "grain":"response",
         "timePrecision":"millisecond", "model":{"raw":"model"},
         "reasoningEffort":"high", "tokens":{"rawInput":input,"input":10,"cacheRead":90},
+        "tokenUnavailableReasons":{"input":null,"cacheRead":null,"cacheCreate":"missing","output":"missing","reasoning":"missing","total":"missing","rawInput":input.is_none().then_some("missing")},
         "pricingContextConflict":false,"requestScoped":scoped,"sequence":0,"evidence":[]
     }))
     .unwrap()

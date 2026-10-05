@@ -47,6 +47,10 @@ fn fixture() -> Collected {
             total: Some(110),
             raw_input: Some(100),
         },
+        token_unavailable_reasons: TokenFields {
+            reasoning: Some(TokenUnavailableReason::Missing),
+            ..TokenFields::default()
+        },
         pricing_context_conflict: false,
         request_scoped: true,
         reported_cost: None,
@@ -74,6 +78,7 @@ fn equal_prices_share_storage_without_merging_measurements_or_distinct_inputs() 
         }
         if index == 3 {
             fact.tokens.output = None;
+            fact.token_unavailable_reasons.output = Some(TokenUnavailableReason::Missing);
         }
         if index == 4 {
             fact.tokens.output = Some(0);
@@ -101,6 +106,25 @@ fn equal_prices_share_storage_without_merging_measurements_or_distinct_inputs() 
         );
         assert_eq!(*row.price, expected);
     }
+}
+
+#[test]
+fn persisted_ledger_rejects_inconsistent_token_observations() {
+    let root = tempfile::tempdir().unwrap();
+    let mut snapshot = save_at(root.path(), fixture()).unwrap();
+    let mut rows = snapshot.ledger().unwrap();
+    Arc::make_mut(&mut rows[0].fact)
+        .token_unavailable_reasons
+        .total = Some(TokenUnavailableReason::Missing);
+    snapshot.manifest.ledger =
+        super::files::save_json(&snapshot.directory, "ledger.json", &rows).unwrap();
+    assert!(
+        snapshot
+            .ledger()
+            .unwrap_err()
+            .to_string()
+            .contains("计量观察无效")
+    );
 }
 
 #[test]

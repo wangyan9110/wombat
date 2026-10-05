@@ -1,5 +1,5 @@
-//! Public v3 query contract. All calculations remain in the Rust core.
-use crate::adapters::contract::{Issue, SourceReport, TokenUsage};
+//! Public usage query contract. All calculations remain in the Rust core.
+use crate::adapters::contract::{Issue, SourceReport, TokenField, TokenFields, TokenUsage};
 use crate::pricing::PriceResult;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -86,8 +86,46 @@ pub struct UsageSummary {
     #[serde(default)]
     pub unpriced_tokens: Option<u64>,
     pub tokens: TokenUsage,
+    pub token_analysis: TokenAnalysis,
     pub price: PriceResult,
     pub measurement_count: usize,
+}
+
+/// Token subtotals are scoped to the canonical measurements selected by this query.
+/// Existing `tokens` fields remain complete totals; partial observations live here.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TokenAnalysis {
+    #[schemars(range(min = 1, max = 1))]
+    pub method_version: u32,
+    pub scope: TokenAnalysisScope,
+    pub fields: TokenFields<ObservedTokenSubtotal>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TokenAnalysisScope {
+    SelectedCanonicalMeasurements,
+}
+
+/// An observed subtotal never implies that unavailable records contributed zero.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ObservedTokenSubtotal {
+    pub observed_subtotal: Option<u64>,
+    pub covered_records: u64,
+    pub missing_records: u64,
+    pub conflicting_records: u64,
+    pub invalid_records: u64,
+    pub indeterminate_records: u64,
+}
+
+impl TokenAnalysis {
+    pub const METHOD_VERSION: u32 = 1;
+
+    pub fn field(&self, field: TokenField) -> &ObservedTokenSubtotal {
+        self.fields.get(field)
+    }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -208,12 +246,21 @@ pub enum Item {
 #[serde(rename_all = "camelCase")]
 pub struct Distribution {
     pub unpriced_tokens: Option<u64>,
+    /// Basis for maxTokens and peak token scopes/dates.
+    pub token_basis: TokenBasis,
+    /// Maximum of bucket total observed subtotals; not necessarily a complete total.
     pub max_tokens: Option<u64>,
     pub max_cost: Option<String>,
     pub peak_token_dates: Vec<Option<String>>,
     pub peak_cost_dates: Vec<Option<String>>,
     pub peak_token_scopes: Vec<Scope>,
     pub peak_cost_scopes: Vec<Scope>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TokenBasis {
+    RecordedSubtotals,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]

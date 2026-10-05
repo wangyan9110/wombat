@@ -11,7 +11,7 @@ pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 2;
 /// Canonical operation outcome mapping, including persistent conflict evidence.
 pub(crate) const OPERATION_OBSERVATION_VERSION: u32 = 1;
 /// Measurement context conflict markers require explicit source observation headers.
-pub(crate) const MEASUREMENT_OBSERVATION_VERSION: u32 = 1;
+pub(crate) const MEASUREMENT_OBSERVATION_VERSION: u32 = 2;
 pub(crate) use crate::adapters::contract::WORK_OBSERVATION_VERSION;
 
 #[derive(Default, Serialize, Deserialize)]
@@ -939,7 +939,7 @@ mod sharing_tests {
     }
 
     fn row(id: &str, total: u64) -> Arc<Measurement> {
-        Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"pricingContextConflict":false,"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
+        Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"tokenUnavailableReasons":{"input":"missing","cacheRead":"missing","cacheCreate":"missing","output":"missing","reasoning":"missing","total":null,"rawInput":"missing"},"pricingContextConflict":false,"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
     }
     #[test]
     fn ordered_sharing_preserves_corrections_missing_and_foreign_facts() {

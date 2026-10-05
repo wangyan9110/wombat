@@ -1,15 +1,16 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CoreError, createUsageClient, type UsageRequest, type UsageResult } from '@wombat/client';
 
 const response: UsageResult = {
-  outputVersion: 3, action: 'usage',
+  outputVersion: 4, action: 'usage',
   snapshotRef: { snapshotId: 'synthetic', createdAt: '2026-09-30T00:00:00Z' },
   scope: {}, availableRange: {},
-  summary: {
+  summary: withTokenAnalysis({
     tokens: { input: 10, output: 2, total: 12 }, measurementCount: 1,
     price: { currency: 'USD', policy: 'synthetic', priceRevision: 'synthetic', cost: '0.1', knownCost: '0.1', status: 'priced', components: [], basis: [], issues: [] },
-  },
+  }),
   items: [], page: { offset: 0, limit: 50, total: 0 }, quality: { status: 'complete', issues: [], sources: [] },
 };
 
@@ -39,7 +40,7 @@ test('portable client keeps generated results and forwards cancellation and prog
 });
 
 test('portable client rejects wrong version, malformed result and mismatched operation', async () => {
-  for (const invalid of [{ ...response, outputVersion: 2 }, { ...response, action: 'refresh' }, { ...response, summary: {} }, null]) {
+  for (const invalid of [{ ...response, outputVersion: 2 }, { ...response, outputVersion: 3 }, { ...response, action: 'refresh' }, { ...response, summary: {} }, null]) {
     await assert.rejects(createUsageClient({ query: async () => invalid }).query({ action: 'usage' }), (error: unknown) => error instanceof CoreError && error.code === 'PROTOCOL_ERROR');
   }
 });
@@ -57,4 +58,14 @@ test('configuration review and preference transports reject broad commands, bad 
  const c=new AbortController();c.abort();await assert.rejects(client.preferences!({action:'get'},{signal:c.signal}),{code:'CANCELLED'});
  assert.equal(calls,0);assert.equal((await client.preferences!({action:'get'})).language,'en');
  await assert.rejects(client.preferences!({action:'set',language:'zh'}),{code:'PROTOCOL_ERROR'});
+});
+
+test('usage v4 requires per-field token analysis and its exact method and scope', async()=>{
+ const {tokenAnalysis,...oldSummary}=response.summary;
+ const variations=[{...response,summary:oldSummary},
+  ...[0,2].map(methodVersion=>({...response,summary:{...response.summary,tokenAnalysis:{...tokenAnalysis,methodVersion}}})),
+  {...response,summary:{...response.summary,tokenAnalysis:{...tokenAnalysis,scope:'allLogs'}}},
+  {...response,summary:{...response.summary,tokenAnalysis:{...tokenAnalysis,fields:{...tokenAnalysis.fields,total:{...tokenAnalysis.fields.total,coveredRecords:-1}}}}},
+ ];
+ for(const result of variations)await assert.rejects(createUsageClient({query:async()=>result}).query({action:'usage'}),{code:'PROTOCOL_ERROR'});
 });

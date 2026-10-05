@@ -360,7 +360,7 @@ fn byte_budgets_include_utf8_and_array_boundaries() {
     let disk = save_at(root.path(), facts(vec![source.clone()])).unwrap();
     let target = EventTarget::turn("线程", "轮次");
     let bytes =
-        serde_json::to_vec(&serde_json::json!({"version":1,"target":target,"events":[source]}))
+        serde_json::to_vec(&serde_json::json!({"version":disk.manifest.events.version,"target":target,"events":[source]}))
             .unwrap()
             .len() as u64;
     assert_eq!(disk.manifest.events.partitions[0].chunks[0].bytes, bytes);
@@ -521,7 +521,7 @@ fn valid_hash_cannot_hide_unknown_block_or_event_version_or_scope_mismatch() {
             .contains("不支持此事件块版本")
     );
     let mut changed = original.clone();
-    changed["events"][0]["version"] = serde_json::json!(3);
+    changed["events"][0]["version"] = serde_json::json!(crate::session_events::EVENT_VERSION + 1);
     rewrite_block(&mut snapshot, changed);
     assert!(
         snapshot
@@ -857,9 +857,10 @@ fn future_index_fields_do_not_hide_an_unsupported_version() {
     let snapshot = save_at(root.path(), Collected::default()).unwrap();
     let manifest_path = snapshot.directory.join("manifest.json");
     let original = serde_json::to_value(&snapshot.manifest).unwrap();
+    let future_index_version = snapshot.manifest.events.version + 1;
     for index in [
-        serde_json::json!({"version":2,"partitions":[],"futureField":{"private":"uninterpreted"}}),
-        serde_json::json!({"version":2,"futureShape":true}),
+        serde_json::json!({"version":future_index_version,"partitions":[],"futureField":{"private":"uninterpreted"}}),
+        serde_json::json!({"version":future_index_version,"futureShape":true}),
     ] {
         let mut changed = original.clone();
         changed["events"] = index;
@@ -879,7 +880,7 @@ fn future_index_fields_do_not_hide_an_unsupported_version() {
         );
     }
     for index in [
-        serde_json::json!({"version":1,"partitions":[],"futureField":true}),
+        serde_json::json!({"version":snapshot.manifest.events.version,"partitions":[],"futureField":true}),
         serde_json::json!({"partitions":[]}),
         serde_json::json!({"version":"1","partitions":[]}),
     ] {
@@ -908,11 +909,12 @@ fn future_block_and_fact_fields_are_version_errors_before_current_shape_parsing(
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     let target = EventTarget::turn("a", "turn");
     let mut future_block = original.clone();
-    future_block["version"] = serde_json::json!(2);
+    future_block["version"] = serde_json::json!(snapshot.manifest.events.version + 1);
     future_block["futureField"] = serde_json::json!({"private":"uninterpreted"});
     future_block.as_object_mut().unwrap().remove("events");
     let mut future_fact = original.clone();
-    future_fact["events"][0]["version"] = serde_json::json!(3);
+    future_fact["events"][0]["version"] =
+        serde_json::json!(crate::session_events::EVENT_VERSION + 1);
     future_fact["events"][0]["futureField"] = serde_json::json!(true);
     future_fact["events"][0]["payload"] =
         serde_json::json!({"kind":"future_kind","private":"uninterpreted"});

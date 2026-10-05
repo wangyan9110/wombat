@@ -22,35 +22,12 @@ impl Facts {
             let old = Arc::make_mut(&mut existing.measurement);
             let prefix = old.id.clone();
             let conflicts = &mut self.measurement_conflicts;
-            let mut token_conflict = false;
-            for (field, current, new) in [
-                ("input", &mut old.tokens.input, &incoming.tokens.input),
-                (
-                    "cacheRead",
-                    &mut old.tokens.cache_read,
-                    &incoming.tokens.cache_read,
-                ),
-                (
-                    "cacheCreate",
-                    &mut old.tokens.cache_create,
-                    &incoming.tokens.cache_create,
-                ),
-                ("output", &mut old.tokens.output, &incoming.tokens.output),
-                (
-                    "reasoning",
-                    &mut old.tokens.reasoning,
-                    &incoming.tokens.reasoning,
-                ),
-                ("total", &mut old.tokens.total, &incoming.tokens.total),
-                (
-                    "rawInput",
-                    &mut old.tokens.raw_input,
-                    &incoming.tokens.raw_input,
-                ),
-            ] {
-                token_conflict |=
-                    merge_optional(current, new, conflicts, &format!("{prefix}:{field}"));
-            }
+            let token_conflict = merge_token_observations(
+                &mut old.tokens,
+                &mut old.token_unavailable_reasons,
+                &incoming.tokens,
+                &incoming.token_unavailable_reasons,
+            );
             if token_conflict {
                 issue(
                     report,
