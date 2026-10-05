@@ -17,6 +17,8 @@
     "test:unit": "pnpm -r test",
     "test:integration": "node --import tsx --test tests/integration/*.test.ts",
     "test:e2e": "node --import tsx --test tests/e2e/*.test.ts",
+    "verify:e2e": "node --import tsx scripts/verify-e2e.ts",
+    "verify:event-upgrade:browser": "node --import tsx scripts/verify-event-upgrade-browser.ts",
     "contracts:generate": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs",
     "contracts:check": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs --check",
     "skills:check": "node scripts/check-skills.mjs",
