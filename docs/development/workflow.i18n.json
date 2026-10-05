@@ -12,6 +12,10 @@
     "/development-and-delivery-rules/verification": {
       "zh": "2632bac1864c094bbbb5d031aadc80c9012b58d1ec60a00dfeeb09128ce383d9",
       "en": "c5ab10558f67d52702aa390431a55aa9fa51c8fa6f935de5b5fd689adc1ca628"
+    },
+    "/development-and-delivery-rules/verification/failure-investigation": {
+      "zh": "0c40abaa715983b2f695262f1a608c69b2579f6cbb064fca27ba66ca1c639247",
+      "en": "df975583914622de0752553088238382334889942482bcbb66e0463862632327"
     }
   }
 }
