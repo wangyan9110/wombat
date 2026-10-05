@@ -8,7 +8,7 @@ export function useInventory(client:UsageClient,request:ConfigRequest|undefined,
   useEffect(()=>{if(!key){setState({loading:false});return;}const c=new AbortController();active.current=c;setState(previous=>({...previous,key,data:previous.key===key?previous.data:undefined,loading:true,error:undefined,code:undefined}));
     void followInventory(client,JSON.parse(key),allPages,c.signal,data=>{if(!c.signal.aborted)setState({key,data,loading:false});}).catch(e=>{if(!c.signal.aborted)setState(previous=>({...previous,key,error:e.message,code:e.code,loading:false}));});return()=>c.abort();
   },[client,key,allPages,retry]);
-  return {...(state.key===key?state:{loading:!!key}),retry:()=>setRetry(n=>n+1),cancel:()=>{active.current?.abort();setState(previous=>({...previous,key,loading:false,error:t('webui.cancel'),code:'CANCELLED'}));}};
+  return {...(state.key===key?state:{loading:!!key}),retry:()=>setRetry(n=>n+1),cancel:()=>{active.current?.abort();setState(previous=>({...previous,key,loading:false,error:'CANCELLED',code:'CANCELLED'}));}};
 }
 export function useInventorySuggestions(client:UsageClient,readView:string|undefined,project:string|undefined,source:string|undefined,agentsBytes?:number,descriptionCharacters?:number) {
   const [state,setState]=useState<{key?:string;byItem:Map<string,OptimizeSuggestion[]>;ordered:OptimizeSuggestion[];revision?:string;error?:Error}>({byItem:new Map(),ordered:[]});

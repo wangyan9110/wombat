@@ -40,7 +40,7 @@
     "github:pack": "node scripts/prepare-github-release.ts",
     "github:verify": "node scripts/verify-github-release.ts",
     "native:export": "node scripts/export-native.ts",
-    "i18n:check": "node scripts/check-ui-i18n.mjs",
+    "i18n:check": "node scripts/check-ui-i18n.ts",
     "test:repo": "node --import tsx --test scripts/*.test.mjs scripts/*.test.ts",
     "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
     "benchmark:live": "node --import tsx scripts/benchmark-live.ts",
