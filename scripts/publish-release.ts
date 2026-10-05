@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { updateInstalled } from '../cli/src/update-cli.ts';
 import { releaseArchive } from './github-release.ts';
 import { nativeTargets } from './native-platforms.ts';
 import { validateVersion } from './prepare-release.ts';
@@ -299,28 +300,38 @@ function verifyDownloadedRelease(directory: string, version: string, source: str
   return archives;
 }
 
-function cleanInstall(version: string, scratch: string): void {
+async function cleanInstall(version: string, scratch: string, releaseDirectory: string): Promise<void> {
   const prefix = path.join(scratch, 'install');
+  const baseUrl = pathToFileURL(releaseDirectory).href.replace(/\/$/, '');
+  let entryFile: string;
   if (process.platform === 'win32') {
     run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'install.ps1'),
-      '-Version', version, '-Prefix', prefix], 10 * 60_000);
+      '-Version', version, '-Prefix', prefix, '-BaseUrl', baseUrl], 10 * 60_000);
     const installRoot = path.join(prefix, 'lib', 'wombat');
     const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
     if (!/^[0-9A-Za-z._-]+$/.test(releaseId)) throw new Error('Windows installation pointer is invalid');
     const installed = path.join(installRoot, 'versions', releaseId);
     const runtime = path.join(installed, 'runtime', 'node.exe');
-    const cli = path.join(installed, 'lib', 'wombat.js');
-    run(runtime, [cli, '--version', '--json']);
-    run(runtime, [cli, 'update', '--check', '--version', version], 10 * 60_000);
+    entryFile = path.join(installed, 'lib', 'wombat.js');
+    run(runtime, [entryFile, '--version', '--json']);
   } else {
-    run('sh', [path.join(root, 'install.sh'), '--version', version, '--prefix', prefix], 10 * 60_000);
+    run('sh', [path.join(root, 'install.sh'), '--version', version, '--prefix', prefix, '--base-url', baseUrl], 10 * 60_000);
     const launcher = path.join(prefix, 'bin', 'wombat');
     run(launcher, ['--version', '--json']);
-    run(launcher, ['update', '--check', '--version', version], 10 * 60_000);
+    const installRoot = path.join(prefix, 'lib', 'wombat');
+    const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
+    if (!/^[0-9A-Za-z._-]+$/.test(releaseId)) throw new Error('Installation pointer is invalid');
+    entryFile = path.join(installRoot, 'versions', releaseId, 'lib', 'wombat.js');
   }
+  const update = await updateInstalled({ version, check: true, entryFile, baseUrl });
+  if (!update.checked || update.updated || update.updateAvailable
+    || update.currentVersion !== version || update.availableVersion !== version) {
+    throw new Error(`Clean update check returned an invalid result: ${JSON.stringify(update)}`);
+  }
+  console.log(JSON.stringify(update));
 }
 
-function main(): void {
+async function main(): Promise<void> {
   if (process.argv.slice(2).some(arg => arg === '-h' || arg === '--help')) {
     console.log('Usage: corepack pnpm release:publish -- --version <semver> [--branch main] [--repo owner/repo]');
     return;
@@ -344,43 +355,51 @@ function main(): void {
   }
   if (metadata.version !== options.version) throw new Error(`package.json remains at ${metadata.version}`);
 
-  let dirty = changedFiles();
-  const unexpected = dirty.filter(file => !managedReleaseFiles.has(file));
-  if (unexpected.length) throw new Error(`Release automation will not commit unrelated files: ${unexpected.join(', ')}`);
-  const remoteMainBefore = remoteRef(`refs/heads/${options.branch}`);
-  let source = required('git', ['rev-parse', 'HEAD']);
-
-  if (dirty.length || remoteMainBefore !== source) {
-    stage('Local release gate');
-    run('corepack', ['pnpm', 'release:prepare', '--', '--check'], 10 * 60_000);
-    run('corepack', ['pnpm', 'release:check'], 90 * 60_000);
-  }
-  dirty = changedFiles();
-  if (dirty.length) {
-    stage('Commit release candidate');
-    run('git', ['add', '--', ...dirty]);
-    run('git', ['diff', '--cached', '--check']);
-    run('git', ['commit', '-m', `Prepare ${tag}`]);
-    source = required('git', ['rev-parse', 'HEAD']);
-  }
-
-  const remoteMain = remoteRef(`refs/heads/${options.branch}`);
-  if (remoteMain !== source) {
-    if (remoteMain && command('git', ['merge-base', '--is-ancestor', remoteMain, source]).status !== 0) {
-      throw new Error(`Local ${options.branch} is not a fast-forward of origin/${options.branch}`);
-    }
-    stage('Push release candidate');
-    run('git', ['push', 'origin', `${options.branch}:${options.branch}`], 5 * 60_000);
-  }
-  if (changedFiles().length) throw new Error('Working tree changed during release preparation');
-
-  stage('Wait for exact-source CI');
-  const ci = waitForRun(repository, 'ci.yml', source, options.branch);
-  immutableReleasesEnabled(repository);
-
   const existingTag = remoteTagSource(tag);
-  if (existingTag && existingTag !== source) throw new Error(`${tag} already points to ${existingTag}, expected ${source}`);
-  if (!existingTag) {
+  let source: string;
+  let ci: WorkflowRun;
+  if (existingTag) {
+    const dirty = changedFiles();
+    if (dirty.length) throw new Error(`Resume an existing release from a clean tree; found: ${dirty.join(', ')}`);
+    const remoteMain = remoteRef(`refs/heads/${options.branch}`);
+    if (!remoteMain || command('git', ['merge-base', '--is-ancestor', existingTag, remoteMain]).status !== 0) {
+      throw new Error(`${tag} source ${existingTag} is not on origin/${options.branch}`);
+    }
+    source = existingTag;
+    stage('Resume existing immutable release identity');
+    ci = waitForRun(repository, 'ci.yml', source, options.branch);
+    immutableReleasesEnabled(repository);
+  } else {
+    let dirty = changedFiles();
+    const unexpected = dirty.filter(file => !managedReleaseFiles.has(file));
+    if (unexpected.length) throw new Error(`Release automation will not commit unrelated files: ${unexpected.join(', ')}`);
+    const remoteMainBefore = remoteRef(`refs/heads/${options.branch}`);
+    source = required('git', ['rev-parse', 'HEAD']);
+    if (dirty.length || remoteMainBefore !== source) {
+      stage('Local release gate');
+      run('corepack', ['pnpm', 'release:prepare', '--', '--check'], 10 * 60_000);
+      run('corepack', ['pnpm', 'release:check'], 90 * 60_000);
+    }
+    dirty = changedFiles();
+    if (dirty.length) {
+      stage('Commit release candidate');
+      run('git', ['add', '--', ...dirty]);
+      run('git', ['diff', '--cached', '--check']);
+      run('git', ['commit', '-m', `Prepare ${tag}`]);
+      source = required('git', ['rev-parse', 'HEAD']);
+    }
+    const remoteMain = remoteRef(`refs/heads/${options.branch}`);
+    if (remoteMain !== source) {
+      if (remoteMain && command('git', ['merge-base', '--is-ancestor', remoteMain, source]).status !== 0) {
+        throw new Error(`Local ${options.branch} is not a fast-forward of origin/${options.branch}`);
+      }
+      stage('Push release candidate');
+      run('git', ['push', 'origin', `${options.branch}:${options.branch}`], 5 * 60_000);
+    }
+    if (changedFiles().length) throw new Error('Working tree changed during release preparation');
+    stage('Wait for exact-source CI');
+    ci = waitForRun(repository, 'ci.yml', source, options.branch);
+    immutableReleasesEnabled(repository);
     stage('Pre-tag verification');
     run('corepack', ['pnpm', 'release:preflight', '--', '--version', options.version, '--branch', options.branch, '--repo', repository], 5 * 60_000);
     stage('Create and push immutable release tag');
@@ -410,7 +429,7 @@ function main(): void {
       run('gh', ['attestation', 'verify', archive, '--repo', repository], 5 * 60_000);
     }
     stage('Clean install and update check');
-    cleanInstall(options.version, scratch);
+    await cleanInstall(options.version, scratch, download);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
@@ -425,7 +444,7 @@ function main(): void {
 const entry = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : '';
 if (entry === import.meta.url) {
   try {
-    main();
+    await main();
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
