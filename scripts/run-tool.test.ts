@@ -17,8 +17,10 @@ test('Windows archive tools use the native executable despite a shadowing PATH a
   const exercise = () => spawnSync(process.execPath, ['--input-type=module', '-e', `
     import {toolCommand} from ${JSON.stringify(moduleUrl)};
     Object.defineProperty(process, 'platform', {value: 'win32'});
+    process.env.SystemRoot = ${JSON.stringify(systemRoot)};
+    process.env.PATH = ${JSON.stringify(shadow)};
     console.log(JSON.stringify(toolCommand('tar', ['-tzf', 'C:\\\\archive with spaces.tar.gz'])));
-  `], {env: {...process.env, SystemRoot: systemRoot, PATH: shadow}, encoding: 'utf8', timeout: 10_000, maxBuffer: 1024 * 1024});
+  `], {encoding: 'utf8', timeout: 10_000, maxBuffer: 1024 * 1024});
   const valid = exercise(); assert.ifError(valid.error); assert.equal(valid.status, 0, valid.stderr);
   const selected = JSON.parse(valid.stdout);
   assert.equal(pathToFileURL(selected[0]).href, pathToFileURL(native).href);

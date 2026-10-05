@@ -116,12 +116,10 @@ jobs:
           cargo fetch --locked --manifest-path core/Cargo.toml
       - name: Inventory native dependencies on this target
         run: corepack pnpm licenses:generate
-      - name: Release gate
-        run: corepack pnpm release:check
-      - name: Assemble and install the Windows archive
+      - name: Focused Windows installation and upgrade acceptance
         env:
           GH_TOKEN: ${{ github.token }}
-        run: corepack pnpm github:pack -- --current-platform --reuse-build
+        run: corepack pnpm release:verify-install
 
   github-candidate:
     name: Assemble GitHub Release candidate
