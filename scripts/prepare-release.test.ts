@@ -89,4 +89,11 @@ test('promotes beta user copy to stable installation and update instructions', t
   assert.match(english, /install\.ps1\)\)\) -Open/); assert.match(chinese, /install\.ps1\)\)\) -Open/);
   assert.match(english, /wombat update --check\n+wombat update/);
   assert.match(chinese, /wombat update --check\n+wombat update/);
+  assert.equal(english.match(/wombat update --check/g)?.length, 1);
+  assert.equal(chinese.match(/wombat update --check/g)?.length, 1);
+  assert.doesNotMatch(english, /Update a pre-release|\nold\n/);
+  assert.doesNotMatch(chinese, /更新预发行版本|旧文案/);
+  prepareVersionFiles(root, '0.1.0');
+  assert.equal(readFileSync(path.join(root, 'README.md'), 'utf8'), english);
+  assert.equal(readFileSync(path.join(root, 'README.zh-CN.md'), 'utf8'), chinese);
 });

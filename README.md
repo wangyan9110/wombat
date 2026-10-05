@@ -46,16 +46,6 @@ wombat update --check
 wombat update
 ```
 
-## Update Wombat
-
-Check for or install the latest stable release:
-
-```sh
-wombat update --check
-wombat update
-```
-
-
 ## Improve your day-to-day Codex workflow
 
 ### Understand your Codex token usage
