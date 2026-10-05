@@ -37,6 +37,18 @@
       "zh": "e0a994a9ea360efda717a9c7722e44968f99a57530270db8d64135b7b82841cc",
       "en": "383f5a8b51bfc09fe392ff64cee2f5d34d182b9e3633f15665557fecb1566ce5"
     },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/proposal/enforce-constraints-through-interfaces": {
+      "zh": "9f0ea31e7751bfe53e06c80d0fb60b892f559248911e7e49fb6d729f9394bc25",
+      "en": "b1e9867e364644ea4bbe901cc44f1ea43570fca9eef20b8790d780326630d0ce"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/proposal/incremental-updates-revise-results": {
+      "zh": "a892df840fb70040f03af7713e56590e8989976bb09280d9388fb0c97e4a0ce9",
+      "en": "5cb744edbc2f092b6701f9843edfe53c465700ad0f77d041e587cb90998cef31"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/proposal/converge-existing-entries": {
+      "zh": "877a2114e02e8c3ea0429b3837136b4e275d5e7fd3b0368d5e065ee3c4236e6a",
+      "en": "c14ea1214db08bfb7aecbe9126555dd9b199fafebbe4d5ba2b7e781c425db315"
+    },
     "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/proposal/treatment-of-existing-work": {
       "zh": "38f811d90dc3a7c18fa63cea251f88534060f1fbf137c3653837e70d111f1376",
       "en": "b7a380583ecef37ea522584e79eb9ed431168459699c558ba5aa4a305a913184"
