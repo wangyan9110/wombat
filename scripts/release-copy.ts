@@ -7,11 +7,14 @@ export function releaseStage(version: string): ReleaseStage {
   return 'stable';
 }
 
-function replaceSection(content: string, start: RegExp, endHeading: string, replacement: string, file: string): string {
+function replaceSection(content: string, start: RegExp, endHeading: RegExp, replacement: string, file: string): string {
   const match = start.exec(content);
   if (!match || match.index === undefined) throw new Error(`${file}: cannot locate release copy section`);
-  const end = content.indexOf(endHeading, match.index);
-  if (end < 0) throw new Error(`${file}: cannot locate release copy section end`);
+  const afterHeading = match.index + match[0].length;
+  const remaining = content.slice(afterHeading);
+  const boundary = endHeading.exec(remaining);
+  if (!boundary) throw new Error(`${file}: cannot locate release copy section end`);
+  const end = afterHeading + boundary.index;
   return content.slice(0, match.index) + replacement.trimEnd() + '\n\n' + content.slice(end);
 }
 
@@ -29,7 +32,7 @@ function stableReadme(content: string, version: string, chinese: boolean, file: 
     ? `### 更新 Wombat\n\n检查或安装最新稳定版：\n\n\`\`\`sh\nwombat update --check\nwombat update\n\`\`\``
     : `### Update Wombat\n\nCheck for or install the latest stable release:\n\n\`\`\`sh\nwombat update --check\nwombat update\n\`\`\``;
   return replaceSection(next, chinese ? /^### (?:更新预发行版本|更新 Wombat)$/m : /^### (?:Update a pre-release|Update Wombat)$/m,
-    '## ', update, file);
+    /^## /m, update, file);
 }
 
 export function applyReleaseCopy(file: string, content: string, version: string): string {

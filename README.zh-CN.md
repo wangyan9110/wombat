@@ -46,16 +46,6 @@ wombat update --check
 wombat update
 ```
 
-## 更新 Wombat
-
-检查或安装最新稳定版：
-
-```sh
-wombat update --check
-wombat update
-```
-
-
 ## 用 Wombat 改进 Codex 的日常使用
 
 ### 看清 Codex Token 用量

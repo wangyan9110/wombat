@@ -116,10 +116,10 @@ jobs:
           cargo fetch --locked --manifest-path core/Cargo.toml
       - name: Inventory native dependencies on this target
         run: corepack pnpm licenses:generate
-      - name: Release gate
-        run: corepack pnpm release:check
-      - name: Assemble and install the Windows archive
-        run: corepack pnpm github:pack -- --current-platform --reuse-build
+      - name: Focused Windows installation and upgrade acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: corepack pnpm release:verify-install
 
   github-candidate:
     name: Assemble GitHub Release candidate
@@ -141,6 +141,8 @@ jobs:
           path: native-artifacts
           merge-multiple: true
       - name: Assemble the five self-contained archives
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
@@ -183,11 +185,14 @@ jobs:
         with:
           name: github-candidate
           path: candidate
-      - name: Install locked dependencies for the upgrade acceptance test
+      - name: Prepare upgrade acceptance dependencies
         run: |
           npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
+          corepack pnpm --filter @wombat/client build
       - name: Exercise the exact self-contained archive
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/verify-github-release.ts --set candidate/release-set.json
 
   dependency-audit:

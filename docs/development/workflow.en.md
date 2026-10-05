@@ -35,3 +35,9 @@ Select commands by changed scope; run all for full-chain changes. Cross-language
 Verify hosts, real core, browsers, and installed assets separately. Web checks cover narrow layouts, cancellation, failure, and return paths. Performance uses fixed fixtures and release builds, recording cache state, startup, elapsed time, peak memory, and result consistency separately; benchmark entry points are the package.json benchmark scripts.
 
 For dependency changes run `corepack pnpm licenses:generate` and `corepack pnpm licenses:check`. Verify target platforms and clean installation under the [release Skill](../../.agents/skills/wombat-release/SKILL.md). Report actual verification only; builds do not establish product or platform acceptance.
+
+### Failure investigation
+
+- Stop dependent retries and preserve the failing stage, logs, source revision, and environment. Trace the symptom to its root cause; check upstream documentation before changing unfamiliar platform or library behavior. Do not use blind reruns, parameter changes, or longer timeouts as diagnosis.
+- Classify the cause and inspect every entry that shares the same assumption, including callers, platforms, build prerequisites, and CI/release workflows. Batch the affected fixes with regression coverage before rerunning verification.
+- Validate the whole failure class with focused reproductions first, then run the required aggregate checks once on the settled changes. Start costly platform or release runs only after that analysis and focused verification. Reuse passing evidence only where the change does not invalidate it.

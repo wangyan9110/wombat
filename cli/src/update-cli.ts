@@ -86,7 +86,9 @@ async function downloadFile(url: string, destination: string): Promise<{sha256: 
       digest.update(chunk);
       if (!output.write(chunk)) await once(output, 'drain');
     }
-    output.end(); await once(output, 'close');
+    const closed = once(output, 'close');
+    output.end();
+    await closed;
   } catch (error) {
     output.destroy();
     rmSync(destination, {force: true});
@@ -96,7 +98,9 @@ async function downloadFile(url: string, destination: string): Promise<{sha256: 
 }
 
 function runTar(args: string[], cwd?: string): string {
-  const result = spawnSync('tar', args, {cwd, encoding: 'utf8', timeout: 120_000, maxBuffer: 16 * 1024 * 1024});
+  // Git Bash's GNU tar treats Windows drive letters as remote archive names.
+  const program = process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+  const result = spawnSync(program, args, {cwd, encoding: 'utf8', timeout: 120_000, maxBuffer: 16 * 1024 * 1024});
   if (result.error || result.status !== 0) throw new Error(t('cli.update.extractFailed', {value: result.error?.message ?? result.stderr.trim()}));
   return result.stdout;
 }

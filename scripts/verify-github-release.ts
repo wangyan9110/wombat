@@ -12,6 +12,7 @@ import {parseArgs} from 'node:util';
 import {hashFile, inventory} from './artifact-files.ts';
 import {releaseNodeVersion, type GitHubReleaseSet} from './github-release.ts';
 import {nodeRuntimeBinary} from './native-platforms.ts';
+import {repositorySlug} from './release-policy.ts';
 import {toolCommand} from './run-tool.ts';
 import {previousReleaseTag} from './release-history.ts';
 import {updateInstalled} from '../cli/src/update-cli.ts';
@@ -20,6 +21,9 @@ const {values} = parseArgs({options: {set: {type: 'string'}}});
 assert(values.set, '--set is required');
 const setFile = path.resolve(values.set);
 const set: GitHubReleaseSet = JSON.parse(readFileSync(setFile, 'utf8'));
+const packageMetadata = JSON.parse(readFileSync(path.resolve('package.json'), 'utf8'));
+const repository = repositorySlug(typeof packageMetadata.repository === 'string'
+  ? packageMetadata.repository : packageMetadata.repository.url);
 assert.equal(set.format, 1);
 assert.equal(set.assets.length, set.targets.length);
 const target = process.platform + '-' + process.arch;
@@ -33,16 +37,62 @@ for (const item of set.assets) {
 
 const scratch = mkdtempSync(path.join(os.tmpdir(), 'wombat-github-release-'));
 let service: ChildProcess | undefined;
+const stage = (name: string) => console.log(`Release archive verification: ${name}`);
+async function within<T>(work: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([work, new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs} ms`)), timeoutMs);
+    })]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+function priorReleaseTags(): string[] {
+  const result = spawnSync('git', ['tag', '--merged', 'HEAD', '--sort=-creatordate'],
+    {encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024});
+  assert.ifError(result.error); assert.equal(result.status, 0, result.stderr);
+  return result.stdout.split(/\r?\n/).filter(Boolean);
+}
+function validatePublishedRelease(directory: string, tag: string, targetArchive: string): boolean {
+  try {
+    const previousSet = JSON.parse(readFileSync(path.join(directory, 'release-set.json'), 'utf8')) as GitHubReleaseSet;
+    const previousAsset = previousSet.assets.find(item => item.target === target);
+    if (previousSet.version !== tag.slice(1) || !previousAsset || previousAsset.archive !== targetArchive) return false;
+    const archive = path.join(directory, targetArchive);
+    return hashFile(archive) === previousAsset.sha256
+      && inventory(directory).find(file => file.path === targetArchive)?.size === previousAsset.bytes
+      && readFileSync(path.join(directory, 'SHA256SUMS'), 'utf8').split(/\r?\n/)
+        .includes(`${previousAsset.sha256}  ${targetArchive}`);
+  } catch { return false; }
+}
+function downloadPublishedRelease(tag: string, targetArchive: string): string {
+  const cacheRoot = process.env.WOMBAT_RELEASE_CACHE
+    ? path.resolve(process.env.WOMBAT_RELEASE_CACHE) : path.join(os.tmpdir(), 'wombat-release-cache');
+  const directory = path.join(cacheRoot, tag, target);
+  if (validatePublishedRelease(directory, tag, targetArchive)) {
+    stage(`reuse verified ${tag} ${target} cache`);
+    return pathToFileURL(directory).href;
+  }
+  rmSync(directory, {recursive: true, force: true}); mkdirSync(directory, {recursive: true});
+  const result = spawnSync('gh', ['release', 'download', tag, '--repo', repository, '--dir', directory,
+    '--pattern', 'release-set.json', '--pattern', 'SHA256SUMS', '--pattern', targetArchive],
+  {encoding: 'utf8', timeout: 600_000, maxBuffer: 8 * 1024 * 1024});
+  assert.ifError(result.error); assert.equal(result.status, 0, result.stderr + result.stdout);
+  assert(validatePublishedRelease(directory, tag, targetArchive), `Downloaded ${tag} ${target} assets failed identity or checksum validation`);
+  return pathToFileURL(directory).href;
+}
 const stopService = async () => {
   if (!service?.pid || service.exitCode !== null || service.signalCode !== null) return;
   const exited = once(service, 'exit');
   if (process.platform === 'win32') {
     const killed = spawnSync('taskkill', ['/PID', String(service.pid), '/T', '/F'], {encoding: 'utf8', windowsHide: true});
     assert.ifError(killed.error);
-  } else service.kill('SIGKILL');
-  await exited;
+  } else assert.equal(service.kill('SIGKILL'), true, 'Failed to stop installed shared service');
+  await within(exited, 10_000, 'Installed shared service shutdown');
 };
 try {
+  stage('archive identity and extraction');
   const releaseDirectory = path.dirname(setFile);
   const unpackedAt = performance.now();
   const unpack = spawnSync(...toolCommand('tar', ['-xzf', asset.archive, '-C', scratch]), {cwd: releaseDirectory, encoding: 'utf8', timeout: 120_000});
@@ -58,6 +108,7 @@ try {
   assert.deepEqual({version: release.version, source: release.source, sourceSha256: release.sourceSha256, target: release.target, runtime: release.runtime},
     {version: set.version, source: set.source, sourceSha256: set.sourceSha256, target, runtime: {name: 'node', version: releaseNodeVersion}});
 
+  stage('offline doctor and product queries');
   const env: NodeJS.ProcessEnv = {
     ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_DATA_HOME: path.join(scratch, 'data'),
     CODEX_HOME: path.join(scratch, 'source'), NO_COLOR: '1', PATH: '',
@@ -93,23 +144,26 @@ try {
     assert.equal(JSON.parse(run(command, ['/d', '/s', '/c', `""${launcher}" --version --json"`])).version, set.version);
   } else assert.equal(JSON.parse(run(launcher, ['--version', '--json'])).version, set.version);
 
-  const tagList = spawnSync('git', ['tag', '--merged', 'HEAD', '--sort=-version:refname'],
-    {cwd: path.resolve('.'), encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024});
-  assert.ifError(tagList.error); assert.equal(tagList.status, 0, tagList.stderr);
-  const mergedTags = tagList.stdout.split(/\r?\n/);
-  const previousTag = previousReleaseTag(mergedTags, set.version);
+  stage('previous-release download and clean install');
+  const previousTag = previousReleaseTag(priorReleaseTags(), set.version);
   assert(previousTag, `No previous public release tag is available for the ${set.version} upgrade test`);
+  stage(`selected ${previousTag} as the preceding public release`);
+  const previousArchive = `wombat-${target}.tar.gz`;
+  const previousBaseUrl = downloadPublishedRelease(previousTag, previousArchive);
   const upgradePrefix = path.join(scratch, 'upgrade-prefix');
   const installer = process.platform === 'win32'
-    ? spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.resolve('install.ps1'), '-Version', previousTag, '-Prefix', upgradePrefix],
+    ? spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.resolve('install.ps1'), '-Version', previousTag,
+      '-Prefix', upgradePrefix, '-BaseUrl', previousBaseUrl],
       {cwd: path.resolve('.'), encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024, windowsHide: true})
-    : spawnSync('sh', [path.resolve('install.sh'), '--version', previousTag, '--prefix', upgradePrefix],
+    : spawnSync('sh', [path.resolve('install.sh'), '--version', previousTag, '--prefix', upgradePrefix, '--base-url', previousBaseUrl],
       {cwd: path.resolve('.'), encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024});
   assert.ifError(installer.error); assert.equal(installer.status, 0, installer.stderr + installer.stdout);
   const upgradeRoot = path.join(upgradePrefix, 'lib', 'wombat');
   const previousId = readFileSync(path.join(upgradeRoot, 'current.txt'), 'utf8').trim();
   const previousEntry = path.join(upgradeRoot, 'versions', previousId, 'lib', 'wombat.js');
-  const updated = await updateInstalled({entryFile: previousEntry, baseUrl: pathToFileURL(releaseDirectory).href});
+  stage('managed installation upgrade');
+  const updated = await within(updateInstalled({entryFile: previousEntry, baseUrl: pathToFileURL(releaseDirectory).href}),
+    180_000, 'Managed installation upgrade');
   assert.deepEqual({currentVersion: updated.currentVersion, availableVersion: updated.availableVersion, updateAvailable: updated.updateAvailable, updated: updated.updated},
     {currentVersion: previousTag.slice(1), availableVersion: set.version, updateAvailable: true, updated: true});
   const currentId = readFileSync(path.join(upgradeRoot, 'current.txt'), 'utf8').trim();
@@ -120,6 +174,7 @@ try {
     assert.equal(JSON.parse(run(command, ['/d', '/s', '/c', `""${upgradedLauncher}" --version --json"`])).version, set.version);
   } else assert.equal(JSON.parse(run(upgradedLauncher, ['--version', '--json'])).version, set.version);
 
+  stage('Web startup and browser flow');
   await stopService(); service = undefined;
   run(process.execPath, ['--test', fileURLToPath(new URL('../tests/e2e/web.test.ts', import.meta.url))], 0,
     {...env, WOMBAT_WEB_TEST_ENTRY: cli, WOMBAT_WEB_TEST_CORE: core, WOMBAT_WEB_TEST_NODE: runtime});

@@ -17,15 +17,16 @@
 | Local build | `corepack pnpm build` | Compiles core, client, Web, and CLI |
 | Startup probe without scanning | `corepack pnpm release:probe` | Starts the shared service with nonexistent source directories and reads capabilities to check process startup, sockets, and the CLI protocol; requires built dist/ |
 | Full release gate | `corepack pnpm release:check` | Formatting, Rust lint, build, types, contracts, product tests, licenses, repository rules, and public-source checks |
+| Focused install candidate | `corepack pnpm release:verify-install` | Builds the current target, checks types/repository rules/update regressions, and packages/tests installation, upgrade and Web; no publication or full release signoff |
 | Local candidate | `corepack pnpm github:pack -- --current-platform` | Packs and extracts the local archive, checksums, and release-set; no upload |
 | Five-platform candidate | `corepack pnpm github:pack -- --native-dir <artifacts>` | Validates matching version/commit, cores, runtimes, and notices before packing; no upload |
 | Native export | `corepack pnpm native:export` | Exports local core, Node runtime, licenses, version, commit, and hashes |
 
-Packing runs release:check by default. Use --reuse-build only after gates passed on exactly the same source; fingerprint validation still applies. Rebuild after source, lockfile, release-script, or manifest changes. If local Node lacks its distributed LICENSE, pass --runtime-license with the official license for the bundled runtime; CI setup-node should provide it. The project MIT license cannot replace Node's license.
+Packing runs release:check by default. Use --reuse-build only after gates passed on exactly the same source; fingerprint validation still applies. The focused install entry uses it after its scoped checks for candidate diagnosis, while public releases still require the full gate. Rebuild after source, lockfile, release-script, or manifest changes. If local Node lacks its distributed LICENSE, pass --runtime-license with the official license for the bundled runtime; CI setup-node should provide it. The project MIT license cannot replace Node's license.
 
 ## Verify candidates
 
-1. Run the scoped entry with locked dependencies in isolation. Record and fix the failing stage instead of bypassing gates.
+1. Run the scoped entry with locked dependencies in isolation. For failures, follow the [failure investigation rules](../../../../docs/development/workflow.en.md#failure-investigation) across all matching CI and release entries before another platform run; never bypass gates.
 2. Inspect dist/github/release-set.json, SHA256SUMS, and every archive against the target and payload definitions in scripts/native-platforms.ts and scripts/github-release.ts. Check release.json and project, dependency, and runtime notices.
 3. verify-github-release.ts uses the bundled runtime for version, read-only offline `wombat doctor`, empty-snapshot, live, append, fixed-snapshot, task, and Web tests with an empty application PATH, synthetic sources, and temporary data directories. It also installs the preceding public release and upgrades that managed installation to the candidate, preserving the previous version while switching the current pointer.
 4. Run install.sh --base-url file://<dist/github> into a repository-external prefix. Verify the managed marker, version directory, current.txt, launcher, and empty-PATH operation. Verify install.ps1 -BaseUrl <URL> on Windows itself.
