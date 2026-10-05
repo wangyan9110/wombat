@@ -1255,4 +1255,6 @@ export const en = {
   "useBasis.ruleRead": "Rule file reads",
   "useBasis.ruleLoadOrRead": "Rule loads or reads",
   "useBasis.notAbsence": "An absence of observed records does not prove absence of loading or use; candidates are not confirmed uses.",
+  "preview.configurationEvidence": "Synthetic configuration evidence",
+  "preview.sourceObservation": "Synthetic source observation",
 } satisfies Record<keyof typeof zh, string>;

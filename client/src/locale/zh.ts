@@ -1255,4 +1255,6 @@ export const zh = {
   "useBasis.ruleRead": "规则文件读取",
   "useBasis.ruleLoadOrRead": "规则加载或读取",
   "useBasis.notAbsence": "未观察到记录不证明未加载或未使用；候选记录不算已确认使用。",
+  "preview.configurationEvidence": "模拟配置依据",
+  "preview.sourceObservation": "模拟来源观察",
 } as const;

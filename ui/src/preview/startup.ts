@@ -1,3 +1,4 @@
+import {t} from '@wombat/client/locale';
 import {CoreError,type LiveRequest,type LiveResult,type QueryOptions,type UsageSummary} from '@wombat/client';
 import {taskFixture} from './tasks.js';
 /** Native metadata can precede complete metering; cancellation stops only this caller. */
@@ -5,7 +6,7 @@ export function previewStartup(scenario:string){
  let complete=false;
  return async(request:LiveRequest,options?:QueryOptions):Promise<LiveResult>=>{
   if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
-  options?.onProgress?.('读取 Codex 日志');
+  options?.onProgress?.(t('progress.read_logs'));
   if(request.mode==='fresh'&&!request.query.snapshotId){
    await new Promise<void>((resolve,reject)=>{const timer=setTimeout(resolve,25);options?.signal?.addEventListener('abort',()=>{clearTimeout(timer);reject(new CoreError('CANCELLED','Cancelled'));},{once:true});});
    if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');complete=true;
