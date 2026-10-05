@@ -8,7 +8,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [Runtime.InteropServices.Architecture]::X64) { throw "This release supports Windows x64" }
-if (-not (Get-Command tar -ErrorAction SilentlyContinue)) { throw "tar is required" }
+$tar = Join-Path $env:SystemRoot "System32\tar.exe"
+if (-not (Test-Path -LiteralPath $tar -PathType Leaf)) { throw "Windows tar.exe is required" }
 $repo = "wangyan9110/wombat"
 $target = "win32-x64"
 $archive = "wombat-$target.tar.gz"
@@ -31,11 +32,11 @@ try {
   $expected = ($line -split '\s+')[0]
   $actual = (Get-FileHash -Algorithm SHA256 $archivePath).Hash.ToLowerInvariant()
   if ($actual -ne $expected.ToLowerInvariant()) { throw "Checksum mismatch for $archive" }
-  $names = & tar -tzf $archivePath
+  $names = & $tar -tzf $archivePath
   if ($LASTEXITCODE -ne 0 -or -not $names -or ($names | Where-Object { $_ -notmatch '^wombat/?' -or $_ -match '(^|/)\.\.(/|$)' -or $_.StartsWith('/') })) { throw "Unsafe path in $archive" }
-  $listing = & tar -tvzf $archivePath
+  $listing = & $tar -tvzf $archivePath
   if ($LASTEXITCODE -ne 0 -or ($listing | Where-Object { $_ -and $_[0] -notin @('-', 'd') })) { throw "Links or special files are not allowed in $archive" }
-  & tar -xzf $archivePath -C $temp
+  & $tar -xzf $archivePath -C $temp
   if ($LASTEXITCODE -ne 0) { throw "Could not extract $archive" }
 
   $payload = Join-Path $temp "wombat"
