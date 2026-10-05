@@ -17,27 +17,27 @@ Wombat 帮你看清 Codex 的 Token 用量和任务耗时，发现指令、扩�
 
 ## 开始使用
 
-**开发者预览版：[`v0.1.0-dev.2`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-dev.2)。** 这是首个公开预览版本，适合试用和反馈；功能、数据格式和命令仍可能调整。
+**Beta 测试版：[`v0.1.0-beta.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-beta.1)。** 本版本用于扩大安装、升级和现有产品流程的测试范围；功能、数据格式和命令仍可能调整。
 
 macOS 或 Linux：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.2
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
 ~/.local/bin/wombat web --open
 ```
 
 Windows PowerShell：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.2
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
 & "$HOME\.local\bin\wombat.cmd" web --open
 ```
 
-默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可以直接启动。开发者预览版不会替代最新稳定版；升级到后续预览版时需要指定版本：
+默认安装位置是 `~/.local`。将对应的 `bin` 目录加入 `PATH` 后，可以直接启动。预发行版本不会替代最新稳定版；升级到后续预发行版本时需要指定版本：
 
 ```sh
 wombat web --open
-wombat update --check --version 0.1.0-dev.2
+wombat update --check --version 0.1.0-beta.1
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 

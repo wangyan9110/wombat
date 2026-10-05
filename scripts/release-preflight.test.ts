@@ -60,6 +60,22 @@ test('rejects stale or incomplete root README release facts', () => {
   }, version, repository).some(error => error.includes('stale first-release description')));
 });
 
+test('requires the README stage to match beta versions', () => {
+  const repository = 'owner/repo';
+  const version = '0.1.0-beta.1';
+  const url = `https://github.com/${repository}/releases/tag/v${version}`;
+  const raw = `https://raw.githubusercontent.com/${repository}/main`;
+  const common = `[\`v${version}\`](${url}) ${raw}/install.sh --version ${version} ${raw}/install.ps1 -Version ${version} macOS arm64/x64 Linux glibc arm64/x64 Windows x64`;
+  assert.deepEqual(rootReadmeReleaseErrors({
+    english: `Beta: ${common}`,
+    chinese: `Beta 测试版：${common}`,
+  }, version, repository), []);
+  assert.match(rootReadmeReleaseErrors({
+    english: `Development Preview: ${common}`,
+    chinese: `开发者预览版：${common}`,
+  }, version, repository).join('\n'), /missing Beta/);
+});
+
 test('requires immutable external Action references', () => {
   const sha = '1'.repeat(40);
   assert.deepEqual(actionPinErrors({

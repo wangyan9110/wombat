@@ -17,27 +17,27 @@ This page describes the product direction. See the [distribution guide](docs/ref
 
 ## Get started
 
-**Development Preview: [`v0.1.0-dev.2`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-dev.2).** This first public preview is intended for evaluation and feedback. Features, data formats, and commands may still change.
+**Beta: [`v0.1.0-beta.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-beta.1).** This release is intended for wider testing of installation, updates, and current product workflows. Features, data formats, and commands may still change.
 
 On macOS or Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.2
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-beta.1
 ~/.local/bin/wombat web --open
 ```
 
 On Windows PowerShell:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.2
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-beta.1
 & "$HOME\.local\bin\wombat.cmd" web --open
 ```
 
-The default installation prefix is `~/.local`. After adding its `bin` directory to `PATH`, start Wombat directly. Development previews do not replace the latest stable release, so specify the version when moving to a later preview:
+The default installation prefix is `~/.local`. After adding its `bin` directory to `PATH`, start Wombat directly. Pre-releases do not replace the latest stable release, so specify the version when moving to a later pre-release:
 
 ```sh
 wombat web --open
-wombat update --check --version 0.1.0-dev.2
+wombat update --check --version 0.1.0-beta.1
 wombat update --version NEXT_PREVIEW_VERSION
 ```
 

@@ -25,7 +25,10 @@ export function rootReadmeReleaseErrors(
 ): string[] {
   const releaseUrl = `https://github.com/${repository}/releases/tag/v${version}`;
   const raw = `https://raw.githubusercontent.com/${repository}/main`;
-  const preview = version.includes('-dev.');
+  const stage = version.includes('-dev.') ? ['Development Preview:', '开发者预览版：']
+    : version.includes('-beta.') ? ['Beta:', 'Beta 测试版：']
+      : version.includes('-rc.') ? ['Release Candidate:', 'RC 候选版：']
+        : ['Stable:', '正式版：'];
   const requirements = [
     ['README.md', readmes.english, [
       `[\`v${version}\`](${releaseUrl})`,
@@ -42,10 +45,8 @@ export function rootReadmeReleaseErrors(
   for (const [file, content, expected] of requirements) {
     for (const text of expected) if (!content.includes(text)) errors.push(`${file}: missing current release fact: ${text}`);
   }
-  if (preview) {
-    if (!readmes.english.includes('Development Preview:')) errors.push('README.md: missing Development Preview stage');
-    if (!readmes.chinese.includes('开发者预览版：')) errors.push('README.zh-CN.md: missing Development Preview stage');
-  }
+  if (!readmes.english.includes(stage[0])) errors.push(`README.md: missing ${stage[0].slice(0, -1)} stage`);
+  if (!readmes.chinese.includes(stage[1])) errors.push(`README.zh-CN.md: missing ${stage[1].slice(0, -1)} stage`);
   for (const [file, content] of [['README.md', readmes.english], ['README.zh-CN.md', readmes.chinese]] as const) {
     for (const stale of [
       'becomes available after the release workflow completes',
