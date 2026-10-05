@@ -1154,4 +1154,15 @@ export const en = {
   "preview.uses-failure": "Use evidence read failure",
   "preview.uses-expired": "Use evidence view expired",
 
+  "preview.tasks-pages": "Task pages and filters",
+  "preview.tasks-delayed": "Task scope changes and late responses",
+  "preview.tasks-refresh-failed": "Task refresh failure retains prior results",
+  "preview.partial": "Partial source records",
+  "preview.config-details": "Configuration measurements, format and history",
+  "preview.config-detail-failed": "Configuration detail read failure",
+  "preview.prices-update-failed": "Price update failure",
+  "preview.prices-unavailable": "Price catalog unavailable",
+  "preview.initial-pending": "Initial read waiting and cancellation",
+  "startup.stopWaiting": "Stop waiting",
+  "startup.cancelNote": "Stop waiting on this page and retain already read facts. Shared background reading may continue; you can retry.",
 } satisfies Record<keyof typeof zh, string>;

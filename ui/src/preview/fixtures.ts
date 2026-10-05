@@ -3,9 +3,13 @@ import {previewTiming} from './timing.js';
 import {accountScenarios,previewAccount} from './account.js';
 import {directoryScenarios,previewDirectories} from './directories.js';
 import {handoffScenarios,previewHandoff} from './handoff.js';
-import {configFixture,createRuleFixture} from './configuration.js';
+import {inventoryFixture} from './inventory.js';
+import {previewChecks} from './checks.js';
+import {previewTasks} from './tasks.js';
+import {previewPrices} from './prices.js';
+import {previewStartup} from './startup.js';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type UsageSummary, type QueryOptions } from '@wombat/client';
-export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap','uses-failure','uses-expired',...accountScenarios,...directoryScenarios,...handoffScenarios] as const;
+export const scenarios = ['complete', 'empty', 'error', 'loading', 'running', 'missing', 'dense', 'initial', 'resolved', 'rule-upgraded', 'evidence-gap','uses-failure','uses-expired','tasks-pages','tasks-delayed','tasks-refresh-failed','partial','config-details','config-detail-failed','prices-update-failed','prices-unavailable','initial-pending',...accountScenarios,...directoryScenarios,...handoffScenarios] as const;
 export type Scenario = typeof scenarios[number];
 const at = '2026-10-04T02:00:00Z';
 const page = {offset:0,limit:20,total:0,nextOffset:null};
@@ -18,32 +22,23 @@ export function usageFixture(request:UsageRequest,scenario:Scenario):UsageResult
 }
 export function createPreviewClient(scenario:Scenario):UsageClient {
  const account=previewAccount(scenario);
- const rules=createRuleFixture(scenario==='empty',scenario==='resolved'?'resolved':scenario==='rule-upgraded'?'incomparable':scenario==='evidence-gap'?'unknown':'unchanged');
+ const rules=previewChecks(scenario==='empty',scenario==='resolved'?'resolved':scenario==='rule-upgraded'?'incomparable':scenario==='evidence-gap'?'unknown':'unchanged');
+ const taskQuery=previewTasks(scenario);const taskScenario=['tasks-pages','tasks-delayed','tasks-refresh-failed','partial','config-details','config-detail-failed','initial','initial-pending'].includes(scenario);
  const ready=async(options?:QueryOptions)=>{if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');if(scenario==='error')throw new CoreError('SOURCE_UNREADABLE','Synthetic source error');if(scenario==='loading')await new Promise<void>((_,reject)=>options?.signal?.addEventListener('abort',()=>reject(new CoreError('CANCELLED','Cancelled')),{once:true}));};
  return {
   timing:previewTiming(scenario),
   handoff:previewHandoff(scenario),
   directories:previewDirectories(scenario),
-  ...(scenario==='initial'?{async live(request:import('@wombat/client').LiveRequest){
-   const result=usageFixture(request.query,'complete');
-   const unknown:UsageSummary={measurementCount:0,tokens:{total:null},price:{...summary.price,cost:null,knownCost:'0',status:'unknown'}};
-   result.summary=unknown;
-   result.items=request.query.action==='threads'?result.items.map(item=>item.kind==='thread'?{...item,matchedUsage:unknown,threadUsage:unknown,matchedTurnCount:null}:item):[];
-   result.page={...result.page,total:result.items.length};
-   result.snapshotRef={snapshotId:'live:preview-initial',createdAt:at};
-   const freshness={status:'syncing',revision:'preview-initial',initialScan:true,checkedAt:at};
-   result.freshness=freshness;result.quality.status='partial';
-   return {outputVersion:1,result,freshness};
-  }}:{}),
+  ...(['initial','initial-pending'].includes(scenario)?{live:previewStartup(scenario)}:{}),
   async query(request,options){
    if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
    if(scenario==='error')throw new CoreError('SOURCE_UNREADABLE','Synthetic source error');
    if(scenario==='loading')return new Promise<UsageResult>((_,reject)=>options?.signal?.addEventListener('abort',()=>reject(new CoreError('CANCELLED','Cancelled')),{once:true}));
-   return usageFixture(request,scenario);
+   return taskScenario?taskQuery(request,options):usageFixture(request,scenario);
   },
-  async prices(request){return {outputVersion:1,action:request.action??'status',origin:'synthetic',updated:false,source:'synthetic',catalogHash:'preview',catalog:{revision:'preview',verifiedAt:at,policy:'synthetic',currency:'USD',models:[]}};},
+  prices:previewPrices(scenario),
   async account(request,options){await ready(options);return account(request,options);},
-  async config(request,options){await ready(options);return configFixture(request,scenario==='empty');},
-  async optimize(request,options){await ready(options);return rules(request);},
+  async config(request,options){await ready(options);if(scenario==='config-detail-failed'&&request.action!=='list')throw new CoreError('SOURCE_UNREADABLE','Synthetic configuration detail unavailable');return scenario==='empty'?{...inventoryFixture(request),items:[],evidence:[],relatedScopes:[],summary:{currentItems:0,historicalItems:0,observedItems:0},page:{offset:request.offset??0,limit:request.limit??30,total:0,nextOffset:null}}:inventoryFixture(request);},
+  async optimize(request,options){await ready(options);return rules(request,options);},
  };
 }

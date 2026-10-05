@@ -1154,4 +1154,15 @@ export const zh = {
   "preview.uses-failure": "使用证据读取失败",
   "preview.uses-expired": "使用证据版本过期",
 
+  "preview.tasks-pages": "任务分页与筛选",
+  "preview.tasks-delayed": "任务切换与迟到响应",
+  "preview.tasks-refresh-failed": "任务刷新失败保留旧结果",
+  "preview.partial": "部分来源记录",
+  "preview.config-details": "配置测量、格式与历史详情",
+  "preview.config-detail-failed": "配置详情读取失败",
+  "preview.prices-update-failed": "价格更新失败",
+  "preview.prices-unavailable": "价格目录不可用",
+  "preview.initial-pending": "首次读取等待与取消",
+  "startup.stopWaiting": "停止等待",
+  "startup.cancelNote": "停止本页等待并保留已读取事实；共享后台读取可能仍在继续。可重新读取。",
 } as const;
