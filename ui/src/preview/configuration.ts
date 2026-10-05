@@ -1,3 +1,4 @@
+import {ruleExample} from './rule-examples.js';
 import {t} from '@wombat/client/locale';
 import type {ConfigItem,ConfigRequest,ConfigResult,OptimizeRequest,OptimizeResult,OptimizeSuggestion} from '@wombat/client';
 const at='2026-10-04T02:00:00Z';
@@ -12,7 +13,7 @@ export function configFixture(request:ConfigRequest,empty=false):ConfigResult {
  return {outputVersion:1,action:request.action??'list',capabilities:{kinds:['rule','skill','mcp','hook'],evidenceTypes:['fileRead','mcpToolCall'],tokenEstimates:true,historicalContent:false,writes:false,projectRegistry:false},readView:'preview-config',usageRevision:'preview:1',configRevision:'preview',checkedAt:at,scope:request.scope??{},authorizedProjects:[project],summary:{currentItems:rows.length,historicalItems:0,observedItems:rows.length},items:result.items,evidence:evidencePage.items,relatedScopes:[],page:request.action==='evidence'?evidencePage.page:result.page,coverage:{status:'complete',historyStatus:'current',issues:[],supportedEvidence:['fileRead','mcpToolCall'],absenceObservable:false},hookRegistry:{status:'unavailable',contexts:[]}};
 }
 export type ReviewScenario='unchanged'|'resolved'|'incomparable'|'unknown';
-export function createRuleFixture(empty=false, scenario:ReviewScenario='unchanged'){
+export function createRuleFixture(empty=false, scenario:ReviewScenario='unchanged',example='complete',exampleItem?:ConfigItem){
  let revision=1;
  const scope:OptimizeResult['checks'][number]['basis']['scope']={sourceInstanceId:null,itemProject:project,global:false,project,sourceInstances:['preview'],authorizedProjects:[project],roots:[project],projectRoots:[project],sourceRoots:[project],complete:true};
  const findings:OptimizeSuggestion['findings']=[{identity:{version:1,findingId:'synthetic-body-problem',gap:null},rule:'bodyTokens',status:'failed',observed:6200,threshold:5000,evidenceCodes:['bodyTokenEstimate'],basis:'agentSkillsRecommendation'}];
@@ -27,16 +28,17 @@ export function createRuleFixture(empty=false, scenario:ReviewScenario='unchange
    basis:{version:1,dependencyRevision:complete?`synthetic-dependency-${rule}`:null,scope,cutoff:at,applicability:'synthetic',measurement,gaps:complete?[]:[reason!]},
    comparison:{status:'not_requested',baselineAssessmentId:null,reason:null}};
  });
- const suggestion:OptimizeSuggestion={reviewFormatVersion:1,id:'preview-suggestion',scopeProject:project,item:inventory[1],category:'trim',status:'pending',checks,findings,checkedAt:at,ruleVersion:'preview',reviewBaseline:{version:1,item:structuredClone(inventory[1]),scope:structuredClone(scope),assessments:structuredClone(checks)}};
+ let suggestion:OptimizeSuggestion={reviewFormatVersion:1,id:'preview-suggestion',scopeProject:project,item:inventory[1],category:'trim',status:'pending',checks,findings,checkedAt:at,ruleVersion:'preview',reviewBaseline:{version:1,item:structuredClone(inventory[1]),scope:structuredClone(scope),assessments:structuredClone(checks)}};
+ const replacement=ruleExample({suggestions:[suggestion]} as OptimizeResult,example,exampleItem??inventory[1]);if(replacement)suggestion=replacement;
  return (request:OptimizeRequest):OptimizeResult=>{
-  if(request.action==='keep'||request.action==='not_applicable'){suggestion.decision={kind:request.action,reason:request.decisionReason??'necessary',recordedAt:at,binding:{version:1,identityBasis:'stable_problems',suggestionId:suggestion.id,findingIds:['synthetic-body-problem'],assessmentIds:['synthetic-assessment-bodyTokens'],contentVersion:suggestion.item.contentHash,scope:structuredClone(scope),applicabilityId:'synthetic-content-method-scope-binding',gap:null}};revision++;}
+  if(request.action==='keep'||request.action==='not_applicable'){suggestion.decision={kind:request.action,reason:request.decisionReason??'necessary',recordedAt:at,binding:{version:1,identityBasis:'stable_problems',suggestionId:suggestion.id,findingIds:suggestion.findings.flatMap(f=>f.identity.findingId?[f.identity.findingId]:[]),assessmentIds:suggestion.checks.flatMap(c=>c.assessmentId?[c.assessmentId]:[]),contentVersion:suggestion.item.contentHash,scope:structuredClone(scope),applicabilityId:'synthetic-content-method-scope-binding',gap:null}};revision++;}
   if(request.action==='redisplay'){suggestion.decision=null;revision++;}
   if(request.action==='recheck'){
    revision++;
    suggestion.checkedAt='2026-10-04T02:02:00Z';
    suggestion.checks=suggestion.checks.map(check=>{
     const original=suggestion.reviewBaseline!.assessments.find(a=>a.rule===check.rule)!;
-    const known=check.rule==='bodyTokens';
+    const known=check.rule===(replacement?.checks[0].rule??'bodyTokens');
     const comparison=known?(scenario==='incomparable'?'incomparable':scenario==='unknown'?'unknown':'comparable'):'unknown';
     const reason=comparison==='incomparable'?'ruleParametersOrMethodChanged':comparison==='unknown'?'checkEvidenceIncomplete':null;
     return {...check,checkedAt:suggestion.checkedAt,assessmentId:scenario==='unknown'?null:`synthetic-recheck-${revision}-${check.rule}`,identityGap:scenario==='unknown'?'assessmentIdentityUnavailable':check.identityGap,
@@ -51,9 +53,10 @@ export function createRuleFixture(empty=false, scenario:ReviewScenario='unchange
    });
    suggestion.status=scenario==='resolved'?'verified':scenario==='unknown'||scenario==='incomparable'?'recheckUnavailable':'stillNeedsReview';
   }
-  const all=empty?[]:[structuredClone(suggestion)];
-  const filtered=all.filter(s=>(!request.suggestionId||request.suggestionId===s.id)&&(!request.itemId||request.itemId===s.item.id)&&(!request.category||request.category===s.category)&&(!request.group||(request.group==='history'?(!!s.decision||s.status!=='pending'):(!s.decision&&s.status!=='verified'))));
+  const all=empty||example==='rules-clean'?[]:[structuredClone(suggestion)];
+  const matchesScope=(s:OptimizeSuggestion)=>(!request.project||s.item.authorizedProjects.includes(request.project))&&(!request.sourceInstanceId||s.item.sourceInstanceId===request.sourceInstanceId||s.item.sourceContexts.some(context=>context.sourceInstanceId===request.sourceInstanceId));
+  const filtered=all.filter(s=>matchesScope(s)&&(!request.suggestionId||request.suggestionId===s.id)&&(!request.itemId||request.itemId===s.item.id)&&(!request.category||request.category===s.category)&&(!request.group||(request.group==='history'?(!!s.decision||s.status!=='pending'):(!s.decision&&s.status!=='verified'))));
   const result=paginate(filtered,request);
-  return {outputVersion:1,action:request.action??'list',capabilities:{staticChecks:true,manualEditReview:true,decisions:true,inactivity:false,mcpFaults:false,spaceCleanup:false,loadingBudgetDiagnosis:false,exactInstructionBlocks:false,declaredCopyDrift:false,hookSupport:{effectiveRegistry:false,status:'no_verified_adapter'}},readView:'preview-config',configRevision:'preview',usageRevision:'preview:1',decisionRevision:`preview-${revision}`,checkedAt:at,suggestions:result.items,pending:all.filter(s=>!s.decision&&s.status!=='verified').length,history:all.filter(s=>s.decision||s.status!=='pending').length,page:result.page,issues:[],resultStatus:scenario==='unknown'?'partial':'complete',ruleParameters:{version:'preview',agentsBytesDefault:16384,descriptionCharactersDefault:500,overrides:{},bodyTokens:5000,descriptionStandardMax:1024,applicability:'synthetic'},ruleCatalog:[],checks:empty?[]:suggestion.checks.filter(c=>!request.itemId||c.itemId===request.itemId),followUps:[]};
+  return {outputVersion:1,action:request.action??'list',capabilities:{staticChecks:true,manualEditReview:true,decisions:true,inactivity:false,mcpFaults:false,spaceCleanup:false,loadingBudgetDiagnosis:false,exactInstructionBlocks:false,declaredCopyDrift:false,hookSupport:{effectiveRegistry:false,status:'no_verified_adapter'}},readView:'preview-config',configRevision:'preview',usageRevision:'preview:1',decisionRevision:`preview-${revision}`,checkedAt:at,suggestions:result.items,pending:all.filter(s=>!s.decision&&s.status!=='verified').length,history:all.filter(s=>s.decision||s.status!=='pending').length,page:result.page,issues:[],resultStatus:scenario==='unknown'?'partial':'complete',ruleParameters:{version:'preview',agentsBytesDefault:16384,descriptionCharactersDefault:500,overrides:{},bodyTokens:5000,descriptionStandardMax:1024,applicability:'synthetic'},ruleCatalog:[],checks:empty||!matchesScope(suggestion)?[]:suggestion.checks.filter(c=>!request.itemId||c.itemId===request.itemId),followUps:[]};
  };
 }

@@ -58,12 +58,12 @@ const baseShare: TimingShareResult = {
 };
 
 export function timingFixture(scenario:Scenario='complete',snapshotId='preview:1',threadId='preview-task',turnId='preview-turn'):TimingLocalResult {
- const result=structuredClone(baseLocal),missing=scenario==='missing'||scenario==='empty',running=scenario==='running';
+ const result=structuredClone(baseLocal),missing=scenario==='missing'||scenario==='empty'||scenario==='interrupted',running=scenario==='running';
  const measured=(value:number,basis:TimingLocalResult['time']['nativeWallClockMs']['basis']='native_record')=>({value,status:'observed' as const,basis,evidenceRefs:['collection:turn']});
  result.readView.snapshotId=snapshotId;result.scope={...result.scope,threadId,turnId,sourceInstanceId:'preview'};result.evidence.snapshotId=snapshotId;
  result.freshness={status:'fixed',checkedAt:'2026-10-05T00:00:00Z'};
- result.time.state=running?'running':missing?'unknown':'completed';
- result.quality={...result.quality,partial:missing||running,running,censored:running};
+ result.time.state=running?'running':missing?'unknown':scenario==='cancelled'?'cancelled':scenario==='failed'?'failed':'completed';
+ result.quality={...result.quality,partial:missing||running,running,censored:running||scenario==='interrupted',...(scenario==='interrupted'?{reasonCodes:['missing_time']}:{})};
  result.time.nativeWallClockMs=missing||running?count():measured(10000);
  result.time.observedWindowMs=missing?count():measured(10000,'explicit_boundary');
  result.time.command.unionMs=missing?count():measured(5000,'lifecycle_union');result.time.command.sumMs=missing?count():measured(6000,'lifecycle_sum');
@@ -85,6 +85,7 @@ export function timingShareFixture(local:TimingLocalResult):TimingShareResult {
 export function previewTiming(scenario:Scenario){
  return async(request:TimingRequest,options?:QueryOptions):Promise<TimingResult>=>{
   if(options?.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+  if(request.action!=='capabilities'&&(['source-missing','source-unreadable','source-unsupported'].includes(scenario)||scenario==='usage-unassigned'&&request.turnId==='unassigned'))throw new CoreError('NOT_FOUND','Synthetic turn boundary unavailable');
   if(scenario==='error')throw new CoreError('SOURCE_UNREADABLE','Synthetic source error');
   if(scenario==='loading')return new Promise<TimingResult>((_,reject)=>options?.signal?.addEventListener('abort',()=>reject(new CoreError('CANCELLED','Cancelled')),{once:true}));
   if(request.action==='capabilities')return {...capabilityResult,profile:request.privacyProfile??'local'};
