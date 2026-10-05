@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,7 @@ function check(script: string, files: Record<string, string>) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'wombat-guidance-'));
   try {
     mkdirSync(path.join(root, 'scripts'));
+    if (script === 'check-skills.mjs') symlinkSync(path.resolve(scripts, '../node_modules'), path.join(root, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
     copyFileSync(path.join(scripts, script), path.join(root, 'scripts', script));
     for (const [relative, content] of Object.entries(files)) {
       const file = path.join(root, relative);
@@ -80,4 +81,23 @@ test('decision records reject lifecycle drift, invalid dates and proposal sectio
     assert.ok(result.output.includes(relative));
     assert.match(result.output, diagnostic);
   }
+});
+
+
+test('Skill resource checks follow nested references and reject missing moved owners', () => {
+  const owner = '.agents/skills/sample';
+  const skill = '---\nname: sample\ndescription: Synthetic workflow\n---\nRead [procedure](references/procedure.md).\n';
+  const files: Record<string, string> = {
+    [owner + '/SKILL.md']: skill,
+    [owner + '/references/procedure.md']: '# Procedure\n\nRead [owner][facts].\n\n[facts]: ../../../../owner.md\n\n```md\n[example](missing-example.md)\n```\n',
+    'owner.md': '# Owner\n',
+  };
+  assert.equal(check('check-skills.mjs', files).status, 0);
+  delete files['owner.md'];
+  const missing = check('check-skills.mjs', files);
+  assert.equal(missing.status, 1);
+  assert.match(missing.output, /references\/procedure.md: missing linked resource/);
+  const entry = check('check-skills.mjs', { [owner + '/SKILL.md']: skill });
+  assert.equal(entry.status, 1);
+  assert.match(entry.output, /SKILL.md: missing linked resource references\/procedure.md/);
 });

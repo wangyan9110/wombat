@@ -1,0 +1,3 @@
+# Root README review
+
+Write root READMEs for first-time users in task order: what Wombat does, install and open, the visible result, recovery, main uses, necessary limits, and help, contribution, security, and license links. Keep source development separate and detailed platform support after the main workflow. Describe user actions and results; omit installation layout, PATH mutation, runtime/core composition, packaging, and internal verification unless the reader needs the fact to decide or act. Link only to user-facing owners. Keep the README, repository About, Topics, and package description aligned with current capabilities; do not use planned agents or unsupported behavior as keywords.

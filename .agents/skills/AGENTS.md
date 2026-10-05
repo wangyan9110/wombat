@@ -1,9 +1,9 @@
-# Repository Skill Instructions
+# Skill Instructions
 
-Follow [root instructions](../../AGENTS.md). Skills are task workflows, not product facts or standing rules.
+Follow [root instructions](../../AGENTS.md). Skills own workflows, not product facts.
 
-- Use .agents/skills/<kebab-name>/SKILL.md. Match frontmatter name to the directory; state task, trigger, limits, and reachable references.
-- Link product behavior, APIs, and limitations to their owners. Put standing rules in the applicable AGENTS.md; do not duplicate decisions across Skills.
-- Skills use a primary script for programmable/computable work; add an entry instead of manual steps or command sequences. Keep lower-level commands for diagnosis.
-- Keep supporting scripts, references, and examples with their Skill. Exclude private prototypes, account data, and absolute paths.
-- Run `skills:check`; use `repo:check` for repository rules and references.
+- Use `<kebab-name>/SKILL.md`; match frontmatter name and state task/trigger.
+- Keep purpose, authorization, constraints, and routing in SKILL.md. Link conditional detail in references with when to read it; never load all by default. Short skills need no router.
+- Link facts to owners. Keep scripts/resources with their Skill; exclude private data and absolute paths.
+- Scripts resolve paths, validate arguments, bound subprocesses, and need no caller cwd or unrelated Skill. Use one `corepack pnpm` entry. Explain shared build/CI dependencies instead of copying them.
+- Read scripts only to diagnose/edit. Test changed scripts and valid/invalid checks; run `skills:check` and `repo:check`.

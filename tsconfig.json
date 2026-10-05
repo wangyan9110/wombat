@@ -16,6 +16,7 @@
   },
   "include": [
     "tests",
-    "scripts/*.ts"
+    "scripts/*.ts",
+    ".agents/skills/*/scripts/*.ts"
   ]
 }

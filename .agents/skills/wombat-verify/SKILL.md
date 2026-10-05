@@ -5,11 +5,18 @@ description: Select verification scope and report evidence for Wombat cross-modu
 
 # Wombat Change Verification
 
-This Skill selects verification; it does not replace [root completion requirements](../../../AGENTS.md) or define product behavior.
+Map the actual diff to owners and observable failure paths. [Root completion requirements](../../../AGENTS.md) remain authoritative.
 
-1. Map the actual diff to Rust, generated contracts, client, CLI, Web, data, and release entries. Identify observable changes and failure paths. Read affected scoped instructions and documentation owners.
-2. Select the smallest meaningful fixtures and commands, distinguishing source checks from built-artifact acceptance. Run repo:check without dist for repository rules. Changed checks need isolated valid and violating fixtures, nonzero exits, and useful diagnostics. Rust algorithms use independent synthetic truth; cross-language and CLI tests first rebuild dist. Verify Web hosts, browser interactions, and installed assets separately.
-3. Review [code conventions](../../../docs/development/workflow.en.md): authorization/version enforcement at execution, publication after commit, cancellation/cleanup, and whole-output limits. Choose fault cases only for affected paths. Product behavior needs a real assembled entry, not manually composed mocks alone. Broaden to types, contracts, end-to-end behavior, licenses, public packages, or performance according to risk; use corepack pnpm repo:check for static rules without repeating unaffected passing checks.
-4. Diagnose failures, fix their cause, and rerun affected paths. Report commands actually run, results, and build/corpus/platform conditions. State unverified sources, platforms, and visual details explicitly.
+Use `corepack pnpm skills:verify -- --scope <scope>` as the primary runner:
 
-Record only actual outcomes. Test counts, old snapshots, successful builds, or a green script alone do not establish a complete product journey.
+| Scope | Checks |
+|---|---|
+| `repository` | Source repository rules and whitespace; no build prerequisite |
+| `client` | Build, types, and whitespace; add relevant focused behavior tests separately |
+| `full` | Build, types, complete product tests, repository rules, and whitespace |
+
+The runner stops on the first failure and reports completed stages. It resolves its repository from its own location rather than the caller's directory. Do not reload script source for ordinary execution. Rust-only, dependency, performance, and platform-specific work still needs the focused checks in the owning workflow; these scopes do not replace them.
+
+Use independent synthetic truth for accounting and isolated valid/invalid fixtures for changed checks. Verify assembled product entries, browser interactions, and installed assets separately; mocks alone do not prove delivery.
+
+Do not repeat unaffected passing checks. Diagnose failures and rerun affected paths; report commands actually run, results, build/corpus/platform conditions, and remaining gaps. A successful script does not establish a complete product journey.

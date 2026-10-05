@@ -1,11 +1,36 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fromMarkdown } from 'mdast-util-from-markdown';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const skillRoots = ['.agents/skills', 'integrations/codex/skills'];
 const errors = [];
 let checked = 0;
+
+// Check authored resource links too: moving a procedure must not strand its callers.
+function resourceLinks(directory) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) resourceLinks(file);
+    else if (entry.isFile() && entry.name.endsWith('.md')) {
+      const targets = new Set();
+      const visit = node => {
+        if (node.type === 'link' || node.type === 'definition') targets.add(node.url);
+        if (node.children) for (const child of node.children) visit(child);
+      };
+      visit(fromMarkdown(readFileSync(file, 'utf8')));
+      for (const target of targets) {
+        if (/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(target)) continue;
+        const relative = target.split('#')[0];
+        if (!relative) continue;
+        if (!existsSync(path.resolve(path.dirname(file), relative))) {
+          errors.push(`${path.relative(root, file)}: missing linked resource ${target}`);
+        }
+      }
+    }
+  }
+}
 
 for (const relativeRoot of skillRoots) {
   const skillsRoot = path.join(root, relativeRoot);
@@ -19,6 +44,7 @@ for (const relativeRoot of skillRoots) {
       continue;
     }
     checked++;
+    resourceLinks(path.dirname(file));
     const lines = readFileSync(file, 'utf8').split(/\r?\n/);
     const end = lines.indexOf('---', 1);
     if (lines[0] !== '---' || end < 2) {
