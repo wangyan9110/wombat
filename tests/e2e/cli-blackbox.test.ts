@@ -230,7 +230,13 @@ test('real CLI partial sources, failed refresh and corrupted snapshot have expli
 test('language changes presentation while real core data and source titles stay unchanged', async () => {
   const f = await fixture();
   try {
+    // The first live query may contain only preview metadata while scanning.
+    const refresh = f.run(['refresh', '--root', f.source]);
+    assert.equal(refresh.code, 0, refresh.stdout);
+    assert.equal(refresh.value.freshness.status, 'current');
     const initial = f.run(['usage', ...dates]);
+    assert.equal(initial.code, 0, initial.stdout);
+    assert.equal(initial.value.summary.tokens.total, 491_210);
     const args = ['threads', '--snapshot', initial.value.snapshotRef.snapshotId];
     const zh = f.run([...args, '--lang=zh']);
     const en = f.run(['--lang', 'en', ...args]);

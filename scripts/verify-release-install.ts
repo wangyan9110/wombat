@@ -9,6 +9,9 @@ const steps: Array<[string, string, string[]]> = [
   ['Build candidate', 'corepack', ['pnpm', 'build']],
   ['Types and module boundaries', 'corepack', ['pnpm', 'typecheck']],
   ['Repository rules and tool-selection regressions', 'corepack', ['pnpm', 'repo:check']],
+  ['Initial scan and language regressions', process.execPath, ['--import', 'tsx', '--test',
+    '--test-name-pattern=real CLI refresh, usage, threads, turns and steps conserve|language changes presentation',
+    'tests/e2e/cli-blackbox.test.ts']],
   ['Managed update regressions', process.execPath, ['--import', 'tsx', '--test', 'cli/tests/update.test.ts']],
   ['Package, install, upgrade and Web acceptance', 'corepack', ['pnpm', 'github:pack', '--', '--current-platform', '--reuse-build']],
 ];
