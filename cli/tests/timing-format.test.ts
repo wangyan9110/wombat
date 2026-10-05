@@ -34,6 +34,42 @@ test('exit classification uses core quality without making missing optional capa
   for (const field of ['partial', 'running', 'censored'] as const) assert.equal(timingExitCode({ ...complete, quality: { ...complete.quality, [field]: true } }), 2);
   locale.setLocale('en'); assert.match(renderTimingResult(capabilityResult), /Total duration: Unavailable/);
 });
+test('Work facts preserve observed zero, unavailable counts, source failure and physical-record caveats', () => {
+  const fixture = structuredClone(local);
+  fixture.work.operationCandidates = { value: 0, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] };
+  fixture.work.closedOperations = { value: 2, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] };
+  fixture.work.fileChangeRecords = { value: 3, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] };
+  fixture.work.changedFiles = { value: 1, status: 'derived', basis: 'reported_file_paths', evidenceRefs: [] };
+  fixture.work.addedLines = { value: null, status: 'unavailable', basis: 'missing_repository_baseline', evidenceRefs: [] };
+  fixture.work.labelledCommandMs = { value: null, status: 'unavailable', basis: 'unsupported_method', evidenceRefs: [] };
+  fixture.work.userBoundaryRecords = { value: 4, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] };
+  fixture.coverage.sourceStatus = 'failed';
+  fixture.quality.partial = true;
+
+  locale.setLocale('en');
+  const en = renderTimingResult(fixture);
+  assert.match(en, /Operation candidates \/ closed \/ failed: 0 \/ 2 \/ Unknown/);
+  assert.match(en, /Reported file paths: 1 · Derived · reported_file_paths/);
+  assert.match(en, /Added lines: Unknown · Unavailable · missing_repository_baseline/);
+  assert.match(en, /User input records: 4 · Source record/);
+  assert.match(en, /Command duration by label \(ms\): Unknown ms · Unavailable · unsupported_method/);
+  assert.match(en, /Source coverage: failed/);
+  assert.match(en, /Read quality: Some evidence or calculations are unavailable/);
+  assert.match(en, /physical records, not requests/);
+  assert.match(en, /not code defects/);
+
+  locale.setLocale('zh');
+  const zh = renderTimingResult(fixture);
+  assert.match(zh, /操作候选 \/ 已闭合 \/ 失败: 0 \/ 2 \/ 未知/);
+  assert.match(zh, /报告的文件路径数: 1 · 推导 · reported_file_paths/);
+  assert.match(zh, /新增行数: 未知 · 不可用 · missing_repository_baseline/);
+  assert.match(zh, /用户输入记录数: 4 · 源记录/);
+  assert.match(zh, /按命令标签归类的时长（毫秒）: 未知 ms · 不可用 · unsupported_method/);
+  assert.match(zh, /来源覆盖: failed/);
+  assert.match(zh, /读取质量: 部分证据或计算不可用/);
+  assert.match(zh, /物理记录数，不是请求数/);
+  assert.match(zh, /不代表代码缺陷/);
+});
 test('object and record pages preserve unknown counts, failed uses and safe display text', () => {
   locale.setLocale('en');
   const zero = { value: 0, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] } as const;
