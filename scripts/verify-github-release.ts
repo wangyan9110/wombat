@@ -33,16 +33,28 @@ for (const item of set.assets) {
 
 const scratch = mkdtempSync(path.join(os.tmpdir(), 'wombat-github-release-'));
 let service: ChildProcess | undefined;
+const stage = (name: string) => console.log(`Release archive verification: ${name}`);
+async function within<T>(work: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([work, new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs} ms`)), timeoutMs);
+    })]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 const stopService = async () => {
   if (!service?.pid || service.exitCode !== null || service.signalCode !== null) return;
   const exited = once(service, 'exit');
   if (process.platform === 'win32') {
     const killed = spawnSync('taskkill', ['/PID', String(service.pid), '/T', '/F'], {encoding: 'utf8', windowsHide: true});
     assert.ifError(killed.error);
-  } else service.kill('SIGKILL');
-  await exited;
+  } else assert.equal(service.kill('SIGKILL'), true, 'Failed to stop installed shared service');
+  await within(exited, 10_000, 'Installed shared service shutdown');
 };
 try {
+  stage('archive identity and extraction');
   const releaseDirectory = path.dirname(setFile);
   const unpackedAt = performance.now();
   const unpack = spawnSync(...toolCommand('tar', ['-xzf', asset.archive, '-C', scratch]), {cwd: releaseDirectory, encoding: 'utf8', timeout: 120_000});
@@ -58,6 +70,7 @@ try {
   assert.deepEqual({version: release.version, source: release.source, sourceSha256: release.sourceSha256, target: release.target, runtime: release.runtime},
     {version: set.version, source: set.source, sourceSha256: set.sourceSha256, target, runtime: {name: 'node', version: releaseNodeVersion}});
 
+  stage('offline doctor and product queries');
   const env: NodeJS.ProcessEnv = {
     ...process.env, WOMBAT_AUTO_PRICES: '0', WOMBAT_DATA_HOME: path.join(scratch, 'data'),
     CODEX_HOME: path.join(scratch, 'source'), NO_COLOR: '1', PATH: '',
@@ -93,6 +106,7 @@ try {
     assert.equal(JSON.parse(run(command, ['/d', '/s', '/c', `""${launcher}" --version --json"`])).version, set.version);
   } else assert.equal(JSON.parse(run(launcher, ['--version', '--json'])).version, set.version);
 
+  stage('previous-release clean install');
   const tagList = spawnSync('git', ['tag', '--merged', 'HEAD', '--sort=-version:refname'],
     {cwd: path.resolve('.'), encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024});
   assert.ifError(tagList.error); assert.equal(tagList.status, 0, tagList.stderr);
@@ -109,7 +123,9 @@ try {
   const upgradeRoot = path.join(upgradePrefix, 'lib', 'wombat');
   const previousId = readFileSync(path.join(upgradeRoot, 'current.txt'), 'utf8').trim();
   const previousEntry = path.join(upgradeRoot, 'versions', previousId, 'lib', 'wombat.js');
-  const updated = await updateInstalled({entryFile: previousEntry, baseUrl: pathToFileURL(releaseDirectory).href});
+  stage('managed installation upgrade');
+  const updated = await within(updateInstalled({entryFile: previousEntry, baseUrl: pathToFileURL(releaseDirectory).href}),
+    180_000, 'Managed installation upgrade');
   assert.deepEqual({currentVersion: updated.currentVersion, availableVersion: updated.availableVersion, updateAvailable: updated.updateAvailable, updated: updated.updated},
     {currentVersion: previousTag.slice(1), availableVersion: set.version, updateAvailable: true, updated: true});
   const currentId = readFileSync(path.join(upgradeRoot, 'current.txt'), 'utf8').trim();
@@ -120,6 +136,7 @@ try {
     assert.equal(JSON.parse(run(command, ['/d', '/s', '/c', `""${upgradedLauncher}" --version --json"`])).version, set.version);
   } else assert.equal(JSON.parse(run(upgradedLauncher, ['--version', '--json'])).version, set.version);
 
+  stage('Web startup and browser flow');
   await stopService(); service = undefined;
   run(process.execPath, ['--test', fileURLToPath(new URL('../tests/e2e/web.test.ts', import.meta.url))], 0,
     {...env, WOMBAT_WEB_TEST_ENTRY: cli, WOMBAT_WEB_TEST_CORE: core, WOMBAT_WEB_TEST_NODE: runtime});

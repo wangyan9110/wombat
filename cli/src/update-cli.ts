@@ -86,7 +86,9 @@ async function downloadFile(url: string, destination: string): Promise<{sha256: 
       digest.update(chunk);
       if (!output.write(chunk)) await once(output, 'drain');
     }
-    output.end(); await once(output, 'close');
+    const closed = once(output, 'close');
+    output.end();
+    await closed;
   } catch (error) {
     output.destroy();
     rmSync(destination, {force: true});
