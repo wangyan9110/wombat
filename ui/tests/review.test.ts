@@ -68,7 +68,7 @@ test('related records use task names with identities behind closed disclosure an
   assert.match(html,/synthetic-turn-hash/);assert.match(html,/2026-10-04/);assert.match(html,/112/);
   assert.match(html,/neither exclusive configuration consumption nor savings|不是此配置独占的消耗.*不代表节省/);
   assert.match(html,/History is incomplete|历史记录不完整/);
-  assert.match(html,/API cost unknown|API 费用未知/);assert.doesNotMatch(html,/\$0\.0000/);
+  assert.match(html,/Not priced|未计价/);assert.doesNotMatch(html,/\$0\.0000/);
   assert.match(html,/Model and effort filters do not apply|不应用模型与推理强度筛选/);
   assert.match(html,/version|版本/);
  }}finally{locale.setLocale(saved);}

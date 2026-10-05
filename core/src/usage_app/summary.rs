@@ -19,18 +19,18 @@ pub(super) fn checked_sum(
     Ok(complete.then_some(sum))
 }
 pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
-    let input_total = checked_sum(rows, |t| {
-        t.input?
-            .checked_add(t.cache_read?)?
-            .checked_add(t.cache_create?)
-    })?;
+    let input_total = checked_sum(rows, total_input)?;
     let cache_read = checked_sum(rows, |t| t.cache_read)?;
     // Validate stored parts even for a single row; preserve its request-specific basis.
     let price = crate::pricing::sum_prices(rows.iter().map(|r| r.price.as_ref()))
         .map_err(|e| operation_error("PRICING_ERROR", e))?;
     Ok(UsageSummary {
         input_total,
-        cache_hit_rate: share(cache_read, input_total),
+        cache_hit_rate: rows
+            .iter()
+            .all(|row| input_categories_consistent(&row.fact.tokens))
+            .then(|| share(cache_read, input_total))
+            .flatten(),
         unpriced_tokens: unpriced_tokens(rows)?,
         tokens: TokenUsage {
             input: checked_sum(rows, |t| t.input)?,
@@ -48,6 +48,33 @@ pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
         },
         measurement_count: rows.len(),
     })
+}
+
+fn total_input(tokens: &TokenUsage) -> Option<u64> {
+    // Native input already includes cache reads and writes. Missing breakdowns do
+    // not erase it. A missing native value can also be a sticky conflict, even
+    // when replay filled every category, so do not reconstruct it from parts.
+    tokens.raw_input
+}
+
+fn input_categories_consistent(tokens: &TokenUsage) -> bool {
+    let Some(total) = total_input(tokens) else {
+        return false;
+    };
+    // Validate each measurement before aggregation: another request's input must
+    // not conceal an impossible cache count. Missing writes are not assumed zero.
+    let Some(known_parts) = [tokens.input, tokens.cache_read, tokens.cache_create]
+        .into_iter()
+        .flatten()
+        .try_fold(0u64, u64::checked_add)
+    else {
+        return false;
+    };
+    known_parts <= total
+        && (![tokens.input, tokens.cache_read, tokens.cache_create]
+            .iter()
+            .all(Option::is_some)
+            || known_parts == total)
 }
 pub(super) fn share(value: Option<u64>, total: Option<u64>) -> Option<f64> {
     value
@@ -106,3 +133,6 @@ pub(super) fn consumption_order(
         b.tokens.total.cmp(&a.tokens.total)
     }
 }
+
+#[cfg(test)]
+mod tests;

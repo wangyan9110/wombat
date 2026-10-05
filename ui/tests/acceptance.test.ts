@@ -41,7 +41,7 @@ test('task titles do not fall back to hashes and fixed versions remain available
   assert.doesNotMatch(html,/<details[^>]*open/);assert.match(html,/upstream-task-hash/);
   assert.match(html,/Find an Agent task|查找一次 Agent 工作/);assert.match(html,/Current task-list summary|当前任务列表汇总/);
   assert.match(html,/Source does not provide turn associations|来源未提供轮次/);assert.doesNotMatch(html,/>0 (?:turns|个轮次)</);
-  assert.match(html,/2026-10-04/);assert.match(html,/112/);assert.match(html,/API cost unknown|API 费用未知/);
+  assert.match(html,/2026-10-04/);assert.match(html,/112/);assert.match(html,/Not priced|未计价/);
   assert.match(html,/List usage follows the current filters|列表用量按当前筛选统计/);
  }}finally{locale.setLocale(saved);}
 });

@@ -26,6 +26,8 @@ Only current public contracts and data formats are maintained; unknown formats a
 
 ## Limits and verification
 
+Recorded native total input remains available when cache breakdowns are missing. Cache-hit rates use recorded input and cache reads from the same measurements; contradictory categories suppress the ratio, and category sums do not restore conflicting native input.
+
 Default refresh reads source logs without changing them and writes only to the product data directory. Unpriced or missing values, partial source failures, and resource limits remain visible; the [architecture](../docs/development/architecture.en.md) and [core rules](AGENTS.md) describe ownership and failure boundaries. After algorithm or storage changes, run the relevant synthetic expectations, formatting, and clippy checks; rebuild the core before cross-language tests.
 
 ## Storage and service lifecycle

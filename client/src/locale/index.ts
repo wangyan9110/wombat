@@ -188,6 +188,7 @@ export function assessmentReason(code: string): string {
 }
 
 export { timingBasisText, timingMissingValueText, timingSourceStatusText } from './timing-basis.js';
+export { pricingIssueText } from './pricing.js';
 
 /** Display the recorded review state without deriving it from decisions or measurements. */
 export function reviewStatusLabel(status: string): string {

@@ -160,4 +160,6 @@ Domain code currently handles interval identity conflicts, window clipping, equa
 
 ## Acceptance criteria
 
+The Codex measurement context still needs field-level conflict evidence that survives replay. Explicit conflicts in model, provider, API provider, or reasoning effort must not be filled from earlier context or another record of the same response. Pricing tier selection must also distinguish missing native input from conflicting input; category sums must not restore conflicting input. This requires a versioned persisted observation, distinct from missing fields, before this path can be accepted.
+
 This workstream owns U04–U08. The [overview task table](2026-10-04-codex-task-timing.en.md) remains the single list of completion gates and dependencies; field, failure, privacy, and algorithm constraints in this record also apply. Partial implementation remains proposed. Validate independent modules, commit, and push each increment; integration and full regression remain in U19. After an interrupting task completes, return to the unfinished workstream item; passing a local check does not skip remaining tasks.
