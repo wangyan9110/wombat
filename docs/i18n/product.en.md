@@ -2,7 +2,7 @@
 
 [中文](product.md) | English
 
-This page defines the CLI/Web presentation language. The [bilingual documentation workflow](README.en.md) owns document pairing.
+This page defines the CLI/Web presentation language and the rules for user-facing pages and copy. The [bilingual documentation workflow](README.en.md) owns document pairing.
 
 ## Usage
 
@@ -17,6 +17,18 @@ Language precedence is `--lang`, `WOMBAT_LANG`, system language, then the Chines
 
 Web switches through the header or detail language button while retaining page, filters, dialogs, focus and original content. Explicit link language (from --lang or WOMBAT_LANG) takes precedence, followed by local `user-v1/language.json`, tab-session choice and browser language. Changes persist through the narrow preference API across ports/restarts; save failures offer retry. CLI continues using arguments and environment without reading the Web preference.
 
+## User-facing pages and copy
+
+Use these rules to write and review pages, dialogs, forms, notices, CLI help, and error messages. They are maintenance requirements, not a claim that all existing pages have passed acceptance checks. Apply ASD-STE100 to technical explanations as described in the [language review rules](README.en.md). Use familiar language and interface conventions for buttons, menus, and short labels. Do not add words only to make a label a complete sentence.
+
+- Organize information around the user's task. First explain what the user is viewing, what the result means, and what they can do next. Provide methods and technical evidence as needed. Use familiar product terms by default. Show implementation details when they help users locate a problem, check evidence, or make a decision. Do not explain product actions with internal module names, protocol terms, or development status.
+- Use page titles to name the object or task, buttons to name the action and its target when needed, and links to name the destination. Use the same name for the same action. Prefer specific labels such as “View details,” “Retry,” and “Clear filters” to vague labels such as “Process,” “OK,” or “Click here.” Distinguish viewing, saving, rechecking, and handing work to Codex according to their actual behavior. Do not present a recommendation as a completed action.
+- In Chinese, use natural, concise verb–object phrases and Chinese punctuation. Avoid English word order, awkward passive constructions, and chains of nouns. In English, use clear action verbs and consistent sentence case for labels. Keep the spelling of proper names. Choose articles, singular or plural forms, and tone for the context rather than translating word for word. Use the presentation language's date, number, and unit formats. Keep original source text and stable identifiers unchanged.
+- State the current facts and their effects. Distinguish loading, no data, no filter matches, missing permission, read failures, partial results, and previous results. Keep unknown values, unpriced amounts, and zero distinct. Identify cost estimates and the scope of observations. In errors, first name the failed operation and affected object, then give an available recovery action. Do not infer causes without evidence or promise success or recovery times.
+- Follow familiar interaction conventions. Buttons perform actions; links navigate. Give inputs explicit labels and use placeholders only for examples. Save, cancel, back, and retry must describe the actual behavior. Explain why an action is disabled when needed. Before a destructive action or one that is difficult to undo, explain its target, effects, and whether it can be undone. Confirmation copy must name the action and cannot replace authorization checks.
+- Keep necessary information understandable with keyboards, narrow screens, and assistive technology. Accessible names should include the action or object in the visible label. Do not communicate status, errors, or necessary instructions only through color, icons, hover content, or placeholders. Keep messages complete when text wraps, counts change, or the language changes. Do not use English sentence assembly patterns for Chinese messages.
+- Read each language on its own. Review the actual interface for information order, action names, recovery paths, long titles, zero, unknown values, and singular or plural forms. Use synthetic content to check long text, narrow screens, keyboard use, and language switching. Report the states you checked. Passing dictionary and pairing checks does not replace review of usability, accessibility, or language quality.
+
 ## Module boundaries
 
 - `@wombat/client/locale` is a separate public entry written in portable TypeScript, with no Node, React, or Rust dependency. It provides `LocaleRuntime`, `resolveLocale`, typed `t`, immutable state, and subscriptions; each CLI process or browser page uses its own presentation instance.
@@ -27,7 +39,6 @@ Web switches through the header or detail language button while retaining page, 
 
 ## Verification and limits
 
-`corepack pnpm i18n:check` checks dictionary keys and parameters, Chinese literals in CLI/Web source, and selected English copy properties. It uses the TypeScript syntax tree and ignores comments; it cannot judge translation quality or detect every dynamically assembled English message. New messages still require review.
-
+`corepack pnpm i18n:check` checks dictionary keys and parameters, Chinese literals in CLI/Web source, and selected English copy properties. It uses the TypeScript syntax tree and ignores comments; it cannot judge translation quality or detect every dynamically assembled English message. New messages still require manual review under the user-facing page and copy rules above.
 
 `corepack pnpm test:repo` exercises checker failure cases; module tests cover language precedence, runtime switching, presentation formatting; end-to-end tests after a build confirm that language does not alter shared core data. This delivery covers Chinese and English CLI/Web presentation. It does not add arbitrary language plugins, a general grammar expression language, right-to-left layout, a documentation website, or full translation of core diagnostics.

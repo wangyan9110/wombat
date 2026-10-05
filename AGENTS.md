@@ -20,7 +20,7 @@ Wombat analyzes local Agent usage/configuration with a Rust core, Node CLI, and 
 - Wombat hands authorized targets and version-bound evidence to Codex for review, execution, and recovery. Acceptance is not resolution; recheck with the same rules. Keep user decisions separate from check facts; do not add execution receipts.
 - Rebuilding derived indexes must preserve decisions, identities, and handling records. Support only current formats; reject unknown versions without deleting data or adding compatibility migrations.
 - Never commit real conversations, tool output, secrets, or unreviewed raw fields. Write real-source test output outside the repository. Public builds and documentation must not depend on private material.
-- Own presentation copy in client/src/locale and consume @wombat/client/locale. Do not translate protocol values, stable identifiers, or source content.
+- Follow [copy rules](docs/i18n/product.en.md) for UI/CLI, locale ownership, and unchanged protocol values, stable IDs, and source content.
 - Automate programmable/computable steps and evidence checks in TypeScript behind one `corepack pnpm` entry. It validates, stops, reports, and resumes external state. Skills use it; manual work is only for judgment or authorization.
 
 ## Verify and finish

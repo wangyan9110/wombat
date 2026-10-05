@@ -1,6 +1,6 @@
 # Documentation Instructions
 
-Follow [root instructions](../AGENTS.md). Verify claims against source, generated contracts, and actual execution; proposals do not prove delivery. Use [wombat-docs](../.agents/skills/wombat-docs/SKILL.md) for restructuring.
+Follow [root instructions](../AGENTS.md). Check claims against source, generated contracts, and execution; proposals do not prove delivery. Use [wombat-docs](../.agents/skills/wombat-docs/SKILL.md) for restructuring.
 
 ## Ownership
 
@@ -20,7 +20,8 @@ Maintain each fact in one place and link elsewhere. Update an existing owner bef
 
 ## Editing
 
-- Public prose follows the [bilingual workflow](i18n/README.en.md): update both languages and confirm only reviewed pairs. AGENTS.md files use English and are exempt from pairing.
+- Public prose follows the [bilingual workflow](i18n/README.en.md): update both languages, review technical prose under ASD-STE100, and confirm only reviewed pairs. AGENTS.md files use English and are exempt from pairing.
+- Root READMEs use [README rules](reference/distribution.en.md).
 - Tutorials follow prerequisites, steps, observable results, and failure recovery. References describe current behavior by topic. Split substantial mixed content.
 - Use one Markdown title and one physical line per prose paragraph; preserve code, tables, and quotes. docs:structure checks paired prose and budgeted instructions; leading HTML branding is allowed.
 - Update only affected owners and links. Update proposal status only when acceptance changes. Do not recreate roadmap, support-matrix, or progress ledgers elsewhere.

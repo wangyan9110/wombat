@@ -2,16 +2,20 @@
   "version": 2,
   "sections": {
     "/wombat-bilingual-documentation-workflow": {
-      "zh": "30d6c506e6ecadb139b78eb1dd71b6b6891275782e2265dfd5d3a78d1ff4d675",
-      "en": "358b25272afe77d4825a83dc50a28e5ac46e6a7ad756c454fbed7a6bf0ad63ee"
+      "zh": "6e2d8f91732f32f0fbea8e74a29893b792acbc0f82d5876ffc9c283d854341df",
+      "en": "07409707fea21347521f4fb423342303a5ef60834b6757578581284f1d38fb59"
     },
     "/wombat-bilingual-documentation-workflow/files-and-scope": {
-      "zh": "6a109d3eb76e16589423094a3f8e565627e384eb973c7f17305311ae3a1bd571",
-      "en": "94b12629c34592e90a67b481cd7e52b0d86fdfb7d7486f9d930fa91d0a5ccecd"
+      "zh": "48fb600775284d0ee6479ec68d89c5b0095a2bfde4e1097f823b875835fd5f1c",
+      "en": "e2c9e14af44750071a91c167f2475557b2d978478250fc2467155a641eb0391d"
     },
     "/wombat-bilingual-documentation-workflow/update-workflow": {
-      "zh": "dc694e68c2449f974808a63f64af7288c56a383d0b80f33d087f899407cc1b13",
-      "en": "64410067124e2a3fd66b30ae4719953b44abd2fbda34774881f43b14315961ee"
+      "zh": "cfcfd22a02d30df0b70fdfba3d873eccf45865e6e3537b92bd92db6c3f4da75d",
+      "en": "0a4d28c1ff299449f781564b53b6c1cf012a493be25796ef0f9f341ab974fff7"
+    },
+    "/wombat-bilingual-documentation-workflow/language-review": {
+      "zh": "6e6d8ee5005c4634271ff54ff7e9ced6135fb5041735f5cdc04efb1c989db029",
+      "en": "b48822b4517ee03b105311ef899deec6fdb16402887d67b890b138b9407fc718"
     },
     "/wombat-bilingual-documentation-workflow/incremental-maintenance": {
       "zh": "0789f8722975720d5fe84c1ce6c370b1384caa4e9a43c45d48faeab2f6e92328",
