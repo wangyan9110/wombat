@@ -9,7 +9,7 @@ import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileSha256, formatMicros, moneyMicros, option, positiveInteger, run } from './benchmark-common.js';
-import { directoryBytes, isExpectedSyncTimeout, liveIndexPayloadFootprint, normalizeUsageOracle, snapshotFootprint, sourceTreeIdentity } from './benchmark-live-helpers.js';
+import { directoryBytes, isExpectedSyncTimeout, liveIndexPayloadFootprint, normalizeUsageOracle, parseBenchmarkCliResponse, snapshotFootprint, sourceTreeIdentity } from './benchmark-live-helpers.js';
 
 assert(process.platform !== 'win32', 'This benchmark requires POSIX');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -68,9 +68,7 @@ async function startService(dataHome: string): Promise<MeasuredService> {
 function invokeCli(environment: NodeJS.ProcessEnv, args: string[], timeout = 120_000): { elapsedMs: number; status: number | null; value: any; stderr: string } {
   const start = performance.now();
   const response = spawnSync(process.execPath, [cli, ...args], { env: environment, encoding: 'utf8', timeout, maxBuffer: 64 * 1024 * 1024 });
-  if (response.error) throw response.error;
-  const value = JSON.parse(response.stdout);
-  if (response.status !== 0 && !isExpectedSyncTimeout(response.status, value)) assert.equal(response.status, 0, `${args.join(' ')} failed: ${response.stderr}`);
+  const value = parseBenchmarkCliResponse(args.join(' '), response);
   return { elapsedMs: performance.now() - start, status: response.status, value, stderr: response.stderr };
 }
 

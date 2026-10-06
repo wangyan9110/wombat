@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { stripVTControlCharacters } from 'node:util';
 import { DatabaseSync } from 'node:sqlite';
 import { lstatSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -14,6 +15,48 @@ export function isExpectedSyncTimeout(status: number | null, value: unknown): bo
   return status !== null && typeof value === 'object' && value !== null
     && 'error' in value && typeof value.error === 'object' && value.error !== null
     && 'code' in value.error && value.error.code === 'SYNC_TIMEOUT';
+}
+
+interface BenchmarkCliResponse {
+  status: number | null;
+  signal?: string | null;
+  stdout: string | null | undefined;
+  stderr: string | null | undefined;
+  error?: { code?: string; message: string };
+}
+
+function diagnosticText(value: unknown, maximum: number): string | undefined {
+  return typeof value === 'string'
+    ? stripVTControlCharacters(value).replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, maximum)
+    : undefined;
+}
+
+/** Keep the CLI error envelope when failing; never dump successful rows or arbitrary details. */
+export function parseBenchmarkCliResponse(operation: string, response: BenchmarkCliResponse): Record<string, unknown> {
+  const stdout = typeof response.stdout === 'string' ? response.stdout : '';
+  let value: unknown;
+  let parseFailure = false;
+  try { value = JSON.parse(stdout); } catch { parseFailure = true; }
+  const object = typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+  const error = object?.error;
+  const structuredError = typeof error === 'object' && error !== null ? error as Record<string, unknown> : undefined;
+  const expectedTimeout = !response.error && !response.signal && isExpectedSyncTimeout(response.status, value);
+  if (expectedTimeout && object) return object;
+  if (response.error || response.signal || response.status !== 0 || !object || error !== undefined) {
+    const diagnostic = {
+      status: response.status,
+      signal: response.signal ?? null,
+      code: diagnosticText(structuredError?.code, 128),
+      message: diagnosticText(structuredError?.message, 1024),
+      processCode: diagnosticText(response.error?.code, 128),
+      processMessage: diagnosticText(response.error?.message, 1024),
+      protocol: parseFailure ? 'invalid JSON' : !object ? 'expected JSON object' : undefined,
+      stdoutBytes: Buffer.byteLength(stdout),
+      stderr: diagnosticText(response.stderr, 2048),
+    };
+    throw new Error(`${diagnosticText(operation, 512)} failed: ${JSON.stringify(diagnostic)}`);
+  }
+  return object;
 }
 
 function filesUnder(directory: string): string[] {

@@ -9,6 +9,7 @@ import {
   isExpectedSyncTimeout,
   liveIndexPayloadFootprint,
   normalizeUsageOracle,
+  parseBenchmarkCliResponse,
   snapshotFootprint,
   sourceTreeIdentity,
 } from './benchmark-live-helpers.js';
@@ -154,4 +155,32 @@ test('SQLite logical payload report distinguishes owned JSONB bytes from project
     try { database.close(); } catch { /* already closed before the read-only helper check */ }
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+
+test('benchmark failures retain the bounded CLI code and message, without dumping source rows or details',()=>{
+ const stdout=JSON.stringify({outputVersion:3,error:{code:'RESOURCE_LIMIT',message:'Synthetic snapshot limit',details:{source:'SYNTHETIC_PRIVATE_DETAIL'}},rows:[{text:'SYNTHETIC_PRIVATE_BODY'}]});
+ assert.throws(()=>parseBenchmarkCliResponse('refresh --json',{status:1,stdout,stderr:'progress'}),(error:unknown)=>{
+  assert.ok(error instanceof Error);assert.match(error.message,/RESOURCE_LIMIT/);assert.match(error.message,/Synthetic snapshot limit/);assert.match(error.message,/"status":1/);
+  assert.doesNotMatch(error.message,/SYNTHETIC_PRIVATE_DETAIL|SYNTHETIC_PRIVATE_BODY|rows/);return true;
+ });
+ const unsafe='\u001b[31m'+('x'.repeat(10000))+'\u001b[0m\n';
+ assert.throws(()=>parseBenchmarkCliResponse(unsafe,{status:1,stdout:JSON.stringify({error:{code:unsafe,message:unsafe}}),stderr:unsafe}),(error:unknown)=>{
+  assert.ok(error instanceof Error);assert.ok(error.message.length<5000);assert.doesNotMatch(error.message,/\u001b|\n/);return true;
+ });
+});
+
+test('benchmark parser accepts success and only structured sync timeouts; process and protocol failures stay failures',()=>{
+ const success={summary:{tokens:{total:0}}};
+ assert.deepEqual(parseBenchmarkCliResponse('usage',{status:0,stdout:JSON.stringify(success),stderr:''}),success);
+ for(const status of [0,2]){
+  const timeout={error:{code:'SYNC_TIMEOUT',message:'pending'}};
+  assert.deepEqual(parseBenchmarkCliResponse('usage',{status,stdout:JSON.stringify(timeout),stderr:''}),timeout);
+ }
+ for(const status of [0,1])assert.throws(()=>parseBenchmarkCliResponse('usage',{status,stdout:JSON.stringify({error:{code:'SOURCE_UNREADABLE',message:'read failed'}}),stderr:''}),/SOURCE_UNREADABLE/);
+ for(const stdout of ['', 'not JSON', 'null', '[]', '42'])assert.throws(()=>parseBenchmarkCliResponse('usage',{status:0,stdout,stderr:''}),/invalid JSON|expected JSON object/);
+ assert.throws(()=>parseBenchmarkCliResponse('usage',{status:null,signal:'SIGTERM',stdout:'',stderr:''}),/SIGTERM/);
+ assert.throws(()=>parseBenchmarkCliResponse('usage',{status:null,stdout:null,stderr:null,error:{code:'ETIMEDOUT',message:'process timed out'}}),/ETIMEDOUT/);
+ assert.throws(()=>parseBenchmarkCliResponse('usage',{status:2,stdout:JSON.stringify({error:'SYNC_TIMEOUT'}),stderr:''}));
+ assert.throws(()=>parseBenchmarkCliResponse('usage',{status:null,signal:'SIGKILL',stdout:JSON.stringify({error:{code:'SYNC_TIMEOUT'}}),stderr:''}),/SIGKILL/);
 });
