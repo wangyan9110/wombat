@@ -2,13 +2,13 @@
 
 中文 | [English](2026-10-04-event-delivery.en.md)
 
-Status: proposed
+Status: implemented
 
 ## 问题
 
-本记录承接[升级总方案](2026-10-04-codex-task-timing.md)中第 7 节、第 8 节、第 9 节、第 15 节、第 16 节的全部设计责任，作为该部分唯一详细方案。总方案保留研究依据、跨模块约束、任务依赖和最终验收；其他专项的边界见总方案入口。拆分不表示已完成实施。
+本记录承接[升级总方案](2026-10-04-codex-task-timing.md)中第 7 节、第 8 节、第 9 节、第 15 节、第 16 节的全部设计责任，作为该部分唯一详细方案。总方案保留研究依据、跨模块约束及交付限制；其他专项的决策边界见总方案入口。
 
-## 方案
+## 决定
 
 本方案的观察语义、部分结果、替代计算和建议门槛按[统计分析架构修订](2026-10-05-analysis-first-events.md)调整；下文涉及整项不可用的旧约束以该修订为准。隐私、使用次数口径、身份保护及最终验收继续适用。
 
@@ -24,50 +24,7 @@ wombat timing capabilities [--share]
 
 摘要支持重复 `--root`、`--source`、`--fresh` / `--cached`、`--snapshot`、`--lang` 与取消。只接受完整 Wombat 身份，不默认转用上游 ID；目标不匹配或不存在明确报错。`--turn` 必填，任务级汇总后续独立交付。拒绝日期/Token/金额筛选和分页对摘要整轮窗口的切碎。证据要求相同固定目标、版本和范围，默认50/最大200条，通过不透明游标分页，仅支持本机投影且不接受刷新模式。能力查询不接受目标或来源路径，不执行扫描。默认最终单个 JSON，状态写 stderr；显式 `--text` 与 `--json` 互斥。分享请求 Rust 独立投影。耗时查询绕过自动补价、配置扫描、Hook 采集和账户观察。错误保留独立 v1 安全信封；取消退出130，不终止共享同步。
 
-新增独立 `timing_dto.rs`，Rust 生成 Schema、TS 与校验器；操作 `timing` 的 request 使用 `summary/evidence/capabilities` 窄联合类型（技术装配见第15节），响应 `outputVersion:4`，另有 `methodVersion`。用量响应、适配器、索引、耗时分析快照及分析方法分别版本化；不把耗时分析 action 塞进旧 usage union 而仍宣称协议不变。普通本机 JSON 含本机定位身份，分享版另行投影。
-
-| 顶层字段 | 契约 |
-|---|---|
-| `outputVersion/action/methodVersion` | 分别为当前耗时响应版本、summary、耗时分析算法版本；枚举与版本稳定，不翻译 |
-| `profile/privacy` | local/share-v1响应分支及其数据移除清单；与请求privacyProfile一致 |
-| `readView` | 固定的用量/耗时分析读取身份、适配器与投影版本；短期 live 身份仍有过期边界 |
-| `scope` | 任务、轮次与来源身份；整轮查询，不能按当前项目配置反推历史 |
-| `capabilities` | 按 wall-clock/TTFT/lifecycle/context/command 标签分别给 supported/partial/unavailable 和稳定原因码 |
-| `time` | 原生/派生总时长、窗口、首 Token、首内容延迟、边界差、类别并集/交集、mask、等待代理及未分类时间 |
-| `context` | 可靠单次输入与比例分布、分段、窗口证据、压缩次数/时间、采样覆盖和分位数方法 |
-| `work` | 操作候选/闭合/失败、标签时长、修改计数、消息标记数；缺历史仓库基线为 null |
-| `findings` | 稳定 code、fact/proxy/user_annotation、指标引用和证据引用；不接受任意生成正文 |
-| `coverage/quality/freshness` | 各维度分母、尾行/错误/截尾/冲突/资源上限、同步状态；读取完整不等于时间全部可解释 |
-| `evidence` | 本机白名单引用和方法，按目标轮次有界；单独权限与分享投影，不返回 raw |
-
-完整本机响应的可缺失度量均为 `{value,status,basis,evidenceRefs}`；status 为 observed/derived/proxy/unavailable，未知 `value:null`，零值有明确依据。毫秒和 Token 采用安全整数，比例为有限数或 null；Type 7 分位数允许有限小数。未分类时间本身可以有完整测量，不因此把整个读取结果标为失败。
-
-下例是分享摘要的合成片段，省略的顶层字段在完整响应中仍须提供；它不是生成 Schema：
-
-```json
-{
-  "outputVersion": 4,
-  "action": "summary",
-  "profile": "share-v1",
-  "methodVersion": "timing-v1",
-  "scope": {"threadAlias": "T1", "turnAlias": "R1"},
-  "time": {
-    "wallClockMs": {"value": 100, "status": "observed", "basis": "native_duration", "evidenceRefs": ["E1"]},
-    "observedWindowMs": 100,
-    "lifecycleUnionMs": {"compaction": 30, "command": 50, "reasoning": 30},
-    "coveredLifecycleMs": 80,
-    "unclassifiedMs": 20,
-    "responseGapUnionMs": {"value": 40, "status": "proxy", "basis": "response_gap_v1", "evidenceRefs": ["E2"]}
-  },
-  "context": {
-    "inputTokens": {"sampleCount": 5, "p90": 460, "method": "type7"},
-    "inputWindowRatio": {"sampleCount": 5, "p90": 0.46},
-    "activeContextOccupancy": {"value": null, "status": "unavailable", "basis": "not_recorded", "evidenceRefs": []}
-  },
-  "coverage": {"lifecycleTimeRatio": 0.8},
-  "privacy": {"profile": "share-v1", "timestamps": "relative", "paths": "removed"}
-}
-```
+Rust 定义 summary/evidence/capabilities 窄请求、本机/分享响应及独立版本错误；字段以生成 Schema、TypeScript 和校验器为准，见[内核说明](../../../../core/README.md)。响应、方法、存储和适配器独立升版。数值保留原生、派生、代理或缺失依据，零必须有证据。分享使用独立白名单投影及新别名，不由前端删除部分本机字段冒充脱敏。[分析修订](2026-10-05-analysis-first-events.md)保留可用部分统计和具体说明。
 
 退出码沿用 0 成功（包括完整读取但不能归属因果的情况）、2 部分读取/关键证据缺失/运行中暂定、1 参数或操作错误、130 取消。缺某个可选能力仍返回结果与 unavailable；当前格式但来源字段缺失时返回 unavailable，旧格式明确拒绝，不能读当前日志补成固定历史。错误对象为 `{outputVersion:1,error:{code,message}}`，消息使用安全模板。沿用 INVALID_ARGUMENT、VIEW_EXPIRED、SNAPSHOT_CORRUPT、SOURCE_UNREADABLE、RESOURCE_LIMIT、CANCELLED，耗时分析 quality 原因码增加 TIMING_DETAIL_UNAVAILABLE（来源未记录必要耗时事实；必需分片或信封缺失报 SNAPSHOT_CORRUPT）和 TIMING_BOUNDARY_CONFLICT（显式边界互相矛盾）；仍返回可用的原生标量，相关派生值为 null，不因一个指标缺失丢弃全部结果。
 
@@ -156,11 +113,11 @@ UI 使用 `fact/proxy/unavailable` 及对应依据文案；不生成“主要原
 | 刷新失败或版本过期 | 刷新失败保留旧数据及更新时间；过期明确停止依据查询 | 重试或刷新，不自动扩大读取权限 |
 | 来源不可访问或当前宿主不支持 | 说明不可访问或不支持，保留其他可用内容 | 在已有来源管理入口处理授权，或返回可用页面 |
 
-页面与共享合成数据预览已有实现，且已有局部模块、API 和浏览器交互证据；这些证据不代表完整用户旅程、视觉或浏览器验收通过。仍须走通五条用户旅程：找到目标轮次并返回；理解并行操作为什么不能相加；确认同轮三次 Skill 读取为何计三次；区分零值、日志未记录耗时和读取失败；日志追加后刷新并分享同一批数据。宽屏与窄屏、长名称、大量操作、键盘导航和中英文仍须按原要求核验。完整验收须待本节缺口补齐后完成，属于 U19。
+正式页面与共享合成数据预览复用生产组件。最终自动浏览器验收覆盖定位轮次并返回、并发耗时不能直接相加、同一轮次三次 Skill 读取计三次使用、零/日志未记录/读取失败的区分、追加刷新及同批数据分享。中英文、390/1440 宽度、长名称、多操作及键盘路径均纳入检查；规则保留、重新展示、不适用、可比解决、升级不可比与证据不足也纳入交互验收。DOM 与交互证据不宣称像素级视觉或所有辅助技术验收。
 
-MCP 已接入独立时间轴类别：可关联且具有可靠端点的调用显示为轨道，缺端点的调用仍保留使用记录和可用原生时长。完整用户旅程与浏览器验收仍待 U19。时间摘要已共用本地化的缺失原因、计算依据和来源状态说明；CLI 优化文本已分别呈现用户决定、理由、本次与原始检查，以及内核给出的复查比较状态。部分状态提示已改为保存消息键并在显示时翻译，其他页面文案术语仍待核对。具体实现证据见 UI/CLI 所属源码；这些实现不代表本节定义的完整验收通过。
+MCP 使用独立时间轴类别，有可靠端点的调用形成轨道；缺端点时保留使用记录及可用原生时长。耗时摘要共用本地化缺口、计算依据与来源状态；CLI 优化文本分别展示用户决定、当前/原检查及复查可比性。产品翻译检查与中英文浏览器流程用于发现漏翻译，来源原文和稳定协议值保持原样。
 
-共享预览已提供完整记录、时间记录缺失和进行中等合成场景，并复用正式轮次组件；这些场景支持检查时间轴、列表降级和整组刷新，不等于宽窄屏布局及交互验收。仍须检查视觉层级、长名称、展开后的空间和键盘路径，不能仅凭控件可点击认定设计通过，也不能以截图替代真实浏览器验收。
+共享预览提供完整、日志未记录时间及运行中等合成场景，复用生产轮次与规则组件。浏览器验收检查层级操作、列表回退、整组刷新、展开内容、返回和焦点恢复；可点击控件与历史截图不单独构成验收。
 
 旧独立原型的页面、样式和模拟实现已移除；正式组件与共享预览是唯一界面实现。旧检查档案仅保留为历史证据，不作为本次 U19 结果。
 
@@ -196,8 +153,8 @@ Name                                 Uses
 
 ## 考虑过的方案
 
-保留迁入正文中的取舍；跨专项共同的备选方案及其拒绝理由仍由[升级总方案](2026-10-04-codex-task-timing.md)统一维护。此次仅拆分文档归属，不改变既有技术选择。
+[总方案](2026-10-04-codex-task-timing.md)维护仅在 CLI 重读原日志计算、先加遥测才能交付、任意独占归因等方案的排除理由。上述领域区分保留可用观察，不削弱身份、隐私及用户决定保护。
 
-## 验收条件
+## 影响与验证
 
-本专项负责 U14—U17，并为总方案中的 U03 页面设计提供细则；U03 主任务及关闭门禁仍以[总方案任务表](2026-10-04-codex-task-timing.md)为准。各任务还须满足本记录正文中的字段、故障、隐私和算法约束。仅部分实现时保持 proposed；独立模块验证随增量完成并提交、推送，集成与完整回归留在 U19。插入任务完成后回到原专项未完成项，不因局部检查通过跳过剩余任务。
+本决定的后果通过独立合成模块测试和最终真实链路验收验证。当前行为由模块说明维护；[总方案](2026-10-04-codex-task-timing.md)保留范围及平台、资源限制。来源证据缺失不转换为零或检查成功。

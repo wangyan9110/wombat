@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis": {
+      "zh": "53b088159c49b0c69277c9afff5f41640725aff2ca91564e08ac97d82c356727",
+      "en": "05f6231a8c9937746eeae3edf98f4bf7172b5d4013bdf75d0087addbb0e64713"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/problem": {
+      "zh": "2a0ca30c7f55835e6993949b0f23d9c826b07c11758d5bc1614639ac8b45f174",
+      "en": "76bb48557ff45cdad8683a1bc21b8226fb626c7ca2ab001c63a377196189dc81"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision": {
+      "zh": "ff261e3705c47ff09ee7e00d3fa2c1278e32d1bbec219feecbb9a55cc3298826",
+      "en": "a15c7c13f167e5ac9204c02acb3f22d9fffdadf996618ee0e068a4b27e4c1511"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/product-purpose-and-boundaries": {
+      "zh": "4f348faedb5620da188b39bc1032c0dde92f34284ba16ded2f02de3290d34bed",
+      "en": "28b14f2e395cc99547411575674141f74eb7b154bda1fd38fee4c7f68244ffc3"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/data-flow-and-responsibilities": {
+      "zh": "6f2f9cf2b4045b52b4e3b3df88659a40a391ee4c047e070cde99c04edc129446",
+      "en": "3567caae40e6d3116e3f03a10155d57c685c1de6b008a00ddf6448f72d8bcde1"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/minimum-shared-contracts": {
+      "zh": "274368110c768217eb61e0f8948c4c94d08f1f5375bb79e015771466e713228c",
+      "en": "559efb5070761a10f5f823c50a08612ff9f2729bcb8438e00f6f82dfe3243343"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/fallback-calculations-and-partial-results": {
+      "zh": "025893f8e7941b97ce22cbebc4f76da477e2bb5c09fb22ebf0ace59184c0c63a",
+      "en": "83d979906c232d0dfaab6e8b1ffa6420fd5c190125800dbd417ec460f945e9d5"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/rules-and-suggestions": {
+      "zh": "611a33659681425404332b288b531f06d7ec594b45eda38fb80d062d84839ac5",
+      "en": "dcd79986b7f0845391726417a26ae0fedb00732b081c438fb50b99f2847a3c4d"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/versions-storage-and-queries": {
+      "zh": "b115cfb4ce56c737d89ec93f79670ec3981df0887ec0c823a26687c8cdfa073f",
+      "en": "a33dc1d45f7f9a7f93ebace80312bc4468f286dd6c9bddf43fd51cac86fb1cf1"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/enforce-constraints-through-interfaces": {
+      "zh": "827d2d13cffcdd0d686d3237a2b05e7c6dc6a2d74fb96e19ce89db8b41376f89",
+      "en": "0a8e7be3ab1d645424143961626b35685aec6014ca3d18a753b84d2b0cbd8b04"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/incremental-updates-revise-results": {
+      "zh": "a892df840fb70040f03af7713e56590e8989976bb09280d9388fb0c97e4a0ce9",
+      "en": "5cb744edbc2f092b6701f9843edfe53c465700ad0f77d041e587cb90998cef31"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/converge-existing-entries": {
+      "zh": "d686d614b86b7b302ab30aacd054fd4ab7c81b9f8346fb69715558e4ae88395f",
+      "en": "3a0b4ea489f162f08b36c885ed16e1b442781aec1043f23b85f681001034c37d"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/decision/regression-ownership": {
+      "zh": "3b8817c6a7eaccec27af8c86cc20095675d6381aab7cf898f86e63607c3f5db5",
+      "en": "1fb75f3f9eb02d4587f742f4bdf9d3e0d9fe02a39f1c058a2f4212a6b295f9a7"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/alternatives-considered": {
+      "zh": "29b6e8ce650dad5aede0a6f1307c0b1cbd61bebc863142ef51209569c914ae30",
+      "en": "73de00a1754a24ffdbd18ad57586222f75c0bcc04ee4782f29776e7817a5dd15"
+    },
+    "/decision-note-observation-and-calculation-architecture-for-statistical-analysis/consequences-and-verification": {
+      "zh": "0033b80f4d28b47ff0fbdd93b66b10e807dbb2f8f346a51cc4398dd5c61e55f5",
+      "en": "b18cd3b676980bc01e890cf37422c294b7394c0179d72153e998f5ca21449a12"
+    }
+  }
+}

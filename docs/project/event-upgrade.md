@@ -2,4 +2,4 @@
 
 中文 | [English](event-upgrade.en.md)
 
-20 项任务、六批执行顺序、冻结契约与验收条件统一维护在[升级提案](../decisions/proposed/architecture/2026-10-04-codex-task-timing.md)。此路径仅保留任务入口，不维护另一份规格或进度台账。
+此次升级的范围、架构取舍与验收限制见[已实施决定](../decisions/implemented/architecture/2026-10-04-codex-task-timing.md)。当前入口由模块说明维护；此页仅保留任务入口。

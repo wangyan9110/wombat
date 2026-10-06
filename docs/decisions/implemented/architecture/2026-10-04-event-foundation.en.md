@@ -2,17 +2,19 @@
 
 [中文](2026-10-04-event-foundation.md) | English
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
-This record owns all design responsibilities from section 1, section 10, section 12, section 13, section 14, section 18 of the [upgrade overview](2026-10-04-codex-task-timing.en.md), as their single detailed design owner. The overview retains research evidence, cross-module constraints, task dependencies, and final acceptance; its entry points define neighboring workstreams. Splitting the documents does not indicate implementation completion.
+This record owns all design responsibilities from section 1, section 10, section 12, section 13, section 14, section 18 of the [upgrade overview](2026-10-04-codex-task-timing.en.md), as their single detailed design owner. The overview retains research evidence, cross-module constraints, and delivery limits; its entries define neighboring decision responsibilities.
 
-## Proposal
+## Decision
 
 The [statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) updates observation semantics, partial results, fallback calculations, and suggestion requirements. It takes precedence over older whole-result unavailability constraints below. Privacy, use-count semantics, identity protection, and final acceptance remain applicable.
 
 ### 1. Data availability and collection decisions
+
+The table preserves inspected formats and pre-upgrade projection gaps. The core reference owns current mappings; it is not a current support matrix.
 
 Add safe diagnostic facts at the Rust source boundary, retaining event identities, times, enum types, and counts before a separate service derives intervals, statistics, and findings. Continue skipping bodies; never return raw fields to Node. Declare support per field and log format, rather than an all-encompassing `timing=true` flag.
 
@@ -40,7 +42,7 @@ Do not confuse second-resolution `started_at` / `completed_at`, millisecond `*_a
 | Module | Scope and constraints |
 |---|---|
 | `core/adapters` | Safe facts, field-level capabilities, Codex format mappings; preserve usage deduplication/inheritance, independent lifecycle identity/conflicts |
-| `core/timing` (proposed) | Pure intervals, context distributions, findings/coverage; no React/Node or general command execution |
+| `core/timing` | Pure intervals, context distributions, findings/coverage; no React/Node or general command execution |
 | `core/live_index` / incremental | New fact buckets/checkpoint versions, complete-line appends, transactional projection; full recollection after upgrade, not old cursors skipping discarded history |
 | `core/usage_store` | Current-format timing facts, manifest, and hashes; bump the format for changed storage, reject unknown versions and preserve files; no old-snapshot compatibility or migration |
 | `core` DTO/dispatch/live | Separate diagnostic requests/results/read versions, cancellation/timeouts/partial/expiry/bounded detail; no arbitrary paths/shell |
@@ -55,7 +57,7 @@ Read versions must fix measurements, timing facts, and method together, without 
 
 Add diagnostic business logic within the existing modular monolith, without a new permanent process, database service, Node log parser, or online analysis service. Initial delivery provides identical selected-turn evidence in CLI and Web. A later desktop host can reuse it through a restricted transport.
 
-Existing integration points are the [live service](../../../../core/src/live.rs), [Node transport](../../../../client/src/node/live.ts), [Web host](../../../../web/src/index.ts), and [generator](../../../../scripts/generate-usage-contracts.mjs). All additions below are proposed, with no changes to these implementations.
+The [live service](../../../../core/src/live.rs), [Node transport](../../../../client/src/node/live.ts), [Web host](../../../../web/src/index.ts), and [generator](../../../../scripts/generate-usage-contracts.mjs) assemble the shared core queries. Module references own the delivered mechanisms.
 
 ```mermaid
 flowchart LR
@@ -86,11 +88,11 @@ flowchart LR
 
 Collectors first turn external sources into unified events or scoped observations, then a shared read version drives usage, timing, and Skill/MCP projections. Queries select an authorized fixed EvidenceView, read target events/projections, run deterministic algorithms, and emit local results or a sharing projection. Calculation no longer scans raw logs, reads current configuration, or calls external services; uncollected pricing, configuration, or host observations remain unavailable. Adapters own source semantics, projections own calculations, hosts own authorization, and UI presents generated contracts.
 
-Split proposed `core/src/timing/` by actual responsibility: `mod.rs` for orchestration, `intervals.rs` for validation/sweep, `context.rs` for input distributions/historical windows, `coverage.rs` for gaps, and `share.rs` for output allowlists. Add classification/comparison modules only when P1 is implemented. Do not prematurely split crates, introduce queue frameworks, or rewrite usage queries.
+Organize `core/src/timing/` by actual responsibility: `mod.rs` for orchestration, `intervals.rs` for validation/sweep, `context.rs` for input distributions/historical windows, `coverage.rs` for gaps, and `share.rs` for output allowlists. Add classification/comparison modules only when P1 is implemented. Do not prematurely split crates, introduce queue frameworks, or rewrite usage queries.
 
 ### 13. Internal safe facts and identities
 
-Retain four reconstructible timing-fact types through the unified event boundary in section18 and extended `FactSink`/`Collected`. Existing `Measurement` and `Operation` become projections without changing their semantics. Names/fields below are proposed internal design; final Rust definitions are authoritative.
+Retain four reconstructible timing-fact types through the unified event boundary in section18 and extended `FactSink`/`Collected`. Existing `Measurement` and `Operation` become projections without changing their semantics. Names/fields below are illustrative internal design; final Rust definitions are authoritative.
 
 | Fact | Minimum payload | Persistence and association rules |
 |---|---|---|
@@ -107,7 +109,7 @@ Add field-level capabilities and versioned type mappings. Preserve borrowed raw 
 
 Follow [current-format-only storage](../../implemented/architecture/2026-10-03-current-format-only.en.md): remove the prior v1/v2/v3 read compatibility, missing-envelope fallback, and old-reader acceptance. Supported historical Codex log formats remain adapter responsibilities; they are separate from Wombat storage compatibility.
 
-The current baseline is adapter codex-rollout-5, database version 3 at live-v1/index.sqlite, usage-v3 snapshot schema 3, and live transport protocolVersion 1. Unless another change advances them first, D2 uses the next versions: codex-rollout-6, database version 4 under live-v2, usage-v4/schema 4, and live transport version 2. Verify these in one version table during implementation. Use separate new-format directories and service endpoints, reading only current formats. Preserve old directories without conversion, deletion, or mixed projections; independent user-decision storage is unaffected. Explicit old-snapshot or unknown-format requests return UNSUPPORTED_VERSION. Cached reads without a committed index in the new location return NO_SNAPSHOT and direct the user to synchronize first.
+Storage, adapters, event payloads, projections, and transports have independent versions owned by the [core reference](../../../../core/README.en.md) and contracts. New directories/endpoints read current formats only. Preserve old directories without conversion, clearing, or mixed reads. User decisions remain independent. Explicit old snapshots and unknown formats return UNSUPPORTED_VERSION. Cached reads without committed indexes return NO_SNAPSHOT and require synchronization.
 
 This upgrade is unpublished. Intermediate development states converge on the target versions above without promising snapshot interoperability between intermediate commits. For example, after the development schema 4 single-file event reference becomes a partition index, the temporary old structure is not current schema 4 and is rejected as structural corruption while preserving its files. Unknown schema or event-index versions still return UNSUPPORTED_VERSION. Do not add compatibility readers, migration, or automatic deletion for temporary structures; acceptance recollects into the current format.
 
@@ -125,7 +127,7 @@ Its [projection registry](https://github.com/deepseek-ai/deepseek-harness/blob/5
 
 A single logical evidence log may include sessions, configuration scans, host observations, and price catalogs as source- and scope-specific streams. One fixed EvidenceView references their versions. A unified calculation interface does not require a single original source: collectors read external evidence, and calculations consume fixed facts. Independent durable storage still owns user decisions, linked by version references and never erased when reconstructible logs are rebuilt.
 
-Propose a safe, reconstructible SessionEvent fact layer in Wombat. It represents observed session records, not complete reconstruction of model-visible requests. The unified event source may be sharded in SQLite; it requires neither another giant JSONL copy nor loading every session into memory. Codex retains its raw logs. Wombat stores allowlisted metadata and evidence references, excluding prompts, messages, reasoning, full arguments, tool output, and unreviewed raw fields.
+Use a safe, reconstructible SessionEvent fact layer in Wombat. It represents observed session records, not complete reconstruction of model-visible requests. The unified event source may be sharded in SQLite; it requires neither another giant JSONL copy nor loading every session into memory. Codex retains its raw logs. Wombat stores allowlisted metadata and evidence references, excluding prompts, messages, reasoning, full arguments, tool output, and unreviewed raw fields.
 
 | Projection domain | Session events can provide | Independent evidence or remaining gaps |
 |---|---|---|
@@ -143,13 +145,13 @@ The data flow parses sources once into safe events. Existing accounting derives 
 
 Codex sources append, truncate, replace, and replay. Wombat cannot promise an immutable native append-only session. Preserve source order within one file generation; no proven total causal order exists across files/sources, only a stable display order with a declared rule. Published read versions are immutable; source corrections publish a new version that retracts/recomputes affected contributions. Projection checkpoints bind event watermarks and algorithm versions, not merely a last timestamp. Lagging results expose their status instead of masquerading as a complete common version.
 
-Adjust implementation: D1 extracts shared safe events and existing accounting/operation projection boundaries, reusing identity, replay, and accounting algorithms; D2 commits events, cursors, projections, and watermarks together; D3 adds timing projections; D4/D5 deliver shared-version queries and both entry points. One synthetic event corpus verifies Token conservation, Skill use-operation deduplication and separate distinct-turn counts, MCP identity/outcomes, and interval unions, plus truncation/replacement, late correction, and cold-rebuild/incremental equivalence. Historical calculations converge gradually on this fact layer, without a generic event bus, second ledger, or every product state forced into one session file. The unified layer remains proposed until delivered.
+Unified safe events normalize source facts before accounting, operation, timing, and use projections. Events, cursors, projections, and watermarks commit together; both entry points query fixed versions. Independent synthetic fixtures and final acceptance check Token conservation, use-identity deduplication, MCP outcomes, interval unions, truncation, replacement, late correction, and cold-rebuild equivalence. No generic event bus, second ledger, or single session file for every product state is introduced.
 
-Code ownership: source normalization remains in core/adapters; proposed core/session_events owns typed events, source positions, event queries, and read watermarks, without I/O callbacks or arbitrary JSON payloads. live_index owns transactions/checkpoints and usage_store owns fixed snapshots. Existing accounting, timing, and Skill/MCP queries consume events or validated projections. Node host capture produces allowlisted observations only when the corresponding product operation is authorized; Rust validates them before admission to observation streams. Unified storage does not expand reading or execution permissions.
+Code ownership: source normalization remains in core/adapters; core/session_events owns typed events, source positions, event queries, and read watermarks, without I/O callbacks or arbitrary JSON payloads. live_index owns transactions/checkpoints and usage_store owns fixed snapshots. Existing accounting, timing, and Skill/MCP queries consume events or validated projections. Node host capture produces allowlisted observations only when the corresponding product operation is authorized; Rust validates them before admission to observation streams. Unified storage does not expand reading or execution permissions.
 
-Retained events cover sessions/forks, turn boundaries, model/window changes, usage reports, tool calls/results, activity lifecycles, compaction, body-free message markers, instruction loads, Skill availability/reads/loads, MCP discovery/reads, and source gaps. Occurrence and collection times are separate, and unrecorded fields may be absent. Unknown events retain safe gap counts and source positions, never raw fallback payloads. Catalogs, file reads, and model declarations may retain different evidence, while product counts consume only explicitly qualifying use events.
+Retained events cover sessions/forks, turn boundaries, model/window changes, usage reports, tool calls/results, activity lifecycles, compaction, body-free message markers, instruction loads, Skill availability/reads and source-supported loads, MCP discovery/reads, and source gaps. Occurrence and collection times are separate, and unrecorded fields may be absent. Unknown events retain safe gap counts and source positions, never raw fallback payloads. Catalogs, file reads, and model declarations may retain different evidence, while product counts consume only explicitly qualifying use events.
 
-Space policy: retain one compact canonical event source of reconstructible facts. Repeated names/paths and identities use shared dictionaries or integer references. Read projections prefer event references, necessary indexes, and compact checkpoints. Create snapshots only on explicit saves, bound statistical caches, and never copy raw bodies. New metadata, indexes, and snapshots still cost space. Measure raw logs, events, projections/indexes, snapshots, and temporary database files using one fixed corpus, plus initial/append/rebuild time and peak memory; do not promise a net reduction in advance.
+One canonical safe event source supplies reconstructible facts and target-shard references. Create snapshots only on explicit saves; never copy raw bodies. Shared references reduce some duplication but do not eliminate persisted projections or resident full-source facts. Events, indexes, snapshots, and temporary databases have measured costs; the [overview](2026-10-04-codex-task-timing.en.md) states the observed resource limits. Dictionaries or integer-reference compression are possible optimizations, not a promise that current storage is compact or smaller than source logs.
 
 
 ## Alternatives considered
@@ -160,8 +162,8 @@ Domain code currently handles interval identity conflicts, window clipping, equa
 
 `differential-dataflow` and `timely` support dynamic updates and incremental propagation, but their dataflow graphs, progress models, and parallel-computation costs exceed the needs of local single-machine logs, target-turn queries, and a SQLite index. Retractions and forks still depend on Wombat source identity and ancestry semantics; a framework cannot supply those rules. Keep the existing incremental projection and retraction logic without a general dataflow platform. See the [differential-dataflow documentation](https://docs.rs/differential-dataflow/latest/differential_dataflow/) and [timely documentation](https://docs.rs/timely/latest/timely/). The interval sweep and Type 7 interpolation are small, clearly defined algorithms and do not need a port from another language. If no suitable Rust library exists in the future and a mature algorithm must be ported, record its source, license, and validation against independent synthetic truth. The [upgrade overview](2026-10-04-codex-task-timing.en.md) continues to own other alternatives shared across workstreams.
 
-## Acceptance criteria
+## Consequences and verification
 
-Transitional protection for measurement-context conflicts and tiered pricing is implemented; behavioral boundaries are in the [core reference](../../../../core/README.en.md). The [statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) still requires shared entry points for field observations, association, and version dependencies. Local conflict flags do not establish the complete architecture. Cross-entry and final resource acceptance remain in U19.
+Field observations, shared operation association, and version dependencies converge through the [analysis architecture revision](2026-10-05-analysis-first-events.en.md). Context-conflict and tiered-pricing protections remain regression cases. Independent modules and final cross-entry/resource acceptance verify these semantics; the [core reference](../../../../core/README.en.md) owns behavior.
 
-This workstream owns U04–U08. The [overview task table](2026-10-04-codex-task-timing.en.md) remains the single list of completion gates and dependencies; field, failure, privacy, and algorithm constraints in this record also apply. Partial implementation remains proposed. Validate independent modules, commit, and push each increment; integration and full regression remain in U19. After an interrupting task completes, return to the unfinished workstream item; passing a local check does not skip remaining tasks.
+The consequences of this decision are verified through independent synthetic module tests and final real-chain acceptance. Current behavior belongs to module references; the [overview](2026-10-04-codex-task-timing.en.md) owns scope and platform/resource limits. Missing source evidence does not become zero or a successful check.

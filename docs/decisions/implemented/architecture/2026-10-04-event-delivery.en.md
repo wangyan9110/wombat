@@ -2,13 +2,13 @@
 
 [中文](2026-10-04-event-delivery.md) | English
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
-This record owns all design responsibilities from section 7, section 8, section 9, section 15, section 16 of the [upgrade overview](2026-10-04-codex-task-timing.en.md), as their single detailed design owner. The overview retains research evidence, cross-module constraints, task dependencies, and final acceptance; its entry points define neighboring workstreams. Splitting the documents does not indicate implementation completion.
+This record owns all design responsibilities from section 7, section 8, section 9, section 15, section 16 of the [upgrade overview](2026-10-04-codex-task-timing.en.md), as their single detailed design owner. The overview retains research evidence, cross-module constraints, and delivery limits; its entries define neighboring decision responsibilities.
 
-## Proposal
+## Decision
 
 The [statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) updates observation semantics, partial results, fallback calculations, and suggestion requirements. It takes precedence over older whole-result unavailability constraints below. Privacy, use-count semantics, identity protection, and final acceptance remain applicable.
 
@@ -24,50 +24,7 @@ wombat timing capabilities [--share]
 
 Summary supports repeated `--root`, `--source`, `--fresh` / `--cached`, `--snapshot`, `--lang`, and cancellation. Accept full Wombat identities without silently falling back to upstream IDs; reject mismatched or missing targets. `--turn` is required; task aggregates come later. Reject date/Token/cost filtering or pagination that fragments the summary's whole-turn window. Evidence uses the same fixed target/version/scope with default50/max200 rows and an opaque cursor, local profile only and no refresh mode. Capabilities accepts no target or source paths and performs no scan. Emit one final JSON object by default with status on stderr; explicit `--text` and `--json` are mutually exclusive. Sharing requests Rust's separate projection. Timing bypasses automatic pricing, configuration scans, Hook capture, and account observation. Errors retain the separate v1 safe envelope; cancellation exits130 and does not stop shared synchronization.
 
-Add `timing_dto.rs`, generating Schema, TS, and validators from Rust. Operation `timing` uses the narrow `summary/evidence/capabilities` request union (integration in section15), response `outputVersion:4`, and a separate `methodVersion`. Version usage results, adapter, index, diagnostic snapshot, and analysis methods separately. Do not add a diagnostic action to the old usage union while claiming an unchanged protocol. Ordinary local JSON retains local locating identities; sharing has its own projection.
-
-| Top-level field | Contract |
-|---|---|
-| `outputVersion/action/methodVersion` | Current timing response version, summary, analysis algorithm version; stable untranslated enums/versions |
-| `profile/privacy` | local/share-v1 response branch and removed-data manifest; matches request privacyProfile |
-| `readView` | Fixed usage/diagnostic read identity and adapter/projection versions; live identities remain temporary |
-| `scope` | Task, turn, source identities; whole-turn query, without interpreting history through current project configuration |
-| `capabilities` | Separate supported/partial/unavailable states and stable reason codes for wall-clock/TTFT/lifecycle/context/command labels |
-| `time` | Native/derived duration, window, first token/content delay, boundary discrepancy, category unions/intersections/masks, waiting proxy, unclassified time |
-| `context` | Reliable request-input/ratio distributions, segments, window evidence, compaction counts/time, sample coverage, quantile method |
-| `work` | Candidate/closed/failed operations, labeled time, change counts, message-marker counts; missing repository baselines remain null |
-| `findings` | Stable code, fact/proxy/user_annotation, metric/evidence references; no arbitrary generated prose |
-| `coverage/quality/freshness` | Per-dimension denominators, tails/errors/censoring/conflicts/limits, sync state; complete reads do not mean fully explained time |
-| `evidence` | Bounded local allowlisted references/methods for the target turn; separate authorization and sharing projection, no raw fields |
-
-Nullable measurements in the complete local response use `{value,status,basis,evidenceRefs}` with observed/derived/proxy/unavailable status. Unknown means `value:null`; zero needs explicit evidence. Milliseconds and Tokens are safe integers; ratios are finite or null; Type 7 quantiles may be finite fractions. Unclassified time itself can be completely measured without marking the whole read failed.
-
-This synthetic sharing-summary fragment omits fields still required in a complete response; it is not generated Schema:
-
-```json
-{
-  "outputVersion": 4,
-  "action": "summary",
-  "profile": "share-v1",
-  "methodVersion": "timing-v1",
-  "scope": {"threadAlias": "T1", "turnAlias": "R1"},
-  "time": {
-    "wallClockMs": {"value": 100, "status": "observed", "basis": "native_duration", "evidenceRefs": ["E1"]},
-    "observedWindowMs": 100,
-    "lifecycleUnionMs": {"compaction": 30, "command": 50, "reasoning": 30},
-    "coveredLifecycleMs": 80,
-    "unclassifiedMs": 20,
-    "responseGapUnionMs": {"value": 40, "status": "proxy", "basis": "response_gap_v1", "evidenceRefs": ["E2"]}
-  },
-  "context": {
-    "inputTokens": {"sampleCount": 5, "p90": 460, "method": "type7"},
-    "inputWindowRatio": {"sampleCount": 5, "p90": 0.46},
-    "activeContextOccupancy": {"value": null, "status": "unavailable", "basis": "not_recorded", "evidenceRefs": []}
-  },
-  "coverage": {"lifecycleTimeRatio": 0.8},
-  "privacy": {"profile": "share-v1", "timestamps": "relative", "paths": "removed"}
-}
-```
+Rust defines the narrow summary/evidence/capabilities requests, local/share response branches, and independently versioned errors. Generated Schema, TypeScript, and validators are authoritative; see the [core reference](../../../../core/README.en.md). Keep response/method/storage/adapter versions independent. Numeric fields retain recorded, derived, proxy, or unavailable bases; zero requires evidence. Sharing is a separate allowlisted projection with fresh aliases, never a frontend deletion of selected local fields. The [analysis revision](2026-10-05-analysis-first-events.en.md) preserves useful partial metrics and specific explanations.
 
 Use exit 0 for success, including complete reads without causal attribution; 2 for partial reads/key evidence gaps/provisional running results; 1 for argument/operation errors; 130 for cancellation. Missing optional capabilities still return results marked unavailable. Current-format snapshots with missing source fields return unavailable; old formats are rejected without reading current logs into fixed history. Errors use `{outputVersion:1,error:{code,message}}` with safe template messages. Reuse INVALID_ARGUMENT, VIEW_EXPIRED, SNAPSHOT_CORRUPT, SOURCE_UNREADABLE, RESOURCE_LIMIT, CANCELLED. Add diagnostic quality reasons TIMING_DETAIL_UNAVAILABLE for required facts absent from source logs; missing required shards/envelopes use SNAPSHOT_CORRUPT and TIMING_BOUNDARY_CONFLICT for contradictory explicit boundaries. Return available native scalars with affected derived values null, preserving useful results when an individual metric is missing.
 
@@ -156,11 +113,11 @@ On narrow screens, stack the same information order and provide an equivalent op
 | Refresh failure or expired version | Keep old data and its update time on refresh failure; explicitly stop evidence queries for expired versions | Retry or refresh, without automatically widening read permissions |
 | Inaccessible source or unsupported host | Explain inaccessibility or lack of support while keeping other available content | Use existing source management to resolve authorization, or return to available pages |
 
-The page and shared synthetic-data preview are implemented, with partial module, API, and browser-interaction evidence. This evidence does not establish complete user journeys, visual review, or browser acceptance. The following journeys still require review: find a turn and return; understand why concurrent durations cannot be added; verify why three Skill reads in one turn count as three uses; distinguish zero, duration not recorded in the log, and read failures; refresh after log appends and share the same data batch. Wide/narrow layouts, long names, many operations, keyboard navigation, and both languages remain subject to the original acceptance requirements. Complete acceptance remains part of U19 after the gaps in this section are closed.
+Production pages and shared synthetic previews reuse production components. Final automated browser acceptance covers finding a turn and returning, overlapping durations, three Skill reads counting as three uses, distinguishing zero/unrecorded/read failures, append refresh, and sharing the same batch. Chinese/English, 390/1440 widths, long names, many operations, and keyboard paths are checked. Rule journeys cover keep, redisplay, not applicable, comparable resolution, version-incomparable rechecks, and insufficient evidence. DOM and interaction evidence do not establish pixel-level visual or all assistive-technology acceptance.
 
-MCP now has a separate timeline category. Associated calls with reliable endpoints appear as tracks; calls without endpoints retain use records and available native duration. Complete user journeys and browser acceptance remain in U19. Timing summaries now share localized explanations of missing values, calculation bases, and source status. CLI optimize text separately presents user decisions and reasons, current and original checks, and core recheck comparison status. Some status messages now store message keys and translate when rendered; terminology on other pages still requires review. See the UI and CLI source owners for implementation details; these implementations do not establish full acceptance of this section.
+MCP has a separate timeline category. Calls with reliable endpoints form tracks; calls without endpoints retain use records and available native duration. Timing summaries share localized gap, calculation-basis, and source-state explanations. CLI optimization text separates user decisions, current/original checks, and recheck comparability. Product translation checks and bilingual browser flows detect missing translations; source content and stable protocol values remain unchanged.
 
-The shared preview already provides synthetic scenarios including complete records, missing time records, and a running turn, and reuses the production turn component. These scenarios support review of the timeline, list fallback, and group refresh; they do not establish wide/narrow layout or interaction acceptance. Review visual hierarchy, long names, expanded content spacing, and keyboard paths. Clickable controls alone do not establish design acceptance, and screenshots do not replace real-browser acceptance.
+Shared previews provide complete, unrecorded-time, and running synthetic scenarios with production turn and rule components. Browser acceptance checks navigation hierarchy, list fallback, group refresh, expanded content, return, and focus restoration. Clickable controls and historical screenshots alone do not establish acceptance.
 
 The old standalone prototype pages, styles and simulations have been removed. Production components and the shared preview are the only UI implementation. Old check archives remain historical evidence and do not establish U19 results.
 
@@ -196,8 +153,8 @@ Name                                 Uses
 
 ## Alternatives considered
 
-Tradeoffs within the moved sections remain intact. The [upgrade overview](2026-10-04-codex-task-timing.en.md) continues to own shared alternatives and rejection reasons. This change only splits documentation ownership, without changing existing technical choices.
+The [overview](2026-10-04-codex-task-timing.en.md) owns shared rejection reasons for CLI-only raw-log calculation, additional telemetry as a prerequisite, and arbitrary exclusive causal allocation. Domain-specific distinctions above retain useful observed results without weakening identity, privacy, or user-decision protection.
 
-## Acceptance criteria
+## Consequences and verification
 
-This workstream owns U14–U17 and supplies page-design detail for U03 in the overview; U03's primary task and completion gates remain in the [overview task table](2026-10-04-codex-task-timing.en.md). Each task also follows the field, failure, privacy, and algorithm constraints in this record. Partial implementation remains proposed. Validate independent modules, commit, and push each increment; integration and full regression remain in U19. After an interrupting task completes, return to the unfinished workstream item; passing a local check does not skip remaining tasks.
+The consequences of this decision are verified through independent synthetic module tests and final real-chain acceptance. Current behavior belongs to module references; the [overview](2026-10-04-codex-task-timing.en.md) owns scope and platform/resource limits. Missing source evidence does not become zero or a successful check.

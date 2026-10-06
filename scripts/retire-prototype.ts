@@ -13,7 +13,7 @@ const owners=[
  'ui/src/ThreadsView.tsx','ui/src/tasks/TurnExecution.tsx','ui/src/tasks/Uses.tsx',
  'ui/src/OptimizeView.tsx','ui/src/ConfigView.tsx','ui/src/preview/startup.ts',
  'ui/src/preview/account.ts','ui/src/preview/handoff.ts','ui/src/reference.css',
- 'docs/decisions/proposed/architecture/2026-10-04-event-delivery.md',
+ 'docs/decisions/implemented/architecture/2026-10-04-event-delivery.md',
 ];
 type Entry={file:string;bytes:number;sha256:string};
 type Manifest={version:1;source:string;files:Entry[];audits:Entry[];owners:Entry[];acceptance:'requires-U19'};

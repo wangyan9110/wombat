@@ -2,19 +2,19 @@
 
 [中文](2026-10-04-event-rules.md) | English
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
-This record owns all design responsibilities from section 20 of the [upgrade overview](2026-10-04-codex-task-timing.en.md), as their single detailed design owner. The overview retains research evidence, cross-module constraints, task dependencies, and final acceptance; its entry points define neighboring workstreams. Splitting the documents does not indicate implementation completion.
+This record owns all design responsibilities from section 20 of the [upgrade overview](2026-10-04-codex-task-timing.en.md), as their single detailed design owner. The overview retains research evidence, cross-module constraints, and delivery limits; its entries define neighboring decision responsibilities.
 
-## Proposal
+## Decision
 
 The [statistical analysis architecture revision](2026-10-05-analysis-first-events.en.md) updates observation semantics, partial results, fallback calculations, and suggestion requirements. It takes precedence over older whole-result unavailability constraints below. Privacy, use-count semantics, identity protection, and final acceptance remain applicable.
 
 ### 20. Rule architecture based on unified evidence
 
-This section describes the complete target: fixed evidence and shared analysis → independent rule evaluation → assessments → findings → suggestions and handling views. Current implementation and limits belong to the [core reference](../../../../core/README.en.md): rule caching, independent method versions, finding identities, and immutable review baselines are implemented. U12/U13 still require final shared-use integration and cross-entry and rebuild acceptance; partial delivery does not close either task. Whether a suggestion exists does not determine an assessment outcome.
+This section describes the complete target: fixed evidence and shared analysis → independent rule evaluation → assessments → findings → suggestions and handling views. Current implementation and limits belong to the [core reference](../../../../core/README.en.md): rule caching, independent method versions, finding identities, and immutable review baselines are implemented. Shared use statistics feed rule inputs; cross-entry and rebuild acceptance verify the same semantics. Whether a suggestion exists does not determine an assessment outcome.
 
 #### 20.1 Design references and technology choice
 
@@ -40,7 +40,7 @@ Each rule declares a stable ID, version, applicable objects, validated parameter
 
 Exclude inapplicable objects before scheduling and explain when requested; a user's “Not applicable” choice remains a separate handling decision. Retain established local findings while marking the remaining scope incomplete; local hits cannot establish a complete pass rate or exact total finding count. Failure of one rule preserves valid results from others and marks the batch partially complete.
 
-Turn inspection and static configuration review use different subjects. A fixed historical turn describes observations that cannot be repaired by editing a current configuration object. Therefore `optimize activity` consumes shared turn analysis through the existing optimization entry, with versioned metric checks and read-only advice. It does not put turn observations into object keep/not-applicable/recheck history. Positive partial evidence remains useful; only complete count-specific coverage establishes a miss. Confirmed predecessor links take precedence over broader request advice, while all check facts remain available. Failure-share thresholds are a product heuristic: a minimum sample, multiple failures, and a ratio condition together prevent one expected nonzero result from generating task-level advice. They do not provide fault probabilities or automatic handling conclusions. Checks bind the canonical determinate subset; a below-threshold result means only that this subset does not meet the criteria. Incomplete sources or other outcomes can still retain original statistics and scoped advice. Concrete explanations cover small samples without turning gaps into success or faults. Thresholds belong to the separate rule method, which must be versioned when changed. Request-input change advice compares first and last samples within one historical stage, without requiring execution order or exact context occupancy. A large increase is an inspection signal rather than proof of a sustained trend or waste. The core reference owns the threshold, which requires a method version change when revised. U19 acceptance remains required. Current behavior belongs in the [core README](../../../../core/README.en.md); assembled CLI/Web, append/rebuild consistency and interaction acceptance remain U19 requirements.
+Turn inspection and static configuration review use different subjects. A fixed historical turn describes observations that cannot be repaired by editing a current configuration object. Therefore `optimize activity` consumes shared turn analysis through the existing optimization entry, with versioned metric checks and read-only advice. It does not put turn observations into object keep/not-applicable/recheck history. Positive partial evidence remains useful; only complete count-specific coverage establishes a miss. Confirmed predecessor links take precedence over broader request advice, while all check facts remain available. Failure-share thresholds are a product heuristic: a minimum sample, multiple failures, and a ratio condition together prevent one expected nonzero result from generating task-level advice. They do not provide fault probabilities or automatic handling conclusions. Checks bind the canonical determinate subset; a below-threshold result means only that this subset does not meet the criteria. Incomplete sources or other outcomes can still retain original statistics and scoped advice. Concrete explanations cover small samples without turning gaps into success or faults. Thresholds belong to the separate rule method, which must be versioned when changed. Request-input change advice compares first and last samples within one historical stage, without requiring execution order or exact context occupancy. A large increase is an inspection signal rather than proof of a sustained trend or waste. The core reference owns the threshold, which requires a method version change when revised. Final real-chain and browser acceptance verify current entry wiring. Current behavior belongs in the [core README](../../../../core/README.en.md); final acceptance verifies assembled CLI/Web, append/rebuild consistency, and interactions.
 
 #### 20.3 Finding identity, user decisions, and rechecks
 
@@ -65,8 +65,8 @@ R1—R3 synthetic acceptance covers unchanged existing static truth; five assess
 
 ## Alternatives considered
 
-Tradeoffs within the moved sections remain intact. The [upgrade overview](2026-10-04-codex-task-timing.en.md) continues to own shared alternatives and rejection reasons. This change only splits documentation ownership, without changing existing technical choices.
+The [overview](2026-10-04-codex-task-timing.en.md) owns shared rejection reasons for CLI-only raw-log calculation, additional telemetry as a prerequisite, and arbitrary exclusive causal allocation. Domain-specific distinctions above retain useful observed results without weakening identity, privacy, or user-decision protection.
 
-## Acceptance criteria
+## Consequences and verification
 
-This workstream owns U11–U13. The [overview task table](2026-10-04-codex-task-timing.en.md) remains the single list of completion gates and dependencies; field, failure, privacy, and algorithm constraints in this record also apply. Partial implementation remains proposed. Validate independent modules, commit, and push each increment; integration and full regression remain in U19. After an interrupting task completes, return to the unfinished workstream item; passing a local check does not skip remaining tasks.
+The consequences of this decision are verified through independent synthetic module tests and final real-chain acceptance. Current behavior belongs to module references; the [overview](2026-10-04-codex-task-timing.en.md) owns scope and platform/resource limits. Missing source evidence does not become zero or a successful check.

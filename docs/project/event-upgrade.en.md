@@ -2,4 +2,4 @@
 
 [中文](event-upgrade.md) | English
 
-The 20 tasks, six execution batches, frozen contracts, and acceptance conditions have one owner in the [upgrade proposal](../decisions/proposed/architecture/2026-10-04-codex-task-timing.en.md). This path remains a task entry point, not another specification or progress ledger.
+The [implemented upgrade decision](../decisions/implemented/architecture/2026-10-04-codex-task-timing.en.md) owns scope, architectural choices, and acceptance limits. Module references own current entries; this page is only a task entry point.

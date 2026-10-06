@@ -2,13 +2,15 @@
 
 [中文](2026-10-05-analysis-first-events.md) | English
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
-Wombat supports statistical analysis and improvement suggestions. It is not a transaction settlement or exhaustive audit system. The event upgrade provides safe storage, source identities, and replay paths, but it does not yet unify observation semantics and downstream use. Placing records in one logical log does not by itself prevent information loss, repeated association, or excessively conservative presentation.
+Wombat supports statistical analysis and improvement suggestions. It is not a transaction settlement or exhaustive audit system. The event upgrade provides safe storage, source identities, and replay paths, but before this revision it did not unify observation semantics and downstream use. Placing records in one logical log does not by itself prevent information loss, repeated association, or excessively conservative presentation.
 
-This decision partially supersedes the assumption in [sections 13 and 18 of the event foundation](2026-10-04-event-foundation.en.md) that retaining existing projection semantics is sufficient for unification. It also replaces parts of the [metrics](2026-10-04-event-metrics.en.md), [rules](2026-10-04-event-rules.en.md), and [delivery](2026-10-04-event-delivery.en.md) designs that make completeness a prerequisite for an entire result. Privacy, source isolation, use-count semantics, user-decision protection, storage transactions, and final acceptance remain applicable. This revises the current upgrade under [U01–U20](2026-10-04-codex-task-timing.en.md), without a parallel task list. The target below is not fully implemented.
+This decision partially supersedes the assumption in [sections 13 and 18 of the event foundation](2026-10-04-event-foundation.en.md) that retaining existing projection semantics is sufficient for unification. It also replaces parts of the [metrics](2026-10-04-event-metrics.en.md), [rules](2026-10-04-event-rules.en.md), and [delivery](2026-10-04-event-delivery.en.md) designs that make completeness a prerequisite for an entire result. Privacy, source isolation, use-count semantics, user-decision protection, storage transactions, and final acceptance remain applicable. This revises the current upgrade under [U01–U20](2026-10-04-codex-task-timing.en.md), without a parallel task list. Shared observation, association, version, and analysis entries are delivered; the overview and module references retain source and platform limits.
+
+The table below describes issues found before this revision, not current open defects.
 
 | Structural issue found | Code evidence and consequence |
 |---|---|
@@ -20,7 +22,7 @@ This decision partially supersedes the assumption in [sections 13 and 18 of the 
 
 Evidence entry points are [Codex normalization](../../../../core/src/adapters/codex/wire.rs), [reconciliation](../../../../core/src/adapters/codex/accounting.rs), [operation phases](../../../../core/src/adapters/codex/operations/merge.rs), [use observations](../../../../core/src/usage_observations.rs), [timing queries](../../../../core/src/timing/query.rs), and [usage summaries](../../../../core/src/usage_app/summary.rs). These issues do not mean every current result is wrong. They show why individual patches cannot constrain future consumers.
 
-## Proposal
+## Decision
 
 ### Product purpose and boundaries
 
@@ -95,7 +97,7 @@ Define observation formats and source mapping versions centrally. A typed versio
 
 All reconciliation uses one entry with the same semantics during initial collection, append, replay, and restart. Fixed views bind observations and analysis methods; a method change explicitly recalculates and creates a new analysis version. Cache keys follow actual analysis dependencies rather than hidden conditions assembled by each view. User decisions remain outside rebuildable caches.
 
-Query statistical summaries separately from evidence details. Summaries retain observed counts, usable measures, and scope. Pagination or detail-budget limits affect details without removing completed summaries. If a summary itself reaches a limit, state which portions were processed and which values are unavailable; do not present truncated values as complete. Full-source residency and resource costs still require measurement. This does not promise persistent MVCC or unlimited streaming scale.
+Query statistical summaries separately from evidence details. Summaries retain observed counts, usable measures, and scope. Pagination or detail-budget limits affect details without removing completed summaries. If a summary itself reaches a limit, state which portions were processed and which values are unavailable; do not present truncated values as complete. The overview retains measured full-source residency and resource costs. This does not promise persistent MVCC or unlimited streaming scale.
 
 ### Enforce constraints through interfaces
 
@@ -136,22 +138,20 @@ Calculation failure stays within the affected domain and scope. Queries can retu
 
 ### Converge existing entries
 
-Start with a small set of independent synthetic truths covering absent and conflicting fields, repeated phases, late completion, alias merging, and partial pricing. Move consumers to shared observations and association one at a time, removing each consumer's duplicate association and refill paths as it moves. Do not maintain old and new result pipelines in production. Existing `usage_observations`, timing phase association, and context conflict protection are starting points, not a substitute for shared `ResolvedOperation`.
+Shared observations and association now replace consumer-specific refill and phase-association paths. Independent synthetic truths cover absent/conflicting fields, repeated phases, late completion, alias merging, and partial pricing. There is one production reconciliation path; usage observations and timing consume shared ResolvedOperation rather than owning separate identity decisions.
 
-Add these boundaries to existing aggregate checks: domain queries cannot reread raw logs, and presentation cannot own reconciliation or pricing. Independent module fixtures verify equivalent whole-batch and incremental results, plus replacement when evidence arrives. Static checks constrain imports; behavioral tests constrain calculation semantics. Keyword scans cannot prove algorithm correctness. Cross-entry consistency, resource bounds, and user journeys remain final U19 acceptance.
+Add these boundaries to existing aggregate checks: domain queries cannot reread raw logs, and presentation cannot own reconciliation or pricing. Independent module fixtures verify equivalent whole-batch and incremental results, plus replacement when evidence arrives. Static checks constrain imports; behavioral tests constrain calculation semantics. Keyword scans cannot prove algorithm correctness. Final real-chain and browser acceptance verify cross-entry consistency, resource costs, and user journeys.
 
-### Treatment of existing work
+### Regression ownership
 
-Reuse existing native-input-total protection, optional cache-breakdown isolation, identity deduplication, interval algorithms, use semantics, fixed views, rule evaluation, and user records. The context-conflict fixes being finalized in the worktree prevent incorrect inheritance and pricing; retain them as regression cases and transitional protection. Their additional local flags do not establish the target architecture. Shared observation and reconciliation must absorb their semantics and remove repeated fallback and validation paths.
-
-Adjust the order within existing tasks: U02 establishes shared semantics and analytical purposes; U04–U08 establish observations, shared association, and version entry points; U09–U13 align token/use/timing partial results and fallback calculations with rules; U14–U18 connect shared explanations and existing components and complete independent checks; U19/U20 finish cross-entry, resource, documentation, and installation acceptance. The main task table remains the detailed owner of closure conditions.
+Shared observation and reconciliation preserve native-input totals, optional cache-breakdown isolation, identity deduplication, interval algorithms, use semantics, fixed views, rule evaluation, and user records. Historical context-conflict defects remain regression cases; a local conflict flag alone cannot define the architecture.
 
 ## Alternatives considered
 
 Adding null branches and observation headers for each symptom is a small change but cannot prevent future consumers from repeating the error; it is not the long-term approach. Replacing the system with a generic event-sourcing framework adds infrastructure unrelated to current consumers and does not define domain meaning. Making every result an unspecified estimate is also unsuitable because users cannot compare trends or understand advice. Use shared observation, association, and explanation contracts within current modules, migrate by domain, and prioritize useful analysis.
 
-## Acceptance criteria
+## Consequences and verification
 
 Add architectural properties to U02–U18 rather than treating test counts as completion: one synthetic observation set produces the same domain results through initial collection, batched append, restart, and replay; duplicate evidence does not increase uses or tokens; missing and conflicting fields do not turn into each other; native values replace corresponding estimates; optional breakdown gaps do not hide independent primary metrics; unassigned records remain visible alongside observed counts; detail pagination failure does not invalidate a completed summary; CLI, Web, and rules share the same analysis semantics.
 
-Each estimate needs independent synthetic cases for its method, scope, visible assumptions, and prevention of double counting. An explanation is sufficient when no estimate method is available. Suggestions must trace to metrics and observed scope without claiming a fault, savings, or resolution. Existing privacy, read-only-source, and user-decision protections remain. Intermediate stages run only affected independent module tests; integration, browsers, platforms, and resource acceptance remain in U19.
+Each estimate needs independent synthetic cases for its method, scope, visible assumptions, and prevention of double counting. An explanation is sufficient when no estimate method is available. Suggestions must trace to metrics and observed scope without claiming a fault, savings, or resolution. Existing privacy, read-only-source, and user-decision protections remain. Independent tests verify observation and reconciliation semantics; final real-chain, browser, resource, and local installation acceptance cover assembly. The overview owns platform limits.

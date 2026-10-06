@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-rule-evaluation-over-unified-evidence": {
+      "zh": "decd57a23d03cabf5a5e28e56c348ecfda220df03780172964daf521570982b1",
+      "en": "76ce1745b9e454b206170ad53963c1370493ffed3a1acdefb12ca0c4d7508165"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/problem": {
+      "zh": "99d810b112f6b80a187b196b4b06435793b5444e73dc3f2122f83278034b16d7",
+      "en": "b56dc8e0608ec25a2d853297e70a86a957cfae4e1c33b0c71e0b7c58a789a3f8"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/decision": {
+      "zh": "a15add2be199820151854bcb890f25a2d1847144b4a6b49c45ae214b43af6da7",
+      "en": "59f4903de8661f3fe27548a7aba2f2b8a80c6c44b44da03e047e22e7d2d6706b"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/decision/20-rule-architecture-based-on-unified-evidence": {
+      "zh": "e4c0a0a81b7bf411b29a3eee7601970c880f02e3b578ebbc25c3b927b82aafb3",
+      "en": "3af6e85704c655ddf7047e78df9c38ef65ec2f18c03e214903be7d57605fae67"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/decision/20-rule-architecture-based-on-unified-evidence/20-1-design-references-and-technology-choice": {
+      "zh": "bbea154020ff8453ba81f12d8a6441ed4e8d61e70cf714e17175ad57700dc848",
+      "en": "83ccb239b32d08143c881cb54d464adaea4837fe8c83a5d45d30f6cfd8369262"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/decision/20-rule-architecture-based-on-unified-evidence/20-2-collection-shared-analysis-and-rule-evaluation": {
+      "zh": "742ceb9a8442de7c6bee76d5424616971dd1a123790ef74bca16b31d2b73c971",
+      "en": "f74501b3a205646b355320449983eea3a89bcc185f9385f674b796dd7a1de606"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/decision/20-rule-architecture-based-on-unified-evidence/20-3-finding-identity-user-decisions-and-rechecks": {
+      "zh": "5e44e834b98e2b8fe174a844012e614eaee118b30953e0e68887eb596c1123e3",
+      "en": "475262da714703e93543dd285e5578b4a719d38c7be836197f8d3373d2973b65"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/decision/20-rule-architecture-based-on-unified-evidence/20-4-incremental-updates-and-capability-limits": {
+      "zh": "c14c8d4a8bd57c470968d6192e6058f3af924497516fb0d3cbcc3ab88d046e10",
+      "en": "57d0fb75786bd70e4eb3e3f73a2c2071551e0ba1251874757b0cd987e6e4aa16"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/decision/20-rule-architecture-based-on-unified-evidence/20-5-code-ownership-and-acceptance": {
+      "zh": "65486fc15c1d3448fd017399a30168a4f81561ce28cd370c22666cc2b1ecb78d",
+      "en": "891e110564a87c7fdbc042a9cba364f86d2fd4444fa1b7d3c07bb77beeb7502a"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/alternatives-considered": {
+      "zh": "baf013d69fa37c5a2ffbe9a2527555ba14b9c7cb58bad00c10a8ac7134ee0a2a",
+      "en": "e688a84218f08c2526f8ccf1f64f4c26a8192efb2a576b4a37fe0f06f0b2ccb7"
+    },
+    "/decision-note-rule-evaluation-over-unified-evidence/consequences-and-verification": {
+      "zh": "95b8a704695db5cf13d6a699ac696c91e7b38125a705dee66cb6040592fb9228",
+      "en": "264d926b90072821e8f98ce1b4370f9ca4bb7c49a1aa635d9d088779f229ed90"
+    }
+  }
+}
