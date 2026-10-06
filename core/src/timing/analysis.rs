@@ -110,6 +110,7 @@ pub struct Analysis {
     /// Native duration minus observed boundary duration; neither is rescaled.
     pub boundary_delta_ms: Option<i128>,
     pub intervals: intervals::IntervalMetrics,
+    pub operation_coverage: OperationCoverage,
     /// Unknown without observed candidates and at least one valid closed interval.
     /// Counts describe observations only; absence never establishes source completeness.
     pub category_union_ms: [Option<u64>; intervals::CATEGORY_COUNT],
@@ -119,6 +120,25 @@ pub struct Analysis {
     pub first_content_record_delay_ms: Option<u64>,
     pub coverage: Coverage,
     pub issues: Vec<Issue>,
+}
+
+/// Residual relative to recorded, paired operations; independent of four lifecycle categories.
+/// A zero paired count means no intervals were subtracted, never model waiting.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct OperationCoverage {
+    pub method_version: u32,
+    pub endpoint_method_version: u32,
+    /// Canonical groups with an eligible operation; paired is their usable endpoint subset.
+    pub candidates: usize,
+    pub paired: usize,
+    /// Physical observations without operation identity; independent of canonical groups.
+    pub missing_identity: usize,
+    pub conflicting: usize,
+    pub covered_ms: Option<u64>,
+    pub residual_ms: Option<u64>,
+    pub residual_ranges: Vec<(u64, u64)>,
+    pub detail_limited: bool,
+    pub partial: bool,
 }
 
 #[derive(Default)]
@@ -317,29 +337,6 @@ impl BoundaryReducer {
     }
 }
 
-#[derive(Default)]
-struct Item {
-    domains: BTreeMap<(String, String), ItemDomain>,
-    categories: BTreeSet<usize>,
-    terminal_states: BTreeSet<u8>,
-    identity_conflict: bool,
-    target_conflict: bool,
-    outcome_conflict: bool,
-}
-#[derive(Default)]
-struct ItemDomain {
-    starts: BTreeSet<i64>,
-    ends: BTreeSet<i64>,
-    native_starts: BTreeSet<i64>,
-    native_ends: BTreeSet<i64>,
-    closed: bool,
-    start_ref: Option<String>,
-    end_ref: Option<String>,
-    native_start_ref: Option<String>,
-    native_end_ref: Option<String>,
-    terminal_ref: Option<String>,
-}
-
 fn terminal(phase: &Phase) -> bool {
     matches!(phase, Phase::Completed | Phase::Failed | Phase::Cancelled)
 }
@@ -365,6 +362,31 @@ fn phase_category(kind: ObservationKind<'_>) -> Option<usize> {
             Some(3)
         }
         ObservationKind::Operation(_) => None,
+    }
+}
+fn phase_operation(kind: ObservationKind<'_>) -> bool {
+    match kind {
+        ObservationKind::Item(kind) => matches!(
+            kind,
+            ItemKind::Command | ItemKind::File | ItemKind::Mcp | ItemKind::Tool
+        ),
+        ObservationKind::Operation(operation) => matches!(
+            operation.kind.as_ref(),
+            "tool"
+                | "command"
+                | "file"
+                | "mcp"
+                | "mcpTool"
+                | "mcpResource"
+                | "mcpDiscovery"
+                | "mcpUnclassified"
+                | "mcpConflict"
+                | "skillRead"
+                | "search"
+                | "image"
+                | "agent"
+        ),
+        ObservationKind::Compaction => false,
     }
 }
 fn event_category(event: &Event) -> Option<usize> {
@@ -474,6 +496,11 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         native_ttft_ms: None,
         boundary_delta_ms: None,
         intervals: intervals::analyze(None, &[], &[], input.budget.lifecycle_records),
+        operation_coverage: OperationCoverage {
+            method_version: 1,
+            endpoint_method_version: operation_association::endpoints::METHOD_VERSION,
+            ..OperationCoverage::default()
+        },
         category_union_ms: [None; intervals::CATEGORY_COUNT],
         context: None,
         response_gap_support: ResponseGapSupport::UnsupportedMissingBatchAndCycleEvidence,
@@ -497,6 +524,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         || input.measurements.len() > input.budget.measurements
     {
         result.coverage.partial = true;
+        result.operation_coverage.partial = true;
         result.issues.push(Issue::ResourceLimit);
         return Ok(result);
     }
@@ -583,7 +611,6 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         cancelled,
     )?);
     let mut boundaries = BoundaryReducer::default();
-    let mut items: BTreeMap<intervals::Identity, Item> = BTreeMap::new();
     let lifecycle_records = events
         .iter()
         .filter(|event| event_category(event).is_some())
@@ -619,89 +646,34 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         }
     }
     let observations = if lifecycle_records <= input.budget.lifecycle_records {
-        operation_association::resolve(events.iter().map(Arc::as_ref), cancelled)?.phases
+        operation_association::resolve(events.iter().map(Arc::as_ref), cancelled)?
+            .phases
+            .into_iter()
+            .filter(|phase| phase_category(phase.kind).is_some() || phase_operation(phase.kind))
+            .collect::<Vec<_>>()
     } else {
         Vec::new()
     };
-    for observation in observations {
-        check(cancelled)?;
-        let Some(index) = phase_category(observation.kind) else {
-            continue;
-        };
-        let event = observation.event;
-        let native_id = observation.identity;
-        let phase = observation.phase;
-        let native_start = observation.native_start;
-        let native_end = observation.native_end;
-        if lifecycle_records > input.budget.lifecycle_records {
-            continue;
+    let endpoints = operation_association::endpoints::reduce(&observations, cancelled)?;
+    result.operation_coverage.endpoint_method_version = endpoints.method_version;
+    for &index in &endpoints.missing_identity {
+        if phase_operation(observations[index].kind) {
+            result.operation_coverage.missing_identity += 1;
         }
-        let Some(native_id) = native_id else {
+        let observation = &observations[index];
+        if phase_category(observation.kind).is_some() {
             result.coverage.missing_identity_lifecycles += 1;
+            result.issues.push(Issue::MissingItemIdentity(
+                observation.event.id().to_owned(),
+            ));
+        }
+    }
+    for &index in &endpoints.missing_time {
+        let observation = &observations[index];
+        if phase_category(observation.kind).is_some() {
             result
                 .issues
-                .push(Issue::MissingItemIdentity(event.id().to_owned()));
-            continue;
-        };
-        // Match operation identity scope: files identify observations, not a
-        // second operation. Clock domains only constrain endpoint pairing.
-        let identity = intervals::Identity {
-            source: input.source.to_owned(),
-            task: input.thread.to_owned(),
-            turn: input.turn.to_owned(),
-            item: native_id.to_owned(),
-        };
-        let item = items.entry(identity).or_default();
-        item.categories.insert(index);
-        item.identity_conflict |= observation.identity_conflict;
-        item.target_conflict |= observation.target_conflict;
-        item.outcome_conflict |= observation.outcome_conflict;
-        if let Some(outcome) = observation.terminal_outcome {
-            item.terminal_states.insert(outcome_code(outcome));
-        }
-        let domain = item
-            .domains
-            .entry((
-                event.position().file_id.clone(),
-                event.position().generation.clone(),
-            ))
-            .or_default();
-        domain.closed |= terminal(phase);
-        if terminal(phase) {
-            domain
-                .terminal_ref
-                .get_or_insert_with(|| event.id().to_owned());
-        }
-        if let Some(time) = native_start {
-            domain.native_starts.insert(time);
-            domain
-                .native_start_ref
-                .get_or_insert_with(|| event.id().to_owned());
-        }
-        if let Some(time) = native_end {
-            domain.native_ends.insert(time);
-            domain
-                .native_end_ref
-                .get_or_insert_with(|| event.id().to_owned());
-        }
-        let start = (*phase == Phase::Started)
-            .then(|| timestamp(event))
-            .flatten();
-        let end = terminal(phase).then(|| timestamp(event)).flatten();
-        if let Some(time) = start {
-            domain.starts.insert(time);
-            domain
-                .start_ref
-                .get_or_insert_with(|| event.id().to_owned());
-        }
-        if let Some(time) = end {
-            domain.ends.insert(time);
-            domain.end_ref.get_or_insert_with(|| event.id().to_owned());
-        }
-        if start.is_none() && end.is_none() && native_start.is_none() && native_end.is_none() {
-            result
-                .issues
-                .push(Issue::MissingItemTime(event.id().to_owned()));
+                .push(Issue::MissingItemTime(observation.event.id().to_owned()));
         }
     }
     let boundary = boundaries.finish();
@@ -756,124 +728,130 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             .intervals
             .issues
             .push(intervals::Issue::ResourceLimit);
+        result.operation_coverage.partial = true;
         return Ok(result);
     }
     let mut mapped = Vec::new();
-    for (identity, item) in items {
+    let mut operation_intervals = Vec::new();
+    for endpoint in endpoints.groups {
         check(cancelled)?;
-        let prefer_native_start = item
-            .domains
-            .values()
-            .any(|domain| !domain.native_starts.is_empty());
-        let prefer_native_end = item
-            .domains
-            .values()
-            .any(|domain| !domain.native_ends.is_empty());
-        let mut starts = BTreeSet::new();
-        let mut ends = BTreeSet::new();
-        let mut pairs = BTreeSet::new();
-        for domain in item.domains.values() {
-            check(cancelled)?;
-            let start = if prefer_native_start {
-                &domain.native_starts
-            } else {
-                &domain.starts
-            };
-            let end = if prefer_native_end {
-                &domain.native_ends
-            } else {
-                &domain.ends
-            };
-            starts.extend(start.iter().copied());
-            ends.extend(end.iter().copied());
-            if domain.closed
-                && let Some(pair) = singleton(start).zip(singleton(end))
-            {
-                pairs.insert(pair);
+        let mut categories = BTreeSet::new();
+        let mut terminal_states = BTreeSet::new();
+        let mut target_conflict = false;
+        let mut outcome_conflict = false;
+        let mut is_operation = false;
+        for index in endpoint.indices {
+            is_operation |= phase_operation(observations[index].kind);
+            let observation = &observations[index];
+            if let Some(category) = phase_category(observation.kind) {
+                categories.insert(category);
+            }
+            target_conflict |= observation.target_conflict;
+            outcome_conflict |= observation.outcome_conflict;
+            if let Some(outcome) = observation.terminal_outcome {
+                terminal_states.insert(outcome_code(outcome));
             }
         }
-        if item.target_conflict {
+        let kind_conflict = endpoint.kind_conflict
+            || (is_operation && (categories.contains(&1) || categories.contains(&2)));
+        let identity = intervals::Identity {
+            source: endpoint.scope.source.to_owned(),
+            task: input.thread.to_owned(),
+            turn: input.turn.to_owned(),
+            item: endpoint.identity,
+        };
+        if is_operation {
+            result.operation_coverage.candidates += 1;
+            if endpoint.identity_conflict
+                || kind_conflict
+                || endpoint.time_conflict
+                || categories.len() > 1
+            {
+                result.operation_coverage.conflicting += 1;
+            } else {
+                if endpoint
+                    .start_ms
+                    .zip(endpoint.end_ms)
+                    .is_some_and(|(start, end)| end >= start)
+                {
+                    result.operation_coverage.paired += 1;
+                }
+                operation_intervals.push(intervals::LifecycleInterval {
+                    identity: identity.clone(),
+                    category: intervals::Category::Command,
+                    start_ms: endpoint.start_ms,
+                    end_ms: endpoint.end_ms,
+                    evidence_ids: endpoint.evidence_ids.clone(),
+                });
+            }
+        }
+        if categories.is_empty() {
+            continue;
+        }
+        if target_conflict {
             result
                 .issues
                 .push(Issue::TargetConflict(identity.item.clone()));
         }
-        if item.outcome_conflict || item.terminal_states.len() > 1 {
+        if outcome_conflict || terminal_states.len() > 1 {
             result
                 .issues
                 .push(Issue::OutcomeConflict(identity.item.clone()));
         }
-        if item.identity_conflict
-            || item.categories.len() != 1
-            || starts.len() > 1
-            || ends.len() > 1
+        if endpoint.identity_conflict
+            || kind_conflict
+            || endpoint.time_conflict
+            || categories.len() != 1
         {
             result.coverage.conflicting_lifecycles += 1;
             result.issues.push(Issue::IdentityConflict(identity.item));
             continue;
         }
-        let index = *item.categories.first().unwrap();
-        let category = category_at(index);
-        let start_ms = singleton(&starts);
-        // A closed same-domain pair is required even with explicit identity.
-        let end_ms = singleton(&pairs).map(|(_, end)| end);
-        if item.domains.len() > 1 && !starts.is_empty() && !ends.is_empty() && pairs.is_empty() {
+        let index = *categories.first().unwrap();
+        if endpoint.unmatched_clock_domain {
             result
                 .issues
                 .push(Issue::UnmatchedClockDomain(identity.item.clone()));
         }
-        if start_ms
-            .zip(end_ms)
+        if endpoint
+            .start_ms
+            .zip(endpoint.end_ms)
             .is_some_and(|(start, end)| end >= start)
         {
             result.coverage.linked_lifecycles[index] += 1;
         }
-        // Select proof from the same already validated clock domain, not by matching
-        // timestamps across files. Unique values above make its first witnesses sufficient.
-        let mut evidence_ids = Vec::new();
-        if let Some(pair) = singleton(&pairs) {
-            for domain in item.domains.values() {
-                check(cancelled)?;
-                let start = if prefer_native_start {
-                    &domain.native_starts
-                } else {
-                    &domain.starts
-                };
-                let end = if prefer_native_end {
-                    &domain.native_ends
-                } else {
-                    &domain.ends
-                };
-                if domain.closed && singleton(start).zip(singleton(end)) == Some(pair) {
-                    let start_ref = if prefer_native_start {
-                        &domain.native_start_ref
-                    } else {
-                        &domain.start_ref
-                    };
-                    let end_ref = if prefer_native_end {
-                        &domain.native_end_ref
-                    } else {
-                        &domain.end_ref
-                    };
-                    for id in [start_ref, end_ref, &domain.terminal_ref]
-                        .into_iter()
-                        .flatten()
-                    {
-                        if !evidence_ids.contains(id) {
-                            evidence_ids.push(id.clone());
-                        }
-                    }
-                    break;
-                }
-            }
-        }
         mapped.push(intervals::LifecycleInterval {
             identity,
-            category,
-            start_ms,
-            end_ms,
-            evidence_ids,
+            category: category_at(index),
+            start_ms: endpoint.start_ms,
+            end_ms: endpoint.end_ms,
+            evidence_ids: endpoint.evidence_ids,
         });
     }
+    let operation_records = observations
+        .iter()
+        .filter(|phase| phase_operation(phase.kind))
+        .count();
+    let operation_metrics = intervals::analyze_cancellable(
+        window,
+        &operation_intervals,
+        &[],
+        input.budget.lifecycle_records,
+        cancelled,
+    )?;
+    result.operation_coverage.partial = result.coverage.partial
+        || result.operation_coverage.candidates != result.operation_coverage.paired
+        || result.operation_coverage.missing_identity > 0
+        || operation_records > input.budget.lifecycle_records
+        || operation_metrics.partial;
+    if operation_records <= input.budget.lifecycle_records {
+        result.operation_coverage.covered_ms = operation_metrics.covered_ms;
+        result.operation_coverage.residual_ms = operation_metrics.unclassified_ms;
+    }
+    if result.operation_coverage.residual_ms.is_some() {
+        result.operation_coverage.residual_ranges = operation_metrics.timeline.gaps;
+    }
+    result.operation_coverage.detail_limited = operation_metrics.timeline.limited;
     result.intervals = intervals::analyze_cancellable(
         window,
         &mapped,

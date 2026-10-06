@@ -12,6 +12,7 @@ use std::{
 };
 
 pub(crate) const METHOD_VERSION: u32 = 1;
+pub(crate) mod endpoints;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum Alias<'a> {

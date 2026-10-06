@@ -113,7 +113,7 @@ fn native_and_locatable_durations_remain_separate() {
             None,
         ),
     ]);
-    assert_eq!(result.method, "safe_event_turn_v3");
+    assert_eq!(result.method, "safe_event_turn_v4");
     assert_eq!(result.response_gap_union_ms, None);
     assert_eq!(result.native_wall_clock_ms, Some(120));
     assert_eq!(result.derived_wall_clock_ms, Some(100));
@@ -305,7 +305,7 @@ fn zero_duration_is_known_and_absent_categories_are_unknown() {
 }
 fn measurement(id: &str, thread: &str, turn: &str) -> Arc<Measurement> {
     Arc::new(serde_json::from_value(serde_json::json!({
-        "id":id,"agentKind":"codex","sourceInstanceId":"source", "threadId":thread,"turnId":turn,"grain":"response","timePrecision":"millisecond","model":{"raw":"model"},"tokens":{"rawInput":0},"pricingContextConflict":false,"requestScoped":true,"sequence":0,"evidence":[]
+        "id":id,"agentKind":"codex","sourceInstanceId":"source", "threadId":thread,"turnId":turn,"grain":"response","timePrecision":"millisecond","model":{"raw":"model"},"tokens":{"rawInput":0},"tokenUnavailableReasons":{"input":"missing","cacheRead":"missing","cacheCreate":"missing","output":"missing","reasoning":"missing","total":"missing","rawInput":null},"pricingContextConflict":false,"requestScoped":true,"sequence":0,"evidence":[]
     })).unwrap())
 }
 #[test]
@@ -1441,3 +1441,327 @@ fn scoped_safe_message_records_count_physical_origins_without_promoting_users() 
 
 #[path = "mcp_tests.rs"]
 mod mcp;
+
+#[test]
+fn operation_residual_uses_all_paired_operations_not_reasoning_or_compaction() {
+    let events = [
+        boundary(0, Some(0), Phase::Started, None, None),
+        boundary(10, Some(30_000), Phase::Completed, Some(31_000), None),
+        item(
+            1,
+            Some("read"),
+            ItemKind::Tool,
+            Phase::Completed,
+            Some(2_000),
+            Some(10_000),
+            None,
+        ),
+        item(
+            2,
+            Some("file"),
+            ItemKind::File,
+            Phase::Completed,
+            Some(8_000),
+            Some(12_000),
+            None,
+        ),
+        item(
+            3,
+            Some("reason"),
+            ItemKind::Reasoning,
+            Phase::Completed,
+            Some(12_000),
+            Some(30_000),
+            None,
+        ),
+        item(
+            4,
+            Some("compact"),
+            ItemKind::Compaction,
+            Phase::Completed,
+            Some(0),
+            Some(2_000),
+            None,
+        ),
+    ];
+    let result = analyze_events(&events);
+    assert_eq!(result.operation_coverage.method_version, 1);
+    assert_eq!(result.operation_coverage.endpoint_method_version, 1);
+    assert_eq!(result.operation_coverage.candidates, 2);
+    assert_eq!(result.operation_coverage.paired, 2);
+    assert_eq!(result.operation_coverage.covered_ms, Some(10_000));
+    assert_eq!(result.operation_coverage.residual_ms, Some(20_000));
+    assert_eq!(
+        result.operation_coverage.residual_ranges,
+        vec![(0, 2_000), (12_000, 30_000)]
+    );
+    assert!(!result.operation_coverage.partial);
+    assert_eq!(result.intervals.unclassified_ms, Some(10_000));
+    assert_eq!(result.native_wall_clock_ms, Some(31_000));
+    let reversed = events.into_iter().rev().collect::<Vec<_>>();
+    assert_eq!(
+        analyze_events(&reversed).operation_coverage,
+        result.operation_coverage
+    );
+}
+#[test]
+fn residual_without_pairs_reports_no_subtraction_and_duration_cannot_locate_operation() {
+    let only_boundaries = [
+        boundary(0, Some(0), Phase::Started, None, None),
+        boundary(10, Some(30), Phase::Completed, None, None),
+    ];
+    let result = analyze_events(&only_boundaries);
+    assert_eq!(result.operation_coverage.paired, 0);
+    assert_eq!(result.operation_coverage.covered_ms, Some(0));
+    assert_eq!(result.operation_coverage.residual_ms, Some(30));
+    let missing = item(
+        2,
+        Some("read"),
+        ItemKind::Tool,
+        Phase::Completed,
+        None,
+        None,
+        None,
+    );
+    let mut events = only_boundaries.to_vec();
+    events.push(missing);
+    let result = analyze_events(&events);
+    assert_eq!(result.operation_coverage.candidates, 1);
+    assert_eq!(result.operation_coverage.paired, 0);
+    assert!(result.operation_coverage.partial);
+    assert_eq!(result.operation_coverage.residual_ms, Some(30));
+    assert_eq!(analyze_events(&[]).operation_coverage.residual_ms, None);
+}
+#[test]
+fn residual_clips_wrappers_and_replay_without_double_counting() {
+    let child = item(
+        2,
+        Some("child"),
+        ItemKind::Tool,
+        Phase::Completed,
+        Some(2),
+        Some(10),
+        None,
+    );
+    let events = [
+        boundary(0, Some(0), Phase::Started, None, None),
+        boundary(10, Some(30), Phase::Completed, None, None),
+        item(
+            1,
+            Some("wrapper"),
+            ItemKind::Command,
+            Phase::Completed,
+            Some(-5),
+            Some(12),
+            None,
+        ),
+        child.clone(),
+        child,
+    ];
+    let result = analyze_events(&events);
+    assert_eq!(result.operation_coverage.candidates, 2);
+    assert_eq!(result.operation_coverage.covered_ms, Some(12));
+    assert_eq!(result.operation_coverage.residual_ms, Some(18));
+}
+#[test]
+fn operation_budget_does_not_hide_independent_category_coverage() {
+    let events = [
+        boundary(0, Some(0), Phase::Started, None, None),
+        boundary(10, Some(30), Phase::Completed, None, None),
+        item(
+            1,
+            Some("command"),
+            ItemKind::Command,
+            Phase::Completed,
+            Some(2),
+            Some(10),
+            None,
+        ),
+        item(
+            2,
+            Some("file"),
+            ItemKind::File,
+            Phase::Completed,
+            Some(8),
+            Some(12),
+            None,
+        ),
+    ];
+    let result = analyze(AnalyzeInput {
+        source: "source",
+        thread: "thread",
+        turn: "turn",
+        events: &events,
+        measurements: &[],
+        budget: Budget {
+            events: 100,
+            measurements: 100,
+            lifecycle_records: 1,
+        },
+    });
+    assert_eq!(result.category_union_ms[0], Some(8));
+    assert!(result.operation_coverage.partial);
+    assert_eq!(result.operation_coverage.residual_ms, None);
+    assert!(result.operation_coverage.residual_ranges.is_empty());
+}
+
+#[test]
+fn operation_missing_identity_and_endpoint_conflicts_keep_recorded_residual() {
+    let result = analyze_events(&[
+        boundary(0, Some(0), Phase::Started, None, None),
+        boundary(10, Some(30), Phase::Completed, None, None),
+        item(
+            1,
+            None,
+            ItemKind::Tool,
+            Phase::Completed,
+            Some(2),
+            Some(10),
+            None,
+        ),
+        item(
+            2,
+            Some("conflict"),
+            ItemKind::Tool,
+            Phase::Completed,
+            Some(8),
+            Some(12),
+            None,
+        ),
+        item(
+            3,
+            Some("conflict"),
+            ItemKind::Tool,
+            Phase::Completed,
+            Some(9),
+            Some(12),
+            None,
+        ),
+        item(
+            4,
+            Some("known"),
+            ItemKind::Tool,
+            Phase::Completed,
+            Some(20),
+            Some(25),
+            None,
+        ),
+    ]);
+    assert_eq!(result.operation_coverage.candidates, 2);
+    assert_eq!(result.operation_coverage.missing_identity, 1);
+    assert_eq!(result.operation_coverage.conflicting, 1);
+    assert_eq!(result.operation_coverage.paired, 1);
+    assert_eq!(result.operation_coverage.covered_ms, Some(5));
+    assert_eq!(result.operation_coverage.residual_ms, Some(25));
+    assert!(result.operation_coverage.partial);
+}
+#[test]
+fn operation_detail_limit_preserves_full_union_and_residual() {
+    let mut events = vec![
+        boundary(0, Some(0), Phase::Started, None, None),
+        boundary(10_000, Some(1000), Phase::Completed, None, None),
+    ];
+    for index in 0..250 {
+        events.push(item(
+            index + 1,
+            Some(&format!("tool-{index}")),
+            ItemKind::Tool,
+            Phase::Completed,
+            Some(index as i64 * 2),
+            Some(index as i64 * 2 + 1),
+            None,
+        ));
+    }
+    let result = analyze(AnalyzeInput {
+        source: "source",
+        thread: "thread",
+        turn: "turn",
+        events: &events,
+        measurements: &[],
+        budget: Budget {
+            events: 1000,
+            measurements: 1000,
+            lifecycle_records: 1000,
+        },
+    });
+    assert_eq!(result.operation_coverage.covered_ms, Some(250));
+    assert_eq!(result.operation_coverage.residual_ms, Some(750));
+    assert_eq!(result.operation_coverage.paired, 250);
+    assert!(result.operation_coverage.detail_limited);
+    assert!(result.operation_coverage.residual_ranges.is_empty());
+    assert!(!result.operation_coverage.partial);
+}
+
+#[test]
+fn explicit_command_aliases_share_dispatch_and_native_completion_endpoints() {
+    let operation=serde_json::from_value(serde_json::json!({
+        "id":"operation","threadId":"thread","turnId":"turn","itemId":"native","callId":"call",
+        "kind":"command","name":"safe","sequence":1,"timePrecision":"unknown","status":"running","outcomeConflict":false,"evidence":[]
+    })).unwrap();
+    let dispatch = event(
+        1,
+        Some(2),
+        Payload::Operation {
+            value: Arc::new(operation),
+            phase: Phase::Started,
+        },
+    );
+    let completion = item(
+        2,
+        Some("native"),
+        ItemKind::Command,
+        Phase::Completed,
+        None,
+        Some(12),
+        Some(14),
+    );
+    let result = analyze_events(&[
+        boundary(0, Some(0), Phase::Started, None, None),
+        dispatch.clone(),
+        completion.clone(),
+        boundary(10, Some(30), Phase::Completed, None, None),
+    ]);
+    assert_eq!(result.method, "safe_event_turn_v4");
+    assert_eq!(result.category_union_ms[0], Some(10));
+    assert_eq!(result.operation_coverage.candidates, 1);
+    assert_eq!(result.operation_coverage.paired, 1);
+    assert_eq!(result.operation_coverage.covered_ms, Some(10));
+    let track = &result.intervals.timeline.tracks[0];
+    assert_eq!((track.start_ms, track.end_ms), (2, 12));
+    assert!(track.evidence_ids.contains(&dispatch.id().to_owned()));
+    assert!(track.evidence_ids.contains(&completion.id().to_owned()));
+}
+
+#[test]
+fn different_explicit_item_kinds_cannot_borrow_endpoints_or_become_operation_time() {
+    for other in [ItemKind::File, ItemKind::Reasoning, ItemKind::Compaction] {
+        let result = analyze_events(&[
+            boundary(0, Some(0), Phase::Started, None, None),
+            boundary(10, Some(30), Phase::Completed, None, None),
+            item(
+                1,
+                Some("collision"),
+                ItemKind::Command,
+                Phase::Started,
+                None,
+                None,
+                Some(2),
+            ),
+            item(
+                2,
+                Some("collision"),
+                other,
+                Phase::Completed,
+                None,
+                None,
+                Some(12),
+            ),
+        ]);
+        assert_eq!(result.operation_coverage.candidates, 1);
+        assert_eq!(result.operation_coverage.conflicting, 1);
+        assert_eq!(result.operation_coverage.paired, 0);
+        assert_eq!(result.operation_coverage.covered_ms, Some(0));
+        assert!(result.operation_coverage.partial);
+        assert_eq!(result.category_union_ms[0], None);
+    }
+}

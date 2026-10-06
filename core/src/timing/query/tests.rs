@@ -482,7 +482,7 @@ fn cache_hits_refresh_freshness_and_remain_snapshot_owned() {
 #[test]
 fn canonical_input_type7_and_masks_reach_production_query() {
     let mut collected = data(complete_events());
-    collected.measurements = [100u64, 500u64].into_iter().enumerate().map(|(i, input)| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":input},"pricingContextConflict":false,"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
+    collected.measurements = [100u64, 500u64].into_iter().enumerate().map(|(i, input)| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":input},"tokenUnavailableReasons":{"input":"missing","cacheRead":"missing","cacheCreate":"missing","output":"missing","reasoning":"missing","total":"missing","rawInput":null},"pricingContextConflict":false,"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
     let root = tempfile::tempdir().unwrap();
     let snapshot = usage_store::memory(
         collected,
@@ -658,7 +658,7 @@ fn identity_time_and_content_conflicts_keep_specific_reasons() {
 #[test]
 fn excessive_context_detail_preserves_full_distribution_and_explains_omission() {
     let mut collected = data(complete_events());
-    collected.measurements = (0..33).map(|i| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":i},"pricingContextConflict":false,"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
+    collected.measurements = (0..33).map(|i| Arc::new(serde_json::from_value(serde_json::json!({"id":format!("m-{i}"),"agentKind":"codex","sourceInstanceId":"source-private","threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown","model":{},"tokens":{"rawInput":i},"tokenUnavailableReasons":{"input":"missing","cacheRead":"missing","cacheCreate":"missing","output":"missing","reasoning":"missing","total":"missing","rawInput":null},"pricingContextConflict":false,"requestScoped":true,"sequence":i,"evidence":[]})).unwrap())).collect();
     let root = tempfile::tempdir().unwrap();
     let snapshot = usage_store::memory(
         collected,
@@ -1506,7 +1506,7 @@ fn mcp_time_is_delivered_in_local_and_private_relative_share_projection() {
         boundary(3, Some(1100), Phase::Completed, Some(100), None),
     ]);
     let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(result.method_version, "safe_event_turn_v3");
+    assert_eq!(result.method_version, "safe_event_turn_v4");
     assert_eq!(result.time.mcp.union_ms.value, Some(50));
     assert_eq!(result.time.mcp.sum_ms.value, Some(50));
     assert_eq!(result.time.mcp.closed.value, Some(1));

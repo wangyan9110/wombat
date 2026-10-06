@@ -347,6 +347,9 @@ fn explicit_dispatch_target_conflict_keeps_consistent_mcp_interval() {
         operation_event(4, Some("known"), None, Phase::Completed, Some(60)),
     ]));
     assert_eq!(result.category_union_ms[3], Some(40));
+    assert_eq!(result.operation_coverage.covered_ms, Some(40));
+    assert_eq!(result.operation_coverage.paired, 2);
+    assert_eq!(result.operation_coverage.conflicting, 0);
     assert_eq!(result.coverage.conflicting_lifecycles, 0);
     assert_eq!(result.coverage.linked_lifecycles[3], 2);
     assert!(
