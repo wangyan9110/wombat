@@ -113,7 +113,7 @@ fn native_and_locatable_durations_remain_separate() {
             None,
         ),
     ]);
-    assert_eq!(result.method, "safe_event_turn_v6");
+    assert_eq!(result.method, "safe_event_turn_v7");
     assert_eq!(result.response_gap_union_ms, None);
     assert_eq!(result.native_wall_clock_ms, Some(120));
     assert_eq!(result.derived_wall_clock_ms, Some(100));
@@ -1721,7 +1721,7 @@ fn explicit_command_aliases_share_dispatch_and_native_completion_endpoints() {
         completion.clone(),
         boundary(10, Some(30), Phase::Completed, None, None),
     ]);
-    assert_eq!(result.method, "safe_event_turn_v6");
+    assert_eq!(result.method, "safe_event_turn_v7");
     assert_eq!(result.category_union_ms[0], Some(10));
     assert_eq!(result.operation_coverage.candidates, 1);
     assert_eq!(result.operation_coverage.paired, 1);

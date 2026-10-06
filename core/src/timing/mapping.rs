@@ -540,6 +540,7 @@ pub(super) fn context(a: &Analysis, refs: &[String], fallback: Option<Basis>) ->
         ),
     };
     Context {
+        input_change: input_change(c.map(|c| &c.change), refs, missing),
         active_context_occupancy: number(None, Basis::NotRecorded, &[]),
         compaction_records: if fallback.is_some() {
             unavailable(missing)
@@ -857,5 +858,133 @@ fn operation_coverage(
         } else {
             vec![]
         },
+    }
+}
+
+fn input_change(
+    c: Option<&super::context::ChangeStatistics>,
+    refs: &[String],
+    missing: Basis,
+) -> InputChange {
+    let stage = |s: &super::context::Change| {
+        let first_ref = format!("measurement:{}", s.first_ref);
+        let last_ref = format!("measurement:{}", s.last_ref);
+        (first_ref.len() <= 4096 && last_ref.len() <= 4096).then(|| InputChangeStage {
+            id: format!("input-stage:{}", s.stage),
+            samples: s.samples,
+            first_ref,
+            last_ref,
+            first_input: s.first_input,
+            last_input: s.last_input,
+            delta: s.delta,
+            factor: s.factor,
+        })
+    };
+    InputChange {
+        method: InputChangeMethod::RequestInputObservationChangeV1,
+        availability: capability(
+            if c.is_some() {
+                Support::Supported
+            } else {
+                Support::Unavailable
+            },
+            if c.is_some() {
+                Basis::RequestInput
+            } else {
+                missing
+            },
+        ),
+        statistics: c.map(|c| {
+            let mut stages: Vec<_> = c.stages.iter().filter_map(&stage).collect();
+            let mut largest_increase = c.largest_increase.as_ref().and_then(stage);
+            // Bound the complete encoded detail group, not just each reference or entry count.
+            if !serde_json::to_vec(&(&stages, &largest_increase))
+                .is_ok_and(|bytes| bytes.len() <= 32 * 1024)
+            {
+                stages.clear();
+                if !serde_json::to_vec(&largest_increase)
+                    .is_ok_and(|bytes| bytes.len() <= 32 * 1024)
+                {
+                    largest_increase = None;
+                }
+            }
+            let mut maximum_increase = count(
+                c.largest_increase
+                    .as_ref()
+                    .map(|s| s.delta as u128)
+                    .or_else(|| (c.comparable_stages > 0).then_some(0)),
+                if c.comparable_stages > 0 {
+                    Basis::RequestInput
+                } else {
+                    Basis::NoCandidates
+                },
+                refs,
+            );
+            if maximum_increase.value.is_some() {
+                maximum_increase.status = MetricStatus::Derived;
+            }
+            InputChangeStatistics {
+                candidates: c.candidates,
+                ordered_samples: c.ordered_samples,
+                non_request_scoped: c.non_request_scoped,
+                missing_input: c.missing_input,
+                unassociated: c.unassociated,
+                numeric_range: c.numeric_range,
+                comparable_stages: c.comparable_stages,
+                increasing_stages: c.increasing_stages,
+                decreasing_stages: c.decreasing_stages,
+                unchanged_stages: c.unchanged_stages,
+                maximum_increase,
+                details_omitted: c.details_omitted
+                    || stages.len() < c.stages.len()
+                    || c.largest_increase.is_some() && largest_increase.is_none(),
+                largest_increase,
+                stages,
+                partial: c.non_request_scoped + c.missing_input + c.unassociated + c.numeric_range
+                    > 0,
+            }
+        }),
+    }
+}
+
+#[cfg(test)]
+mod input_change_tests {
+    use super::*;
+    #[test]
+    fn encoded_detail_limit_keeps_full_counts_and_maximum_without_a_prefix() {
+        let stages: Vec<_> = (0..32)
+            .map(|i| super::super::context::Change {
+                stage: i,
+                samples: 2,
+                first_ref: format!("{}-first-{i}", "\\\"".repeat(1200)),
+                last_ref: format!("{}-last-{i}", "\\\"".repeat(1200)),
+                first_input: 1,
+                last_input: 20001 + i,
+                delta: 20000 + i as i64,
+                factor: Some((20001 + i) as f64),
+            })
+            .collect();
+        let stats = super::super::context::ChangeStatistics {
+            candidates: 64,
+            ordered_samples: 64,
+            comparable_stages: 32,
+            increasing_stages: 32,
+            largest_increase: stages.last().cloned(),
+            stages,
+            ..Default::default()
+        };
+        let public = input_change(
+            Some(&stats),
+            &["collection:turn".into()],
+            Basis::NoCandidates,
+        )
+        .statistics
+        .unwrap();
+        assert_eq!(public.comparable_stages, 32);
+        assert_eq!(public.maximum_increase.value, Some(20031));
+        assert_eq!(public.maximum_increase.status, MetricStatus::Derived);
+        assert!(public.details_omitted);
+        assert!(public.stages.is_empty());
+        assert!(serde_json::to_vec(&public).unwrap().len() < 40 * 1024);
     }
 }

@@ -61,6 +61,34 @@ impl Aliases {
             p90: self.metric(&d.p90),
         }
     }
+    fn input_change(&mut self, c: &InputChange) -> InputChange {
+        InputChange {
+            method: c.method,
+            availability: c.availability.clone(),
+            statistics: c.statistics.as_ref().map(|s| {
+                let mut value = s.clone();
+                value.maximum_increase = self.metric(&s.maximum_increase);
+                value.stages = s
+                    .stages
+                    .iter()
+                    .map(|stage| self.input_stage(stage))
+                    .collect();
+                value.largest_increase = s
+                    .largest_increase
+                    .as_ref()
+                    .map(|stage| self.input_stage(stage));
+                value
+            }),
+        }
+    }
+    fn input_stage(&mut self, s: &InputChangeStage) -> InputChangeStage {
+        InputChangeStage {
+            id: self.segment(&s.id),
+            first_ref: self.evidence(&s.first_ref),
+            last_ref: self.evidence(&s.last_ref),
+            ..s.clone()
+        }
+    }
     fn category(&mut self, c: &Category) -> Category {
         Category {
             candidates: self.metric(&c.candidates),
@@ -215,6 +243,7 @@ pub(super) fn project(local: &LocalResponse) -> ShareResponse {
     };
     let c = &local.context;
     let context = Context {
+        input_change: a.input_change(&c.input_change),
         active_context_occupancy: a.metric(&c.active_context_occupancy),
         compaction_records: a.metric(&c.compaction_records),
         compaction_time_ms: a.metric(&c.compaction_time_ms),

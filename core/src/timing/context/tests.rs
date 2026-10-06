@@ -719,3 +719,308 @@ fn cancellation_during_candidate_iteration_returns_no_prefix_statistics() {
         "CANCELLED"
     );
 }
+
+fn input_change_events(
+    values: &[Measurement],
+    positions: &[u64],
+    timestamp: bool,
+) -> Vec<Arc<Event>> {
+    values
+        .iter()
+        .zip(positions)
+        .map(|(value, offset)| {
+            let original = measured(*offset, value.clone());
+            Arc::new(
+                Event::new(
+                    original.position().clone(),
+                    Some("thread".into()),
+                    Some("turn".into()),
+                    Time::from_source(timestamp.then_some("2026-10-04T00:00:00.000Z")).0,
+                    if timestamp {
+                        vec![]
+                    } else {
+                        vec![crate::session_events::Gap::InvalidTimestamp]
+                    },
+                    original.payload().clone(),
+                )
+                .unwrap(),
+            )
+        })
+        .collect()
+}
+fn changes(values: &[Measurement], events: &[Arc<Event>]) -> ChangeStatistics {
+    summarize_events(
+        &values.iter().cloned().map(Arc::new).collect::<Vec<_>>(),
+        events,
+    )
+    .change
+}
+#[test]
+fn input_change_uses_observation_order_without_times_or_windows() {
+    let values = [
+        measurement("a", Some(100), true),
+        measurement("b", Some(250), true),
+        measurement("c", Some(220), true),
+    ];
+    let mut events = input_change_events(&values, &[1, 2, 3], false);
+    events.reverse();
+    let result = changes(&values, &events);
+    assert_eq!(result.ordered_samples, 3);
+    assert_eq!(result.comparable_stages, 1);
+    let stage = result.largest_increase.unwrap();
+    assert_eq!(
+        (
+            stage.first_input,
+            stage.last_input,
+            stage.delta,
+            stage.factor
+        ),
+        (100, 220, 120, Some(2.2))
+    );
+    // It compares endpoints; the middle peak does not imply monotonic growth.
+    assert_eq!(stage.samples, 3);
+}
+#[test]
+fn input_change_replays_and_ambiguous_positions_do_not_add_samples() {
+    let values = [
+        measurement("a", Some(100), true),
+        measurement("b", Some(200), true),
+        measurement("c", Some(300), true),
+    ];
+    let mut events = input_change_events(&values, &[1, 2, 3], true);
+    events.push(events[0].clone());
+    assert_eq!(changes(&values, &events).ordered_samples, 3);
+    events.push(measured(4, values[0].clone()));
+    let result = changes(&values, &events);
+    assert_eq!(result.unassociated, 1);
+    assert_eq!(result.largest_increase.unwrap().delta, 100);
+    let result = changes(&values, &input_change_events(&values, &[1, 1, 2], true));
+    assert_eq!(result.unassociated, 2);
+    assert_eq!(result.comparable_stages, 0);
+}
+#[test]
+fn input_change_coverage_retains_zero_and_excludes_interval_missing_and_overflow() {
+    let values = [
+        measurement("zero", Some(0), true),
+        measurement("later", Some(20000), true),
+        measurement("interval", Some(999), false),
+        measurement("missing", None, true),
+        measurement("large", Some(crate::timing_dto::MAX_SAFE_INTEGER + 1), true),
+    ];
+    let mut safe_copies = values.clone();
+    safe_copies[4].tokens.raw_input = Some(crate::timing_dto::MAX_SAFE_INTEGER);
+    // An invalid reconciled quantity must not cross the numeric transport boundary.
+    let result = changes(
+        &values,
+        &input_change_events(&safe_copies, &[1, 2, 3, 4, 5], true),
+    );
+    assert_eq!(
+        (
+            result.candidates,
+            result.ordered_samples,
+            result.non_request_scoped,
+            result.missing_input,
+            result.numeric_range
+        ),
+        (5, 2, 1, 1, 1)
+    );
+    let stage = result.largest_increase.unwrap();
+    assert_eq!(stage.delta, 20000);
+    assert_eq!(stage.factor, None);
+}
+#[test]
+fn input_change_stages_stop_at_model_effort_compaction_declarations_and_gaps() {
+    let mut values: Vec<_> = (0..6)
+        .map(|i| measurement(&i.to_string(), Some(100 + i * 100), true))
+        .collect();
+    for mode in 0..5 {
+        let mut events = input_change_events(&values, &[1, 2, 4, 5, 7, 8], true);
+        match mode {
+            0 => {
+                values[2].model.raw = Some("other".into());
+                values[3].model.raw = Some("other".into());
+                events = input_change_events(&values, &[1, 2, 4, 5, 7, 8], true);
+            }
+            1 => {
+                for v in &mut values {
+                    v.model.raw = Some("model".into());
+                }
+                values[2].reasoning_effort = Some("low".into());
+                values[3].reasoning_effort = Some("low".into());
+                events = input_change_events(&values, &[1, 2, 4, 5, 7, 8], true);
+            }
+            2 => {
+                for v in &mut values {
+                    v.reasoning_effort = Some("high".into());
+                }
+                events = input_change_events(&values, &[1, 2, 4, 5, 7, 8], true);
+                for offset in [3, 6] {
+                    events.push(event(
+                        offset,
+                        0,
+                        Payload::Lifecycle {
+                            lifecycle: LifecycleKind::Compaction,
+                            phase: crate::session_events::Phase::Completed,
+                            native_id: None,
+                            duration_ms: None,
+                            first_token_ms: None,
+                        },
+                    ));
+                }
+            }
+            3 => {
+                for offset in [3, 6] {
+                    events.push(event(
+                        offset,
+                        0,
+                        Payload::ContextWindow {
+                            model: Some("other".into()),
+                            tokens: 1000,
+                        },
+                    ));
+                }
+            }
+            _ => {
+                for offset in [3, 6] {
+                    let original = event(
+                        offset,
+                        0,
+                        Payload::ContextWindow {
+                            model: None,
+                            tokens: 1000,
+                        },
+                    );
+                    events.push(Arc::new(
+                        Event::new(
+                            original.position().clone(),
+                            None,
+                            None,
+                            original.time().clone(),
+                            vec![crate::session_events::Gap::SourcePartial],
+                            original.payload().clone(),
+                        )
+                        .unwrap(),
+                    ));
+                }
+            }
+        }
+        let all: Vec<_> = values.iter().cloned().map(Arc::new).collect();
+        let (owned, unowned): (Vec<_>, Vec<_>) =
+            events.into_iter().partition(|e| e.turn_id().is_some());
+        let result = summarize_events_with_discontinuities(&all, &owned, &unowned).change;
+        assert_eq!(result.comparable_stages, 3, "mode {mode}");
+        assert_eq!(result.largest_increase.unwrap().delta, 100, "mode {mode}");
+    }
+}
+#[test]
+fn input_change_full_counts_and_largest_survive_detail_limit() {
+    let mut values = Vec::new();
+    for i in 0..40 {
+        for j in 0..2 {
+            let mut v = measurement(
+                &format!("{i}-{j}"),
+                Some(if j == 0 { 100 } else { 200 + i * 1000 }),
+                true,
+            );
+            v.reasoning_effort = Some(format!("effort-{i}").into());
+            values.push(v);
+        }
+    }
+    let offsets: Vec<_> = (1..=80).collect();
+    let result = changes(&values, &input_change_events(&values, &offsets, true));
+    assert_eq!(result.comparable_stages, 40);
+    assert_eq!(result.stages.len(), 32);
+    assert!(result.details_omitted);
+    assert_eq!(result.largest_increase.unwrap().delta, 39100);
+}
+#[test]
+fn input_change_unknown_context_and_conflicts_preserve_input_distribution() {
+    let mut values = [
+        measurement("a", Some(100), true),
+        measurement("b", Some(200), true),
+        measurement("c", Some(300), true),
+    ];
+    values[1].reasoning_effort = None;
+    let events = input_change_events(&values, &[1, 2, 3], true);
+    let result = changes(&values, &events);
+    assert_eq!(result.unassociated, 1);
+    assert_eq!(result.comparable_stages, 0);
+    values[1].reasoning_effort = Some("high".into());
+    let mut events = input_change_events(&values, &[1, 2, 3], true);
+    let mut conflict = values[1].clone();
+    conflict.tokens.raw_input = Some(999);
+    events.push(measured(2, conflict));
+    let result = changes(&values, &events);
+    assert_eq!(result.unassociated, 1);
+    assert_eq!(result.comparable_stages, 0);
+}
+
+#[test]
+fn input_change_historical_field_conflicts_are_barriers_but_bad_native_times_are_not() {
+    let values: Vec<_> = (0..5)
+        .map(|i| measurement(&i.to_string(), Some(i * 100 + 100), true))
+        .collect();
+    let mut events = input_change_events(&values, &[1, 2, 3, 4, 5], true);
+    let Payload::Measurement {
+        value,
+        direct,
+        cumulative,
+        interval_start,
+        fingerprint,
+        ..
+    } = events[2].payload()
+    else {
+        unreachable!()
+    };
+    let mut conflicted = value.as_ref().clone();
+    conflicted.reasoning_effort = None;
+    events[2] = event(
+        3,
+        0,
+        Payload::Measurement {
+            value: Arc::new(conflicted),
+            context_conflicts: vec![crate::session_events::MeasurementContextField::Effort],
+            direct: *direct,
+            cumulative: *cumulative,
+            interval_start: *interval_start,
+            fingerprint: fingerprint.clone(),
+        },
+    );
+    let result = changes(&values, &events);
+    assert_eq!((result.unassociated, result.comparable_stages), (1, 2));
+    assert_eq!(result.largest_increase.unwrap().delta, 100);
+    let original = measured(3, values[2].clone());
+    events[2] = Arc::new(
+        Event::new(
+            original.position().clone(),
+            Some("thread".into()),
+            Some("turn".into()),
+            original.time().clone(),
+            vec![crate::session_events::Gap::InvalidNativeField],
+            original.payload().clone(),
+        )
+        .unwrap(),
+    );
+    let result = changes(&values, &events);
+    assert_eq!(result.comparable_stages, 1);
+    assert_eq!(result.largest_increase.unwrap().delta, 400);
+}
+#[test]
+fn input_change_keeps_decrease_unchanged_and_safe_integer_endpoints() {
+    for (first, last) in [
+        (100, 50),
+        (100, 100),
+        (crate::timing_dto::MAX_SAFE_INTEGER, 0),
+        (0, crate::timing_dto::MAX_SAFE_INTEGER),
+    ] {
+        let values = [
+            measurement("a", Some(first), true),
+            measurement("b", Some(last), true),
+        ];
+        let result = changes(&values, &input_change_events(&values, &[1, 2], true));
+        assert_eq!(result.stages[0].delta, last as i64 - first as i64);
+        assert_eq!(result.decreasing_stages, usize::from(last < first));
+        assert_eq!(result.unchanged_stages, usize::from(last == first));
+        assert_eq!(result.largest_increase.is_some(), last > first);
+    }
+}

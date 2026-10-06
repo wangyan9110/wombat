@@ -14,7 +14,7 @@ Rust 的 `core/src/usage_app_dto.rs` 定义请求与响应，`adapters/contract.
 
 运行 `corepack pnpm contracts:generate` 重生，`contracts:check` 拒绝漂移。通用客户端校验请求与响应，不提供通用 shell、任意文件写入或任意操作分派。
 
-`outputVersion=5` 是公共结果版本，`schemaVersion=4` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
+`outputVersion=6` 是公共结果版本，`schemaVersion=4` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
 
 公开操作、枚举、分页和错误详见[CLI](../guides/cli.md)。计量整数不能超过 JavaScript 安全整数；金额始终为十进制字符串。新字段及规则必须同时检查生成类型、Web、JSON 和当前快照。
 
@@ -32,11 +32,11 @@ Rust 的 `core/src/usage_app_dto.rs` 定义请求与响应，`adapters/contract.
 
 Node价表传输只下载固定官方HTTPS文档；内核`prices`操作的宿主请求在update时携带document，status不接受document。原始文档不出现在公共请求或响应类型中；Rust解析及发布，其他宿主需实现同一固定来源获取流程。
 
-## 整轮耗时契约 v5
+## 整轮耗时契约 v6
 
-`core/src/timing_dto.rs` 定义类型化 `timing` 操作。生成契约包括[请求](../schemas/timing-request-v1.schema.json)、[响应联合](../schemas/timing-response-v5.schema.json)、[本地](../schemas/timing-local-response-v5.schema.json)与[分享](../schemas/timing-share-response-v5.schema.json)投影，以及[安全错误](../schemas/timing-error-output-v1.schema.json)。客户端导出 `TimingRequest` 和 `TimingResult`；字段以 Rust DTO 和生成 Schema 为准，不在此重复维护字段清单。
+`core/src/timing_dto.rs` 定义类型化 `timing` 操作。生成契约包括[请求](../schemas/timing-request-v1.schema.json)、[响应联合](../schemas/timing-response-v6.schema.json)、[本地](../schemas/timing-local-response-v6.schema.json)与[分享](../schemas/timing-share-response-v6.schema.json)投影，以及[安全错误](../schemas/timing-error-output-v1.schema.json)。客户端导出 `TimingRequest` 和 `TimingResult`；字段以 Rust DTO 和生成 Schema 为准，不在此重复维护字段清单。
 
-请求操作为 `summary`、`evidence` 和 `capabilities`。摘要要求完整任务与轮次身份，可选固定快照、来源范围、`auto`/`fresh`/`cached` 模式及 `local`/`share-v1` 隐私配置。证据页要求相同目标和固定快照；`turn_events`、`use_objects` 与 `use_records` 使用绑定视图和范围的不透明游标。capabilities 不扫描来源。摘要使用 `outputVersion=5` 和分析方法 `safe_event_turn_v6`；操作起止归并方法单独版本化，旧响应版本明确拒绝。本地结果可含本地身份与路径，`share-v1` 是单独的白名单投影，不包含这些信息。耗时查询不触发价表下载、配置扫描、Hook 或账户观察。命令及错误处理见 [CLI 指南](../guides/cli.md)。
+请求操作为 `summary`、`evidence` 和 `capabilities`。摘要要求完整任务与轮次身份，可选固定快照、来源范围、`auto`/`fresh`/`cached` 模式及 `local`/`share-v1` 隐私配置。证据页要求相同目标和固定快照；`turn_events`、`use_objects` 与 `use_records` 使用绑定视图和范围的不透明游标。capabilities 不扫描来源。摘要使用 `outputVersion=6` 和分析方法 `safe_event_turn_v7`；操作起止归并方法单独版本化，旧响应版本明确拒绝。本地结果可含本地身份与路径，`share-v1` 是单独的白名单投影，不包含这些信息。耗时查询不触发价表下载、配置扫描、Hook 或账户观察。命令及错误处理见 [CLI 指南](../guides/cli.md)。
 
 ## 只读配置契约 v1
 
@@ -70,7 +70,7 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 ## 优化与偏好契约 v1
 
-`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v3.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities/activity；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
+`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v4.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities/activity；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
 
 建议身份绑定来源、对象、内容指纹、问题与项目范围。readView固定事实，decisionRevision固定记录，冲突返回VIEW_EXPIRED。keep需原因necessary；not_applicable需object_changed或incorrect_evidence。用户决定保存真实时间，与规则结果独立；已确认重试不重复追加。redisplay只清除最新展示决定。recheck重采集当前范围，不撤销决定，返回stillNeedsReview、verified或recheckUnavailable及独立检查事实。verified只证明原问题对应规则的可观察检查通过，不证明采用或节省；历史事件保留不可变recordId与recordedAt。
 

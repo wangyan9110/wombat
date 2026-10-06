@@ -144,7 +144,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if (!validateOptimizeRequest(request) || !validActivityRequest(request)) throw new CoreError('INVALID_ARGUMENT', '优化参数不符合数据协议');
       const result = await optimizeTransport(request, options);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
-      if (!validateOptimizeResult(result) || result.outputVersion !== 3 || result.action !== (request.action ?? 'list') || !matchesActivity(request,result)) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
+      if (!validateOptimizeResult(result) || result.outputVersion !== 4 || result.action !== (request.action ?? 'list') || !matchesActivity(request,result)) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
       return result;
     } } : {}),
     ...(configTransport ? { async config(request: ConfigRequest, options: QueryOptions ={} ): Promise<ConfigResult> {
@@ -190,11 +190,11 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
 
 function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
   const profile = request.privacyProfile ?? 'local';
-  if (result.outputVersion !== 5 || result.action !== request.action || result.profile !== profile
-    || result.methodVersion !== 'safe_event_turn_v6') return false;
+  if (result.outputVersion !== 6 || result.action !== request.action || result.profile !== profile
+    || result.methodVersion !== 'safe_event_turn_v7') return false;
   if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 3
     || 'totals' in result && result.totals.methodVersion !== 3) return false;
-  if (result.action === 'summary' && (!matchesOutcomeStatistics(result) || !matchesOperationCoverage(result) || !matchesRepeatedBehavior(result) || (result.profile === 'local' && !matchesRepeatNavigation(result)))) return false;
+  if (result.action === 'summary' && (!validInputChange(result.context.inputChange) || !matchesOutcomeStatistics(result) || !matchesOperationCoverage(result) || !matchesRepeatedBehavior(result) || (result.profile === 'local' && !matchesRepeatNavigation(result)))) return false;
   if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
   if (request.action === 'summary' && profile === 'share-v1') {
     // Sharing deliberately omits local locating identities; core selection owns
@@ -313,20 +313,56 @@ function validOutcomeStatistics(o:TimingLocalResult['work']['outcomes'],sourceSt
   return denominator===0?o.failureRatio.value==null&&o.failureRatio.status==='unavailable'&&o.failureRatio.basis==='no_candidates'
     :o.failureRatio.status==='derived'&&o.failureRatio.basis==='determinate_terminal_outcomes'&&o.failureRatio.value!=null&&o.failureRatio.value===failed/denominator;
 }
+/** Validate bounded core-owned comparisons; do not reconstruct historical stages in the client. */
+function validInputChange(change: TimingLocalResult['context']['inputChange']): boolean {
+  const s=change.statistics;
+  if(change.method!=='request_input_observation_change_v1')return false;
+  if(change.availability.support!=='supported')return s==null;
+  if(change.availability.reason!=='request_input'||!s)return false;
+  if(s.orderedSamples+s.nonRequestScoped+s.missingInput+s.unassociated+s.numericRange!==s.candidates
+    ||s.increasingStages+s.decreasingStages+s.unchangedStages!==s.comparableStages
+    ||s.comparableStages*2>s.orderedSamples||s.stages.length>s.comparableStages
+    ||!s.detailsOmitted&&s.stages.length!==s.comparableStages
+    ||(s.nonRequestScoped+s.missingInput+s.unassociated+s.numericRange>0&&!s.partial))return false;
+  const max=s.maximumIncrease;
+  if(s.comparableStages===0){if(max.value!=null||max.status!=='unavailable'||max.basis!=='no_candidates')return false;}
+  else if(max.value==null||max.status!=='derived'||max.basis!=='request_input'||(max.value>0)!==(s.increasingStages>0))return false;
+  const validStage=(stage:NonNullable<typeof s.largestIncrease>)=>stage.firstRef!==stage.lastRef
+    &&stage.delta===stage.lastInput-stage.firstInput
+    &&(stage.firstInput===0?stage.factor==null:stage.factor===stage.lastInput/stage.firstInput);
+  if(s.stages.some(stage=>!validStage(stage))||new Set(s.stages.map(stage=>stage.id)).size!==s.stages.length
+    ||s.stages.reduce((n,stage)=>n+stage.samples,0)>s.orderedSamples)return false;
+  if(s.largestIncrease){if(!validStage(s.largestIncrease)||s.largestIncrease.delta<=0||s.largestIncrease.delta!==max.value)return false;}
+  else if(s.increasingStages>0&&!s.detailsOmitted)return false;
+  return s.stages.every(stage=>stage.delta<=Math.max(max.value??0,0));
+}
 function matchesActivity(request: OptimizeRequest, result: OptimizeResult): boolean {
   if(request.action!=='activity')return result.activity==null;
   const activity=result.activity,selected=request.activity;
-  if(!activity||!selected||activity.formatVersion!==2||activity.analysisMethod!=='safe_event_turn_v6'
+  if(!activity||!selected||activity.formatVersion!==3||activity.analysisMethod!=='safe_event_turn_v7'
     || activity.scope.agentKind!=='codex'||!activity.scope.wholeTurn||activity.readView.snapshotId!==selected.snapshotId || activity.scope.threadId!==selected.threadId
     || activity.scope.turnId!==selected.turnId || request.sourceInstanceId!=null&&activity.scope.sourceInstanceId!==request.sourceInstanceId
     || result.usageRevision!==selected.snapshotId||result.readView!=null||result.suggestions.length||result.checks.length||result.followUps.length) return false;
   const definitions=[['inspect_calls_after_failure','same_operation_after_failure_v1','repeat_after_failure'],
     ['inspect_repeated_reads','same_target_read_v1','successful_read_repeat'],
     ['inspect_repeated_requests','same_request_observation_v1','same_request_observation'],
-    ['inspect_failure_share','terminal_failure_inspection_v1','determinate_terminal_outcomes']] as const;
+    ['inspect_failure_share','terminal_failure_inspection_v1','determinate_terminal_outcomes'],
+    ['inspect_input_change','request_input_change_inspection_v1','request_input']] as const;
   for(const [index,check] of activity.checks.entries()){
     const expected=definitions[index];
     if(!expected||check.rule!==expected[0]||check.method!==expected[1]||check.version!==1) return false;
+    if(index===4){
+      const change=check.inputChange,policy=check.inputPolicy;
+      if(!change||!policy||!validInputChange(change)||check.outcomes!=null||check.failurePolicy!=null)return false;
+      const stats=change.statistics,available=change.availability.support==='supported';
+      const outcome=!available||!stats||stats.comparableStages===0?'insufficient':stats.maximumIncrease.value!>=policy.minimumIncrease?'hit':'miss';
+      const reason=!available?'activityMeasureUnavailable':!stats||stats.comparableStages===0?'activitySampleTooSmall':null;
+      if(check.outcome!==outcome||check.reason!==reason||check.partial!==(activity.sourceStatus!=='complete'||(stats?.partial??true)))return false;
+      if(stats){const m=stats.maximumIncrease; if(check.observed.value!==m.value||check.observed.status!==m.status||check.observed.basis!==m.basis||check.observed.evidenceRefs.length!==m.evidenceRefs.length||check.observed.evidenceRefs.some((ref,i)=>ref!==m.evidenceRefs[i]))return false;}
+      else if(check.observed.value!=null||check.observed.status!=='unavailable'||check.observed.basis!==change.availability.reason)return false;
+      continue;
+    }
+    if(check.inputChange!=null||check.inputPolicy!=null)return false;
     if(index===3){
       const o=check.outcomes,policy=check.failurePolicy;
       if(!o||!policy||!validOutcomeStatistics(o,activity.sourceStatus)||check.partial!==o.partial

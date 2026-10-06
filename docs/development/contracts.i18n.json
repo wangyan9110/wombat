@@ -2,24 +2,24 @@
   "version": 2,
   "sections": {
     "/public-contracts": {
-      "zh": "4e05e055f5ce3d29374d5983740d3afa632b5f110b7e9857d59c9cd9e56d48d2",
-      "en": "dda5b3562e9d6f1c883d09aa9d0f5c32f438b4ef6bcd4e0bbee76cf99e8b0ee6"
+      "zh": "cb86f54cd0f8987bfb96bf82411a05004c7d93b1b98de0d76c3b572e76bcae4d",
+      "en": "b36c0afab080f806edb6bc55f963b99e76c6562bf671a0432067b0e92de8647f"
     },
     "/public-contracts/client-entries": {
       "zh": "43df27589e6cac42deff22d885581433bb66077922612dcb496abf56f4557b4f",
       "en": "d0ef4dba22e780929a3e8a6026abfd1c58f2912a649e69fc0752dc52ea43e6ae"
     },
-    "/public-contracts/whole-turn-timing-contract-v5": {
-      "zh": "0cdae6bae1a21dc481a127c475732f5e70e467ffeb712692b686cd7882bdc779",
-      "en": "54072e29cf7d39cb4258a69e40c8226bda6f2023d76d921fd11fc55e44af4eb7"
+    "/public-contracts/whole-turn-timing-contract-v6": {
+      "zh": "bfd09b53b40568cfee3da7662ef8beb68a121490b571137f303b814df10de3ef",
+      "en": "7f54a197bef83811b5c6e4a0fd5eef2ccc25c26c45ff804b63fb6404aacfc8d6"
     },
     "/public-contracts/read-only-configuration-contract-v1": {
       "zh": "003fcf5dfe8f914bcc67c1f2591e260cf6d74844378c8af50c2354b0a00c1465",
       "en": "a654f66798b55f3ba73d27de3be7777209ee15fea963afcbd831673b60a37950"
     },
     "/public-contracts/optimize-and-preference-contracts-v1": {
-      "zh": "e7a283077f66d87191c9ba0f7b8a2c2609e7148915c5bd37808c77dc332258e1",
-      "en": "dc3634185f5a48d0e1bb0acbe9a5f8808b461165f4bd224558e7c3fd09e397f8"
+      "zh": "679ef5c5fb476a90dfdedd78b2bc01ffbfcc236fdba2777521010b96933d363b",
+      "en": "7c02469083204c35ea8b2aa18626937c0c0e0ffbf427e5a9af483dfe40fc1fe2"
     },
     "/public-contracts/account-contract-v1": {
       "zh": "390c4e1b573c6d836b89d887b8d1a9ad3fec8073bb3d93b858e38f5c9fd4a746",

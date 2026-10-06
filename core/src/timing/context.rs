@@ -9,13 +9,23 @@ use crate::adapters::contract::Measurement;
 use crate::session_events::{Event, ItemKind, LifecycleKind, Payload};
 use std::collections::BTreeMap;
 use std::sync::{Arc, atomic::AtomicBool};
-type Associated<'a> = (
-    &'a Measurement,
-    String,
-    Option<MatchedWindow>,
-    u64,
-    Option<i64>,
-);
+mod change;
+pub use change::{Change, ChangeStatistics};
+fn change_gap(gap: &crate::session_events::Gap) -> bool {
+    !matches!(
+        gap,
+        crate::session_events::Gap::InvalidTimestamp
+            | crate::session_events::Gap::InvalidNativeField
+    )
+}
+struct Associated<'a> {
+    measurement: &'a Measurement,
+    segment_id: String,
+    window: Option<MatchedWindow>,
+    position: Option<&'a crate::session_events::Position>,
+    timestamp: Option<i64>,
+    change_stage: Option<u64>,
+}
 
 /// Associate windows only within a single physical source generation and turn.
 /// `measurements` must be the authoritative reconciled projection for this scope.
@@ -72,7 +82,7 @@ pub(super) fn summarize_events_cancellable(
                     &position.generation,
                 ))
                 .or_insert_with(Vec::new)
-                .push(position.byte_offset);
+                .push((position.byte_offset, event.gaps().iter().any(change_gap)));
         }
         let key = (
             &position.source_instance_id,
@@ -97,13 +107,34 @@ pub(super) fn summarize_events_cancellable(
                     &position.generation,
                 ))
                 .or_insert_with(Vec::new)
-                .push(position.byte_offset);
+                .push((position.byte_offset, event.gaps().iter().any(change_gap)));
         }
     }
     let conflicts: std::collections::BTreeSet<_> = identities
         .iter()
         .filter(|(_, copies)| conflicting_context(copies))
         .map(|(id, _)| *id)
+        .chain(events.iter().filter_map(|event| {
+            let Payload::Measurement {
+                value,
+                context_conflicts,
+                ..
+            } = event.payload()
+            else {
+                return None;
+            };
+            context_conflicts
+                .iter()
+                .any(|field| {
+                    matches!(
+                        field,
+                        crate::session_events::MeasurementContextField::Model
+                            | crate::session_events::MeasurementContextField::Effort
+                    )
+                })
+                .then_some(value.id.as_str())
+                .filter(|id| canonical.contains_key(id))
+        }))
         .collect();
     let mut seen = BTreeMap::new();
     for offsets in breaks.values_mut() {
@@ -114,10 +145,13 @@ pub(super) fn summarize_events_cancellable(
     let mut associated: Vec<Associated<'_>> = Vec::new();
     let mut compactions = Vec::new();
     let mut conflicting_window_records = 0;
+    let mut change_epoch = 0_u64;
     for (scope, mut records) in scopes {
         check(cancelled)?;
         records.sort_by_key(|event| (event.position().byte_offset, event.position().ordinal));
         let mut previous_model = None;
+        let mut change_model = None;
+        change_epoch += 1;
         let mut previous_window = None;
         let mut previous_time = None;
         let mut previous_offset = None;
@@ -135,22 +169,68 @@ pub(super) fn summarize_events_cancellable(
                 .timestamp
                 .as_deref()
                 .and_then(|time| chrono::DateTime::parse_from_rfc3339(time).ok());
-            let broken = row.iter().any(|event| !event.gaps().is_empty()
+            let source_broken = row.iter().any(|event| !event.gaps().is_empty()
                 || matches!(event.payload(), Payload::Measurement {value, ..} if conflicts.contains(value.id.as_str()))
                 || matches!(event.payload(), Payload::Lifecycle { lifecycle: LifecycleKind::Turn, .. }))
-                || row_time.is_none()
-                || previous_time
-                    .zip(row_time)
-                    .is_some_and(|(old, new)| new < old)
                 || breaks
                     .get(&(scope.0, scope.1, scope.2))
                     .is_some_and(|offsets| {
                         let index = previous_offset
-                            .map_or(0, |old| offsets.partition_point(|offset| *offset <= old));
+                            .map_or(0, |old| offsets.partition_point(|offset| offset.0 <= old));
                         offsets
                             .get(index)
-                            .is_some_and(|offset| *offset <= row[0].position().byte_offset)
+                            .is_some_and(|offset| offset.0 <= row[0].position().byte_offset)
                     });
+            let broken = source_broken
+                || row_time.is_none()
+                || previous_time
+                    .zip(row_time)
+                    .is_some_and(|(old, new)| new < old);
+            let compaction_row = row.iter().any(|event| {
+                matches!(
+                    event.payload(),
+                    Payload::Lifecycle {
+                        lifecycle: LifecycleKind::Compaction,
+                        ..
+                    } | Payload::Item {
+                        item_kind: ItemKind::Compaction,
+                        ..
+                    }
+                )
+            });
+            let request_ids: std::collections::BTreeSet<_> = row
+                .iter()
+                .filter_map(|event| {
+                    let Payload::Measurement { value, .. } = event.payload() else {
+                        return None;
+                    };
+                    canonical
+                        .get(value.id.as_str())
+                        .filter(|m| m.request_scoped)
+                        .map(|m| m.id.as_str())
+                })
+                .collect();
+            let change_row_invalid = row.iter().any(|event|
+                event.gaps().iter().any(change_gap)
+                || matches!(event.payload(), Payload::Measurement {value, ..} if conflicts.contains(value.id.as_str()))
+                || matches!(event.payload(), Payload::Lifecycle { lifecycle: LifecycleKind::Turn, .. }))
+;
+            let crossed_change_gap =
+                breaks
+                    .get(&(scope.0, scope.1, scope.2))
+                    .is_some_and(|offsets| {
+                        let start = previous_offset
+                            .map_or(0, |old| offsets.partition_point(|offset| offset.0 <= old));
+                        let end = offsets
+                            .partition_point(|offset| offset.0 <= row[0].position().byte_offset);
+                        offsets[start..end].iter().any(|offset| offset.1)
+                    });
+            let change_invalid = change_row_invalid || compaction_row || request_ids.len() > 1;
+            let change_broken = change_invalid || crossed_change_gap;
+            if change_broken {
+                change_epoch += 1;
+                change_model = None;
+            }
             previous_time = row_time;
             previous_offset = Some(row[0].position().byte_offset);
             if broken {
@@ -182,6 +262,16 @@ pub(super) fn summarize_events_cancellable(
                 previous_window = None;
                 segment += 1;
             }
+            let declared_models: std::collections::BTreeSet<_> =
+                windows.iter().filter_map(|(model, _)| *model).collect();
+            if declared_models.len() > 1
+                || declared_models
+                    .iter()
+                    .any(|declared| change_model.is_some_and(|(model, _)| model != Some(*declared)))
+            {
+                change_epoch += 1;
+                change_model = None;
+            }
             for event in row {
                 check(cancelled)?;
                 let Payload::Measurement { value, .. } = event.payload() else {
@@ -199,6 +289,31 @@ pub(super) fn summarize_events_cancellable(
                     segment += 1;
                 }
                 previous_model = Some(model);
+                let ordered_scope = scope.3.is_some()
+                    && scope.4.is_some()
+                    && scope.0.as_str() == value.source_instance_id.as_ref()
+                    && scope.3 == value.thread_id.as_deref()
+                    && scope.4 == value.turn_id.as_deref()
+                    && !change_invalid
+                    && !conflicts.contains(value.id.as_str())
+                    && model.0.is_some_and(|m| !m.is_empty())
+                    && model.1.is_some_and(|m| !m.is_empty())
+                    && declared_models.len() <= 1
+                    && declared_models.iter().all(|m| Some(*m) == model.0);
+                // Interval accounting does not describe a new request or model stage.
+                let change_stage = if !value.request_scoped {
+                    None
+                } else if ordered_scope {
+                    if change_model != Some(model) {
+                        change_epoch += 1;
+                    }
+                    change_model = Some(model);
+                    Some(change_epoch)
+                } else {
+                    change_epoch += 1;
+                    change_model = None;
+                    None
+                };
                 let valid_scope = scope.3.is_some()
                     && scope.4.is_some()
                     && scope.0.as_str() == value.source_instance_id.as_ref()
@@ -231,31 +346,39 @@ pub(super) fn summarize_events_cancellable(
                 }
                 if let Some(index) = seen.get(value.id.as_str()).copied() {
                     let old: &mut Associated<'_> = &mut associated[index];
-                    if old.2.map(|window| window.tokens) != window.map(|window| window.tokens)
-                        || old.1 != format!("{:?}/{segment}", scope)
+                    if old.window.map(|window| window.tokens) != window.map(|window| window.tokens)
+                        || old.segment_id != format!("{:?}/{segment}", scope)
                     {
-                        old.2 = None;
+                        old.window = None;
                     }
                     // Distinct source positions for one reconciled sample do not
                     // establish a unique compaction neighbor, even if inputs agree.
-                    old.4 = None;
+                    if old.position.is_none_or(|position| {
+                        position.source_instance_id != event.position().source_instance_id
+                            || position.file_id != event.position().file_id
+                            || position.generation != event.position().generation
+                            || position.byte_offset != event.position().byte_offset
+                    }) {
+                        old.timestamp = None;
+                        old.change_stage = None;
+                    }
                     continue;
                 }
                 seen.insert(value.id.as_str(), associated.len());
                 let segment_id = format!("{:?}/{segment}", scope);
-                associated.push((
-                    value,
+                associated.push(Associated {
+                    measurement: value,
                     segment_id,
                     window,
-                    event.position().byte_offset,
-                    // Unknown model/effort cannot establish a shared historical
-                    // segment for neighbors; same-record ratios remain usable.
-                    if valid_scope && model.0.is_some() && model.1.is_some() {
+                    position: Some(event.position()),
+                    // Window neighbors need temporal evidence; input change does not.
+                    timestamp: if valid_scope && model.0.is_some() && model.1.is_some() {
                         row_time.map(|time| time.timestamp_millis())
                     } else {
                         None
                     },
-                ));
+                    change_stage,
+                });
             }
             // A window-only record cannot establish an effort segment. Preserve a
             // known segment only when its model matches and it has valid time.
@@ -307,26 +430,38 @@ pub(super) fn summarize_events_cancellable(
     for value in canonical.values() {
         check(cancelled)?;
         if !seen.contains_key(value.id.as_str()) {
-            associated.push((value, format!("unassociated/{}", value.id), None, 0, None));
+            associated.push(Associated {
+                measurement: value,
+                segment_id: format!("unassociated/{}", value.id),
+                window: None,
+                position: None,
+                timestamp: None,
+                change_stage: None,
+            });
         }
     }
     let mut statistics = summarize_cancellable(
-        associated
-            .iter()
-            .map(|(measurement, segment_id, window, _, _)| Candidate {
-                measurement,
-                segment_id,
-                window: *window,
-            }),
+        associated.iter().map(|entry| Candidate {
+            measurement: entry.measurement,
+            segment_id: &entry.segment_id,
+            window: entry.window,
+        }),
         cancelled,
     )?;
+    statistics.change = change::summarize(&associated, cancelled)?;
     statistics.conflicting_measurements = conflicts.len();
     statistics.conflicting_window_records = conflicting_window_records;
     let mut sample_index: BTreeMap<&str, Vec<&Associated<'_>>> = BTreeMap::new();
     for entry in &associated {
         check(cancelled)?;
-        if entry.0.request_scoped && entry.0.tokens.raw_input.is_some() && entry.4.is_some() {
-            sample_index.entry(&entry.1).or_default().push(entry);
+        if entry.measurement.request_scoped
+            && entry.measurement.tokens.raw_input.is_some()
+            && entry.timestamp.is_some()
+        {
+            sample_index
+                .entry(&entry.segment_id)
+                .or_default()
+                .push(entry);
         }
     }
     statistics.compactions = compactions
@@ -337,16 +472,20 @@ pub(super) fn summarize_events_cancellable(
                 .get(segment_id.as_str())
                 .map(Vec::as_slice)
                 .unwrap_or_default();
-            let before_index = reliable.partition_point(|entry| entry.3 < position);
-            let after_index = reliable.partition_point(|entry| entry.3 <= position);
+            let before_index = reliable
+                .partition_point(|entry| entry.position.is_some_and(|p| p.byte_offset < position));
+            let after_index = reliable
+                .partition_point(|entry| entry.position.is_some_and(|p| p.byte_offset <= position));
             let before = before_index
                 .checked_sub(1)
                 .and_then(|index| reliable.get(index))
                 .copied();
             let after = reliable.get(after_index).copied();
             let neighbor = |entry: Option<&Associated<'_>>| {
-                entry.and_then(|(measurement, _, window, _, timestamp)| {
-                    let distance_ms = (*timestamp)?.abs_diff(time?);
+                entry.and_then(|entry| {
+                    let measurement = entry.measurement;
+                    let window = entry.window;
+                    let distance_ms = entry.timestamp?.abs_diff(time?);
                     Some(Neighbor {
                         measurement_id: measurement.id.clone(),
                         raw_input: measurement.tokens.raw_input?,
@@ -445,6 +584,7 @@ pub struct Statistics {
     pub ratio: Distribution,
     pub segments: Vec<Segment>,
     pub compactions: Vec<CompactionNeighbors>,
+    pub change: ChangeStatistics,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -543,6 +683,11 @@ fn summarize_cancellable<'a>(
             })
             .collect::<anyhow::Result<Vec<_>>>()?,
         compactions: Vec::new(),
+        change: ChangeStatistics {
+            candidates: count,
+            unassociated: count,
+            ..Default::default()
+        },
     };
     check(cancelled)?;
     Ok(result)

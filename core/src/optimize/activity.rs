@@ -59,6 +59,7 @@ fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -
         ActivityRule::InspectRepeatedReads => t::Basis::SuccessfulReadRepeat,
         ActivityRule::InspectRepeatedRequests => t::Basis::SameRequestObservation,
         ActivityRule::InspectFailureShare => t::Basis::DeterminateTerminalOutcomes,
+        ActivityRule::InspectInputChange => t::Basis::RequestInput,
     };
     let supported_basis =
         observed.basis == expected_basis && matches!(observed.status, t::MetricStatus::Derived);
@@ -82,6 +83,8 @@ fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -
         )
     };
     ActivityCheck {
+        input_change: None,
+        input_policy: None,
         outcomes: None,
         failure_policy: None,
         rule,
@@ -139,6 +142,8 @@ fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
         },
     };
     ActivityCheck {
+        input_change: None,
+        input_policy: None,
         rule: ActivityRule::InspectFailureShare,
         version: 1,
         method: "terminal_failure_inspection_v1".into(),
@@ -148,6 +153,64 @@ fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
         reason,
         outcomes: Some(observed.clone()),
         failure_policy: Some(policy),
+    }
+}
+/// A source-order increase is an inspection hint; it does not establish monotonic growth or waste.
+fn input_change(observed: &t::InputChange, source_status: &str) -> ActivityCheck {
+    let policy = InputChangePolicy::default();
+    let stats = observed.statistics.as_ref();
+    let measure = stats
+        .map(|s| s.maximum_increase.clone())
+        .unwrap_or_else(|| t::Metric {
+            value: None,
+            status: t::MetricStatus::Unavailable,
+            basis: observed.availability.reason,
+            evidence_refs: vec![],
+        });
+    let (outcome, reason) = if observed.availability.support != t::Support::Supported {
+        (
+            RuleOutcome::Insufficient,
+            Some(ActivityReason::ActivityMeasureUnavailable),
+        )
+    } else if stats.is_none_or(|s| s.comparable_stages == 0) {
+        (
+            RuleOutcome::Insufficient,
+            Some(ActivityReason::ActivitySampleTooSmall),
+        )
+    } else if measure.status != t::MetricStatus::Derived || measure.basis != t::Basis::RequestInput
+    {
+        (
+            RuleOutcome::Unsupported,
+            Some(ActivityReason::ActivityBasisUnsupported),
+        )
+    } else {
+        match measure.value {
+            Some(n) => (
+                if n >= u64::from(policy.minimum_increase) {
+                    RuleOutcome::Hit
+                } else {
+                    RuleOutcome::Miss
+                },
+                None,
+            ),
+            None => (
+                RuleOutcome::Insufficient,
+                Some(ActivityReason::ActivityMeasureUnavailable),
+            ),
+        }
+    };
+    ActivityCheck {
+        rule: ActivityRule::InspectInputChange,
+        version: 1,
+        method: "request_input_change_inspection_v1".into(),
+        outcome,
+        reason,
+        observed: measure,
+        partial: source_status != "complete" || stats.is_none_or(|s| s.partial),
+        input_change: Some(observed.clone()),
+        input_policy: Some(policy),
+        outcomes: None,
+        failure_policy: None,
     }
 }
 fn count_gap(reasons: &[t::RepeatCoverageReason], source_status: &str, rule: ActivityRule) -> bool {
@@ -201,6 +264,10 @@ pub(crate) fn evaluate(summary: &t::LocalResponse) -> ActivityResult {
             ),
         ),
         failure_share(&summary.work.outcomes),
+        input_change(
+            &summary.context.input_change,
+            &summary.coverage.source_status,
+        ),
     ];
     // Keep check facts independent. The broader request hint adds no advice when a confirmed link is available.
     let confirmed = checks[..2].iter().any(|c| c.outcome == RuleOutcome::Hit);
@@ -213,7 +280,7 @@ pub(crate) fn evaluate(summary: &t::LocalResponse) -> ActivityResult {
         .map(|c| c.rule)
         .collect();
     ActivityResult {
-        format_version: 2,
+        format_version: 3,
         read_view: summary.read_view.clone(),
         scope: summary.scope.clone(),
         analysis_method: summary.method_version.clone(),

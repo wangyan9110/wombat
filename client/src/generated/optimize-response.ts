@@ -138,9 +138,15 @@ export type RepeatCoverageReason =
   | "source_partial"
   | "resource_limit"
   | "numeric_range";
+export type InputChangeMethod = "request_input_observation_change_v1";
+export type Support = "supported" | "partial" | "unavailable";
 export type OutcomeMethod = "terminal_success_failure_subset_v1";
 export type ActivityRule =
-  "inspect_calls_after_failure" | "inspect_repeated_reads" | "inspect_repeated_requests" | "inspect_failure_share";
+  | "inspect_calls_after_failure"
+  | "inspect_repeated_reads"
+  | "inspect_repeated_requests"
+  | "inspect_failure_share"
+  | "inspect_input_change";
 export type ActivityReason =
   "activityMeasureUnavailable" | "activityCoverageIncomplete" | "activityBasisUnsupported" | "activitySampleTooSmall";
 
@@ -650,21 +656,22 @@ export interface ActivityResult {
   sourceStatus: string;
   coverage: RepeatCoverage;
   /**
-   * @minItems 4
-   * @maxItems 4
+   * @minItems 5
+   * @maxItems 5
    */
-  checks: [ActivityCheck, ActivityCheck, ActivityCheck, ActivityCheck];
+  checks: [ActivityCheck, ActivityCheck, ActivityCheck, ActivityCheck, ActivityCheck];
   /**
    * Positive inspection signals; never fault, resolution, causal waste, or savings claims.
    *
-   * @maxItems 4
+   * @maxItems 5
    */
   advice:
     | []
     | [ActivityRule]
     | [ActivityRule, ActivityRule]
     | [ActivityRule, ActivityRule, ActivityRule]
-    | [ActivityRule, ActivityRule, ActivityRule, ActivityRule];
+    | [ActivityRule, ActivityRule, ActivityRule, ActivityRule]
+    | [ActivityRule, ActivityRule, ActivityRule, ActivityRule, ActivityRule];
 }
 export interface ReadView {
   snapshotId: string;
@@ -714,6 +721,8 @@ export interface TimingMetricUint64 {
   evidenceRefs: string[];
 }
 export interface ActivityCheck {
+  inputChange?: InputChange | null;
+  inputPolicy?: InputChangePolicy | null;
   outcomes?: OutcomeStatistics | null;
   failurePolicy?: FailureSharePolicy | null;
   rule: ActivityRule;
@@ -723,6 +732,51 @@ export interface ActivityCheck {
   observed: TimingMetricUint64;
   partial: boolean;
   reason?: ActivityReason | null;
+}
+export interface InputChange {
+  method: InputChangeMethod;
+  availability: Capability;
+  statistics?: InputChangeStatistics | null;
+}
+export interface Capability {
+  support: Support;
+  reason: Basis;
+}
+export interface InputChangeStatistics {
+  candidates: number;
+  orderedSamples: number;
+  nonRequestScoped: number;
+  missingInput: number;
+  unassociated: number;
+  numericRange: number;
+  comparableStages: number;
+  increasingStages: number;
+  decreasingStages: number;
+  unchangedStages: number;
+  /**
+   * Zero means comparable stages had no positive first-to-last change; null means no comparison.
+   */
+  maximumIncrease: TimingMetricUint64;
+  largestIncrease?: InputChangeStage | null;
+  /**
+   * @maxItems 32
+   */
+  stages: InputChangeStage[];
+  detailsOmitted: boolean;
+  partial: boolean;
+}
+export interface InputChangeStage {
+  id: string;
+  samples: number;
+  firstRef: string;
+  lastRef: string;
+  firstInput: number;
+  lastInput: number;
+  delta: number;
+  factor?: number | null;
+}
+export interface InputChangePolicy {
+  minimumIncrease: number;
 }
 /**
  * Counts in the captured subset, rather than inferred complete-turn totals.

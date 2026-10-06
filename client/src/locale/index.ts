@@ -215,12 +215,17 @@ export {repeatedBehaviorReasonText} from './repeated-behavior.js';
 type ActivityCheck=NonNullable<import('../generated/optimize-response.js').Response['activity']>['checks'][number];
 type ActivityRule=ActivityCheck['rule'];
 export function activityRuleTitle(rule:ActivityRule):string {
-  switch(rule){case 'inspect_calls_after_failure':return t('activity.failure');case 'inspect_repeated_reads':return t('activity.read');case 'inspect_repeated_requests':return t('activity.request');case 'inspect_failure_share':return t('activity.failureShare');}
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failure');case 'inspect_repeated_reads':return t('activity.read');case 'inspect_repeated_requests':return t('activity.request');case 'inspect_failure_share':return t('activity.failureShare');case 'inspect_input_change':return t('inputChange.title');}
 }
 export function activityAdviceText(rule:ActivityRule):string {
-  switch(rule){case 'inspect_calls_after_failure':return t('activity.failureAdvice');case 'inspect_repeated_reads':return t('activity.readAdvice');case 'inspect_repeated_requests':return t('activity.requestAdvice');case 'inspect_failure_share':return t('activity.failureShareAdvice');}
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failureAdvice');case 'inspect_repeated_reads':return t('activity.readAdvice');case 'inspect_repeated_requests':return t('activity.requestAdvice');case 'inspect_failure_share':return t('activity.failureShareAdvice');case 'inspect_input_change':return t('activity.inputChangeAdvice');}
 }
 export function activityCheckText(check:ActivityCheck):string {
+  if(check.rule==='inspect_input_change'&&check.inputChange&&check.inputPolicy){
+    const text=inputChangeText(check.inputChange);
+    return [text.headline,t('activity.inputChangePolicy',{tokens:check.inputPolicy.minimumIncrease}),
+      check.outcome==='miss'?t('activity.belowThreshold'):'',check.partial?t('activity.partial'):''].filter(Boolean).join(' ');
+  }
   if(check.rule==='inspect_failure_share'&&check.outcomes&&check.failurePolicy){
     const policy=check.failurePolicy;
     return [operationOutcomeText(check.outcomes).headline,t('activity.failureSharePolicy',{minimum:policy.minimumDeterminate,failures:policy.minimumFailures,ratio:new Intl.NumberFormat(locale.getSnapshot().locale,{style:'percent',maximumFractionDigits:1}).format(policy.minimumRatio)}),
@@ -234,3 +239,14 @@ export function activityCheckText(check:ActivityCheck):string {
 }
 
 export {operationOutcomeText} from './outcome-statistics.js';
+
+export function inputChangeText(change: import('../generated/timing-local-response.js').Context['inputChange']): {headline:string;details:string[];note:string} {
+  const s=change.statistics;
+  if(!s)return {headline:timingMissingValueText(change.availability.reason),details:[],note:t('inputChange.note')};
+  const headline=s.maximumIncrease.value==null?t('inputChange.insufficient'):t('inputChange.maximum',{tokens:s.maximumIncrease.value});
+  const details=[t('inputChange.coverage',{stages:s.comparableStages,increasing:s.increasingStages,decreasing:s.decreasingStages,unchanged:s.unchangedStages})];
+  if(s.largestIncrease)details.push(t('inputChange.endpoints',{samples:s.largestIncrease.samples,first:s.largestIncrease.firstInput,last:s.largestIncrease.lastInput}));
+  if(s.nonRequestScoped+s.missingInput+s.unassociated+s.numericRange>0)details.push(t('inputChange.exclusions',{interval:s.nonRequestScoped,missing:s.missingInput,unassociated:s.unassociated,numeric:s.numericRange}));
+  if(s.detailsOmitted)details.push(t('inputChange.detailsOmitted'));
+  return {headline,details,note:t('inputChange.note')};
+}

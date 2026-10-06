@@ -91,6 +91,7 @@ export type TimelinePresentation = "timeline" | "list";
 export type TrackCategory = "command" | "compaction" | "reasoning" | "mcp";
 export type FragmentEvidence = "event_records" | "turn_collection" | "unavailable";
 export type TurnState = "running" | "completed" | "failed" | "cancelled" | "unknown";
+export type InputChangeMethod = "request_input_observation_change_v1";
 export type OutcomeMethod = "terminal_success_failure_subset_v1";
 export type FindingKind = "fact" | "proxy" | "user_annotation";
 export type CollectionKind =
@@ -399,6 +400,7 @@ export interface TimingMetricDouble {
   evidenceRefs: string[];
 }
 export interface Context {
+  inputChange: InputChange;
   activeContextOccupancy: TimingMetricDouble;
   compactionRecords: TimingMetricUint64;
   compactionTimeMs: TimingMetricUint64;
@@ -413,6 +415,44 @@ export interface Context {
   segments: Segment[];
   compactionNeighbors: CompactionNeighbors[];
   detail: Capability;
+}
+export interface InputChange {
+  method: InputChangeMethod;
+  availability: Capability;
+  statistics?: InputChangeStatistics | null;
+}
+export interface InputChangeStatistics {
+  candidates: number;
+  orderedSamples: number;
+  nonRequestScoped: number;
+  missingInput: number;
+  unassociated: number;
+  numericRange: number;
+  comparableStages: number;
+  increasingStages: number;
+  decreasingStages: number;
+  unchangedStages: number;
+  /**
+   * Zero means comparable stages had no positive first-to-last change; null means no comparison.
+   */
+  maximumIncrease: TimingMetricUint64;
+  largestIncrease?: InputChangeStage | null;
+  /**
+   * @maxItems 32
+   */
+  stages: InputChangeStage[];
+  detailsOmitted: boolean;
+  partial: boolean;
+}
+export interface InputChangeStage {
+  id: string;
+  samples: number;
+  firstRef: string;
+  lastRef: string;
+  firstInput: number;
+  lastInput: number;
+  delta: number;
+  factor?: number | null;
 }
 export interface Distribution {
   samples: TimingMetricUint64;

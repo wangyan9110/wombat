@@ -28,12 +28,25 @@ test('failure share advice binds the shared statistics and policy and excludes s
  const base=activity.checks[3],o=base.outcomes!;
  const positive={...o,determinateOperations:{...o.determinateOperations,value:5},succeeded:{...o.succeeded,value:3},failed:{...o.failed,value:2},failureRatio:{...o.failureRatio,value:0.4}};
  const check={...base,outcomes:positive,observed:positive.failed,outcome:'hit' as const,reason:null};
- const result={...valid,activity:{...activity,checks:[...activity.checks.slice(0,3),check],advice:[...activity.advice,'inspect_failure_share']}};
+ const result={...valid,activity:{...activity,checks:[...activity.checks.slice(0,3),check,activity.checks[4]],advice:[...activity.advice,'inspect_failure_share']}};
  await client(result).optimize!(request);
  for(const change of [{...check,failurePolicy:{...check.failurePolicy,minimumDeterminate:1}},
   {...check,observed:{...check.observed,value:3}}, {...check,outcome:'miss'}, {...check,partial:false},
   {...check,outcomes:{...positive,failureRatio:{...positive.failureRatio,value:0.5}}}, {...check,reason:'activitySampleTooSmall'}]){
-  await assert.rejects(client({...result,activity:{...result.activity,checks:[...activity.checks.slice(0,3),change]}}).optimize!(request),{code:'PROTOCOL_ERROR'});
+  await assert.rejects(client({...result,activity:{...result.activity,checks:[...activity.checks.slice(0,3),change,activity.checks[4]]}}).optimize!(request),{code:'PROTOCOL_ERROR'});
  }
  await assert.rejects(client({...result,outputVersion:2}).optimize!(request),{code:'PROTOCOL_ERROR'});
+});
+
+test('input change advice requires the shared comparison, exact policy and captured sample',async()=>{
+ const {inputChangeFixture}=await import('../../tests/fixtures/input-change.js');
+ const result=activityResult(),activity=result.activity!,base=activity.checks[4];
+ const inputChange=inputChangeFixture(),observed=inputChange.statistics!.maximumIncrease;
+ const check={...base,inputChange,observed,outcome:'hit' as const,reason:null,partial:false};
+ const response={...result,activity:{...activity,checks:[...activity.checks.slice(0,4),check],advice:[...activity.advice,'inspect_input_change']}};
+ await client(response).optimize!(request);
+ for(const changed of [{...check,inputPolicy:{minimumIncrease:1}},{...check,observed:{...observed,value:0}},
+  {...check,outcome:'miss'},{...check,partial:true},{...check,inputChange:{...inputChange,method:'other'}}]){
+  await assert.rejects(client({...response,activity:{...response.activity,checks:[...activity.checks.slice(0,4),changed]}}).optimize!(request),{code:'PROTOCOL_ERROR'});
+ }
 });

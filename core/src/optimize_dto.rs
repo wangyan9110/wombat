@@ -3,7 +3,7 @@ use crate::config_dto::{Issue, Item};
 use crate::usage_app_dto::Page;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-pub const OUTPUT_VERSION: u32 = 3;
+pub const OUTPUT_VERSION: u32 = 4;
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Action {
@@ -468,7 +468,7 @@ impl Default for Capabilities {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Response {
-    #[schemars(range(min = 3, max = 3))]
+    #[schemars(range(min = 4, max = 4))]
     pub output_version: u32,
     pub action: Action,
     pub capabilities: Capabilities,
@@ -532,6 +532,7 @@ pub enum ActivityRule {
     InspectRepeatedReads,
     InspectRepeatedRequests,
     InspectFailureShare,
+    InspectInputChange,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -562,7 +563,22 @@ impl Default for FailureSharePolicy {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InputChangePolicy {
+    #[schemars(range(min = 16384, max = 16384))]
+    pub minimum_increase: u32,
+}
+impl Default for InputChangePolicy {
+    fn default() -> Self {
+        Self {
+            minimum_increase: 16384,
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ActivityCheck {
+    pub input_change: Option<crate::timing_dto::InputChange>,
+    pub input_policy: Option<InputChangePolicy>,
     pub outcomes: Option<crate::timing_dto::OutcomeStatistics>,
     pub failure_policy: Option<FailureSharePolicy>,
     pub rule: ActivityRule,
@@ -577,7 +593,7 @@ pub struct ActivityCheck {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ActivityResult {
-    #[schemars(range(min = 2, max = 2))]
+    #[schemars(range(min = 3, max = 3))]
     pub format_version: u32,
     pub read_view: crate::timing_dto::ReadView,
     pub scope: crate::timing_dto::LocalScope,
@@ -585,9 +601,9 @@ pub struct ActivityResult {
     pub freshness: crate::timing_dto::QueryFreshness,
     pub source_status: String,
     pub coverage: crate::timing_dto::RepeatCoverage,
-    #[schemars(length(min = 4, max = 4))]
+    #[schemars(length(min = 5, max = 5))]
     pub checks: Vec<ActivityCheck>,
     /// Positive inspection signals; never fault, resolution, causal waste, or savings claims.
-    #[schemars(length(max = 4))]
+    #[schemars(length(max = 5))]
     pub advice: Vec<ActivityRule>,
 }

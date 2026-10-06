@@ -9,7 +9,7 @@ const capabilities = {
   lifecycleIntervals: unavailable, operationIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: {support:'supported',reason:'canonical_use_records'} as const,
 };
-export const capabilityResult = { outputVersion: 5, action: 'capabilities', methodVersion: 'safe_event_turn_v6', profile: 'local', capabilities } as const;
+export const capabilityResult = { outputVersion: 6, action: 'capabilities', methodVersion: 'safe_event_turn_v7', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const repeatDuration=()=>({knownSumMs:count(),recordedCount:count(),calculatedCount:count(),missingCount:count()});
@@ -19,7 +19,7 @@ const distribution = () => ({ samples: count(), median: count(), p90: count() })
 const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const baseLocal: TimingLocalResult = {
-  outputVersion: 5, action: 'summary', methodVersion: 'safe_event_turn_v6', profile: 'local',
+  outputVersion: 6, action: 'summary', methodVersion: 'safe_event_turn_v7', profile: 'local',
   uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
@@ -34,6 +34,7 @@ const baseLocal: TimingLocalResult = {
     operationCoverage: {methodVersion:1,endpointMethodVersion:1,candidateOperations:count(),pairedOperations:count(),identityGapRecords:count(),conflictingOperations:count(),coveredMs:count(),residualMs:count(),residualRangeCount:count(),partial:true,reasonCodes:['missing_window'],detail:unavailable,detailLimit:200,residualRanges:[]},
   },
   context: {
+    inputChange:{method:'request_input_observation_change_v1',availability:unavailable,statistics:null},
     activeContextOccupancy: count(), compactionRecords: count(), compactionTimeMs: count(), method: 'synthetic', quantileMethod: 'type7',
     candidates: count(), conflictingMeasurements: count(), conflictingWindowRecords: count(), input: distribution(), ratio: distribution(),
     segmentCount: count(), segments: [], compactionNeighbors: [], detail: unavailable,
@@ -55,7 +56,7 @@ const baseLocal: TimingLocalResult = {
   freshness: { status: 'fixed' }, evidence: { repeatPages: {detail:unavailable,candidateOperationCount:count(),locatedOperationCount:count(),pageCount:count(),limitBytes:65536,entries:[]}, intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
 };
 const baseShare: TimingShareResult = {
-  outputVersion: 5, action: 'summary', methodVersion: baseLocal.methodVersion, profile: 'share-v1',
+  outputVersion: 6, action: 'summary', methodVersion: baseLocal.methodVersion, profile: 'share-v1',
   uses: useTotals,
   privacy: { profile: 'share-v1', omittedFields: ['local_ids'], aliases: 'package' },
   scope: { taskAlias: 'task-1', turnAlias: 'turn-1', wholeTurn: true }, capabilities, relativeAnchors: baseLocal.anchors,
@@ -143,10 +144,13 @@ export function timingFixture(scenario:Scenario='complete',snapshotId='preview:1
  const proof=(role:'later'|'failure'|'read'):TimingLocalResult['evidence']['repeatPages']['entries'][number]['later']=>({operationAlias:`repeat:0:${role==='read'?'read:0':role}`,pages:[{cursor:{token:`synthetic-repeat-${role}`},limit:200,evidenceRefs:[`event:repeat-${role}-start`,`event:repeat-${role}-end`]}]});
  navigation.entries=noWindow||repeatCount===0?[]:[{later:proof('later'),afterFailure:proof('failure'),successfulReads:[proof('read')],repeatedReadTargetCount:1,laterDurationMs:measured(40,'native_record'),recoverySpanMs:analyzed(80,'failure_recovery_span')}];
  result.uses=usesFixture(result,scenario);result.capabilities={...result.capabilities,objectUses:result.uses.detail};
+ const inputStage={id:'input-stage:1',samples:2,firstRef:'measurement:synthetic-first',lastRef:'measurement:synthetic-last',firstInput:100,lastInput:scenario==='failed'?20100:200,delta:scenario==='failed'?20000:100,factor:scenario==='failed'?201:2};
+ result.context.inputChange={method:'request_input_observation_change_v1',availability:{support:'supported',reason:'request_input'},statistics:{candidates:scenario==='empty'?0:2,orderedSamples:scenario==='empty'?0:2,nonRequestScoped:0,missingInput:0,unassociated:0,numericRange:0,comparableStages:scenario==='empty'?0:1,increasingStages:scenario==='empty'?0:1,decreasingStages:0,unchangedStages:0,maximumIncrease:scenario==='empty'?{...count(),basis:'no_candidates'}:analyzed(inputStage.delta,'request_input'),largestIncrease:scenario==='empty'?null:inputStage,stages:scenario==='empty'?[]:[inputStage],detailsOmitted:false,partial:false}};
  return result;
 }
 export function timingShareFixture(local:TimingLocalResult):TimingShareResult {
- const result=structuredClone(baseShare);result.time=structuredClone(local.time);result.quality=structuredClone(local.quality);result.uses=shareUsesFixture(local);result.capabilities={...result.capabilities,objectUses:local.uses.detail};
+ const result=structuredClone(baseShare);result.time=structuredClone(local.time);result.context=structuredClone(local.context);
+ const change=result.context.inputChange.statistics;if(change){change.maximumIncrease.evidenceRefs=change.maximumIncrease.evidenceRefs.map((_,i)=>`collection:synthetic-input-${i}`);for(const stage of [...change.stages,...(change.largestIncrease?[change.largestIncrease]:[])]){stage.id='S-synthetic-input';stage.firstRef='measurement:E-synthetic-first';stage.lastRef='measurement:E-synthetic-last';}}result.quality=structuredClone(local.quality);result.uses=shareUsesFixture(local);result.capabilities={...result.capabilities,objectUses:local.uses.detail};
  // Synthetic Rust-share-shaped facts use package aliases only; no local view is added.
  result.time.nativeWallClockMs.evidenceRefs=[];result.time.observedWindowMs.evidenceRefs=[];for(const category of timingCategories)for(const field of ['candidates','closed','unionMs','sumMs'] as const)result.time[category][field].evidenceRefs=[];
  for(const field of ['candidateOperations','pairedOperations','identityGapRecords','conflictingOperations','coveredMs','residualMs','residualRangeCount'] as const)result.time.operationCoverage[field].evidenceRefs=[];
@@ -172,8 +176,8 @@ export function previewTiming(scenario:Scenario){
   const repeatRole=request.cursor?.token.match(/^synthetic-repeat-(later|failure|read)$/)?.[1];
   if(repeatRole){
    const start=Date.parse('2026-10-05T00:00:00Z')+(repeatRole==='later'?140:repeatRole==='failure'?60:0);
-   return {outputVersion:5,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:{value:10,status:'observed',basis:'safe_event_count',evidenceRefs:[]},rows:[{reference:`event:repeat-${repeatRole}-start`,recordKind:'operation',phase:'started',timestampMs:start,gapCodes:[]},{reference:`event:repeat-${repeatRole}-end`,recordKind:'operation',phase:repeatRole==='failure'?'failed':'completed',timestampMs:start+40,durationMs:40,gapCodes:[]}],nextCursor:null};
+   return {outputVersion:6,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:{value:10,status:'observed',basis:'safe_event_count',evidenceRefs:[]},rows:[{reference:`event:repeat-${repeatRole}-start`,recordKind:'operation',phase:'started',timestampMs:start,gapCodes:[]},{reference:`event:repeat-${repeatRole}-end`,recordKind:'operation',phase:repeatRole==='failure'?'failed':'completed',timestampMs:start+40,durationMs:40,gapCodes:[]}],nextCursor:null};
   }
-  return {outputVersion: 5,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:local.evidence.collections[0].count,rows:request.cursor?[{reference:'event:end-0',recordKind:'lifecycle',phase:'completed',timestampMs:4000,gapCodes:[]}]:[{reference:'event:start-0',recordKind:'lifecycle',phase:'started',timestampMs:1000,gapCodes:[]}],nextCursor:request.cursor?null:{token:'synthetic-next'}};
+  return {outputVersion: 6,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:local.evidence.collections[0].count,rows:request.cursor?[{reference:'event:end-0',recordKind:'lifecycle',phase:'completed',timestampMs:4000,gapCodes:[]}]:[{reference:'event:start-0',recordKind:'lifecycle',phase:'started',timestampMs:1000,gapCodes:[]}],nextCursor:request.cursor?null:{token:'synthetic-next'}};
  };
 }

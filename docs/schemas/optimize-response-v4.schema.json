@@ -5,8 +5,8 @@
   "properties": {
     "outputVersion": {
       "type": "integer",
-      "minimum": 3,
-      "maximum": 3
+      "minimum": 4,
+      "maximum": 4
     },
     "action": {
       "$ref": "#/definitions/Action"
@@ -2565,8 +2565,8 @@
       "properties": {
         "formatVersion": {
           "type": "integer",
-          "minimum": 2,
-          "maximum": 2
+          "minimum": 3,
+          "maximum": 3
         },
         "readView": {
           "$ref": "#/definitions/ReadView"
@@ -2591,8 +2591,8 @@
           "items": {
             "$ref": "#/definitions/ActivityCheck"
           },
-          "minItems": 4,
-          "maxItems": 4
+          "minItems": 5,
+          "maxItems": 5
         },
         "advice": {
           "description": "Positive inspection signals; never fault, resolution, causal waste, or savings claims.",
@@ -2600,7 +2600,7 @@
           "items": {
             "$ref": "#/definitions/ActivityRule"
           },
-          "maxItems": 4
+          "maxItems": 5
         }
       },
       "additionalProperties": false,
@@ -2905,6 +2905,26 @@
     "ActivityCheck": {
       "type": "object",
       "properties": {
+        "inputChange": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InputChange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inputPolicy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InputChangePolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "outcomes": {
           "anyOf": [
             {
@@ -2964,6 +2984,237 @@
         "outcome",
         "observed",
         "partial"
+      ]
+    },
+    "InputChange": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "$ref": "#/definitions/InputChangeMethod"
+        },
+        "availability": {
+          "$ref": "#/definitions/Capability"
+        },
+        "statistics": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InputChangeStatistics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "availability"
+      ]
+    },
+    "InputChangeMethod": {
+      "type": "string",
+      "enum": [
+        "request_input_observation_change_v1"
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "properties": {
+        "support": {
+          "$ref": "#/definitions/Support"
+        },
+        "reason": {
+          "$ref": "#/definitions/Basis"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "support",
+        "reason"
+      ]
+    },
+    "Support": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "partial",
+        "unavailable"
+      ]
+    },
+    "InputChangeStatistics": {
+      "type": "object",
+      "properties": {
+        "candidates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "orderedSamples": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "nonRequestScoped": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "missingInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unassociated": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "numericRange": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "comparableStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "increasingStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "decreasingStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unchangedStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumIncrease": {
+          "description": "Zero means comparable stages had no positive first-to-last change; null means no comparison.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "largestIncrease": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InputChangeStage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InputChangeStage"
+          },
+          "maxItems": 32
+        },
+        "detailsOmitted": {
+          "type": "boolean"
+        },
+        "partial": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "candidates",
+        "orderedSamples",
+        "nonRequestScoped",
+        "missingInput",
+        "unassociated",
+        "numericRange",
+        "comparableStages",
+        "increasingStages",
+        "decreasingStages",
+        "unchangedStages",
+        "maximumIncrease",
+        "stages",
+        "detailsOmitted",
+        "partial"
+      ]
+    },
+    "InputChangeStage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
+        "firstRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "lastRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "firstInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lastInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "delta": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "samples",
+        "firstRef",
+        "lastRef",
+        "firstInput",
+        "lastInput",
+        "delta"
+      ]
+    },
+    "InputChangePolicy": {
+      "type": "object",
+      "properties": {
+        "minimumIncrease": {
+          "type": "integer",
+          "minimum": 16384,
+          "maximum": 16384
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "minimumIncrease"
       ]
     },
     "OutcomeStatistics": {
@@ -3100,7 +3351,8 @@
         "inspect_calls_after_failure",
         "inspect_repeated_reads",
         "inspect_repeated_requests",
-        "inspect_failure_share"
+        "inspect_failure_share",
+        "inspect_input_change"
       ]
     },
     "ActivityReason": {

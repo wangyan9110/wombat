@@ -1549,7 +1549,7 @@ fn mcp_time_is_delivered_in_local_and_private_relative_share_projection() {
         boundary(3, Some(1100), Phase::Completed, Some(100), None),
     ]);
     let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(result.method_version, "safe_event_turn_v6");
+    assert_eq!(result.method_version, "safe_event_turn_v7");
     assert_eq!(result.time.mcp.union_ms.value, Some(50));
     assert_eq!(result.time.mcp.sum_ms.value, Some(50));
     assert_eq!(result.time.mcp.closed.value, Some(1));
@@ -1686,7 +1686,7 @@ fn operation_residual_is_distinct_from_category_gaps_and_share_is_private() {
         boundary(5, Some(30000), Phase::Completed, Some(31000), None),
     ]);
     let l = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(l.output_version, 5);
+    assert_eq!(l.output_version, 6);
     assert_eq!(l.time.native_wall_clock_ms.value, Some(31000));
     assert_eq!(l.time.unclassified_ms.value, Some(10000));
     let c = &l.time.operation_coverage;
@@ -1866,3 +1866,68 @@ fn operation_pairs_without_turn_window_explain_unavailable_residual_instead_of_z
 
 #[path = "tests/repeats.rs"]
 mod repeats;
+
+#[test]
+fn input_change_is_shared_by_fixed_turn_summary_inspection_and_private_share() {
+    let measurements: Vec<Arc<crate::adapters::contract::Measurement>>=[100_u64,20000].into_iter().enumerate().map(|(i,n)|Arc::new(serde_json::from_value(serde_json::json!({
+        "id":format!("measurement-private-{i}"),"agentKind":"codex","sourceInstanceId":"source-private",
+        "threadId":"thread-private","turnId":"turn-private","grain":"response","timePrecision":"unknown",
+        "model":{"raw":"model"},"reasoningEffort":"high","tokens":{"rawInput":n},"requestScoped":true,
+        "tokenUnavailableReasons":{"input":"missing","cacheRead":"missing","cacheCreate":"missing","output":"missing","reasoning":"missing","total":"missing","rawInput":null},"pricingContextConflict":false,"sequence":i,"evidence":[]
+    })).unwrap())).collect();
+    let events = measurements
+        .iter()
+        .enumerate()
+        .map(|(i, value)| {
+            event(
+                i as u64 + 1,
+                None,
+                Payload::Measurement {
+                    value: value.clone(),
+                    context_conflicts: vec![],
+                    direct: true,
+                    cumulative: None,
+                    interval_start: None,
+                    fingerprint: format!("sample-{i}"),
+                },
+            )
+        })
+        .collect();
+    let mut collected = data(events);
+    collected.measurements = measurements.clone();
+    let root = tempfile::tempdir().unwrap();
+    let snapshot = usage_store::memory(
+        collected,
+        "live:private".into(),
+        crate::pricing_sync::current_at(root.path()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let l = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let stats = l.context.input_change.statistics.as_ref().unwrap();
+    assert_eq!(stats.maximum_increase.value, Some(19900));
+    assert_eq!(stats.maximum_increase.status, MetricStatus::Derived);
+    assert_eq!(stats.comparable_stages, 1);
+    assert_eq!(stats.largest_increase.as_ref().unwrap().first_input, 100);
+    let activity = crate::optimize::activity::evaluate(&l);
+    assert_eq!(activity.checks[4].observed.value, Some(19900));
+    assert_eq!(
+        activity.checks[4].outcome,
+        crate::optimize_dto::RuleOutcome::Hit
+    );
+    assert!(
+        activity
+            .advice
+            .contains(&crate::optimize_dto::ActivityRule::InspectInputChange)
+    );
+    let shared = share::project(&l);
+    let ss = shared.context.input_change.statistics.unwrap();
+    assert_eq!(ss.maximum_increase.value, Some(19900));
+    assert_eq!(ss.largest_increase.as_ref().unwrap().delta, 19900);
+    assert_ne!(
+        stats.largest_increase.as_ref().unwrap().first_ref,
+        ss.largest_increase.as_ref().unwrap().first_ref
+    );
+    let json = serde_json::to_string(&ss).unwrap();
+    assert!(!json.contains("private"));
+}

@@ -27,3 +27,22 @@ test('production failed-turn preview shows scoped failure-share advice and expli
   for(const language of ['zh','en'] as const){locale.setLocale(language);const html=renderToStaticMarkup(createElement(ActivityFacts,{activity:result.activity,onEvidence(){}}));assert.match(html,/60%/);assert.match(html,/40%/);assert.match(html,language==='zh'?/5 次结果可判定/:/at least 5 operations/);assert.doesNotMatch(html,/activity\.|undefined|NaN|未知/);}
  }finally{locale.setLocale(previous);}
 });
+
+test('input-change inspection and production summary share the synthetic endpoints in both languages',async()=>{
+ const {Execution}=await import('../src/tasks/Execution.js');
+ const previous=locale.getSnapshot().locale;
+ try{for(const scenario of ['failed','missing'] as const){
+  const client=createExecutionPreviewClient(scenario);
+  const summary=await client.timing!({action:'summary',threadId:'preview-task',turnId:'preview-turn',snapshotId:'preview:fixed'});
+  assert.ok(summary.action==='summary'&&summary.profile==='local');
+  const response=await client.optimize!({action:'activity',activity:{snapshotId:'preview:fixed',threadId:'preview-task',turnId:'preview-turn'}});
+  assert.equal(response.activity!.checks[4].observed.value,summary.context.inputChange.statistics!.maximumIncrease.value);
+  for(const language of ['zh','en'] as const){locale.setLocale(language);
+   const html=renderToStaticMarkup(createElement(Execution,{summary,refresh(){},onEvidence(){},onShare(){}}));
+   assert.match(html,language==='zh'?/请求输入变化/:/Request input change/);
+   assert.match(html,scenario==='failed'?/20000/:/100/);
+   assert.match(html,language==='zh'?/缺少时间不影响比较/:/Missing times do not prevent comparison/);
+   assert.doesNotMatch(html,/inputChange\.|undefined|NaN|未知/);
+  }
+ }}finally{locale.setLocale(previous);}
+});

@@ -1,112 +1,90 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Response",
-  "anyOf": [
-    {
-      "$ref": "#/definitions/LocalResponse"
+  "title": "LocalResponse",
+  "type": "object",
+  "properties": {
+    "uses": {
+      "$ref": "#/definitions/LocalUses"
     },
-    {
-      "$ref": "#/definitions/ShareResponse"
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 6,
+      "maximum": 6
     },
-    {
-      "$ref": "#/definitions/EvidenceResponse"
+    "action": {
+      "$ref": "#/definitions/SummaryAction"
     },
-    {
-      "$ref": "#/definitions/UseObjectsResponse"
+    "methodVersion": {
+      "type": "string"
     },
-    {
-      "$ref": "#/definitions/UseRecordsResponse"
+    "profile": {
+      "$ref": "#/definitions/LocalProfile"
     },
-    {
-      "$ref": "#/definitions/CapabilitiesResponse"
+    "privacy": {
+      "$ref": "#/definitions/Privacy"
+    },
+    "readView": {
+      "$ref": "#/definitions/ReadView"
+    },
+    "scope": {
+      "$ref": "#/definitions/LocalScope"
+    },
+    "capabilities": {
+      "$ref": "#/definitions/Capabilities"
+    },
+    "anchors": {
+      "$ref": "#/definitions/Anchors"
+    },
+    "time": {
+      "$ref": "#/definitions/Time"
+    },
+    "context": {
+      "$ref": "#/definitions/Context"
+    },
+    "work": {
+      "$ref": "#/definitions/Work"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Finding"
+      }
+    },
+    "coverage": {
+      "$ref": "#/definitions/Coverage"
+    },
+    "quality": {
+      "$ref": "#/definitions/Quality"
+    },
+    "freshness": {
+      "$ref": "#/definitions/QueryFreshness"
+    },
+    "evidence": {
+      "$ref": "#/definitions/EvidenceIndex"
     }
+  },
+  "additionalProperties": false,
+  "required": [
+    "uses",
+    "outputVersion",
+    "action",
+    "methodVersion",
+    "profile",
+    "privacy",
+    "readView",
+    "scope",
+    "capabilities",
+    "anchors",
+    "time",
+    "context",
+    "work",
+    "findings",
+    "coverage",
+    "quality",
+    "freshness",
+    "evidence"
   ],
   "definitions": {
-    "LocalResponse": {
-      "type": "object",
-      "properties": {
-        "uses": {
-          "$ref": "#/definitions/LocalUses"
-        },
-        "outputVersion": {
-          "type": "integer",
-          "minimum": 5,
-          "maximum": 5
-        },
-        "action": {
-          "$ref": "#/definitions/SummaryAction"
-        },
-        "methodVersion": {
-          "type": "string"
-        },
-        "profile": {
-          "$ref": "#/definitions/LocalProfile"
-        },
-        "privacy": {
-          "$ref": "#/definitions/Privacy"
-        },
-        "readView": {
-          "$ref": "#/definitions/ReadView"
-        },
-        "scope": {
-          "$ref": "#/definitions/LocalScope"
-        },
-        "capabilities": {
-          "$ref": "#/definitions/Capabilities"
-        },
-        "anchors": {
-          "$ref": "#/definitions/Anchors"
-        },
-        "time": {
-          "$ref": "#/definitions/Time"
-        },
-        "context": {
-          "$ref": "#/definitions/Context"
-        },
-        "work": {
-          "$ref": "#/definitions/Work"
-        },
-        "findings": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Finding"
-          }
-        },
-        "coverage": {
-          "$ref": "#/definitions/Coverage"
-        },
-        "quality": {
-          "$ref": "#/definitions/Quality"
-        },
-        "freshness": {
-          "$ref": "#/definitions/QueryFreshness"
-        },
-        "evidence": {
-          "$ref": "#/definitions/EvidenceIndex"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "uses",
-        "outputVersion",
-        "action",
-        "methodVersion",
-        "profile",
-        "privacy",
-        "readView",
-        "scope",
-        "capabilities",
-        "anchors",
-        "time",
-        "context",
-        "work",
-        "findings",
-        "coverage",
-        "quality",
-        "freshness",
-        "evidence"
-      ]
-    },
     "LocalUses": {
       "type": "object",
       "properties": {
@@ -1330,6 +1308,9 @@
     "Context": {
       "type": "object",
       "properties": {
+        "inputChange": {
+          "$ref": "#/definitions/InputChange"
+        },
         "activeContextOccupancy": {
           "$ref": "#/definitions/TimingMetric_double"
         },
@@ -1381,6 +1362,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "inputChange",
         "activeContextOccupancy",
         "compactionRecords",
         "compactionTimeMs",
@@ -1395,6 +1377,199 @@
         "segments",
         "compactionNeighbors",
         "detail"
+      ]
+    },
+    "InputChange": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "$ref": "#/definitions/InputChangeMethod"
+        },
+        "availability": {
+          "$ref": "#/definitions/Capability"
+        },
+        "statistics": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InputChangeStatistics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "availability"
+      ]
+    },
+    "InputChangeMethod": {
+      "type": "string",
+      "enum": [
+        "request_input_observation_change_v1"
+      ]
+    },
+    "InputChangeStatistics": {
+      "type": "object",
+      "properties": {
+        "candidates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "orderedSamples": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "nonRequestScoped": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "missingInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unassociated": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "numericRange": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "comparableStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "increasingStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "decreasingStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unchangedStages": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumIncrease": {
+          "description": "Zero means comparable stages had no positive first-to-last change; null means no comparison.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "largestIncrease": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InputChangeStage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InputChangeStage"
+          },
+          "maxItems": 32
+        },
+        "detailsOmitted": {
+          "type": "boolean"
+        },
+        "partial": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "candidates",
+        "orderedSamples",
+        "nonRequestScoped",
+        "missingInput",
+        "unassociated",
+        "numericRange",
+        "comparableStages",
+        "increasingStages",
+        "decreasingStages",
+        "unchangedStages",
+        "maximumIncrease",
+        "stages",
+        "detailsOmitted",
+        "partial"
+      ]
+    },
+    "InputChangeStage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        },
+        "firstRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "lastRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "firstInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lastInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "delta": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "samples",
+        "firstRef",
+        "lastRef",
+        "firstInput",
+        "lastInput",
+        "delta"
       ]
     },
     "Distribution": {
@@ -2210,607 +2385,6 @@
         "canonical_operations",
         "source_controls",
         "native_boundary_index"
-      ]
-    },
-    "ShareResponse": {
-      "type": "object",
-      "properties": {
-        "uses": {
-          "$ref": "#/definitions/UseTotals"
-        },
-        "basisCollections": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ShareCollection"
-          }
-        },
-        "outputVersion": {
-          "type": "integer",
-          "minimum": 5,
-          "maximum": 5
-        },
-        "action": {
-          "$ref": "#/definitions/SummaryAction"
-        },
-        "methodVersion": {
-          "type": "string"
-        },
-        "profile": {
-          "$ref": "#/definitions/ShareProfile"
-        },
-        "privacy": {
-          "$ref": "#/definitions/Privacy"
-        },
-        "scope": {
-          "$ref": "#/definitions/ShareScope"
-        },
-        "capabilities": {
-          "$ref": "#/definitions/Capabilities"
-        },
-        "relativeAnchors": {
-          "$ref": "#/definitions/Anchors"
-        },
-        "time": {
-          "$ref": "#/definitions/Time"
-        },
-        "context": {
-          "$ref": "#/definitions/Context"
-        },
-        "work": {
-          "$ref": "#/definitions/Work"
-        },
-        "findings": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Finding"
-          }
-        },
-        "coverage": {
-          "$ref": "#/definitions/Coverage"
-        },
-        "quality": {
-          "$ref": "#/definitions/Quality"
-        },
-        "freshness": {
-          "$ref": "#/definitions/ShareFreshness"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "uses",
-        "basisCollections",
-        "outputVersion",
-        "action",
-        "methodVersion",
-        "profile",
-        "privacy",
-        "scope",
-        "capabilities",
-        "relativeAnchors",
-        "time",
-        "context",
-        "work",
-        "findings",
-        "coverage",
-        "quality",
-        "freshness"
-      ]
-    },
-    "ShareCollection": {
-      "type": "object",
-      "properties": {
-        "reference": {
-          "type": "string"
-        },
-        "kind": {
-          "$ref": "#/definitions/CollectionKind"
-        },
-        "taskAlias": {
-          "type": "string"
-        },
-        "turnAlias": {
-          "type": "string"
-        },
-        "count": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "method": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "reference",
-        "kind",
-        "taskAlias",
-        "turnAlias",
-        "count",
-        "method"
-      ]
-    },
-    "ShareProfile": {
-      "type": "string",
-      "enum": [
-        "share-v1"
-      ]
-    },
-    "ShareScope": {
-      "type": "object",
-      "properties": {
-        "taskAlias": {
-          "type": "string"
-        },
-        "turnAlias": {
-          "type": "string"
-        },
-        "wholeTurn": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "taskAlias",
-        "turnAlias",
-        "wholeTurn"
-      ]
-    },
-    "ShareFreshness": {
-      "type": "object",
-      "properties": {
-        "status": {
-          "type": "string"
-        },
-        "errorCode": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "status"
-      ]
-    },
-    "EvidenceResponse": {
-      "type": "object",
-      "properties": {
-        "collection": {
-          "$ref": "#/definitions/EventPageKind"
-        },
-        "outputVersion": {
-          "type": "integer",
-          "minimum": 5,
-          "maximum": 5
-        },
-        "action": {
-          "$ref": "#/definitions/EvidenceAction"
-        },
-        "methodVersion": {
-          "type": "string"
-        },
-        "profile": {
-          "$ref": "#/definitions/LocalProfile"
-        },
-        "snapshotId": {
-          "type": "string"
-        },
-        "scope": {
-          "$ref": "#/definitions/LocalScope"
-        },
-        "total": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "rows": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/EvidenceRow"
-          }
-        },
-        "nextCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Cursor"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "collection",
-        "outputVersion",
-        "action",
-        "methodVersion",
-        "profile",
-        "snapshotId",
-        "scope",
-        "total",
-        "rows"
-      ]
-    },
-    "EventPageKind": {
-      "type": "string",
-      "enum": [
-        "turn_events"
-      ]
-    },
-    "EvidenceAction": {
-      "type": "string",
-      "enum": [
-        "evidence"
-      ]
-    },
-    "EvidenceRow": {
-      "type": "object",
-      "properties": {
-        "reference": {
-          "type": "string"
-        },
-        "recordKind": {
-          "type": "string"
-        },
-        "timestampMs": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": -9007199254740991,
-          "maximum": 9007199254740991
-        },
-        "phase": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "presence": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "origin": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "durationMs": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "firstTokenMs": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "gapCodes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "reference",
-        "recordKind",
-        "gapCodes"
-      ]
-    },
-    "UseObjectsResponse": {
-      "type": "object",
-      "properties": {
-        "outputVersion": {
-          "type": "integer",
-          "minimum": 5,
-          "maximum": 5
-        },
-        "action": {
-          "$ref": "#/definitions/EvidenceAction"
-        },
-        "collection": {
-          "$ref": "#/definitions/UseObjectPageKind"
-        },
-        "methodVersion": {
-          "type": "string"
-        },
-        "profile": {
-          "$ref": "#/definitions/LocalProfile"
-        },
-        "snapshotId": {
-          "type": "string"
-        },
-        "scope": {
-          "$ref": "#/definitions/LocalScope"
-        },
-        "totals": {
-          "$ref": "#/definitions/UseTotals"
-        },
-        "total": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "rows": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/UseObject"
-          },
-          "maxItems": 200
-        },
-        "nextCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Cursor"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "outputVersion",
-        "action",
-        "collection",
-        "methodVersion",
-        "profile",
-        "snapshotId",
-        "scope",
-        "totals",
-        "total",
-        "rows"
-      ]
-    },
-    "UseObjectPageKind": {
-      "type": "string",
-      "enum": [
-        "use_objects"
-      ]
-    },
-    "UseRecordsResponse": {
-      "type": "object",
-      "properties": {
-        "outputVersion": {
-          "type": "integer",
-          "minimum": 5,
-          "maximum": 5
-        },
-        "action": {
-          "$ref": "#/definitions/EvidenceAction"
-        },
-        "collection": {
-          "$ref": "#/definitions/UseRecordPageKind"
-        },
-        "methodVersion": {
-          "type": "string"
-        },
-        "profile": {
-          "$ref": "#/definitions/LocalProfile"
-        },
-        "snapshotId": {
-          "type": "string"
-        },
-        "scope": {
-          "$ref": "#/definitions/LocalScope"
-        },
-        "objectRef": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "totals": {
-          "$ref": "#/definitions/UseTotals"
-        },
-        "total": {
-          "description": "Full selected record count; the whole-turn totals do not shrink with this object page.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/TimingMetric_uint64"
-            }
-          ]
-        },
-        "rows": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/UseRecord"
-          },
-          "maxItems": 200
-        },
-        "nextCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Cursor"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "outputVersion",
-        "action",
-        "collection",
-        "methodVersion",
-        "profile",
-        "snapshotId",
-        "scope",
-        "totals",
-        "total",
-        "rows"
-      ]
-    },
-    "UseRecordPageKind": {
-      "type": "string",
-      "enum": [
-        "use_records"
-      ]
-    },
-    "UseRecord": {
-      "type": "object",
-      "properties": {
-        "reference": {
-          "type": "string"
-        },
-        "objectRef": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "kind": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/UseKind"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "state": {
-          "$ref": "#/definitions/UseState"
-        },
-        "outcome": {
-          "$ref": "#/definitions/UseOutcome"
-        },
-        "timestampMs": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": -9007199254740991,
-          "maximum": 9007199254740991
-        },
-        "timeBasis": {
-          "$ref": "#/definitions/UseTimeBasis"
-        },
-        "nativeDurationMs": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "tool": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "exitCode": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": -9007199254740991,
-          "maximum": 9007199254740991
-        },
-        "identityKnown": {
-          "type": "boolean"
-        },
-        "replayOf": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "targetConflict": {
-          "type": "boolean"
-        },
-        "gapCodes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "reference",
-        "state",
-        "outcome",
-        "timeBasis",
-        "identityKnown",
-        "targetConflict",
-        "gapCodes"
-      ]
-    },
-    "UseKind": {
-      "type": "string",
-      "enum": [
-        "skill_read",
-        "mcp_tool",
-        "mcp_resource"
-      ]
-    },
-    "UseOutcome": {
-      "type": "string",
-      "enum": [
-        "running",
-        "completed",
-        "failed",
-        "cancelled",
-        "interrupted",
-        "declined",
-        "unknown"
-      ]
-    },
-    "UseTimeBasis": {
-      "type": "string",
-      "enum": [
-        "source_operation_time",
-        "unknown"
-      ]
-    },
-    "CapabilitiesResponse": {
-      "type": "object",
-      "properties": {
-        "outputVersion": {
-          "type": "integer",
-          "minimum": 5,
-          "maximum": 5
-        },
-        "action": {
-          "$ref": "#/definitions/CapabilitiesAction"
-        },
-        "methodVersion": {
-          "type": "string"
-        },
-        "profile": {
-          "$ref": "#/definitions/PrivacyProfile"
-        },
-        "capabilities": {
-          "$ref": "#/definitions/Capabilities"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "outputVersion",
-        "action",
-        "methodVersion",
-        "profile",
-        "capabilities"
-      ]
-    },
-    "CapabilitiesAction": {
-      "type": "string",
-      "enum": [
-        "capabilities"
       ]
     }
   }

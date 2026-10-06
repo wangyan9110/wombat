@@ -30,7 +30,7 @@ function result(): OptimizeResult {
   const current = check();
   const original = { ...check(), assessmentId: 'original-assessment', contentVersion: 'original-content' };
   return {
-    outputVersion: 3, action: 'detail', capabilities: { staticChecks: true, manualEditReview: true, decisions: true, inactivity: false,
+    outputVersion: 4, action: 'detail', capabilities: { staticChecks: true, manualEditReview: true, decisions: true, inactivity: false,
       mcpFaults: false, spaceCleanup: false, loadingBudgetDiagnosis: false, exactInstructionBlocks: true, declaredCopyDrift: true,
       hookSupport: { effectiveRegistry: false, status: 'no_verified_adapter' } },
     configRevision: 'synthetic-config', usageRevision: null, readView: 'synthetic-fixed-view', decisionRevision: 'synthetic-decision', checkedAt: at,

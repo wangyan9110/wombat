@@ -214,3 +214,56 @@ fn failure_share_missing_or_unsupported_measures_do_not_create_advice_or_faults(
     value.failed.basis = t::Basis::NativeRecord;
     assert_eq!(failure_share(&value).outcome, RuleOutcome::Unsupported);
 }
+
+#[test]
+fn input_change_advice_uses_scoped_delta_and_keeps_partial_positive_facts() {
+    let mut change = t::InputChange {
+        method: t::InputChangeMethod::RequestInputObservationChangeV1,
+        availability: t::Capability {
+            support: t::Support::Supported,
+            reason: t::Basis::RequestInput,
+        },
+        statistics: Some(t::InputChangeStatistics {
+            candidates: 2,
+            ordered_samples: 2,
+            non_request_scoped: 0,
+            missing_input: 0,
+            unassociated: 0,
+            numeric_range: 0,
+            comparable_stages: 1,
+            increasing_stages: 1,
+            decreasing_stages: 0,
+            unchanged_stages: 0,
+            maximum_increase: metric(Some(16384), t::Basis::RequestInput),
+            largest_increase: None,
+            stages: vec![],
+            details_omitted: true,
+            partial: false,
+        }),
+    };
+    let positive = input_change(&change, "partial");
+    assert_eq!(positive.outcome, RuleOutcome::Hit);
+    assert!(positive.partial);
+    assert_eq!(positive.input_policy.unwrap().minimum_increase, 16384);
+    change.statistics.as_mut().unwrap().maximum_increase.value = Some(16383);
+    assert_eq!(input_change(&change, "complete").outcome, RuleOutcome::Miss);
+    change.statistics.as_mut().unwrap().maximum_increase.status = t::MetricStatus::Observed;
+    assert_eq!(
+        input_change(&change, "complete").outcome,
+        RuleOutcome::Unsupported
+    );
+    change.statistics.as_mut().unwrap().comparable_stages = 0;
+    assert_eq!(
+        input_change(&change, "complete").outcome,
+        RuleOutcome::Insufficient
+    );
+    change.statistics = None;
+    change.availability = t::Capability {
+        support: t::Support::Unavailable,
+        reason: t::Basis::ResourceLimit,
+    };
+    let result = input_change(&change, "complete");
+    assert_eq!(result.outcome, RuleOutcome::Insufficient);
+    assert_eq!(result.observed.basis, t::Basis::ResourceLimit);
+    assert!(result.observed.value.is_none());
+}
