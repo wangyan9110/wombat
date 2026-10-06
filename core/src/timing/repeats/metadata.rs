@@ -162,6 +162,7 @@ fn fields<'a>(
         durations: BTreeSet::new(),
         witnesses: BTreeSet::new(),
     };
+    let mut function_fingerprint = None;
     let mut cwd = None;
     let mut source = None;
     let mut parsed = None;
@@ -239,6 +240,7 @@ fn fields<'a>(
                 for value in [
                     matching.receiver_owner.as_deref(),
                     matching.request_fingerprint.as_deref(),
+                    matching.function_request_fingerprint.as_deref(),
                 ]
                 .into_iter()
                 .flatten()
@@ -249,6 +251,8 @@ fn fields<'a>(
                 }
                 if (out.receiver.is_none() && matching.receiver_owner.is_some())
                     || (out.fingerprint.is_none() && matching.request_fingerprint.is_some())
+                    || (function_fingerprint.is_none()
+                        && matching.function_request_fingerprint.is_some())
                     || (out.targets.is_none() && !matching.read_targets.is_empty())
                     || (!out.expected_nonzero && matching.expected_nonzero)
                 {
@@ -258,6 +262,10 @@ fn fields<'a>(
                 out.invalid |= known(
                     &mut out.fingerprint,
                     matching.request_fingerprint.as_deref(),
+                );
+                out.invalid |= known(
+                    &mut function_fingerprint,
+                    matching.function_request_fingerprint.as_deref(),
                 );
                 for target in &matching.read_targets {
                     check(cancelled)?;
@@ -292,6 +300,7 @@ fn fields<'a>(
             _ => {}
         }
     }
+    out.fingerprint = out.fingerprint.or(function_fingerprint);
     Ok(Some(out))
 }
 /// Scoped events and discontinuities are already bounded by the turn analysis.

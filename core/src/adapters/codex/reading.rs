@@ -298,6 +298,7 @@ pub(super) fn read_file_from(
         process(
             record.kind,
             payload,
+            record.payload,
             time,
             record.timestamp,
             evidence,

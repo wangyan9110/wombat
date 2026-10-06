@@ -485,3 +485,57 @@ fn activity_checks_consume_fixed_analysis_without_relabeling_request_order() {
         }
     }
 }
+
+#[test]
+fn callable_matching_reaches_shared_inspection_and_safe_aggregates_without_raw_digests() {
+    let events: Vec<_> = commands(true)
+        .into_iter()
+        .map(|e| {
+            let mut value = serde_json::to_value(e).unwrap();
+            if value["payload"]["value"]["kind"] == "command" {
+                let op = &mut value["payload"]["value"];
+                op["kind"] = serde_json::json!("mcp");
+                op["work"] = serde_json::Value::Null;
+                op["matching"]["readTargets"] = serde_json::json!([]);
+                op["matching"]["functionRequestFingerprint"] =
+                    serde_json::json!(crate::hash("PRIVATE_CALLABLE"));
+                op["matching"]["requestFingerprint"] = serde_json::Value::Null;
+            }
+            Arc::new(serde_json::from_value(value).unwrap())
+        })
+        .collect();
+    let snapshot = make_snapshot(events);
+    let summary = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(
+        summary
+            .time
+            .repeated_behavior
+            .same_request_observation_count
+            .value,
+        Some(2)
+    );
+    assert_eq!(
+        summary.time.repeated_behavior.after_failure.count.value,
+        Some(1)
+    );
+    let inspected = crate::optimize::activity::evaluate(&summary);
+    assert_eq!(
+        inspected.advice,
+        vec![crate::optimize_dto::ActivityRule::InspectCallsAfterFailure]
+    );
+    let shared = query(&snapshot, &request(PrivacyProfile::ShareV1));
+    for encoded in [
+        serde_json::to_string(&summary).unwrap(),
+        serde_json::to_string(&inspected).unwrap(),
+        serde_json::to_string(&shared).unwrap(),
+    ] {
+        for private in [
+            "functionRequestFingerprint",
+            "requestFingerprint",
+            "PRIVATE_CALLABLE",
+            &crate::hash("PRIVATE_CALLABLE"),
+        ] {
+            assert!(!encoded.contains(private));
+        }
+    }
+}

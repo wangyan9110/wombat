@@ -451,3 +451,43 @@ fn changed_native_parameters_keep_outcomes_and_durations_but_never_heal_matching
     );
     op.validate_matching().unwrap();
 }
+
+#[test]
+fn callable_requests_retain_safe_matching_without_claiming_raw_service_identity() {
+    let root = tempfile::tempdir().unwrap();
+    let mut modern = request("modern", "search", json!({"private":"PRIVATE"}));
+    modern["payload"]["namespace"] = json!("mcp__model_visible");
+    write(
+        root.path(),
+        "sessions/callable.jsonl",
+        &[
+            meta("t"),
+            context("u", "model", "low"),
+            request("encoded", "mcp__docs__search", json!({"private":"PRIVATE"})),
+            modern,
+            request(
+                "resource",
+                "read_mcp_resource",
+                json!({"server":"docs","uri":"PRIVATE_URI"}),
+            ),
+            request("discovery", "list_mcp_resources", json!({"server":"docs"})),
+        ],
+    );
+    let result = collect(root.path());
+    assert_eq!(result.operations.len(), 4);
+    for op in &result.operations {
+        let m = op.matching.as_ref().unwrap();
+        assert!(m.function_request_fingerprint.is_some());
+        assert!(m.request_fingerprint.is_none());
+        assert!(m.read_targets.is_empty());
+        op.validate_matching().unwrap();
+    }
+    let modern = result
+        .operations
+        .iter()
+        .find(|op| op.call_id.as_deref() == Some("modern"))
+        .unwrap();
+    assert_eq!(modern.kind.as_ref(), "mcp");
+    assert!(modern.server.is_none());
+    assert!(!serde_json::to_string(&result).unwrap().contains("PRIVATE"));
+}

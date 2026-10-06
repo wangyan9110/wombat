@@ -1,7 +1,7 @@
 //! Shared source request matching. No raw parameters enter retained observations.
 use crate::adapters::contract::{MatchGap, OperationMatchObservation};
 mod mcp;
-pub(super) use mcp::observe as mcp;
+pub(super) use mcp::{function as mcp_function, observe as mcp};
 fn add(gaps: &mut Vec<MatchGap>, gap: MatchGap) {
     if !gaps.contains(&gap) {
         gaps.push(gap);
@@ -10,6 +10,7 @@ fn add(gaps: &mut Vec<MatchGap>, gap: MatchGap) {
 pub(super) fn invalidate(observation: &mut Option<OperationMatchObservation>) {
     if let Some(value) = observation {
         value.request_fingerprint = None;
+        value.function_request_fingerprint = None;
         value.receiver_owner = None;
         value.read_targets.clear();
         add(&mut value.gaps, MatchGap::ConflictingObservation);
@@ -29,7 +30,12 @@ pub(super) fn merge(
     if previous.gaps.contains(&MatchGap::ConflictingObservation) {
         return;
     }
-    if next.gaps.contains(&MatchGap::ConflictingObservation)
+    if previous
+        .function_request_fingerprint
+        .as_ref()
+        .zip(next.function_request_fingerprint.as_ref())
+        .is_some_and(|(a, b)| a != b)
+        || next.gaps.contains(&MatchGap::ConflictingObservation)
         || previous
             .receiver_owner
             .as_ref()
@@ -54,6 +60,11 @@ pub(super) fn merge(
         previous
             .request_fingerprint
             .clone_from(&next.request_fingerprint);
+    }
+    if previous.function_request_fingerprint.is_none() {
+        previous
+            .function_request_fingerprint
+            .clone_from(&next.function_request_fingerprint);
     }
     if previous.read_targets.is_empty() {
         previous.read_targets.clone_from(&next.read_targets);

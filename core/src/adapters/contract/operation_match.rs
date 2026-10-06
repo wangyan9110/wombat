@@ -1,6 +1,6 @@
 //! Body-free matching observations. Digests establish equal requests, never equal effects.
 use super::*;
-pub const OPERATION_MATCH_VERSION: u32 = 1;
+pub const OPERATION_MATCH_VERSION: u32 = 2;
 pub const MATCH_STRING_BYTES: usize = 64 * 1024;
 pub const MATCH_TARGET_LIMIT: usize = 4096;
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -35,6 +35,9 @@ pub struct OperationMatchObservation {
     /// Only protocol-owned execution within an explicitly identified source thread.
     pub receiver_owner: Option<String>,
     pub request_fingerprint: Option<String>,
+    /// Complete model-visible callable and arguments; never a decoded raw MCP service identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub function_request_fingerprint: Option<String>,
     /// Native read labels verified against a supported, determinate invocation.
     pub read_targets: Vec<ReadMatchTarget>,
     /// Search/no-match exit codes cannot establish failures for retry matching.
@@ -57,8 +60,9 @@ impl OperationMatchObservation {
         );
         anyhow::ensure!(
             self.request_fingerprint
-                .as_deref()
-                .is_none_or(|s| s.len() == 64
+                .iter()
+                .chain(self.function_request_fingerprint.iter())
+                .all(|s| s.len() == 64
                     && s.bytes()
                         .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))),
             "invalid request fingerprint"
@@ -105,6 +109,7 @@ impl OperationMatchObservation {
             !self.gaps.contains(&MatchGap::ConflictingObservation)
                 || (self.receiver_owner.is_none()
                     && self.request_fingerprint.is_none()
+                    && self.function_request_fingerprint.is_none()
                     && self.read_targets.is_empty()),
             "conflicting matching fields must be absent"
         );
@@ -126,6 +131,10 @@ impl Operation {
         );
         match self.kind.as_ref() {
             "command" => {
+                anyhow::ensure!(
+                    m.function_request_fingerprint.is_none(),
+                    "commands cannot retain callable matching"
+                );
                 let Some(WorkObservation {
                     data: WorkData::Command { cwd, source, .. },
                     ..
@@ -148,7 +157,8 @@ impl Operation {
                     "matching request requires historical cwd"
                 );
             }
-            "mcpTool" | "mcpResource" | "mcpDiscovery" | "mcpUnclassified" | "mcpConflict" => {
+            "mcp" | "mcpTool" | "mcpResource" | "mcpDiscovery" | "mcpUnclassified"
+            | "mcpConflict" => {
                 anyhow::ensure!(
                     m.read_targets.is_empty() && !m.expected_nonzero,
                     "MCP matching cannot establish filesystem reads or expected command exits"
@@ -161,7 +171,9 @@ impl Operation {
                 );
                 anyhow::ensure!(
                     self.kind.as_ref() != "mcpConflict"
-                        || m.request_fingerprint.is_none() && m.receiver_owner.is_none(),
+                        || m.request_fingerprint.is_none()
+                            && m.function_request_fingerprint.is_none()
+                            && m.receiver_owner.is_none(),
                     "conflicting MCP matching fields must be absent"
                 );
             }

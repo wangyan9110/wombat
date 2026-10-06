@@ -163,3 +163,103 @@ fn exact_parameter_limits_are_usable_and_the_next_unit_is_omitted() {
     ));
     assert!(deep.request_fingerprint.is_some());
 }
+
+fn callable(body: &str) -> Option<OperationMatchObservation> {
+    let raw = RawValue::from_string(body.to_owned()).unwrap();
+    let item = serde_json::from_str(raw.get()).unwrap();
+    function(&item, Some(&raw), Some("thread"))
+}
+#[test]
+fn callable_fingerprints_use_full_namespaces_and_never_reverse_service_names() {
+    let a = callable(r#"{"type":"function_call","call_id":"a","name":"mcp__sanitized__search","arguments":{"b":2,"a":1}}"#).unwrap();
+    let b = callable(r#"{"type":"function_call","call_id":"b","name":"mcp__sanitized__search","arguments":"{\"a\":1,\"b\":2}"}"#).unwrap();
+    assert_eq!(
+        a.function_request_fingerprint,
+        b.function_request_fingerprint
+    );
+    assert!(a.request_fingerprint.is_none());
+    for body in [
+        r#"{"type":"function_call","call_id":"a","namespace":"mcp__sanitized","name":"search","arguments":{"b":2,"a":1}}"#,
+        r#"{"type":"function_call","call_id":"a","name":"mcp__sanitized__search","arguments":{"b":3,"a":1}}"#,
+    ] {
+        assert_ne!(
+            a.function_request_fingerprint,
+            callable(body).unwrap().function_request_fingerprint
+        );
+    }
+    for body in [
+        r#"{"type":"function_call","call_id":"a","name":"mcp__x__search","arguments":{"x":1,"x":2}}"#,
+        r#"{"type":"function_call","call_id":"a","name":"mcp__x__search","arguments":{},"context":"PRIVATE"}"#,
+        r#"{"type":"function_call","name":"mcp__x__search","arguments":{}}"#,
+        r#"{"type":"function_call","call_id":"a","namespace":"other","name":"list_mcp_resources","arguments":{}}"#,
+        r#"{"type":"function_call","call_id":"a","name":"exec_command","arguments":{}}"#,
+    ] {
+        assert!(callable(body).is_none());
+    }
+    assert!(
+        callable(
+            r#"{"type":"function_call","call_id":"a","name":"list_mcp_resources","arguments":{}}"#
+        )
+        .is_some()
+    );
+    let private = callable(r#"{"type":"function_call","call_id":"a","name":"read_mcp_resource","arguments":{"server":"docs","uri":"PRIVATE_URI"}}"#).unwrap();
+    assert!(!serde_json::to_string(&private).unwrap().contains("PRIVATE"));
+}
+#[test]
+fn callable_and_native_observations_coexist_and_conflicts_remain_sticky() {
+    let function = callable(
+        r#"{"type":"function_call","call_id":"a","name":"mcp__x__search","arguments":{}}"#,
+    )
+    .unwrap();
+    let native = observed("{}");
+    let mut merged = Some(function.clone());
+    super::super::merge(&mut merged, &Some(native.clone()));
+    assert_eq!(
+        merged.as_ref().unwrap().function_request_fingerprint,
+        function.function_request_fingerprint
+    );
+    assert_eq!(
+        merged.as_ref().unwrap().request_fingerprint,
+        native.request_fingerprint
+    );
+    let changed = callable(r#"{"type":"function_call","call_id":"a","name":"mcp__x__search","arguments":{"changed":true}}"#).unwrap();
+    super::super::merge(&mut merged, &Some(changed));
+    super::super::merge(&mut merged, &Some(function));
+    assert!(
+        merged
+            .as_ref()
+            .unwrap()
+            .function_request_fingerprint
+            .is_none()
+    );
+    assert!(merged.as_ref().unwrap().request_fingerprint.is_none());
+}
+
+#[test]
+fn callable_limits_omit_matching_without_retaining_a_partial_parameter_object() {
+    for arguments in [
+        format!("{{\"x\":\"{}\"}}", "x".repeat(MATCH_STRING_BYTES)),
+        format!("{{\"x\":[{}]}}", vec!["0"; NODE_LIMIT].join(",")),
+        format!(
+            "{{\"x\":{}0{}}}",
+            "[".repeat(DEPTH_LIMIT + 1),
+            "]".repeat(DEPTH_LIMIT + 1)
+        ),
+    ] {
+        let body = format!(
+            "{{\"type\":\"function_call\",\"call_id\":\"a\",\"name\":\"mcp__x__search\",\"arguments\":{arguments}}}"
+        );
+        assert!(callable(&body).is_none());
+    }
+    let function = callable(
+        r#"{"type":"function_call","call_id":"a","name":"mcp__x__search","arguments":{}}"#,
+    )
+    .unwrap();
+    assert!(function.validate().is_ok());
+    let mut bad = function.clone();
+    bad.format_version = OPERATION_MATCH_VERSION - 1;
+    assert!(bad.validate().is_err());
+    let mut bad = function;
+    bad.function_request_fingerprint = Some("PRIVATE_RAW_REQUEST".into());
+    assert!(bad.validate().is_err());
+}

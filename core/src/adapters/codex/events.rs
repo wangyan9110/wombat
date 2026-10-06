@@ -4,6 +4,7 @@ use super::*;
 pub(super) fn process(
     kind: &str,
     p: Payload<'_>,
+    raw_payload: &serde_json::value::RawValue,
     time: Option<String>,
     raw_time: Option<&str>,
     evidence: EvidenceRef,
@@ -402,6 +403,7 @@ pub(super) fn process(
             raw_time,
             evidence,
             &fingerprint,
+            p.item.unwrap_or(raw_payload),
             facts,
             report,
         );

@@ -133,6 +133,7 @@ pub(in crate::adapters::codex::operations) fn observe(
         format_version: OPERATION_MATCH_VERSION,
         receiver_owner: receiver.map(str::to_owned),
         request_fingerprint: None,
+        function_request_fingerprint: None,
         read_targets: vec![],
         expected_nonzero: false,
         gaps: vec![],
@@ -198,3 +199,72 @@ pub(in crate::adapters::codex::operations) fn observe(
 }
 #[cfg(test)]
 mod tests;
+
+/// Callable observations have their own digest namespace. Never reverse sanitized MCP names.
+pub(in crate::adapters::codex::operations) fn function(
+    item: &Payload<'_>,
+    raw: Option<&RawValue>,
+    receiver: Option<&str>,
+) -> Option<OperationMatchObservation> {
+    if item.kind.as_deref() != Some("function_call") || !identity(item.call_id.as_deref()) {
+        return None;
+    }
+    let name = item.name.as_deref()?;
+    let namespace = item.namespace.as_deref();
+    let resource = matches!(
+        name,
+        "read_mcp_resource" | "list_mcp_resources" | "list_mcp_resource_templates"
+    ) && namespace.is_none_or(|value| value == "functions");
+    let encoded = name.starts_with("mcp__") && namespace.is_none_or(|value| value == "functions");
+    let namespaced = namespace.is_some_and(|value| value.starts_with("mcp__"));
+    if !(resource || encoded || namespaced)
+        || !identity(Some(name))
+        || namespace.is_some_and(|value| !identity(Some(value)))
+    {
+        return None;
+    }
+    let raw = raw?;
+    if raw.get().len() > MATCH_STRING_BYTES {
+        return None;
+    }
+    let shape = fields(raw).ok()?;
+    if shape.values.keys().any(|key| {
+        !matches!(
+            key.as_str(),
+            "type"
+                | "id"
+                | "item_id"
+                | "itemId"
+                | "call_id"
+                | "callId"
+                | "thread_id"
+                | "turn_id"
+                | "response_id"
+                | "name"
+                | "namespace"
+                | "arguments"
+                | "status"
+        )
+    }) {
+        return None;
+    }
+    let parameters = parameters(item.arguments).ok()?;
+    let request =
+        serde_json::to_vec(&("model_mcp_callable_request_v1", namespace, name, parameters)).ok()?;
+    if request.len() > MATCH_STRING_BYTES {
+        return None;
+    }
+    Some(OperationMatchObservation {
+        format_version: OPERATION_MATCH_VERSION,
+        receiver_owner: receiver.map(str::to_owned),
+        request_fingerprint: None,
+        function_request_fingerprint: Some(crate::hash(request)),
+        read_targets: vec![],
+        expected_nonzero: false,
+        gaps: if receiver.is_none() {
+            vec![MatchGap::MissingReceiver]
+        } else {
+            vec![]
+        },
+    })
+}

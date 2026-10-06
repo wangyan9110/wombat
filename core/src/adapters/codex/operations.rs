@@ -57,6 +57,7 @@ pub(super) fn operation(
     raw_time: Option<&str>,
     evidence: EvidenceRef,
     _fingerprint: &str,
+    raw_item: &serde_json::value::RawValue,
     facts: &mut Facts,
     report: &mut SourceReport,
 ) {
@@ -215,6 +216,19 @@ pub(super) fn operation(
         }
     } else {
         mcp::resource_request(item, &mut op);
+    }
+    if item.kind.as_deref() == Some("function_call") {
+        let receiver = facts
+            .event_context
+            .as_ref()
+            .filter(|c| c.locally_owned())
+            .map(|_| op.thread_id.as_ref());
+        if let Some(matching) = matching::mcp_function(item, Some(raw_item), receiver) {
+            if op.kind.as_ref() == "tool" {
+                op.kind = "mcp".into();
+            }
+            op.matching = Some(matching);
+        }
     }
     outcome::apply(&mut op, item, completed, operation_kind == "mcp", report);
     facts.operation(op, report);

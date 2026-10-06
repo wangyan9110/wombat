@@ -261,7 +261,7 @@ fn matching_metadata_validates_current_version_and_bounded_digest_shapes() {
     let value = observe_args(json!(["cat", "a"]), "/hist", &["a"]);
     value.validate().unwrap();
     let mut invalid = value.clone();
-    invalid.format_version = 2;
+    invalid.format_version = OPERATION_MATCH_VERSION + 1;
     assert!(invalid.validate().is_err());
     for digest in ["PRIVATE_RAW_COMMAND", &"A".repeat(64), &"0".repeat(65)] {
         let mut invalid = value.clone();

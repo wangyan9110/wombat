@@ -422,3 +422,50 @@ fn shared_mcp_matching_survives_checkpoint_restart_append_and_verified_replay() 
             .contains("PRIVATE_MCP")
     );
 }
+
+#[test]
+fn callable_matching_survives_append_restart_and_full_replay_without_private_arguments() {
+    use std::io::Write;
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    let row = json!({"type":"response_item","timestamp":"2026-10-03T00:00:01Z","payload":{"type":"function_call","call_id":"call","name":"mcp__docs__search","arguments":"{\"private\":\"PRIVATE_CALLABLE\"}"}});
+    let path = write(
+        root.path(),
+        "sessions/callable.jsonl",
+        &[meta("t"), context("u", "model", "low"), row],
+    );
+    let source = CodexAdapter
+        .discover(&DiscoveryRequest {
+            roots: vec![root.path().into()],
+        })
+        .sources
+        .remove(0);
+    let sync = |verify| {
+        let mut db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+        let tx = db.transaction().unwrap();
+        let result = incremental::sync(&tx, &source, verify).unwrap();
+        tx.commit().unwrap();
+        result
+    };
+    let first = sync(false).unwrap().operations[0].matching.clone().unwrap();
+    assert!(first.function_request_fingerprint.is_some());
+    let output = json!({"type":"response_item","timestamp":"2026-10-03T00:00:02Z","payload":{"type":"function_call_output","call_id":"call","output":{"isError":true}}});
+    writeln!(
+        std::fs::OpenOptions::new().append(true).open(path).unwrap(),
+        "{output}"
+    )
+    .unwrap();
+    let after = sync(false).unwrap();
+    assert_eq!(after.operations[0].matching.as_ref(), Some(&first));
+    assert_eq!(after.operations[0].status.as_ref(), "failed");
+    let verified = sync(true).unwrap();
+    assert_eq!(
+        serde_json::to_value(&verified.operations).unwrap(),
+        serde_json::to_value(&collect(root.path()).operations).unwrap()
+    );
+    assert!(
+        !serde_json::to_string(&verified)
+            .unwrap()
+            .contains("PRIVATE_CALLABLE")
+    );
+}

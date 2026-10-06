@@ -366,6 +366,7 @@ pub(super) fn observe(
         format_version: OPERATION_MATCH_VERSION,
         receiver_owner: None,
         request_fingerprint: None,
+        function_request_fingerprint: None,
         read_targets: vec![],
         expected_nonzero: false,
         gaps: vec![],

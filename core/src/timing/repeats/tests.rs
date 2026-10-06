@@ -78,6 +78,7 @@ fn op(
         format_version: OPERATION_MATCH_VERSION,
         receiver_owner: Some("thread".into()),
         request_fingerprint: Some(crate::hash(fingerprint)),
+        function_request_fingerprint: None,
         read_targets: targets
             .iter()
             .map(|path| ReadMatchTarget {
@@ -1080,4 +1081,56 @@ fn predecessor_proof_retains_later_exit_code_fill_and_conflict_witnesses() {
             .contains(&conflict2.id().into())
     );
     assert!(result.details[0].later_evidence.len() <= PROOF_REF_LIMIT);
+}
+
+#[test]
+fn callable_fallback_and_native_precedence_share_counting_without_cross_form_matches() {
+    let mut events = call(1, "a", 1, 2, "failed", "native", &[]);
+    events.extend(call(3, "b", 3, 4, "completed", "native", &[]));
+    let native = mcp_events(&events);
+    let generic: Vec<_> = native
+        .iter()
+        .map(|e| {
+            alter(e, |v| {
+                let op = &mut v["payload"]["value"];
+                op["kind"] = json!("mcp");
+                op["server"] = serde_json::Value::Null;
+                op["tool"] = serde_json::Value::Null;
+                let m = matching(v);
+                m["requestFingerprint"] = serde_json::Value::Null;
+                m["functionRequestFingerprint"] = json!(crate::hash("callable"));
+            })
+        })
+        .collect();
+    let result = project_events(&generic);
+    assert_eq!(result.same_request_observation_count, Some(1));
+    assert_eq!(result.after_failure.count, Some(1));
+    assert_eq!(result.coverage.eligible_commands, 0);
+    assert_eq!(result.repeated_read.count, Some(0));
+    let with_native: Vec<_> = native
+        .iter()
+        .map(|e| {
+            alter(e, |v| {
+                matching(v)["functionRequestFingerprint"] =
+                    json!(crate::hash(if v["payload"]["value"]["id"] == "a" {
+                        "caller-a"
+                    } else {
+                        "caller-b"
+                    }));
+            })
+        })
+        .collect();
+    assert_eq!(project_events(&with_native).after_failure.count, Some(1));
+    let mut mixed = generic[..2].to_vec();
+    mixed.extend_from_slice(&native[2..]);
+    assert_eq!(
+        project_events(&mixed).same_request_observation_count,
+        Some(0)
+    );
+    let mut conflicting = generic.clone();
+    conflicting[1] = alter(&conflicting[1], |v| {
+        matching(v)["functionRequestFingerprint"] = json!(crate::hash("changed"));
+    });
+    assert_eq!(project_events(&conflicting).after_failure.count, Some(0));
+    assert!(project_events(&conflicting).coverage.conflicting > 0);
 }
