@@ -25,6 +25,7 @@ const methodBasis = {
   safe_event_count: 'timing.basis.safeEventCount',
   response_gap_v1: 'timing.basis.responseGapV1',
   exact_event_page: 'timing.basis.exactEventPage',
+  determinate_terminal_outcomes: 'timing.basis.determinateTerminalOutcomes',
   canonical_operation_identity: 'timing.basis.canonicalOperationIdentity',
   reported_file_paths: 'timing.basis.reportedFilePaths',
   canonical_use_identity: 'timing.basis.canonicalUseIdentity',

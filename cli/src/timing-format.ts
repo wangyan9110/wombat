@@ -1,5 +1,5 @@
 import type { TimingResult, TimingLocalResult } from '@wombat/client';
-import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, timingCategories, timingCategoryText, timingIntersectionText, operationCoverageReasonText, repeatedBehaviorReasonText, type MessageKey } from '@wombat/client/locale';
+import { t, operationOutcomeText, timingBasisText, timingMissingValueText, timingSourceStatusText, timingCategories, timingCategoryText, timingIntersectionText, operationCoverageReasonText, repeatedBehaviorReasonText, type MessageKey } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 
 type Metric = TimingLocalResult['time']['nativeWallClockMs'];
@@ -141,7 +141,11 @@ export function renderTimingResult(result: TimingResult): string {
     ['labelledCommandMs', result.work.labelledCommandMs],
   ];
   const omittedWorkMetrics = allWorkMetrics.filter(([, metric]) => hideUnavailableWorkMetric(metric));
+  const outcomes=operationOutcomeText(result.work.outcomes);
   lines.push(t('cli.timing.concurrentNote'),
+    `${t('execution.outcomes.title')}: ${outcomes.headline}`,
+    ...outcomes.details,
+    outcomes.note,
     `${t('cli.timing.inputDistribution')}: ${value(result.context.input.median)} / ${value(result.context.input.p90)}`,
     `${t('cli.timing.ratioDistribution')}: ${value(result.context.ratio.median)} / ${value(result.context.ratio.p90)}`,
     `${t('cli.timing.samples')}: ${value(result.context.input.samples)}`,

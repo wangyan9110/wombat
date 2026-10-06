@@ -1329,6 +1329,12 @@ fn work_summary_consumes_canonical_operations_and_reported_terminal_paths() {
         true,
     );
     let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(result.work.outcomes.determinate_operations.value, Some(1));
+    assert_eq!(result.work.outcomes.failed.value, Some(1));
+    assert_eq!(result.work.outcomes.rejected.value, Some(1));
+    assert_eq!(result.work.outcomes.nonterminal.value, Some(1));
+    assert_eq!(result.work.outcomes.failure_ratio.value, Some(1.0));
+    assert!(result.work.outcomes.partial);
     assert_eq!(result.work.operation_candidates.value, Some(3));
     assert_eq!(result.work.closed_operations.value, Some(2));
     assert_eq!(result.work.failed_operations.value, Some(1));
@@ -1357,6 +1363,17 @@ fn work_summary_consumes_canonical_operations_and_reported_terminal_paths() {
     let Response::Share(shared) = query(&snapshot, &request(PrivacyProfile::ShareV1)) else {
         panic!()
     };
+    assert_eq!(shared.work.outcomes.failure_ratio.value, Some(1.0));
+    assert_eq!(shared.work.outcomes.failed.value, Some(1));
+    assert!(
+        shared
+            .work
+            .outcomes
+            .failed
+            .evidence_refs
+            .iter()
+            .all(|r| shared.basis_collections.iter().any(|c| &c.reference == r))
+    );
     assert_eq!(shared.work.changed_files.value, Some(2));
     assert!(shared.basis_collections.iter().any(|c| {
         shared
@@ -1532,7 +1549,7 @@ fn mcp_time_is_delivered_in_local_and_private_relative_share_projection() {
         boundary(3, Some(1100), Phase::Completed, Some(100), None),
     ]);
     let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(result.method_version, "safe_event_turn_v5");
+    assert_eq!(result.method_version, "safe_event_turn_v6");
     assert_eq!(result.time.mcp.union_ms.value, Some(50));
     assert_eq!(result.time.mcp.sum_ms.value, Some(50));
     assert_eq!(result.time.mcp.closed.value, Some(1));
@@ -1669,7 +1686,7 @@ fn operation_residual_is_distinct_from_category_gaps_and_share_is_private() {
         boundary(5, Some(30000), Phase::Completed, Some(31000), None),
     ]);
     let l = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(l.output_version, 4);
+    assert_eq!(l.output_version, 5);
     assert_eq!(l.time.native_wall_clock_ms.value, Some(31000));
     assert_eq!(l.time.unclassified_ms.value, Some(10000));
     let c = &l.time.operation_coverage;

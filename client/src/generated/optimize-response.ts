@@ -108,6 +108,7 @@ export type Basis =
   | "missing_repository_baseline"
   | "unknown_message_origin"
   | "canonical_operation_identity"
+  | "determinate_terminal_outcomes"
   | "reported_file_paths"
   | "canonical_use_identity"
   | "canonical_use_records"

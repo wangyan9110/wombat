@@ -1,3 +1,4 @@
+import type { ShareResponse as TimingShareResult } from './generated/timing-share-response.js';
 import type { LocalResponse as TimingLocalResult } from './generated/timing-local-response.js';
 import type { Request as TimingRequest } from './generated/timing-request.js';
 import type { Response as TimingResult } from './generated/timing-response.js';
@@ -189,11 +190,11 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
 
 function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
   const profile = request.privacyProfile ?? 'local';
-  if (result.outputVersion !== 4 || result.action !== request.action || result.profile !== profile
-    || result.methodVersion !== 'safe_event_turn_v5') return false;
+  if (result.outputVersion !== 5 || result.action !== request.action || result.profile !== profile
+    || result.methodVersion !== 'safe_event_turn_v6') return false;
   if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 3
     || 'totals' in result && result.totals.methodVersion !== 3) return false;
-  if (result.action === 'summary' && (!matchesOperationCoverage(result) || !matchesRepeatedBehavior(result) || (result.profile === 'local' && !matchesRepeatNavigation(result)))) return false;
+  if (result.action === 'summary' && (!matchesOutcomeStatistics(result) || !matchesOperationCoverage(result) || !matchesRepeatedBehavior(result) || (result.profile === 'local' && !matchesRepeatNavigation(result)))) return false;
   if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
   if (request.action === 'summary' && profile === 'share-v1') {
     // Sharing deliberately omits local locating identities; core selection owns
@@ -297,10 +298,23 @@ function validActivityRequest(request: OptimizeRequest): boolean {
     request.suggestionId,request.itemId,request.decisionReason,request.category,request.offset,request.limit,request.ruleOverrides].every(value=>value==null)
     && (request.group==null||request.group==='pending');
 }
+/** Validate Rust's published subset relationships; do not choose or reconstruct a denominator. */
+function matchesOutcomeStatistics(result: TimingLocalResult | TimingShareResult): boolean {
+  const o=result.work.outcomes;
+  if(o.method!=='terminal_success_failure_subset_v1'||result.coverage.sourceStatus!=='complete'&&!o.partial)return false;
+  const counts=[o.determinateOperations,o.succeeded,o.failed,o.interrupted,o.rejected,o.nonterminal,o.indeterminate,o.conflicting,o.identityGapRecords,o.unclassified];
+  if(counts.every(metric=>metric.value==null))return counts.every(metric=>metric.status==='unavailable')&&o.failureRatio.value==null&&o.failureRatio.status==='unavailable'&&o.partial;
+  if(counts.some(metric=>metric.value==null||metric.status!=='derived'||metric.basis!=='determinate_terminal_outcomes'))return false;
+  const denominator=o.determinateOperations.value!,failed=o.failed.value!,succeeded=o.succeeded.value!;
+  if(denominator!==failed+succeeded)return false;
+  if([o.nonterminal,o.indeterminate,o.conflicting,o.identityGapRecords,o.unclassified].some(metric=>metric.value!>0)&&!o.partial)return false;
+  return denominator===0?o.failureRatio.value==null&&o.failureRatio.status==='unavailable'&&o.failureRatio.basis==='no_candidates'
+    :o.failureRatio.status==='derived'&&o.failureRatio.basis==='determinate_terminal_outcomes'&&o.failureRatio.value!=null&&o.failureRatio.value===failed/denominator;
+}
 function matchesActivity(request: OptimizeRequest, result: OptimizeResult): boolean {
   if(request.action!=='activity')return result.activity==null;
   const activity=result.activity,selected=request.activity;
-  if(!activity||!selected||activity.formatVersion!==1||activity.analysisMethod!=='safe_event_turn_v5'
+  if(!activity||!selected||activity.formatVersion!==1||activity.analysisMethod!=='safe_event_turn_v6'
     || activity.scope.agentKind!=='codex'||!activity.scope.wholeTurn||activity.readView.snapshotId!==selected.snapshotId || activity.scope.threadId!==selected.threadId
     || activity.scope.turnId!==selected.turnId || request.sourceInstanceId!=null&&activity.scope.sourceInstanceId!==request.sourceInstanceId
     || result.usageRevision!==selected.snapshotId||result.readView!=null||result.suggestions.length||result.checks.length||result.followUps.length) return false;

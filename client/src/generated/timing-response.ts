@@ -40,6 +40,7 @@ export type Basis =
   | "missing_repository_baseline"
   | "unknown_message_origin"
   | "canonical_operation_identity"
+  | "determinate_terminal_outcomes"
   | "reported_file_paths"
   | "canonical_use_identity"
   | "canonical_use_records"
@@ -92,6 +93,7 @@ export type TimelinePresentation = "timeline" | "list";
 export type TrackCategory = "command" | "compaction" | "reasoning" | "mcp";
 export type FragmentEvidence = "event_records" | "turn_collection" | "unavailable";
 export type TurnState = "running" | "completed" | "failed" | "cancelled" | "unknown";
+export type OutcomeMethod = "terminal_success_failure_subset_v1";
 export type FindingKind = "fact" | "proxy" | "user_annotation";
 export type CollectionKind =
   "turn_events" | "canonical_measurements" | "canonical_operations" | "source_controls" | "native_boundary_index";
@@ -454,6 +456,7 @@ export interface Neighbor {
   distanceMs: TimingMetricUint64;
 }
 export interface Work {
+  outcomes: OutcomeStatistics;
   operationCandidates: TimingMetricUint64;
   closedOperations: TimingMetricUint64;
   failedOperations: TimingMetricUint64;
@@ -471,6 +474,27 @@ export interface Work {
   reasoningMessageRecords: TimingMetricUint64;
   compactionRecords: TimingMetricUint64;
   repositoryBaseline: Capability;
+}
+/**
+ * Counts in the captured subset, rather than inferred complete-turn totals.
+ */
+export interface OutcomeStatistics {
+  method: OutcomeMethod;
+  determinateOperations: TimingMetricUint64;
+  succeeded: TimingMetricUint64;
+  failed: TimingMetricUint64;
+  interrupted: TimingMetricUint64;
+  rejected: TimingMetricUint64;
+  nonterminal: TimingMetricUint64;
+  indeterminate: TimingMetricUint64;
+  conflicting: TimingMetricUint64;
+  /**
+   * Missing-identity observations use physical-record units, unlike canonical group counts.
+   */
+  identityGapRecords: TimingMetricUint64;
+  unclassified: TimingMetricUint64;
+  failureRatio: TimingMetricDouble;
+  partial: boolean;
 }
 export interface Finding {
   code: string;

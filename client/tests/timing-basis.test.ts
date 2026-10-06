@@ -5,7 +5,7 @@ import { locale, t } from '../src/locale/index.js';
 import { timingBasisText, timingMissingValueText, timingSourceStatusText } from '../src/locale/timing-basis.js';
 
 const bases = [
-  'native_record', 'explicit_boundary', 'lifecycle_union', 'lifecycle_sum', 'interval_mask',
+  'determinate_terminal_outcomes', 'native_record', 'explicit_boundary', 'lifecycle_union', 'lifecycle_sum', 'interval_mask',
   'request_input', 'historical_window', 'type7', 'safe_message_record', 'safe_message_delay',
   'safe_event_count', 'response_gap_v1', 'not_recorded', 'adapter_not_mapped', 'unsupported_method',
   'missing_identity', 'missing_time', 'running_turn', 'exact_event_page', 'boundary_conflict',

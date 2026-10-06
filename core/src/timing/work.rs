@@ -18,12 +18,67 @@ use std::{
     },
 };
 
-pub(crate) const METHOD_VERSION: u32 = 1;
+pub(crate) const METHOD_VERSION: u32 = 2;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum SourceCoverage {
     Complete,
     Partial,
     Unknown,
+}
+/// Observed subset, independent of time, path metadata, and full-source totals.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Outcomes {
+    pub succeeded: u64,
+    pub failed: u64,
+    pub interrupted: u64,
+    pub rejected: u64,
+    pub nonterminal: u64,
+    pub indeterminate: u64,
+    pub conflicting: u64,
+    pub identity_gaps: u64,
+    pub unclassified: u64,
+}
+impl Outcomes {
+    pub fn determinate(&self) -> u64 {
+        self.succeeded + self.failed
+    }
+    pub fn partial(&self) -> bool {
+        self.nonterminal
+            + self.indeterminate
+            + self.conflicting
+            + self.identity_gaps
+            + self.unclassified
+            > 0
+    }
+    fn record(&mut self, op: &Operation, conflict: bool) {
+        if conflict || op.outcome_conflict {
+            self.conflicting += 1;
+            return;
+        }
+        if family(op) == Family::Unknown {
+            self.unclassified += 1;
+            return;
+        }
+        match op.status.as_ref() {
+            "failed" | "error" => self.failed += 1,
+            "completed" | "success" if op.exit_code.is_some_and(|code| code != 0) => {
+                self.failed += 1
+            }
+            "completed" | "success" => self.succeeded += 1,
+            "cancelled" | "interrupted" => self.interrupted += 1,
+            "declined" => self.rejected += 1,
+            "running" | "in_progress" if op.exit_code.is_none_or(|code| code == 0) => {
+                self.nonterminal += 1
+            }
+            _ => self.indeterminate += 1,
+        }
+    }
+}
+fn same_outcome(left: &Operation, right: &Operation) -> bool {
+    family(left) == family(right)
+        && left.status == right.status
+        && left.exit_code == right.exit_code
+        && left.outcome_conflict == right.outcome_conflict
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Basis {
@@ -112,6 +167,7 @@ pub(crate) struct Coverage {
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Projection {
     pub method_version: u32,
+    pub outcomes: Outcomes,
     pub operation_candidates: Count,
     pub closed_operations: Count,
     pub failed_operations: Count,
@@ -185,6 +241,7 @@ fn outcome(operation: &Operation) -> (Option<bool>, Option<bool>) {
 struct Group<'a> {
     operation: &'a Operation,
     conflict: bool,
+    outcome_conflict: bool,
     file_possible: bool,
 }
 fn same(left: &Operation, right: &Operation) -> bool {
@@ -302,6 +359,22 @@ fn paths(
     }
     Ok(())
 }
+fn is_limit(error: &anyhow::Error) -> bool {
+    error
+        .downcast_ref::<crate::dto::OperationError>()
+        .is_some_and(|e| e.code == "RESOURCE_LIMIT")
+}
+fn omit_work(result: &mut Projection) {
+    for count in [
+        &mut result.operation_candidates,
+        &mut result.closed_operations,
+        &mut result.failed_operations,
+        &mut result.file_change_records,
+        &mut result.changed_files,
+    ] {
+        count.unknown(Gap::ResourceLimit);
+    }
+}
 pub(crate) fn project(input: Input<'_>) -> Result<Projection> {
     let mut meter = Meter {
         units: input.budget.metadata.min(100_000),
@@ -341,6 +414,7 @@ pub(crate) fn project(input: Input<'_>) -> Result<Projection> {
     };
     let mut result = Projection {
         method_version: METHOD_VERSION,
+        outcomes: Outcomes::default(),
         operation_candidates: Count::observed(Basis::CanonicalOperationIdentity),
         closed_operations: Count::observed(Basis::TerminalOutcome),
         failed_operations: Count::observed(Basis::TerminalOutcome),
@@ -391,12 +465,12 @@ pub(crate) fn project(input: Input<'_>) -> Result<Projection> {
         {
             meter.work(id.len())?;
         }
-        metadata(operation, &mut meter)?;
         if usage_observations::time_basis(operation) == usage_observations::TimeBasis::Unknown {
             result.coverage.time_gaps += 1;
         }
         let Some(identity) = usage_observations::operation_identity(operation) else {
             result.coverage.identity_gaps += 1;
+            result.outcomes.identity_gaps += 1;
             result.operation_candidates.unknown(Gap::MissingIdentity);
             result.closed_operations.unknown(Gap::MissingIdentity);
             result.failed_operations.unknown(Gap::MissingIdentity);
@@ -411,6 +485,7 @@ pub(crate) fn project(input: Input<'_>) -> Result<Projection> {
                 entry.insert(Group {
                     operation,
                     conflict: false,
+                    outcome_conflict: false,
                     file_possible: matches!(family(operation), Family::File | Family::Unknown),
                 });
             }
@@ -418,10 +493,39 @@ pub(crate) fn project(input: Input<'_>) -> Result<Projection> {
                 result.coverage.replay_records += 1;
                 entry.get_mut().file_possible |=
                     matches!(family(operation), Family::File | Family::Unknown);
-                if !same(entry.get().operation, operation) {
-                    entry.get_mut().conflict = true;
+                if !same_outcome(entry.get().operation, operation) {
+                    entry.get_mut().outcome_conflict = true;
                 }
             }
+        }
+    }
+    // Outcome dependencies are complete before optional work metadata is inspected.
+    // Both phases share the same work/byte budget; exhausting the second phase
+    // cannot invalidate the first phase's complete subset.
+    for group in groups.values() {
+        meter.check()?;
+        result
+            .outcomes
+            .record(group.operation, group.outcome_conflict);
+    }
+    for operation in input.operations {
+        meter.check()?;
+        if family(operation) == Family::Excluded {
+            continue;
+        }
+        if let Err(error) = metadata(operation, &mut meter) {
+            if is_limit(&error) {
+                omit_work(&mut result);
+                return Ok(result);
+            }
+            return Err(error);
+        }
+        if let Some(group) =
+            usage_observations::operation_identity(operation).and_then(|id| groups.get_mut(&id))
+            && !std::ptr::eq(group.operation, operation.as_ref())
+            && !same(group.operation, operation)
+        {
+            group.conflict = true;
         }
     }
     let mut distinct = BTreeSet::new();
@@ -470,7 +574,13 @@ pub(crate) fn project(input: Input<'_>) -> Result<Projection> {
         }
         if kind == Family::File {
             result.file_change_records.add();
-            paths(op, &mut meter, &mut result, &mut distinct)?;
+            if let Err(error) = paths(op, &mut meter, &mut result, &mut distinct) {
+                if is_limit(&error) {
+                    omit_work(&mut result);
+                    return Ok(result);
+                }
+                return Err(error);
+            }
         }
     }
     meter.check()?;

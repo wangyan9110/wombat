@@ -256,7 +256,23 @@ pub(super) fn project(local: &LocalResponse) -> ShareResponse {
         detail: c.detail.clone(),
     };
     let w = &local.work;
+    let o = &w.outcomes;
     let work = Work {
+        outcomes: OutcomeStatistics {
+            method: o.method,
+            determinate_operations: a.metric(&o.determinate_operations),
+            succeeded: a.metric(&o.succeeded),
+            failed: a.metric(&o.failed),
+            interrupted: a.metric(&o.interrupted),
+            rejected: a.metric(&o.rejected),
+            nonterminal: a.metric(&o.nonterminal),
+            indeterminate: a.metric(&o.indeterminate),
+            conflicting: a.metric(&o.conflicting),
+            identity_gap_records: a.metric(&o.identity_gap_records),
+            unclassified: a.metric(&o.unclassified),
+            failure_ratio: a.metric(&o.failure_ratio),
+            partial: o.partial,
+        },
         operation_candidates: a.metric(&w.operation_candidates),
         closed_operations: a.metric(&w.closed_operations),
         failed_operations: a.metric(&w.failed_operations),

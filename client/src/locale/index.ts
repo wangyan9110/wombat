@@ -226,3 +226,5 @@ export function activityCheckText(check:ActivityCheck):string {
   if(check.reason==='activityBasisUnsupported')return t('activity.unsupported');
   return timingMissingValueText(check.observed.basis);
 }
+
+export {operationOutcomeText} from './outcome-statistics.js';

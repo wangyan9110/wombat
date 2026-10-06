@@ -48,3 +48,20 @@ test('Work facts SSR preserves zero and explicit source failure while hiding uns
     locale.setLocale(previous);
   }
 });
+
+
+test('work results show the determinate subset when timing is absent, and never render a zero-denominator ratio',async()=>{
+ const {outcomeStatistics}=await import('../../tests/fixtures/outcomes.js');
+ const {WorkFacts}=await import('../src/tasks/WorkFacts.js');
+ const previous=locale.getSnapshot().locale;
+ try{for(const language of ['en','zh'] as const){
+  locale.setLocale(language);const summary=timingFixture('missing');summary.work.outcomes=outcomeStatistics();
+  const markup=()=>renderToStaticMarkup(createElement(WorkFacts,{work:summary.work,sourceStatus:'partial',partial:true}));
+  const html=markup();assert.match(html,/33\.3/);assert.match(html,language==='en'?/Failed 1 of 3/:/3 次操作中，失败 1 次/);
+  assert.match(html,language==='en'?/Interrupted or cancelled: 1/:/中断或取消：1 次/);assert.match(html,language==='en'?/Without a determinate result: 1/:/未记录可判定结果：1 次/);
+  assert.doesNotMatch(html,/execution\.outcomes\.|undefined|NaN|未知/);
+  for(const field of ['determinateOperations','failed','succeeded'] as const)summary.work.outcomes[field].value=0;
+  summary.work.outcomes.failureRatio={value:null,status:'unavailable',basis:'no_candidates',evidenceRefs:[]};
+  const empty=markup();assert.match(empty,language==='en'?/No operations with determinate/:/不计算比例/);assert.doesNotMatch(empty,/0%|NaN|undefined/);
+ }}finally{locale.setLocale(previous);}
+});

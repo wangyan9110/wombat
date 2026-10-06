@@ -630,6 +630,60 @@ fn work_count(metric: &super::work::Count, refs: &[String]) -> Count {
     };
     count(metric.value.map(u128::from), basis, refs)
 }
+fn outcomes(
+    projection: Option<&super::work::Projection>,
+    refs: &[String],
+    missing: Basis,
+) -> OutcomeStatistics {
+    let observed = |f: fn(&super::work::Outcomes) -> u64| {
+        projection.map_or_else(
+            || unavailable(missing),
+            |p| {
+                count(
+                    Some(u128::from(f(&p.outcomes))),
+                    Basis::DeterminateTerminalOutcomes,
+                    refs,
+                )
+            },
+        )
+    };
+    let ratio = projection.and_then(|p| {
+        (p.outcomes.determinate() > 0)
+            .then(|| p.outcomes.failed as f64 / p.outcomes.determinate() as f64)
+    });
+    OutcomeStatistics {
+        method: OutcomeMethod::TerminalSuccessFailureSubsetV1,
+        determinate_operations: observed(|o| o.determinate()),
+        succeeded: observed(|o| o.succeeded),
+        failed: observed(|o| o.failed),
+        interrupted: observed(|o| o.interrupted),
+        rejected: observed(|o| o.rejected),
+        nonterminal: observed(|o| o.nonterminal),
+        indeterminate: observed(|o| o.indeterminate),
+        conflicting: observed(|o| o.conflicting),
+        identity_gap_records: observed(|o| o.identity_gaps),
+        unclassified: observed(|o| o.unclassified),
+        failure_ratio: Metric {
+            value: ratio,
+            status: if ratio.is_some() {
+                MetricStatus::Derived
+            } else {
+                MetricStatus::Unavailable
+            },
+            basis: if ratio.is_some() {
+                Basis::DeterminateTerminalOutcomes
+            } else if projection.is_some() {
+                Basis::NoCandidates
+            } else {
+                missing
+            },
+            evidence_refs: refs.to_vec(),
+        },
+        partial: projection.is_none_or(|p| {
+            p.outcomes.partial() || p.coverage.source != super::work::SourceCoverage::Complete
+        }),
+    }
+}
 pub(super) fn work(
     a: &Analysis,
     refs: &[String],
@@ -658,6 +712,13 @@ pub(super) fn work(
         )
     };
     Work {
+        outcomes: outcomes(
+            projection,
+            operation_refs,
+            work_fallback
+                .or(fallback)
+                .unwrap_or(Basis::AdapterNotMapped),
+        ),
         operation_candidates: operation(|p| &p.operation_candidates),
         closed_operations: operation(|p| &p.closed_operations),
         failed_operations: operation(|p| &p.failed_operations),

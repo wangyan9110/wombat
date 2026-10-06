@@ -345,3 +345,145 @@ fn result_conflict_facts_preserve_failure_but_distinct_canonical_witnesses_do_no
         assert_eq!(out.changed_files.value, Some(0));
     }
 }
+
+#[test]
+fn outcome_subset_counts_determinate_results_and_excludes_interruptions_rejections_and_pending() {
+    let success = operation("success", "tool", "completed");
+    let mut nonzero = operation("exit", "command", "completed").as_ref().clone();
+    nonzero.exit_code = Some(2);
+    let mut conflict = operation("conflict", "command", "failed").as_ref().clone();
+    conflict.outcome_conflict = true;
+    let mut unknown = operation("unidentified", "tool", "completed")
+        .as_ref()
+        .clone();
+    unknown.call_id = None;
+    unknown.item_id = None;
+    let mut uncertain = operation("uncertain", "command", "other").as_ref().clone();
+    uncertain.exit_code = Some(1);
+    let out = run(&[
+        success.clone(),
+        success,
+        Arc::new(nonzero),
+        operation("failure", "mcpTool", "failed"),
+        operation("cancel", "command", "cancelled"),
+        operation("interrupt", "tool", "interrupted"),
+        operation("reject", "file", "declined"),
+        operation("pending", "command", "running"),
+        Arc::new(uncertain),
+        Arc::new(conflict),
+        Arc::new(unknown),
+        operation("kind", "future", "completed"),
+        operation("catalog", "skillAvailable", "completed"),
+    ]);
+    assert_eq!(
+        out.outcomes,
+        Outcomes {
+            succeeded: 1,
+            failed: 2,
+            interrupted: 2,
+            rejected: 1,
+            nonterminal: 1,
+            indeterminate: 1,
+            conflicting: 1,
+            identity_gaps: 1,
+            unclassified: 1
+        }
+    );
+    assert_eq!(out.outcomes.determinate(), 3);
+    assert!(out.outcomes.partial());
+}
+#[test]
+fn outcome_subset_ignores_path_conflicts_but_never_chooses_a_conflicting_result() {
+    let first = file(
+        "same",
+        "failed",
+        WorkStage::Terminal,
+        &[("/synthetic/a", None)],
+    );
+    let second = file(
+        "same",
+        "failed",
+        WorkStage::Terminal,
+        &[("/synthetic/b", None)],
+    );
+    let out = run(&[first.clone(), second]);
+    assert_eq!(out.outcomes.failed, 1);
+    assert_eq!(out.outcomes.conflicting, 0);
+    assert!(!out.outcomes.partial());
+    assert_eq!(out.changed_files.value, None);
+    let mut success = first.as_ref().clone();
+    success.status = "completed".into();
+    for ops in [
+        [first.clone(), Arc::new(success.clone())],
+        [Arc::new(success), first],
+    ] {
+        let out = run(&ops);
+        assert_eq!(out.outcomes.determinate(), 0);
+        assert_eq!(out.outcomes.conflicting, 1);
+        assert!(out.outcomes.partial());
+    }
+}
+#[test]
+fn zero_exit_on_start_does_not_create_success_and_nonzero_interruption_stays_excluded() {
+    let mut start = operation("start", "command", "running").as_ref().clone();
+    start.exit_code = Some(0);
+    let mut cancelled = operation("cancel", "command", "cancelled").as_ref().clone();
+    cancelled.exit_code = Some(9);
+    let out = run(&[Arc::new(start), Arc::new(cancelled)]);
+    assert_eq!(out.outcomes.determinate(), 0);
+    assert_eq!(out.outcomes.nonterminal, 1);
+    assert_eq!(out.outcomes.interrupted, 1);
+    assert_eq!(run(&[]).outcomes, Outcomes::default());
+}
+
+#[test]
+fn optional_metadata_budget_exhaustion_keeps_complete_outcome_subset() {
+    let t = thread();
+    let cancelled = AtomicBool::new(false);
+    let ops = [
+        file(
+            "one",
+            "failed",
+            WorkStage::Terminal,
+            &[("/synthetic/a", None), ("/synthetic/b", None)],
+        ),
+        operation("two", "tool", "completed"),
+    ];
+    // Five units establish both identities; the optional map needs more units.
+    let out = project(Input {
+        budget: Budget {
+            metadata: 5,
+            ..Budget::default()
+        },
+        ..input(&t, &ops, &cancelled)
+    })
+    .unwrap();
+    assert_eq!(out.outcomes.determinate(), 2);
+    assert_eq!(out.outcomes.failed, 1);
+    assert_eq!(out.outcomes.succeeded, 1);
+    assert!(!out.outcomes.partial());
+    for count in [
+        &out.operation_candidates,
+        &out.closed_operations,
+        &out.failed_operations,
+        &out.file_change_records,
+        &out.changed_files,
+    ] {
+        assert_eq!(count.value, None);
+        assert!(count.gaps.contains(&Gap::ResourceLimit));
+    }
+    // Required-identity budget still rejects an unprocessed prefix.
+    assert_eq!(
+        code(
+            project(Input {
+                budget: Budget {
+                    metadata: 4,
+                    ..Budget::default()
+                },
+                ..input(&t, &ops, &cancelled)
+            })
+            .unwrap_err()
+        ),
+        "RESOURCE_LIMIT"
+    );
+}

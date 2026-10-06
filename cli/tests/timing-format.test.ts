@@ -104,7 +104,7 @@ test('localized timing reasons replace bare protocol codes and running differs f
 test('object and record pages preserve missing counts, use outcomes and safe display text', () => {
   locale.setLocale('en');
   const zero = { value: 0, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] } as const;
-  const base = { outputVersion: 4, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const, snapshotId: local.readView.snapshotId,
+  const base = { outputVersion: 5, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const, snapshotId: local.readView.snapshotId,
     scope: local.scope, totals: local.uses.totals, total: { ...zero, value: 1, evidenceRefs: [] }, nextCursor: { token: 'next' } };
   const objects: TimingResult = { ...base, collection: 'use_objects', rows: [{
     objectRef: 'object-1', kind: 'skill', state: 'used', path: '/synthetic/\u001b[31mSKILL.md', server: null, project: null,
@@ -143,7 +143,7 @@ test('partial object counts retain observed associations including zero without 
   for(const count of [0,2]){
    const metric={value:count,status:'observed' as const,basis:'canonical_use_identity' as const,evidenceRefs:[]};
    const missing={value:null,status:'unavailable' as const,basis:'missing_target' as const,evidenceRefs:[]};
-   const result:TimingResult={outputVersion: 4,action:'evidence',profile:'local',methodVersion:local.methodVersion,snapshotId:local.readView.snapshotId,scope:local.scope,totals:local.uses.totals,total:{...metric,value:1},nextCursor:null,collection:'use_objects',rows:[{objectRef:'synthetic-object',kind:'mcp',state:'used',path:null,server:'synthetic-server',project:null,useCount:missing,associatedUseCount:metric,recordCount:{...metric,value:3},unassignedTurnRecords:{...metric,value:0},coverage:local.uses.totals.coverage}]};
+   const result:TimingResult={outputVersion: 5,action:'evidence',profile:'local',methodVersion:local.methodVersion,snapshotId:local.readView.snapshotId,scope:local.scope,totals:local.uses.totals,total:{...metric,value:1},nextCursor:null,collection:'use_objects',rows:[{objectRef:'synthetic-object',kind:'mcp',state:'used',path:null,server:'synthetic-server',project:null,useCount:missing,associatedUseCount:metric,recordCount:{...metric,value:3},unassignedTurnRecords:{...metric,value:0},coverage:local.uses.totals.coverage}]};
    const text=renderTimingResult(result);
    assert.match(text,new RegExp(`已关联次数: ${count}|Associated uses: ${count}`));
    assert.match(text,/完整使用次数|Full use count/);
@@ -174,7 +174,7 @@ test('timing evidence retains native scalars without timestamps and preserves ex
  const saved=locale.getSnapshot().locale;
  try{for(const language of ['zh','en'] as const){locale.setLocale(language);
   for(const duration of [0,25]){
-   const base={outputVersion: 4 as const,action:'evidence' as const,methodVersion:local.methodVersion,profile:'local' as const,snapshotId:local.readView.snapshotId,scope:local.scope,total:{value:1,status:'observed' as const,basis:'safe_event_count' as const,evidenceRefs:[]},nextCursor:null};
+   const base={outputVersion: 5 as const,action:'evidence' as const,methodVersion:local.methodVersion,profile:'local' as const,snapshotId:local.readView.snapshotId,scope:local.scope,total:{value:1,status:'observed' as const,basis:'safe_event_count' as const,evidenceRefs:[]},nextCursor:null};
    const events:TimingResult={...base,collection:'turn_events',rows:[{reference:'event-1',recordKind:'turn',phase:'completed',timestampMs:null,durationMs:duration,firstTokenMs:0,gapCodes:['missing_time']}]};
    const eventText=renderTimingResult(events);
    assert.ok(eventText.includes(`${language==='zh'?'原生耗时':'Native duration'}: ${duration} ms`));
@@ -228,4 +228,19 @@ test('local text shows paired evidence aliases and detail limits without changin
  navigation.entries=[{later:{operationAlias:'repeat:0:later',pages:[{limit:200,evidenceRefs:['event:later']}]},afterFailure:{operationAlias:'repeat:0:failure',pages:[{limit:200,evidenceRefs:['event:failure']}]},successfulReads:[{operationAlias:'repeat:0:read:0',pages:[{limit:200,evidenceRefs:['event:read']}]}],repeatedReadTargetCount:1,laterDurationMs:count(40),recoverySpanMs:count(80)}];
  const previous=locale.getSnapshot().locale;
  try{for(const language of ['en','zh'] as const){locale.setLocale(language);const text=renderTimingResult(response);assert.match(text,/repeat:0:later/);assert.match(text,/repeat:0:failure/);assert.match(text,language==='en'?/Earlier successful read 1/:/前次成功读取 1/);assert.doesNotMatch(text,/execution\.repeats\.|undefined|NaN|未知/);const limited=structuredClone(response);limited.evidence.repeatPages.entries=[];limited.evidence.repeatPages.detail={support:'unavailable',reason:'resource_limit'};assert.match(renderTimingResult(limited),language==='en'?/aggregate counts and duration subtotals remain/:/完整次数与耗时小计仍保留/);assert.doesNotMatch(renderTimingResult(share),/repeat:0|event:later|event:failure/);}}finally{locale.setLocale(previous);}
+});
+
+
+test('CLI outcome text uses the shared subset, exclusions and zero-denominator explanation',async()=>{
+ const {outcomeStatistics}=await import('../../tests/fixtures/outcomes.js');
+ const previous=locale.getSnapshot().locale;
+ try{for(const language of ['en','zh'] as const){
+  locale.setLocale(language);const fixture=structuredClone(local);fixture.work.outcomes=outcomeStatistics();
+  const text=renderTimingResult(fixture);assert.match(text,/33\.3/);assert.match(text,language==='en'?/Failed 1 of 3/:/3 次操作中，失败 1 次/);
+  assert.match(text,language==='en'?/Interrupted or cancelled: 1/:/中断或取消：1 次/);assert.match(text,language==='en'?/Without a determinate result: 1/:/未记录可判定结果：1 次/);
+  assert.doesNotMatch(text,/execution\.outcomes\.|NaN|undefined/);
+  for(const field of ['determinateOperations','failed','succeeded'] as const)fixture.work.outcomes[field].value=0;
+  fixture.work.outcomes.failureRatio={value:null,status:'unavailable',basis:'no_candidates',evidenceRefs:[]};
+  const empty=renderTimingResult(fixture);assert.match(empty,language==='en'?/No operations with determinate/:/不计算比例/);assert.doesNotMatch(empty,/0%|NaN|undefined/);
+ }}finally{locale.setLocale(previous);}
 });

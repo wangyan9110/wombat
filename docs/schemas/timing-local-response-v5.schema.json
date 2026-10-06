@@ -8,8 +8,8 @@
     },
     "outputVersion": {
       "type": "integer",
-      "minimum": 4,
-      "maximum": 4
+      "minimum": 5,
+      "maximum": 5
     },
     "action": {
       "$ref": "#/definitions/SummaryAction"
@@ -259,6 +259,7 @@
         "missing_repository_baseline",
         "unknown_message_origin",
         "canonical_operation_identity",
+        "determinate_terminal_outcomes",
         "reported_file_paths",
         "canonical_use_identity",
         "canonical_use_records",
@@ -1509,6 +1510,9 @@
     "Work": {
       "type": "object",
       "properties": {
+        "outcomes": {
+          "$ref": "#/definitions/OutcomeStatistics"
+        },
         "operationCandidates": {
           "$ref": "#/definitions/TimingMetric_uint64"
         },
@@ -1563,6 +1567,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "outcomes",
         "operationCandidates",
         "closedOperations",
         "failedOperations",
@@ -1580,6 +1585,78 @@
         "reasoningMessageRecords",
         "compactionRecords",
         "repositoryBaseline"
+      ]
+    },
+    "OutcomeStatistics": {
+      "description": "Counts in the captured subset, rather than inferred complete-turn totals.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "$ref": "#/definitions/OutcomeMethod"
+        },
+        "determinateOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "succeeded": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "failed": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "interrupted": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "rejected": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "nonterminal": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "indeterminate": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "conflicting": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "identityGapRecords": {
+          "description": "Missing-identity observations use physical-record units, unlike canonical group counts.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "unclassified": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "failureRatio": {
+          "$ref": "#/definitions/TimingMetric_double"
+        },
+        "partial": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "determinateOperations",
+        "succeeded",
+        "failed",
+        "interrupted",
+        "rejected",
+        "nonterminal",
+        "indeterminate",
+        "conflicting",
+        "identityGapRecords",
+        "unclassified",
+        "failureRatio",
+        "partial"
+      ]
+    },
+    "OutcomeMethod": {
+      "type": "string",
+      "enum": [
+        "terminal_success_failure_subset_v1"
       ]
     },
     "Finding": {

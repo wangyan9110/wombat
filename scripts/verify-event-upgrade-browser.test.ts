@@ -19,7 +19,7 @@ test('browser acceptance requires an explicit Playwright module and rejects malf
 });
 
 function share(): Record<string, unknown> {
-  return { profile: 'share-v1', outputVersion: 4, action: 'summary', methodVersion: 'safe_event_turn_v5', basisCollections: [], privacy: {}, scope: {}, capabilities: {}, relativeAnchors: {}, time: {}, context: {}, work: {}, uses: {}, findings: [], coverage: {}, quality: {}, freshness: {} };
+  return { profile: 'share-v1', outputVersion: 5, action: 'summary', methodVersion: 'safe_event_turn_v6', basisCollections: [], privacy: {}, scope: {}, capabilities: {}, relativeAnchors: {}, time: {}, context: {}, work: {}, uses: {}, findings: [], coverage: {}, quality: {}, freshness: {} };
 }
 test('browser share oracle accepts its closed aggregate shape and rejects local fields or private content', () => {
   shareWhitelist(share(), ['SYNTHETIC_PRIVATE']);

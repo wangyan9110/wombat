@@ -15,7 +15,7 @@ const capabilities = {
   lifecycleIntervals: unavailable, operationIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: unavailable,
 };
-const capabilityResult = { outputVersion: 4, action: 'capabilities', methodVersion: 'safe_event_turn_v5', profile: 'local', capabilities } as const;
+const capabilityResult = { outputVersion: 5, action: 'capabilities', methodVersion: 'safe_event_turn_v6', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const repeatDuration=()=>({knownSumMs:count(),recordedCount:count(),calculatedCount:count(),missingCount:count()});
@@ -25,7 +25,7 @@ const distribution = () => ({ samples: count(), median: count(), p90: count() })
 const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const local: TimingLocalResult = {
-  outputVersion: 4, action: 'summary', methodVersion: 'safe_event_turn_v5', profile: 'local',
+  outputVersion: 5, action: 'summary', methodVersion: 'safe_event_turn_v6', profile: 'local',
   uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
@@ -45,6 +45,7 @@ const local: TimingLocalResult = {
     segmentCount: count(), segments: [], compactionNeighbors: [], detail: unavailable,
   },
   work: {
+    outcomes: {method:'terminal_success_failure_subset_v1',determinateOperations:count(),succeeded:count(),failed:count(),interrupted:count(),rejected:count(),nonterminal:count(),indeterminate:count(),conflicting:count(),identityGapRecords:count(),unclassified:count(),failureRatio:count(),partial:true},
     operationCandidates: count(), closedOperations: count(), failedOperations: count(), labelledCommandMs: count(), fileChangeRecords: count(),
     changedFiles: count(), addedLines: count(), removedLines: count(), messageRecordCandidates: count(), nonemptyVisibleContentRecords: count(),
     unknownContentRecords: count(), missingContentTimeRecords: count(), userBoundaryRecords: count(), injectedContextRecords: count(),
@@ -60,7 +61,7 @@ const local: TimingLocalResult = {
   freshness: { status: 'fixed' }, evidence: { repeatPages: {detail:unavailable,candidateOperationCount:count(),locatedOperationCount:count(),pageCount:count(),limitBytes:65536,entries:[]}, intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
 };
 const share: TimingShareResult = {
-  outputVersion: 4, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
+  outputVersion: 5, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
   uses: useTotals,
   privacy: { profile: 'share-v1', omittedFields: ['local_ids'], aliases: 'package' },
   scope: { taskAlias: 'task-1', turnAlias: 'turn-1', wholeTurn: true }, capabilities, relativeAnchors: local.anchors,
@@ -115,7 +116,7 @@ test('timing validates its narrow request before calling the independent host', 
 
 test('timing responses bind action profile method target and selected snapshot', async () => {
   assert.equal(await client(local).timing!(summary), local);
-  const evidence = { outputVersion: 4, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
+  const evidence = { outputVersion: 5, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
   assert.equal(await client(evidence).timing!({ ...summary, action: 'evidence', snapshotId: local.readView.snapshotId }), evidence);
   for (const invalid of [
     { ...local, outputVersion: 1 }, { ...local, action: 'evidence' }, { ...local, methodVersion: 'future' }, { ...local, methodVersion: 'safe_event_turn_v1' },
@@ -127,8 +128,8 @@ test('timing responses bind action profile method target and selected snapshot',
   await assert.rejects(client({ ...evidence, snapshotId: 'other' }).timing!({ action: 'evidence', threadId: 'thread', turnId: 'turn', snapshotId: 'fixed' }), { code: 'PROTOCOL_ERROR' });
 });
 
-test('timing v5 rejects previous methods for every response action and profile', async () => {
-  const evidence = { outputVersion: 4, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
+test('timing v6 rejects previous methods for every response action and profile', async () => {
+  const evidence = { outputVersion: 5, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: local.readView.snapshotId, scope, total: count(), rows: [] };
   for (const methodVersion of ['safe_event_turn_v1', 'safe_event_turn_v2', 'safe_event_turn_v3','safe_event_turn_v4']) {
     await assert.rejects(client({ ...capabilityResult, methodVersion }).timing!({ action: 'capabilities' }), { code: 'PROTOCOL_ERROR' });
     await assert.rejects(client({ ...local, methodVersion }).timing!(summary), { code: 'PROTOCOL_ERROR' });
@@ -233,7 +234,7 @@ const useObject = { objectRef, kind: 'skill' as const, state: 'used' as const, p
   unassignedTurnRecords: observed(0, 'unassigned_use_index'), coverage: knownUseTotals.coverage };
 const useRecord = { reference: `use:${'b'.repeat(64)}`, objectRef, kind: 'skill_read' as const, state: 'used' as const, outcome: 'failed' as const,
   timestampMs: 0, timeBasis: 'source_operation_time' as const, nativeDurationMs: 0, tool: null, exitCode: 1, identityKnown: true, replayOf: null, targetConflict: false, gapCodes: [] };
-const usePage = { outputVersion: 4, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const,
+const usePage = { outputVersion: 5, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const,
   snapshotId: local.readView.snapshotId, scope, totals: knownUseTotals, total: observed(1), nextCursor: null };
 test('nonempty canonical object and record pages validate and bind collection object and use method', async () => {
   const objects = { ...usePage, collection: 'use_objects' as const, rows: [useObject] };
@@ -299,7 +300,7 @@ test('work metrics preserve canonical identities, reported paths and unknown use
   assert.equal(validateLocal({ ...local, work: { ...work, userBoundaryRecords: { ...work.userBoundaryRecords, basis: 'guessed_user' } } }), false);
 });
 
-test('method v5 accepts MCP relative tracks and all sixteen core masks; stale masks and share identities fail', async () => {
+test('method v6 accepts MCP relative tracks and all sixteen core masks; stale masks and share identities fail', async () => {
   const mcp = structuredClone(local);
   mcp.time.timeline.tracks = [{intervalAlias:'interval-1',category:'mcp',startMs:2000,endMs:7000,clipped:false,evidenceScope:'turn_collection',evidenceRefs:[]}];
   mcp.time.mcp.unionMs = observed(5000, 'lifecycle_union');
@@ -349,7 +350,7 @@ test('operation coverage validates independent totals, pairing counts, relative 
   for(const response of [capabilityResult,fixture,share,{...usePage,collection:'use_objects' as const,rows:[]}]) {
     const request=response.action==='capabilities'?{action:'capabilities' as const}:response.action==='evidence'?{...summary,action:'evidence' as const,snapshotId:local.readView.snapshotId,collection:'use_objects' as const}:{...summary,privacyProfile:response.profile};
     assert.equal((await client(response).timing!(request)).action,response.action);
-    for(const outputVersion of [1,2,3,5])await assert.rejects(client({...response,outputVersion}).timing!(request),{code:'PROTOCOL_ERROR'});
+    for(const outputVersion of [1,2,3,4,6])await assert.rejects(client({...response,outputVersion}).timing!(request),{code:'PROTOCOL_ERROR'});
   }
 });
 
@@ -371,7 +372,7 @@ test('repeat aggregate methods, safe measures and cross-field bounds reject inco
    {...r,recoverySpanSumMs:m(Number.MAX_SAFE_INTEGER+1)}, {...r,requestFingerprint:'private'},
  ];
  for(const repeatedBehavior of bad)await assert.rejects(client({...fixture,time:{...fixture.time,repeatedBehavior}}).timing!(summary),{code:'PROTOCOL_ERROR'});
- for(const outputVersion of [1,2,3,5])await assert.rejects(client({...fixture,outputVersion}).timing!(summary),{code:'PROTOCOL_ERROR'});
+ for(const outputVersion of [1,2,3,4,6])await assert.rejects(client({...fixture,outputVersion}).timing!(summary),{code:'PROTOCOL_ERROR'});
  const noTime=structuredClone(fixture);noTime.time.repeatedBehavior.combinedUnionMs={...count(),basis:'missing_time'};
  noTime.time.observedWindowMs={...count(),basis:'missing_time'};
  assert.equal((await client(noTime).timing!(summary)).action,'summary');
@@ -403,4 +404,24 @@ test('local repeated-call proof pages bind complete rows and reject partial or l
  assert.equal((await client({...fixture,evidence:{...fixture.evidence,repeatPages:limited}}).timing!(summary)).action,'summary');
  await assert.rejects(client({...share,repeatPages:navigation}).timing!({...summary,privacyProfile:'share-v1'}),{code:'PROTOCOL_ERROR'});
  await assert.rejects(client({...response,outputVersion:3}).timing!(summary),{code:'PROTOCOL_ERROR'});
+});
+
+
+test('outcome statistics preserve a useful recorded subset and reject changed denominators or future methods',async()=>{
+ const {outcomeStatistics}=await import('../../tests/fixtures/outcomes.js');
+ const fixture=structuredClone(local);fixture.coverage.sourceStatus='complete';fixture.work.outcomes=outcomeStatistics();
+ const request:TimingRequest={action:'summary',threadId:fixture.scope.threadId,turnId:fixture.scope.turnId,snapshotId:fixture.readView.snapshotId,mode:'cached'};
+ const read=(value:unknown)=>createUsageClient({query:async()=>{throw Error('No scan');},timing:async()=>value}).timing!(request);
+ await read(fixture);
+ const o=fixture.work.outcomes;
+ for(const outcomes of [{...o,method:'future'}, {...o,determinateOperations:{...o.determinateOperations,value:4}},
+   {...o,failureRatio:{...o.failureRatio,value:0.25}}, {...o,partial:false},
+   {...o,failed:{...o.failed,status:'observed'}},{...o,failed:{...o.failed,value:null}},
+   {...o,determinateOperations:{...o.determinateOperations,value:0},failed:{...o.failed,value:0},succeeded:{...o.succeeded,value:0}}]){
+  await assert.rejects(read({...fixture,work:{...fixture.work,outcomes}}),{code:'PROTOCOL_ERROR'});
+ }
+ const zero={...o,determinateOperations:{...o.determinateOperations,value:0},failed:{...o.failed,value:0},succeeded:{...o.succeeded,value:0},failureRatio:{...o.failureRatio,value:null,status:'unavailable' as const,basis:'no_candidates' as const}};
+ await read({...fixture,work:{...fixture.work,outcomes:zero}});
+ for(const ratio of [0,1,NaN,Infinity])await assert.rejects(read({...fixture,work:{...fixture.work,outcomes:{...zero,failureRatio:{...zero.failureRatio,value:ratio}}}}),{code:'PROTOCOL_ERROR'});
+ await assert.rejects(read({...fixture,outputVersion:4}),{code:'PROTOCOL_ERROR'});
 });

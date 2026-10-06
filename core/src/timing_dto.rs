@@ -32,8 +32,8 @@ pub enum ShareProfile {
     ShareV1,
 }
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-pub const OUTPUT_VERSION: u32 = 4;
-pub const METHOD_VERSION: &str = "safe_event_turn_v5";
+pub const OUTPUT_VERSION: u32 = 5;
+pub const METHOD_VERSION: &str = "safe_event_turn_v6";
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum PrivacyProfile {
@@ -152,6 +152,7 @@ pub enum Basis {
     MissingRepositoryBaseline,
     UnknownMessageOrigin,
     CanonicalOperationIdentity,
+    DeterminateTerminalOutcomes,
     ReportedFilePaths,
     CanonicalUseIdentity,
     CanonicalUseRecords,
@@ -418,9 +419,34 @@ pub struct Context {
     pub compaction_neighbors: Vec<CompactionNeighbors>,
     pub detail: Capability,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum OutcomeMethod {
+    TerminalSuccessFailureSubsetV1,
+}
+/// Counts in the captured subset, rather than inferred complete-turn totals.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OutcomeStatistics {
+    pub method: OutcomeMethod,
+    pub determinate_operations: Count,
+    pub succeeded: Count,
+    pub failed: Count,
+    pub interrupted: Count,
+    pub rejected: Count,
+    pub nonterminal: Count,
+    pub indeterminate: Count,
+    pub conflicting: Count,
+    /// Missing-identity observations use physical-record units, unlike canonical group counts.
+    pub identity_gap_records: Count,
+    pub unclassified: Count,
+    pub failure_ratio: Number,
+    pub partial: bool,
+}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Work {
+    pub outcomes: OutcomeStatistics,
     pub operation_candidates: Count,
     pub closed_operations: Count,
     pub failed_operations: Count,
@@ -612,7 +638,7 @@ pub struct EvidenceIndex {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalResponse {
     pub uses: LocalUses,
-    #[schemars(range(min = 4, max = 4))]
+    #[schemars(range(min = 5, max = 5))]
     pub output_version: u32,
     pub action: SummaryAction,
     pub method_version: String,
@@ -636,7 +662,7 @@ pub struct LocalResponse {
 pub struct ShareResponse {
     pub uses: UseTotals,
     pub basis_collections: Vec<ShareCollection>,
-    #[schemars(range(min = 4, max = 4))]
+    #[schemars(range(min = 5, max = 5))]
     pub output_version: u32,
     pub action: SummaryAction,
     pub method_version: String,
@@ -670,7 +696,7 @@ pub struct EvidenceRow {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EvidenceResponse {
     pub collection: EventPageKind,
-    #[schemars(range(min = 4, max = 4))]
+    #[schemars(range(min = 5, max = 5))]
     pub output_version: u32,
     pub action: EvidenceAction,
     pub method_version: String,
@@ -684,7 +710,7 @@ pub struct EvidenceResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CapabilitiesResponse {
-    #[schemars(range(min = 4, max = 4))]
+    #[schemars(range(min = 5, max = 5))]
     pub output_version: u32,
     pub action: CapabilitiesAction,
     pub method_version: String,

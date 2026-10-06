@@ -1,5 +1,5 @@
 import type { TimingLocalResult } from '@wombat/client';
-import { t } from '@wombat/client/locale';
+import { t,operationOutcomeText } from '@wombat/client/locale';
 
 type Work = TimingLocalResult['work'];
 type Count = Work['fileChangeRecords'];
@@ -63,6 +63,7 @@ export function WorkFacts({
   sourceStatus: string;
   partial: boolean;
 }) {
+  const outcomes=operationOutcomeText(work.outcomes);
   const allRows: Array<[WorkLabel, Count]> = [
     ['execution.work.operationCandidates', work.operationCandidates],
     ['execution.work.closedOperations', work.closedOperations],
@@ -86,6 +87,10 @@ export function WorkFacts({
       <h4>{t('execution.work.title')}</h4>
       <p>{t('execution.work.sourceStatus')}: {sourceText(sourceStatus)}</p>
       {partial && <p role="status">{t('execution.work.partial')}</p>}
+      <h5>{t('execution.outcomes.title')}</h5>
+      <p>{outcomes.headline}</p>
+      {outcomes.details.map(text=><p key={text}>{text}</p>)}
+      <p className="compact-note">{outcomes.note}</p>
       <dl className="facts">
         {rows.map(([label, value]) => (
           <div key={label}>
