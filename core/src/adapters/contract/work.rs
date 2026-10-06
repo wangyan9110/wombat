@@ -1,7 +1,7 @@
 //! Body-free source work metadata, attached to one canonical operation.
 use super::*;
 
-pub const WORK_OBSERVATION_VERSION: u32 = 3;
+pub const WORK_OBSERVATION_VERSION: u32 = 4;
 pub const WORK_PATH_LIMIT: usize = 4096;
 pub const WORK_PATH_BYTES: usize = 1024 * 1024;
 
@@ -80,9 +80,6 @@ pub enum WorkData {
         source: Option<CommandSource>,
         /// Source order, including repeated parse labels. Never separate tool calls.
         parsed_commands: Option<Vec<ParsedCommand>>,
-        /// Safe request/read matching facts, independent of work classification.
-        #[serde(default)]
-        matching: Option<OperationMatchObservation>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -125,20 +122,8 @@ impl WorkObservation {
             WorkData::Command {
                 cwd,
                 parsed_commands,
-                matching,
-                source,
+                ..
             } => {
-                if let Some(matching) = matching {
-                    matching.validate()?;
-                    anyhow::ensure!(
-                        matching.receiver_owner.is_none() || *source == Some(CommandSource::Agent),
-                        "matching receiver requires agent execution source"
-                    );
-                    anyhow::ensure!(
-                        matching.request_fingerprint.is_none() || cwd.is_some(),
-                        "matching request requires historical cwd"
-                    );
-                }
                 anyhow::ensure!(
                     cwd.as_deref().is_none_or(valid_work_path),
                     "invalid command cwd"

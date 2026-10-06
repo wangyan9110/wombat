@@ -27,7 +27,7 @@ export const en = {
   "execution.repeats.eligible": "Commands with matching evidence",
   "execution.repeats.missingRecovery": "Calls without recovery span",
   "execution.repeats.missingIntervals": "Calls without located intervals",
-  "execution.repeats.reason.missing_matching": "Some calls lack supported matching metadata; only supported command requests are matched.",
+  "execution.repeats.reason.missing_matching": "Some calls lack supported matching metadata; only requests with supported matching evidence are compared.",
   "execution.repeats.reason.excluded_receivers": "Calls without the same explicit task receiver are excluded from matching.",
   "execution.repeats.reason.identity_gaps": "Some operation records lack a usable identity.",
   "execution.repeats.reason.conflicting_operations": "Conflicting operation facts are excluded from matching.",

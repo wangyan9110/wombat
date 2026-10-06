@@ -6,7 +6,16 @@ pub(in crate::adapters::codex) fn merge_metadata(
     report: &mut SourceReport,
 ) {
     merge_mcp(old, operation, report);
+    super::matching::merge(&mut old.matching, &operation.matching);
     super::work::merge(old, operation, report);
+    if old.kind.as_ref() == "mcpConflict"
+        || old.work.as_ref().is_some_and(|w| {
+            w.gaps
+                .contains(&crate::adapters::contract::WorkGap::ConflictingObservation)
+        })
+    {
+        super::matching::invalidate(&mut old.matching);
+    }
     if operation
         .timestamp
         .as_ref()

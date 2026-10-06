@@ -30,7 +30,7 @@ use std::{
 };
 use wire::*;
 
-pub const VERSION: &str = "codex-rollout-7";
+pub const VERSION: &str = "codex-rollout-8";
 pub struct CodexAdapter;
 
 #[cfg(test)]

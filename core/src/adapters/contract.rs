@@ -190,6 +190,9 @@ pub struct Operation {
     pub path: Option<String>,
     /// Safe source metadata; absent observations cannot establish zero work.
     pub work: Option<WorkObservation>,
+    /// Shared safe request/read observations; raw arguments never persist.
+    #[serde(default)]
+    pub matching: Option<OperationMatchObservation>,
     pub server: Option<Arc<str>>,
     pub tool: Option<Arc<str>>,
     pub evidence: Vec<EvidenceRef>,

@@ -731,7 +731,6 @@ fn multiple_native_read_targets_share_one_record_and_filtered_object_reference()
         data: WorkData::Command {
             cwd: Some("file:///synthetic".into()),
             source: Some(CommandSource::Agent),
-            matching: None,
             parsed_commands: Some(vec![
                 ParsedCommand::Read {
                     path: Some("/synthetic/one/SKILL.md".into()),
@@ -801,7 +800,6 @@ fn mixed_known_and_missing_native_read_targets_keep_record_gap_on_filtered_pages
         data: WorkData::Command {
             cwd: Some("file:///synthetic".into()),
             source: Some(CommandSource::Agent),
-            matching: None,
             parsed_commands: Some(vec![
                 ParsedCommand::Read {
                     path: Some("/synthetic/one/SKILL.md".into()),

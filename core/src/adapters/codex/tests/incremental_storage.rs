@@ -360,3 +360,65 @@ fn rebuild_orders_missing_and_present_file_events_together() {
         1
     );
 }
+
+#[test]
+fn shared_mcp_matching_survives_checkpoint_restart_append_and_verified_replay() {
+    use std::io::Write;
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    let row = |phase: &str, args: Value| json!({"type":"event_msg","timestamp":"2026-10-03T00:00:02Z","payload":{"type":phase,"call_id":"call","turn_id":"u","invocation":{"server":"synthetic","tool":"search","arguments":args},"result":{"Ok":{"content":[]}}}});
+    let path = write(
+        root.path(),
+        "sessions/mcp.jsonl",
+        &[
+            meta("t"),
+            context("u", "model", "low"),
+            row(
+                "mcp_tool_call_begin",
+                json!({"body":"PRIVATE_MCP","n":9007199254740993_u64}),
+            ),
+        ],
+    );
+    let source = CodexAdapter
+        .discover(&DiscoveryRequest {
+            roots: vec![root.path().into()],
+        })
+        .sources
+        .remove(0);
+    let sync = |verify| {
+        let mut db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+        let tx = db.transaction().unwrap();
+        let result = incremental::sync(&tx, &source, verify).unwrap();
+        tx.commit().unwrap();
+        result
+    };
+    let before = sync(false).unwrap();
+    let first = before.operations[0].matching.clone().unwrap();
+    assert!(first.request_fingerprint.is_some());
+    assert!(sync(false).is_none());
+    let mut file = fs::OpenOptions::new().append(true).open(path).unwrap();
+    writeln!(
+        file,
+        "{}",
+        row(
+            "mcp_tool_call_end",
+            json!({"n":9007199254740993_u64,"body":"PRIVATE_MCP"})
+        )
+    )
+    .unwrap();
+    let after = sync(false).unwrap();
+    assert_eq!(after.operations.len(), 1);
+    assert_eq!(after.operations[0].matching.as_ref(), Some(&first));
+    assert_eq!(after.operations[0].status.as_ref(), "completed");
+    let verified = sync(true).unwrap();
+    let full = collect(root.path());
+    assert_eq!(
+        serde_json::to_value(&verified.operations).unwrap(),
+        serde_json::to_value(&full.operations).unwrap()
+    );
+    assert!(
+        !serde_json::to_string(&verified)
+            .unwrap()
+            .contains("PRIVATE_MCP")
+    );
+}

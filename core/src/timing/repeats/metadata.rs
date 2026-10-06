@@ -94,7 +94,7 @@ pub(super) fn eligible_kind(kind: ObservationKind<'_>) -> bool {
     matches!(
         kind,
         ObservationKind::Item(ItemKind::Command | ItemKind::Tool | ItemKind::Mcp)
-    ) || matches!(kind, ObservationKind::Operation(op) if matches!(op.kind.as_ref(), "command" | "tool" | "mcp" | "mcpTool" | "mcpResource" | "mcpUnclassified"))
+    ) || matches!(kind, ObservationKind::Operation(op) if matches!(op.kind.as_ref(), "command" | "tool" | "mcp" | "mcpTool" | "mcpResource" | "mcpUnclassified" | "mcpDiscovery"))
 }
 struct Fields<'a> {
     receiver: Option<&'a str>,
@@ -102,6 +102,7 @@ struct Fields<'a> {
     targets: Option<&'a [ReadMatchTarget]>,
     expected_nonzero: bool,
     invalid: bool,
+    unsupported: bool,
     rejected_receiver: bool,
     gap: bool,
     outcomes: BTreeSet<TerminalOutcome>,
@@ -151,6 +152,7 @@ fn fields<'a>(
                 .start_ms
                 .zip(endpoint.completion_ms)
                 .is_some_and(|(start, end)| end < start),
+        unsupported: false,
         rejected_receiver: false,
         gap: false,
         outcomes: BTreeSet::new(),
@@ -187,49 +189,43 @@ fn fields<'a>(
                 {
                     out.durations.insert(duration);
                 }
-                let Some(work) = &op.work else {
-                    continue;
-                };
-                out.gap |= !work.gaps.is_empty();
-                out.invalid |= work.gaps.contains(&WorkGap::ConflictingObservation);
-                let WorkData::Command {
-                    cwd: new_cwd,
-                    source: new_source,
-                    matching,
-                    parsed_commands: new_parsed,
-                } = &work.data
-                else {
-                    continue;
-                };
-                if let Some(value) = new_cwd
-                    && !meter.use_field(value.len())
-                {
-                    return Ok(None);
-                }
-                for command in new_parsed.iter().flatten() {
-                    check(cancelled)?;
-                    if !meter.use_field(command.path().map_or(0, str::len)) {
-                        return Ok(None);
+                if let Some(work) = &op.work {
+                    out.gap |= !work.gaps.is_empty();
+                    out.invalid |= work.gaps.contains(&WorkGap::ConflictingObservation);
+                    if let WorkData::Command {
+                        cwd: new_cwd,
+                        source: new_source,
+                        parsed_commands: new_parsed,
+                    } = &work.data
+                    {
+                        if let Some(value) = new_cwd
+                            && !meter.use_field(value.len())
+                        {
+                            return Ok(None);
+                        }
+                        for command in new_parsed.iter().flatten() {
+                            check(cancelled)?;
+                            if !meter.use_field(command.path().map_or(0, str::len)) {
+                                return Ok(None);
+                            }
+                        }
+                        out.invalid |= known(&mut cwd, new_cwd.as_deref());
+                        out.invalid |= known(&mut source, new_source.as_ref());
+                        out.invalid |= known(&mut parsed, new_parsed.as_deref());
+                        out.rejected_receiver |= new_source
+                            .as_ref()
+                            .is_some_and(|s| *s != CommandSource::Agent);
                     }
                 }
-                out.invalid |= known(&mut cwd, new_cwd.as_deref());
-                out.invalid |= known(&mut source, new_source.as_ref());
-                out.invalid |= known(&mut parsed, new_parsed.as_deref());
-                out.rejected_receiver |= new_source
-                    .as_ref()
-                    .is_some_and(|s| *s != CommandSource::Agent);
-                let Some(matching) = matching else {
+                let Some(matching) = &op.matching else {
                     continue;
                 };
                 out.gap |= !matching.gaps.is_empty();
-                out.invalid |= matching.gaps.iter().any(|g| {
-                    matches!(
-                        g,
-                        MatchGap::UnsupportedParameters | MatchGap::ConflictingObservation
-                    )
-                });
-                out.rejected_receiver |=
-                    *new_source == Some(CommandSource::Agent) && matching.receiver_owner.is_none();
+                out.invalid |= matching.gaps.contains(&MatchGap::ConflictingObservation);
+                out.unsupported |= matching.gaps.contains(&MatchGap::UnsupportedParameters)
+                    || (op.kind.as_ref() != "command"
+                        && matching.gaps.contains(&MatchGap::ResourceLimit));
+                out.rejected_receiver |= matching.receiver_owner.is_none();
                 for value in [
                     matching.receiver_owner.as_deref(),
                     matching.request_fingerprint.as_deref(),
@@ -310,7 +306,7 @@ pub(super) fn collect<'a, 'p>(
             });
         }
     }
-    // Unidentified commands may interrupt a matching chain. They cannot become a predecessor.
+    // Unidentified requests may interrupt a matching chain. They cannot become a predecessor.
     for &index in &endpoints.missing_identity {
         check(cancelled)?;
         let phase = &phases[index];
@@ -334,7 +330,6 @@ pub(super) fn collect<'a, 'p>(
     let mut preliminary = Vec::new();
     for endpoint in &endpoints.groups {
         check(cancelled)?;
-        let command = endpoint.indices.iter().any(|&i| matches!(phases[i].kind, ObservationKind::Operation(op) if op.kind.as_ref() == "command") || matches!(phases[i].kind, ObservationKind::Item(ItemKind::Command)));
         if !endpoint
             .indices
             .iter()
@@ -352,8 +347,8 @@ pub(super) fn collect<'a, 'p>(
         let receiver = fields
             .receiver
             .filter(|r| Some(*r) == endpoint.scope.thread && endpoint.scope.turn.is_some());
-        let valid = command
-            && !fields.invalid
+        let valid = !fields.invalid
+            && !fields.unsupported
             && !fields.rejected_receiver
             && receiver.is_some()
             && (fields.fingerprint.is_some() || fields.targets.is_some())
@@ -368,20 +363,18 @@ pub(super) fn collect<'a, 'p>(
             } else {
                 coverage.missing_matching += 1;
             }
-            if command {
-                for &index in &endpoint.indices {
-                    check(cancelled)?;
-                    if !meter.use_field(0) {
-                        return Ok(None);
-                    }
-                    boundaries
-                        .entry(domain(phases[index].event))
-                        .or_default()
-                        .push(Boundary {
-                            position: position(phases[index].event),
-                            time: None,
-                        });
+            for &index in &endpoint.indices {
+                check(cancelled)?;
+                if !meter.use_field(0) {
+                    return Ok(None);
                 }
+                boundaries
+                    .entry(domain(phases[index].event))
+                    .or_default()
+                    .push(Boundary {
+                        position: position(phases[index].event),
+                        time: None,
+                    });
             }
             continue;
         }
@@ -426,7 +419,9 @@ pub(super) fn collect<'a, 'p>(
             coverage.crossed_context += 1;
             continue;
         }
-        coverage.eligible_commands += 1;
+        if endpoint.indices.iter().any(|&i| matches!(phases[i].kind, ObservationKind::Operation(op) if op.kind.as_ref() == "command") || matches!(phases[i].kind, ObservationKind::Item(ItemKind::Command))) {
+            coverage.eligible_commands += 1;
+        }
         if endpoint.start_ms.is_none() {
             coverage.missing_start += 1;
         }

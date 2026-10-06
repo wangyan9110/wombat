@@ -9,7 +9,7 @@ use std::time::UNIX_EPOCH;
 /// Required message mapping: version 2 retains boundaries for damaged nested items.
 pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 2;
 /// Canonical operation outcome mapping, including persistent conflict evidence.
-pub(crate) const OPERATION_OBSERVATION_VERSION: u32 = 2;
+pub(crate) const OPERATION_OBSERVATION_VERSION: u32 = 3;
 /// Measurement context conflict markers require explicit source observation headers.
 pub(crate) const MEASUREMENT_OBSERVATION_VERSION: u32 = 2;
 pub(crate) use crate::adapters::contract::WORK_OBSERVATION_VERSION;

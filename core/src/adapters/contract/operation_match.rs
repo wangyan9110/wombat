@@ -111,3 +111,66 @@ impl OperationMatchObservation {
         Ok(())
     }
 }
+
+impl Operation {
+    pub(crate) fn validate_matching(&self) -> anyhow::Result<()> {
+        let Some(m) = &self.matching else {
+            return Ok(());
+        };
+        m.validate()?;
+        anyhow::ensure!(
+            m.receiver_owner
+                .as_deref()
+                .is_none_or(|owner| owner == self.thread_id.as_ref()),
+            "matching receiver scope mismatch"
+        );
+        match self.kind.as_ref() {
+            "command" => {
+                let Some(WorkObservation {
+                    data: WorkData::Command { cwd, source, .. },
+                    ..
+                }) = &self.work
+                else {
+                    anyhow::ensure!(
+                        m.receiver_owner.is_none()
+                            && m.request_fingerprint.is_none()
+                            && m.read_targets.is_empty(),
+                        "command matching requires native work evidence"
+                    );
+                    return Ok(());
+                };
+                anyhow::ensure!(
+                    m.receiver_owner.is_none() || *source == Some(CommandSource::Agent),
+                    "matching receiver requires agent execution source"
+                );
+                anyhow::ensure!(
+                    m.request_fingerprint.is_none() || cwd.is_some(),
+                    "matching request requires historical cwd"
+                );
+            }
+            "mcpTool" | "mcpResource" | "mcpDiscovery" | "mcpUnclassified" | "mcpConflict" => {
+                anyhow::ensure!(
+                    m.read_targets.is_empty() && !m.expected_nonzero,
+                    "MCP matching cannot establish filesystem reads or expected command exits"
+                );
+                anyhow::ensure!(
+                    m.request_fingerprint.is_none()
+                        || self.server.as_deref().is_some_and(valid_service_identity)
+                            && self.tool.as_deref().is_some_and(valid_service_identity),
+                    "MCP matching requires service identity"
+                );
+                anyhow::ensure!(
+                    self.kind.as_ref() != "mcpConflict"
+                        || m.request_fingerprint.is_none() && m.receiver_owner.is_none(),
+                    "conflicting MCP matching fields must be absent"
+                );
+            }
+            _ => anyhow::bail!("unsupported operation matching kind"),
+        }
+        Ok(())
+    }
+}
+
+fn valid_service_identity(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 4096 && !value.chars().any(char::is_control)
+}

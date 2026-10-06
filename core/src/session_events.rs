@@ -443,20 +443,8 @@ impl TryFrom<StoredEvent> for Event {
                 );
                 if let Some(work) = &fact.work {
                     work.validate()?;
-                    if let crate::adapters::contract::WorkData::Command {
-                        matching: Some(matching),
-                        ..
-                    } = &work.data
-                    {
-                        ensure!(
-                            matching
-                                .receiver_owner
-                                .as_deref()
-                                .is_none_or(|owner| Some(owner) == thread),
-                            "matching receiver scope mismatch"
-                        );
-                    }
                 }
+                fact.validate_matching()?;
             }
             Payload::ContextWindow { tokens, .. } => {
                 ensure!(*tokens > 0, "context window must be positive")

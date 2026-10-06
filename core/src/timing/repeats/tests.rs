@@ -71,21 +71,21 @@ fn op(
                     })
                     .collect(),
             ),
-            matching: Some(OperationMatchObservation {
-                format_version: OPERATION_MATCH_VERSION,
-                receiver_owner: Some("thread".into()),
-                request_fingerprint: Some(crate::hash(fingerprint)),
-                read_targets: targets
-                    .iter()
-                    .map(|path| ReadMatchTarget {
-                        path: format!("/historical/{path}"),
-                        platform: SourcePathPlatform::Posix,
-                    })
-                    .collect(),
-                expected_nonzero: false,
-                gaps: vec![],
-            }),
         },
+        gaps: vec![],
+    });
+    operation.matching = Some(OperationMatchObservation {
+        format_version: OPERATION_MATCH_VERSION,
+        receiver_owner: Some("thread".into()),
+        request_fingerprint: Some(crate::hash(fingerprint)),
+        read_targets: targets
+            .iter()
+            .map(|path| ReadMatchTarget {
+                path: format!("/historical/{path}"),
+                platform: SourcePathPlatform::Posix,
+            })
+            .collect(),
+        expected_nonzero: false,
         gaps: vec![],
     });
     event(
@@ -171,7 +171,7 @@ fn alter(value: &Arc<Event>, change: impl FnOnce(&mut serde_json::Value)) -> Arc
     Arc::new(serde_json::from_value(serialized).unwrap())
 }
 fn matching(value: &mut serde_json::Value) -> &mut serde_json::Value {
-    &mut value["payload"]["value"]["work"]["data"]["matching"]
+    &mut value["payload"]["value"]["matching"]
 }
 
 #[test]
@@ -888,4 +888,86 @@ fn conflicting_native_work_metadata_does_not_bypass_canonical_command_policy() {
     assert_eq!(result.coverage.conflicting, 1);
     assert_eq!(result.after_failure.count, Some(0));
     assert_eq!(result.repeated_read.count, Some(0));
+}
+
+fn mcp_events(events: &[Arc<Event>]) -> Vec<Arc<Event>> {
+    events
+        .iter()
+        .map(|e| {
+            alter(e, |v| {
+                let op = &mut v["payload"]["value"];
+                op["kind"] = json!("mcpTool");
+                op["server"] = json!("synthetic");
+                op["tool"] = json!("search");
+                op["work"] = serde_json::Value::Null;
+            })
+        })
+        .collect()
+}
+#[test]
+fn native_mcp_requests_reuse_predecessor_duration_and_observation_analysis() {
+    let mut events = call(1, "a", 2000, 5000, "failed", "same", &[]);
+    events.extend(call(3, "b", 8000, 12000, "completed", "same", &[]));
+    let events = mcp_events(&events);
+    let result = project_events(&events);
+    assert_eq!(result.after_failure.count, Some(1));
+    assert_eq!(result.after_failure.duration.sum_ms, Some(4000));
+    assert_eq!(result.same_request_observation_count, Some(1));
+    assert_eq!(result.repeated_read.count, Some(0));
+    assert_eq!(result.coverage.eligible_commands, 0);
+    assert_eq!(result.recovery_span_sum_ms, Some(7000));
+    let no_times: Vec<_> = events
+        .iter()
+        .map(|e| {
+            alter(e, |v| {
+                v["time"]["timestamp"] = serde_json::Value::Null;
+                v["time"]["precision"] = json!("unknown");
+            })
+        })
+        .collect();
+    let observations = project_events(&no_times);
+    assert_eq!(observations.same_request_observation_count, Some(1));
+    assert_eq!(observations.after_failure.count, Some(0));
+}
+#[test]
+fn unsupported_mcp_request_breaks_matching_chain() {
+    let mut events = call(1, "a", 1, 2, "failed", "same", &[]);
+    events.extend(call(3, "b", 3, 4, "completed", "same", &[]));
+    events.extend(call(5, "c", 5, 6, "completed", "same", &[]));
+    let mut events = mcp_events(&events);
+    for e in &mut events[2..4] {
+        *e = alter(e, |v| {
+            matching(v)["requestFingerprint"] = serde_json::Value::Null;
+            matching(v)["gaps"] = json!(["unsupported_parameters"]);
+        });
+    }
+    let result = project_events(&events);
+    assert_eq!(result.after_failure.count, Some(0));
+    assert_eq!(result.same_request_observation_count, Some(0));
+    assert!(result.coverage.context_resets > 0);
+    assert!(result.coverage.missing_matching > 0);
+    assert_eq!(result.coverage.conflicting, 0);
+}
+
+#[test]
+fn common_matching_validation_rejects_foreign_owner_and_fabricated_mcp_reads() {
+    let source = mcp_events(&call(1, "a", 1, 2, "failed", "same", &[]));
+    for (field, value) in [
+        ("receiverOwner", json!("another-thread")),
+        (
+            "readTargets",
+            json!([{"path":"/synthetic/a","platform":"posix"}]),
+        ),
+        ("expectedNonzero", json!(true)),
+        ("formatVersion", json!(0)),
+    ] {
+        let mut encoded = serde_json::to_value(&source[0]).unwrap();
+        matching(&mut encoded)[field] = value;
+        assert!(serde_json::from_value::<Event>(encoded).is_err(), "{field}");
+    }
+    for invalid in ["", "bad\nserver", &"s".repeat(4097)] {
+        let mut encoded = serde_json::to_value(&source[0]).unwrap();
+        encoded["payload"]["value"]["server"] = json!(invalid);
+        assert!(serde_json::from_value::<Event>(encoded).is_err());
+    }
 }

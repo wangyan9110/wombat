@@ -16,9 +16,9 @@ fn command(
             "timePrecision":"unknown","status":status,"outcomeConflict":false,
             "durationMs":if i==1 {native} else {None},"evidence":[],
             "work":{"formatVersion":WORK_OBSERVATION_VERSION,"stage":if i==0 {"proposed"} else {"terminal"},"gaps":[],
-            "data":{"kind":"command","cwd":"/private-repeated-target","source":"agent","parsed_commands":[{"kind":"read","path":"a.txt"}],
+            "data":{"kind":"command","cwd":"/private-repeated-target","source":"agent","parsed_commands":[{"kind":"read","path":"a.txt"}]}},
             "matching":{"formatVersion":OPERATION_MATCH_VERSION,"receiverOwner":"thread-private",
-                "requestFingerprint":crate::hash("private-full-request"),"readTargets":[{"path":"/private-repeated-target/a.txt","platform":"posix"}],"expectedNonzero":false,"gaps":[]}}}
+                "requestFingerprint":crate::hash("private-full-request"),"readTargets":[{"path":"/private-repeated-target/a.txt","platform":"posix"}],"expectedNonzero":false,"gaps":[]}
         })).unwrap();
         event(offset+i as u64,time,Payload::Operation{value:Arc::new(op),phase})
     }).collect()
@@ -178,4 +178,48 @@ fn repeat_aggregate_unsafe_duration_is_absent_without_erasing_counts() {
             .contains(&RepeatCoverageReason::NumericRange)
     );
     assert_eq!(r.combined_union_ms.value, Some(40));
+}
+
+#[test]
+fn native_mcp_aggregates_reach_local_and_share_without_command_or_read_counts() {
+    let events: Vec<_> = commands(true)
+        .into_iter()
+        .map(|e| {
+            let mut value = serde_json::to_value(&e).unwrap();
+            if value["payload"]["value"]["kind"] == "command" {
+                let op = &mut value["payload"]["value"];
+                op["kind"] = serde_json::json!("mcpTool");
+                op["server"] = serde_json::json!("PRIVATE_SERVER");
+                op["tool"] = serde_json::json!("PRIVATE_TOOL");
+                op["work"] = serde_json::Value::Null;
+                op["matching"]["readTargets"] = serde_json::json!([]);
+            }
+            Arc::new(serde_json::from_value(value).unwrap())
+        })
+        .collect();
+    let snapshot = make_snapshot(events);
+    let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let repeats = &result.time.repeated_behavior;
+    assert_eq!(repeats.after_failure.count.value, Some(1));
+    assert_eq!(repeats.after_failure.duration.known_sum_ms.value, Some(40));
+    assert_eq!(repeats.same_request_observation_count.value, Some(2));
+    assert_eq!(repeats.coverage.eligible_commands.value, Some(0));
+    assert_eq!(repeats.repeated_read.count.value, Some(0));
+    let Response::Share(shared) = query(&snapshot, &request(PrivacyProfile::ShareV1)) else {
+        panic!()
+    };
+    assert_eq!(
+        shared.time.repeated_behavior.after_failure.count.value,
+        Some(1)
+    );
+    let encoded = serde_json::to_string(&shared).unwrap();
+    for field in [
+        "PRIVATE_SERVER",
+        "PRIVATE_TOOL",
+        "requestFingerprint",
+        "receiverOwner",
+        "readTargets",
+    ] {
+        assert!(!encoded.contains(field), "{field}");
+    }
 }

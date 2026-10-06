@@ -19,6 +19,7 @@ fn operation(id: &str, kind: &str) -> Operation {
         duration_ms: None,
         path: Some("/synthetic/skill/SKILL.md".into()),
         work: None,
+        matching: None,
         server: None,
         tool: None,
         evidence: vec![],
@@ -206,7 +207,6 @@ fn native_read(paths: &[Option<&str>]) -> Operation {
         data: crate::adapters::contract::WorkData::Command {
             cwd: Some("/synthetic/native-cwd".into()),
             source: Some(crate::adapters::contract::CommandSource::Agent),
-            matching: None,
             parsed_commands: Some(
                 paths
                     .iter()

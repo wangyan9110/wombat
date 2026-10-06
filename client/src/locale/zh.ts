@@ -27,7 +27,7 @@ export const zh = {
   "execution.repeats.eligible": "具备匹配依据的命令",
   "execution.repeats.missingRecovery": "缺少恢复跨度的调用",
   "execution.repeats.missingIntervals": "缺少可定位区间的调用",
-  "execution.repeats.reason.missing_matching": "部分调用缺少支持的匹配信息；目前只匹配有依据的命令请求。",
+  "execution.repeats.reason.missing_matching": "部分调用缺少支持的匹配信息；只比较有匹配依据的请求。",
   "execution.repeats.reason.excluded_receivers": "缺少同一任务明确接收身份的调用不参与匹配。",
   "execution.repeats.reason.identity_gaps": "部分操作记录缺少可用身份。",
   "execution.repeats.reason.conflicting_operations": "操作事实存在冲突时不参与匹配。",

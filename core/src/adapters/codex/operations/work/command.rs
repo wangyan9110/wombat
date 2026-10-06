@@ -102,7 +102,10 @@ pub(in crate::adapters::codex::operations) fn observe(
     terminal: bool,
     report: &mut SourceReport,
     evidence: &EvidenceRef,
-) -> WorkObservation {
+) -> (
+    WorkObservation,
+    crate::adapters::contract::OperationMatchObservation,
+) {
     let mut gaps = Vec::new();
     let source = match item.source {
         None => {
@@ -189,21 +192,23 @@ pub(in crate::adapters::codex::operations) fn observe(
             .retain(|gap| *gap != MatchGap::MissingParameters);
         matching.gaps.push(MatchGap::UnsupportedParameters);
     }
-    WorkObservation {
-        format_version: WORK_OBSERVATION_VERSION,
-        stage: if terminal {
-            WorkStage::Terminal
-        } else {
-            WorkStage::Proposed
+    (
+        WorkObservation {
+            format_version: WORK_OBSERVATION_VERSION,
+            stage: if terminal {
+                WorkStage::Terminal
+            } else {
+                WorkStage::Proposed
+            },
+            data: WorkData::Command {
+                cwd,
+                source,
+                parsed_commands,
+            },
+            gaps,
         },
-        data: WorkData::Command {
-            cwd,
-            source,
-            parsed_commands,
-            matching: Some(matching),
-        },
-        gaps,
-    }
+        matching,
+    )
 }
 
 /// A completion may omit repeated dispatch metadata. Fill absent fields only;
@@ -214,19 +219,16 @@ pub(super) fn merge(previous: &mut WorkObservation, next: &WorkObservation) -> b
             cwd,
             source,
             parsed_commands,
-            matching,
         },
         WorkData::Command {
             cwd: new_cwd,
             source: new_source,
             parsed_commands: new_parsed,
-            matching: new_matching,
         },
     ) = (&mut previous.data, &next.data)
     else {
         return false;
     };
-    super::matching::merge(matching, new_matching);
     if next.stage == WorkStage::Terminal {
         previous.stage = WorkStage::Terminal;
     }
@@ -239,7 +241,6 @@ pub(super) fn merge(previous: &mut WorkObservation, next: &WorkObservation) -> b
         *cwd = None;
         *source = None;
         *parsed_commands = None;
-        super::matching::invalidate(matching);
         gap(&mut previous.gaps, WorkGap::ConflictingObservation);
         return true;
     }

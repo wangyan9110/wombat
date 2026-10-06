@@ -1,5 +1,6 @@
 //! Source operation identities, safe metadata and native MCP evidence.
 use super::*;
+mod matching;
 mod mcp;
 mod merge;
 mod outcome;
@@ -38,6 +39,7 @@ pub(super) fn empty_operation(
         duration_ms: None,
         path: None,
         work: None,
+        matching: None,
         server: None,
         tool: None,
         evidence: vec![evidence.clone()],
@@ -148,9 +150,9 @@ pub(super) fn operation(
             .as_ref()
             .filter(|context| context.locally_owned())
             .map(|_| op.thread_id.as_ref());
-        op.work = Some(work::command(
-            item, p.item, receiver, completed, report, &evidence,
-        ));
+        let (work, matching) = work::command(item, p.item, receiver, completed, report, &evidence);
+        op.work = Some(work);
+        op.matching = Some(matching);
     }
     op.server = item.server.as_deref().map(|s| safe_text(s).into());
     op.tool = item.tool.as_deref().map(|s| safe_text(s).into());
@@ -202,6 +204,12 @@ pub(super) fn operation(
             );
             return;
         }
+        let receiver = facts
+            .event_context
+            .as_ref()
+            .filter(|c| c.locally_owned())
+            .map(|_| op.thread_id.as_ref());
+        op.matching = Some(matching::mcp(item, p.item, receiver, false));
         if let Some(status) = item.result.and_then(mcp::result_status) {
             outcome::result_status(&mut op, status);
         }
@@ -251,6 +259,12 @@ pub(super) fn mcp_event(
         );
         return;
     }
+    let receiver = facts
+        .event_context
+        .as_ref()
+        .filter(|c| c.locally_owned())
+        .map(|_| op.thread_id.as_ref());
+    op.matching = Some(matching::mcp(&invocation, p.invocation, receiver, true));
     op.call_id = Some(call.into());
     op.duration_ms = p.duration.and_then(mcp::duration);
     op.status = if event == "mcp_tool_call_begin" {

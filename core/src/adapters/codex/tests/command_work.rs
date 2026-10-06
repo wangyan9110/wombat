@@ -319,14 +319,7 @@ fn command_metadata_survives_incremental_restart_and_explicit_fork_replay() {
 }
 
 fn matching(op: &Operation) -> &OperationMatchObservation {
-    let WorkData::Command {
-        matching: Some(value),
-        ..
-    } = &work(op).data
-    else {
-        panic!("matching observation expected")
-    };
-    value
+    op.matching.as_ref().expect("matching observation expected")
 }
 #[test]
 fn native_command_matching_is_retained_in_safe_events_and_excludes_inherited_receivers() {

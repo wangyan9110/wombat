@@ -170,6 +170,7 @@ pub(super) fn merge(old: &mut Operation, incoming: &mut Operation, report: &mut 
         (WorkData::Command { .. }, WorkData::Command { .. })
     ) {
         if command::merge(previous, next) {
+            super::matching::invalidate(&mut old.matching);
             issue(
                 report,
                 "operationWorkConflict",
@@ -186,7 +187,6 @@ pub(super) fn merge(old: &mut Operation, incoming: &mut Operation, report: &mut 
                 cwd: None,
                 source: None,
                 parsed_commands: None,
-                matching: None,
             },
         };
         previous.gaps.push(WorkGap::ConflictingObservation);
