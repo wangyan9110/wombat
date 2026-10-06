@@ -16,6 +16,8 @@ mod order;
 pub const FAILURE_METHOD: &str = "same_operation_after_failure_v1";
 pub const READ_METHOD: &str = "same_target_read_v1";
 pub const DETAIL_LIMIT: usize = 200;
+pub const PROOF_LIMIT: usize = 600;
+pub const PROOF_REF_LIMIT: usize = 16;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Budget {
@@ -86,6 +88,9 @@ pub enum ReadLayer {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Match {
     pub operation_id: String,
+    pub later_evidence: Vec<String>,
+    pub after_failure_evidence: Option<Vec<String>>,
+    pub successful_read_evidence: Vec<Vec<String>>,
     pub after_failure_predecessor: Option<String>,
     pub successful_read_predecessors: Vec<String>,
     pub repeated_read_targets: usize,
@@ -281,6 +286,7 @@ pub(crate) fn project(
     };
     let mut intervals = Vec::new();
     let mut known_recovery = 0;
+    let mut proof_count = 0;
     for (index, links) in linked.into_iter().enumerate() {
         check(cancelled)?;
         let later = &candidates[index];
@@ -334,12 +340,25 @@ pub(crate) fn project(
             evidence_ids: later.endpoint.evidence_ids.clone(),
         });
         if !out.detail_limited {
-            if out.details.len() == DETAIL_LIMIT {
+            if out.details.len() == DETAIL_LIMIT
+                || proof_count + 1 + usize::from(links.failure.is_some()) + links.reads.len()
+                    > PROOF_LIMIT
+            {
                 out.details.clear();
                 out.detail_limited = true;
             } else {
+                proof_count += 1 + usize::from(links.failure.is_some()) + links.reads.len();
                 out.details.push(Match {
                     operation_id: later.endpoint.identity.clone(),
+                    later_evidence: later.evidence.clone(),
+                    after_failure_evidence: links
+                        .failure
+                        .map(|prior| candidates[prior].evidence.clone()),
+                    successful_read_evidence: links
+                        .reads
+                        .iter()
+                        .map(|&prior| candidates[prior].evidence.clone())
+                        .collect(),
                     after_failure_predecessor: links
                         .failure
                         .map(|prior| candidates[prior].endpoint.identity.clone()),

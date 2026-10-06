@@ -9,7 +9,7 @@ import {timingFixture,previewTiming} from '../src/preview/timing.js';
 import {usageFixture} from '../src/preview/fixtures.js';
 registerHooks({load(url,context,next){return url.endsWith('.css')?{format:'module',source:'',shortCircuit:true}:next(url,context);}});
 const {Execution}=await import('../src/tasks/Execution.js');
-const {TimingDetailReader}=await import('../src/tasks/TurnExecution.js');
+const {TimingDetailReader,TimingDetailSelection}=await import('../src/tasks/TurnExecution.js');
 const render=(summary:ReturnType<typeof timingFixture>)=>renderToStaticMarkup(createElement(Execution,{summary,refresh(){},onEvidence(){},onShare(){}}));
 test('production execution consumes real DTOs, keeps zero unknown and five states distinct in both languages',()=>{
  const previous=locale.getSnapshot().locale;
@@ -172,4 +172,28 @@ test('repeat production panel preserves subtotal coverage and explains all core 
   assert.doesNotMatch(html,/execution\.repeats\.|timing\.basis\.repeat|undefined|NaN|未知/);
   const missing=render(timingFixture('missing'));assert.match(missing,language==='en'?/request observation counts remain available/:/请求出现次数仍可保留/);
  }}finally{locale.setLocale(previous);}
+});
+
+test('repeat-call previews use production proof navigation and the same fixed detail reader',async()=>{
+ const {timingEvidenceLocations}=await import('../src/tasks/TurnExecution.js');
+ const client=createUsageClient({query:async request=>usageFixture(request,'complete'),timing:previewTiming('complete')});
+ const common={snapshotId:'preview:repeat',threadId:'preview-task',turnId:'preview-turn'};
+ const result=await client.timing!({action:'summary',...common});
+ assert.ok(result.action==='summary'&&result.profile==='local');
+ const row=result.evidence.repeatPages.entries[0];assert.ok(row.afterFailure);
+ const locations=timingEvidenceLocations(result);
+ const reader=new TimingDetailReader(client,common.snapshotId,common.threadId,common.turnId);
+ const selection=new TimingDetailSelection(reader);
+ for(const proof of [row.later,row.afterFailure,...row.successfulReads]){
+  const pages=selection.select(proof.operationAlias,locations);assert.ok(pages?.length);
+  const response=await reader.evidence(pages[0].cursor??undefined,pages[0].limit);
+  for(const ref of pages[0].evidenceRefs)assert.ok(response.rows.some(row=>row.reference===ref));
+  assert.equal(response.snapshotId,common.snapshotId);
+  assert.equal(response.total.value,result.evidence.collections[0].count.value);
+ }
+ const whole=await reader.evidence();assert.equal(whole.total.value,result.evidence.collections[0].count.value);
+ assert.equal(result.time.repeatedBehavior.combinedUnionMs.value,row.laterDurationMs.value);
+ reader.stop();
+ const previous=locale.getSnapshot().locale;
+ try{for(const language of ['en','zh'] as const){locale.setLocale(language);const html=render(result);assert.match(html,language==='en'?/Earlier failed call/:/前次失败调用/);assert.match(html,language==='en'?/Earlier successful read 1/:/前次成功读取 1/);assert.doesNotMatch(html,/execution\.repeats\.|undefined|NaN|未知/);const limited=structuredClone(result);limited.evidence.repeatPages.entries=[];limited.evidence.repeatPages.detail={support:'unavailable',reason:'resource_limit'};const text=render(limited);assert.match(text,language==='en'?/aggregate counts and duration subtotals remain/:/完整次数与耗时小计仍保留/);assert.match(text,/40 ms/);}}finally{locale.setLocale(previous);}
 });

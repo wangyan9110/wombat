@@ -1,5 +1,16 @@
 // Product copy. Keep keys stable; add complete messages with parameters.
 export const zh = {
+  "execution.repeats.callDuration": "该次调用耗时",
+  "execution.repeats.callRecovery": "前次失败到本次完成的跨度",
+  "execution.repeats.details": "匹配调用及依据",
+  "execution.repeats.call": "匹配调用 {number}",
+  "execution.repeats.later": "后次调用",
+  "execution.repeats.previousFailure": "前次失败调用",
+  "execution.repeats.previousRead": "前次成功读取 {number}",
+  "execution.repeats.targetCount": "同路径目标：{count}",
+  "execution.repeats.detailLimit": "匹配调用明细超过展示预算；完整次数与耗时小计仍保留。",
+  "execution.selectedRecords": "这些记录支持所选调用，来自同一轮次的固定数据视图。",
+  "execution.repeats.proofCount": "已有证据定位的调用：{count}",
   "execution.repeats.partial": "次数按现有匹配依据统计；依据不足的调用在计算覆盖范围中说明。",
   "timing.basis.repeatAfterFailure": "失败完成后再次发起相同请求",
   "timing.basis.successfulReadRepeat": "成功读取后再次读取同一路径",

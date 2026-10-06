@@ -9,7 +9,7 @@ const capabilities = {
   lifecycleIntervals: unavailable, operationIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable, objectUses: {support:'supported',reason:'canonical_use_records'} as const,
 };
-export const capabilityResult = { outputVersion: 3, action: 'capabilities', methodVersion: 'safe_event_turn_v5', profile: 'local', capabilities } as const;
+export const capabilityResult = { outputVersion: 4, action: 'capabilities', methodVersion: 'safe_event_turn_v5', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const repeatDuration=()=>({knownSumMs:count(),recordedCount:count(),calculatedCount:count(),missingCount:count()});
@@ -19,7 +19,7 @@ const distribution = () => ({ samples: count(), median: count(), p90: count() })
 const useTotals = { methodVersion: 3, sourceCoverage: 'unknown' as const, objectCount: count(), recordCount: count(), unboundTargetRecords: count(),
   unassignedSkillRecords: count(), unassignedMcpRecords: count(), coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() } };
 const baseLocal: TimingLocalResult = {
-  outputVersion: 3, action: 'summary', methodVersion: 'safe_event_turn_v5', profile: 'local',
+  outputVersion: 4, action: 'summary', methodVersion: 'safe_event_turn_v5', profile: 'local',
   uses: { totals: useTotals, detail: unavailable, limit: 50, objects: [], nextCursor: null },
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
@@ -51,10 +51,10 @@ const baseLocal: TimingLocalResult = {
     snapshotUnassignedTotal: count(), threadUnassignedTotal: count(), sourceStatus: 'unknown',
   },
   quality: { partial: true, running: false, censored: true, reasonCodes: [], factLimit: 100000, summaryLimitBytes: 262144 },
-  freshness: { status: 'fixed' }, evidence: { intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
+  freshness: { status: 'fixed' }, evidence: { repeatPages: {detail:unavailable,candidateOperationCount:count(),locatedOperationCount:count(),pageCount:count(),limitBytes:65536,entries:[]}, intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
 };
 const baseShare: TimingShareResult = {
-  outputVersion: 3, action: 'summary', methodVersion: baseLocal.methodVersion, profile: 'share-v1',
+  outputVersion: 4, action: 'summary', methodVersion: baseLocal.methodVersion, profile: 'share-v1',
   uses: useTotals,
   privacy: { profile: 'share-v1', omittedFields: ['local_ids'], aliases: 'package' },
   scope: { taskAlias: 'task-1', turnAlias: 'turn-1', wholeTurn: true }, capabilities, relativeAnchors: baseLocal.anchors,
@@ -111,7 +111,7 @@ export function timingFixture(scenario:Scenario='complete',snapshotId='preview:1
  repeats.recoverySpanSumMs=analyzed(noWindow?0:repeatCount*80,'failure_recovery_span');
  repeats.missingRecoverySpanCount=measured(0,'canonical_operation_identity');
  repeats.combinedOperationCount=measured(noWindow?0:repeatCount,'canonical_operation_identity');
- repeats.combinedUnionMs=noWindow?{...count(),basis:'missing_time'}:analyzed(repeatCount*30,'operation_union');
+ repeats.combinedUnionMs=noWindow?{...count(),basis:'missing_time'}:analyzed(repeatCount*40,'operation_union');
  repeats.combinedMissingIntervalCount=measured(0,'canonical_operation_identity');
  for(const field of ['candidateOperations','eligibleCommands','missingIdentityRecords','excludedReceivers','missingMatching','conflictingOperations','missingStart','indeterminateOutcomes','orderGaps','contextBoundaries','crossedContext','missingClockDomain','sourceMetadataGaps','durationConflicts'] as const)repeats.coverage[field]=measured(field==='candidateOperations'?(scenario==='empty'?0:mcpOnly?1:mixed?2:dense?200:3):field==='eligibleCommands'?(scenario==='empty'||mcpOnly?0:mixed?1:dense?200:3):field==='missingMatching'&&(mcpOnly||mixed)?1:field==='missingStart'&&noWindow&&scenario!=='empty'?3:0,'canonical_operation_identity');
  repeats.coverage.partial=noWindow||mcpOnly||mixed;repeats.coverage.reasonCodes=noWindow?scenario==='empty'?['missing_window']:['missing_start','missing_window']:mcpOnly||mixed?['missing_matching']:[];repeats.support.support=repeats.coverage.partial?'partial':'supported';
@@ -128,8 +128,15 @@ export function timingFixture(scenario:Scenario='complete',snapshotId='preview:1
  coverage.residualRanges=residualRanges.map(([startMs,endMs])=>({startMs,endMs}));
  result.capabilities.operationIntervals={support:'partial',reason:'operation_union'};
 
- result.evidence.available=true;result.evidence.collections=[{reference:'collection:turn',kind:'turn_events',snapshotId,scope:result.scope,count:measured(4,'safe_event_count'),method:result.methodVersion}];
+ result.evidence.available=true;result.evidence.collections=[{reference:'collection:turn',kind:'turn_events',snapshotId,scope:result.scope,count:measured(!noWindow&&repeatCount?10:4,'safe_event_count'),method:result.methodVersion}];
  result.evidence.intervalPages={detail:{support:'supported',reason:'safe_event_count'},candidateIntervalCount:measured(tracks.length,'safe_event_count'),locatedIntervalCount:measured(tracks.length,'safe_event_count'),missingEventRefCount:measured(0,'safe_event_count'),pageCount:measured(1,'safe_event_count'),limitBytes:65536,entries:tracks.map(track=>({intervalAlias:track.intervalAlias,pages:[{limit:200,evidenceRefs:track.evidenceRefs}]}))};
+ const navigation=result.evidence.repeatPages;
+ navigation.candidateOperationCount=structuredClone(repeats.combinedOperationCount);
+ navigation.locatedOperationCount=measured(noWindow?0:repeatCount,'exact_event_page');
+ navigation.pageCount=measured(noWindow?0:repeatCount*3,'exact_event_page');
+ navigation.detail={support:noWindow||repeatCount===0?'unavailable':'supported',reason:noWindow?'missing_time':repeatCount===0?'no_candidates':'exact_event_page'};
+ const proof=(role:'later'|'failure'|'read'):TimingLocalResult['evidence']['repeatPages']['entries'][number]['later']=>({operationAlias:`repeat:0:${role==='read'?'read:0':role}`,pages:[{cursor:{token:`synthetic-repeat-${role}`},limit:200,evidenceRefs:[`event:repeat-${role}-start`,`event:repeat-${role}-end`]}]});
+ navigation.entries=noWindow||repeatCount===0?[]:[{later:proof('later'),afterFailure:proof('failure'),successfulReads:[proof('read')],repeatedReadTargetCount:1,laterDurationMs:measured(40,'native_record'),recoverySpanMs:analyzed(80,'failure_recovery_span')}];
  result.uses=usesFixture(result,scenario);result.capabilities={...result.capabilities,objectUses:result.uses.detail};
  return result;
 }
@@ -157,6 +164,11 @@ export function previewTiming(scenario:Scenario){
   const local=timingFixture(scenario,request.snapshotId??'preview:1',request.threadId,request.turnId);
   if(request.action==='summary')return request.privacyProfile==='share-v1'?timingShareFixture(local):local;
   if(request.collection&&request.collection!=='turn_events')return usesEvidence(local,scenario,request);
-  return {outputVersion: 3,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:{value:4,status:'observed',basis:'safe_event_count',evidenceRefs:[]},rows:request.cursor?[{reference:'event:end-0',recordKind:'lifecycle',phase:'completed',timestampMs:4000,gapCodes:[]}]:[{reference:'event:start-0',recordKind:'lifecycle',phase:'started',timestampMs:1000,gapCodes:[]}],nextCursor:request.cursor?null:{token:'synthetic-next'}};
+  const repeatRole=request.cursor?.token.match(/^synthetic-repeat-(later|failure|read)$/)?.[1];
+  if(repeatRole){
+   const start=Date.parse('2026-10-05T00:00:00Z')+(repeatRole==='later'?140:repeatRole==='failure'?60:0);
+   return {outputVersion:4,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:{value:10,status:'observed',basis:'safe_event_count',evidenceRefs:[]},rows:[{reference:`event:repeat-${repeatRole}-start`,recordKind:'operation',phase:'started',timestampMs:start,gapCodes:[]},{reference:`event:repeat-${repeatRole}-end`,recordKind:'operation',phase:repeatRole==='failure'?'failed':'completed',timestampMs:start+40,durationMs:40,gapCodes:[]}],nextCursor:null};
+  }
+  return {outputVersion: 4,action:'evidence',collection:'turn_events',methodVersion:local.methodVersion,profile:'local',snapshotId:request.snapshotId,scope:local.scope,total:local.evidence.collections[0].count,rows:request.cursor?[{reference:'event:end-0',recordKind:'lifecycle',phase:'completed',timestampMs:4000,gapCodes:[]}]:[{reference:'event:start-0',recordKind:'lifecycle',phase:'started',timestampMs:1000,gapCodes:[]}],nextCursor:request.cursor?null:{token:'synthetic-next'}};
  };
 }

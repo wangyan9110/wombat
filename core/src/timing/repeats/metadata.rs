@@ -23,6 +23,7 @@ pub(super) struct Candidate<'a, 'p> {
     pub failed: bool,
     pub succeeded: bool,
     pub duration: Option<(u64, bool)>,
+    pub evidence: Vec<String>,
 }
 impl Candidate<'_, '_> {
     pub fn completes_before(&self, later: &Self) -> bool {
@@ -108,6 +109,7 @@ struct Fields<'a> {
     outcomes: BTreeSet<TerminalOutcome>,
     codes: BTreeSet<i64>,
     durations: BTreeSet<u64>,
+    witnesses: BTreeSet<String>,
 }
 fn known<'a, T: ?Sized + PartialEq>(old: &mut Option<&'a T>, next: Option<&'a T>) -> bool {
     match (*old, next) {
@@ -158,6 +160,7 @@ fn fields<'a>(
         outcomes: BTreeSet::new(),
         codes: BTreeSet::new(),
         durations: BTreeSet::new(),
+        witnesses: BTreeSet::new(),
     };
     let mut cwd = None;
     let mut source = None;
@@ -168,8 +171,11 @@ fn fields<'a>(
         if !meter.use_field(0) {
             return Ok(None);
         }
-        if let Some(outcome) = phase.terminal_outcome {
-            out.outcomes.insert(outcome);
+        if let Some(outcome) = phase.terminal_outcome
+            && out.outcomes.insert(outcome)
+            && out.outcomes.len() <= 2
+        {
+            out.witnesses.insert(phase.event.id().into());
         }
         if phase.outcome_conflict {
             out.outcomes.insert(TerminalOutcome::Completed);
@@ -179,15 +185,19 @@ fn fields<'a>(
             ObservationKind::Operation(op) => {
                 if phase.terminal_outcome.is_some()
                     && let Some(code) = op.exit_code
+                    && out.codes.insert(code)
+                    && out.codes.len() <= 2
                 {
-                    out.codes.insert(code);
+                    out.witnesses.insert(phase.event.id().into());
                 }
                 if matches!(
                     phase.phase,
                     Phase::Completed | Phase::Failed | Phase::Cancelled
                 ) && let Some(duration) = op.duration_ms
+                    && out.durations.insert(duration)
+                    && out.durations.len() <= 2
                 {
-                    out.durations.insert(duration);
+                    out.witnesses.insert(phase.event.id().into());
                 }
                 if let Some(work) = &op.work {
                     out.gap |= !work.gaps.is_empty();
@@ -237,6 +247,13 @@ fn fields<'a>(
                         return Ok(None);
                     }
                 }
+                if (out.receiver.is_none() && matching.receiver_owner.is_some())
+                    || (out.fingerprint.is_none() && matching.request_fingerprint.is_some())
+                    || (out.targets.is_none() && !matching.read_targets.is_empty())
+                    || (!out.expected_nonzero && matching.expected_nonzero)
+                {
+                    out.witnesses.insert(phase.event.id().into());
+                }
                 out.invalid |= known(&mut out.receiver, matching.receiver_owner.as_deref());
                 out.invalid |= known(
                     &mut out.fingerprint,
@@ -266,8 +283,10 @@ fn fields<'a>(
                         .secs
                         .checked_mul(1000)
                         .and_then(|v| v.checked_add(u64::from(duration.nanos / 1_000_000)))
+                    && out.durations.insert(value)
+                    && out.durations.len() <= 2
                 {
-                    out.durations.insert(value);
+                    out.witnesses.insert(phase.event.id().into());
                 }
             }
             _ => {}
@@ -447,7 +466,11 @@ pub(super) fn collect<'a, 'p>(
                 .and_then(|(start, end)| elapsed(start, end))
                 .map(|v| (v, false))
         };
+        let mut proof = fields.witnesses.clone();
+        proof.extend(endpoint.evidence_ids.iter().cloned());
+        anyhow::ensure!(proof.len() <= PROOF_REF_LIMIT, "repeat proof witness bound");
         out.push(Candidate {
+            evidence: proof.into_iter().collect(),
             endpoint,
             receiver,
             fingerprint: fields.fingerprint,

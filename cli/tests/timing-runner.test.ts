@@ -27,7 +27,7 @@ test('timing runner emits exactly one unmodified JSON projection and uses only t
 });
 test('CLI evidence follows the caller supplied fixed snapshot and cursor without advancing or reparsing it', async () => {
   const io = capture(), seen: TimingRequest[] = [];
-  const response: TimingResult = { outputVersion: 3, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: 'live:scope:fixed',
+  const response: TimingResult = { outputVersion: 4, action: 'evidence', collection: 'turn_events', methodVersion: local.methodVersion, profile: 'local', snapshotId: 'live:scope:fixed',
     scope: local.scope, total: { value: 3, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] }, rows: [], nextCursor: { token: 'next-page' } };
   const host = { ...io, createClient: () => ({ timing: async (request: TimingRequest) => { seen.push(request); return response; } }) };
   assert.equal(await runTimingCli(['evidence', ...target, '--snapshot', response.snapshotId, '--limit', '1'], host), 0);

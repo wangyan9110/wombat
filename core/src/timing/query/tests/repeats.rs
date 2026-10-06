@@ -223,3 +223,221 @@ fn native_mcp_aggregates_reach_local_and_share_without_command_or_read_counts() 
         assert!(!encoded.contains(field), "{field}");
     }
 }
+
+#[test]
+fn predecessor_navigation_separates_each_proof_and_reads_the_fixed_pages() {
+    let events = commands(true);
+    let snapshot = make_snapshot(events.clone());
+    let response = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let navigation = &response.evidence.repeat_pages;
+    assert_eq!(navigation.candidate_operation_count.value, Some(2));
+    assert_eq!(navigation.located_operation_count.value, Some(2));
+    assert_eq!(navigation.entries.len(), 2);
+    let later = &navigation.entries[1];
+    assert_eq!(later.later.operation_alias, "repeat:1:later");
+    assert!(later.after_failure.is_some());
+    assert_eq!(later.successful_reads.len(), 1);
+    assert_eq!(later.later_duration_ms.value, Some(40));
+    for (proof, expected) in [
+        (&later.later, vec![events[5].id(), events[6].id()]),
+        (
+            later.after_failure.as_ref().unwrap(),
+            vec![events[3].id(), events[4].id()],
+        ),
+        (
+            &later.successful_reads[0],
+            vec![events[1].id(), events[2].id()],
+        ),
+    ] {
+        let references: Vec<_> = proof
+            .pages
+            .iter()
+            .flat_map(|p| p.evidence_refs.iter())
+            .collect();
+        for id in expected {
+            assert!(references.contains(&&format!("event:{id}")));
+        }
+        for page in &proof.pages {
+            let Request::Summary {
+                thread_id,
+                turn_id,
+                snapshot_id,
+                roots,
+                scope,
+                ..
+            } = request(PrivacyProfile::Local)
+            else {
+                panic!()
+            };
+            let evidence_request = Request::Evidence {
+                thread_id,
+                turn_id,
+                snapshot_id: snapshot_id.unwrap(),
+                roots,
+                scope,
+                cursor: page.cursor.clone(),
+                limit: page.limit,
+                privacy_profile: PrivacyProfile::Local,
+                collection: EvidenceSet::TurnEvents,
+                object_ref: None,
+            };
+            let Response::Evidence(page_result) = query(&snapshot, &evidence_request) else {
+                panic!()
+            };
+            for reference in &page.evidence_refs {
+                assert!(
+                    page_result
+                        .rows
+                        .iter()
+                        .any(|row| &row.reference == reference)
+                );
+            }
+        }
+    }
+    let Response::Share(shared) = query(&snapshot, &request(PrivacyProfile::ShareV1)) else {
+        panic!()
+    };
+    let text = serde_json::to_string(&shared).unwrap();
+    for field in [
+        "repeatPages",
+        "operationAlias",
+        "successfulReads",
+        "cursor",
+        "repeat:1",
+    ] {
+        assert!(!text.contains(field), "{field}");
+    }
+}
+
+#[test]
+fn repeat_proofs_locate_later_pages_and_do_not_reuse_the_first_page() {
+    let mut events = vec![boundary(0, Some(0), Phase::Started, None, None)];
+    events.extend(command(
+        1,
+        "private-success",
+        Some(10),
+        Some(20),
+        "completed",
+        None,
+    ));
+    for offset in 3..250 {
+        events.push(event(
+            offset,
+            None,
+            Payload::ContextWindow {
+                tokens: 4096,
+                model: None,
+            },
+        ));
+    }
+    events.extend(command(
+        250,
+        "private-failure",
+        Some(30),
+        Some(40),
+        "failed",
+        None,
+    ));
+    events.extend(command(
+        252,
+        "private-later",
+        Some(50),
+        Some(80),
+        "completed",
+        Some(40),
+    ));
+    events.push(boundary(254, Some(100), Phase::Completed, None, None));
+    let snapshot = make_snapshot(events);
+    let local = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let last = &local.evidence.repeat_pages.entries[1];
+    assert!(last.later.pages[0].cursor.is_some());
+    assert!(
+        last.after_failure.as_ref().unwrap().pages[0]
+            .cursor
+            .is_some()
+    );
+    assert!(last.successful_reads[0].pages[0].cursor.is_none());
+}
+
+#[test]
+fn navigation_encoding_bounds_drop_details_only_and_preserve_complete_counts() {
+    let events = commands(true);
+    let snapshot = make_snapshot(events.clone());
+    let analysis = analysis::analyze(analysis::AnalyzeInput {
+        source: "source-private",
+        thread: "thread-private",
+        turn: "turn-private",
+        measurements: &[],
+        events: &events,
+        budget: analysis::Budget {
+            events: 100_000,
+            measurements: 100_000,
+            lifecycle_records: 100_000,
+        },
+    });
+    let target = TurnTarget {
+        source: "source-private",
+        thread: "thread-private",
+        turn: "turn-private",
+    };
+    let build = |budget| {
+        super::super::repeats::build_budget(
+            &snapshot,
+            target,
+            &analysis.repeated_behavior,
+            Some(&events),
+            None,
+            budget,
+            &AtomicBool::new(false),
+        )
+        .unwrap()
+    };
+    let full = build(navigation::LIMIT_BYTES);
+    let bytes = serde_json::to_vec(&full).unwrap().len();
+    let exact = build(bytes);
+    assert_eq!(exact.entries.len(), 2);
+    let limited = build(bytes - 1);
+    assert!(limited.entries.is_empty());
+    assert_eq!(limited.detail.reason, Basis::ResourceLimit);
+    assert_eq!(
+        limited.candidate_operation_count.value,
+        full.candidate_operation_count.value
+    );
+    assert_eq!(
+        limited.located_operation_count.value,
+        full.located_operation_count.value
+    );
+    assert_eq!(limited.page_count.value, full.page_count.value);
+}
+
+#[test]
+fn native_endpoint_proofs_keep_matching_and_duration_witnesses() {
+    let mut events = commands(true);
+    let native = event(
+        7,
+        None,
+        Payload::Item {
+            item_kind: crate::session_events::ItemKind::Command,
+            native_id: Some("private-later".into()),
+            phase: Phase::Completed,
+            started_at_ms: Some(50),
+            completed_at_ms: Some(80),
+            duration: None,
+        },
+    );
+    let native_id = native.id().to_owned();
+    events.pop();
+    events.push(native);
+    events.push(boundary(8, Some(100), Phase::Completed, None, None));
+    let snapshot = make_snapshot(events.clone());
+    let local = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let last = &local.evidence.repeat_pages.entries[1].later;
+    let refs: Vec<_> = last
+        .pages
+        .iter()
+        .flat_map(|p| p.evidence_refs.iter())
+        .collect();
+    for id in [native_id, events[5].id().into(), events[6].id().into()] {
+        assert!(refs.contains(&&format!("event:{id}")));
+    }
+}

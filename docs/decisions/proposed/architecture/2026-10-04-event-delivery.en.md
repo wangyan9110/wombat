@@ -24,11 +24,11 @@ wombat timing capabilities [--share]
 
 Summary supports repeated `--root`, `--source`, `--fresh` / `--cached`, `--snapshot`, `--lang`, and cancellation. Accept full Wombat identities without silently falling back to upstream IDs; reject mismatched or missing targets. `--turn` is required; task aggregates come later. Reject date/Token/cost filtering or pagination that fragments the summary's whole-turn window. Evidence uses the same fixed target/version/scope with default50/max200 rows and an opaque cursor, local profile only and no refresh mode. Capabilities accepts no target or source paths and performs no scan. Emit one final JSON object by default with status on stderr; explicit `--text` and `--json` are mutually exclusive. Sharing requests Rust's separate projection. Timing bypasses automatic pricing, configuration scans, Hook capture, and account observation. Errors retain the separate v1 safe envelope; cancellation exits130 and does not stop shared synchronization.
 
-Add `timing_dto.rs`, generating Schema, TS, and validators from Rust. Operation `timing` uses the narrow `summary/evidence/capabilities` request union (integration in section15), response `outputVersion:2`, and a separate `methodVersion`. Version usage JSON v3, adapter, index, diagnostic snapshot, and analysis methods separately. Do not add a diagnostic action to the old usage union while claiming an unchanged protocol. Ordinary local JSON retains local locating identities; sharing has its own projection.
+Add `timing_dto.rs`, generating Schema, TS, and validators from Rust. Operation `timing` uses the narrow `summary/evidence/capabilities` request union (integration in section15), response `outputVersion:4`, and a separate `methodVersion`. Version usage results, adapter, index, diagnostic snapshot, and analysis methods separately. Do not add a diagnostic action to the old usage union while claiming an unchanged protocol. Ordinary local JSON retains local locating identities; sharing has its own projection.
 
 | Top-level field | Contract |
 |---|---|
-| `outputVersion/action/methodVersion` | 1, summary, analysis algorithm version; stable untranslated enums/versions |
+| `outputVersion/action/methodVersion` | Current timing response version, summary, analysis algorithm version; stable untranslated enums/versions |
 | `profile/privacy` | local/share-v1 response branch and removed-data manifest; matches request privacyProfile |
 | `readView` | Fixed usage/diagnostic read identity and adapter/projection versions; live identities remain temporary |
 | `scope` | Task, turn, source identities; whole-turn query, without interpreting history through current project configuration |
@@ -46,7 +46,7 @@ This synthetic sharing-summary fragment omits fields still required in a complet
 
 ```json
 {
-  "outputVersion": 1,
+  "outputVersion": 4,
   "action": "summary",
   "profile": "share-v1",
   "methodVersion": "timing-v1",

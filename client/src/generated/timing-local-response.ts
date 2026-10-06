@@ -514,6 +514,7 @@ export interface QueryFreshness {
   errorCode?: string | null;
 }
 export interface EvidenceIndex {
+  repeatPages: RepeatPages;
   intervalPages: IntervalPages;
   collections: EvidenceCollection[];
   available: boolean;
@@ -521,6 +522,245 @@ export interface EvidenceIndex {
   snapshotId: string;
   refs: string[];
   method: string;
+}
+export interface RepeatPages {
+  detail: Capability;
+  candidateOperationCount: TimingMetricUint64;
+  locatedOperationCount: TimingMetricUint64;
+  pageCount: TimingMetricUint64;
+  limitBytes: number;
+  /**
+   * @maxItems 200
+   */
+  entries: RepeatEvidenceEntry[];
+}
+export interface RepeatEvidenceEntry {
+  later: RepeatProof;
+  afterFailure?: RepeatProof | null;
+  /**
+   * @maxItems 599
+   */
+  successfulReads: RepeatProof[];
+  repeatedReadTargetCount: number;
+  laterDurationMs: TimingMetricUint64;
+  recoverySpanMs: TimingMetricUint64;
+}
+export interface RepeatProof {
+  operationAlias: string;
+  /**
+   * @minItems 1
+   * @maxItems 16
+   */
+  pages:
+    | [RepeatEvidencePage]
+    | [RepeatEvidencePage, RepeatEvidencePage]
+    | [RepeatEvidencePage, RepeatEvidencePage, RepeatEvidencePage]
+    | [RepeatEvidencePage, RepeatEvidencePage, RepeatEvidencePage, RepeatEvidencePage]
+    | [RepeatEvidencePage, RepeatEvidencePage, RepeatEvidencePage, RepeatEvidencePage, RepeatEvidencePage]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ]
+    | [
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage,
+        RepeatEvidencePage
+      ];
+}
+/**
+ * Local source-record proofs. Sharing contains no repeat locators or aliases.
+ */
+export interface RepeatEvidencePage {
+  cursor?: Cursor | null;
+  limit: number;
+  /**
+   * @minItems 1
+   * @maxItems 16
+   */
+  evidenceRefs:
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
 }
 export interface IntervalPages {
   detail: Capability;

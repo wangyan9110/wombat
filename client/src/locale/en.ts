@@ -1,5 +1,16 @@
 import type { zh } from './zh.js';
 export const en = {
+  "execution.repeats.callDuration": "Duration of this call",
+  "execution.repeats.callRecovery": "Span from earlier failure to this completion",
+  "execution.repeats.details": "Matched calls and their evidence",
+  "execution.repeats.call": "Matched call {number}",
+  "execution.repeats.later": "Later call",
+  "execution.repeats.previousFailure": "Earlier failed call",
+  "execution.repeats.previousRead": "Earlier successful read {number}",
+  "execution.repeats.targetCount": "Same-path targets: {count}",
+  "execution.repeats.detailLimit": "Matched-call details exceed the display budget; aggregate counts and duration subtotals remain available.",
+  "execution.selectedRecords": "Records supporting the selected call in this fixed turn view.",
+  "execution.repeats.proofCount": "Calls with located evidence: {count}",
   "execution.repeats.partial": "Counts use the available matching evidence; calls without sufficient evidence are described in calculation coverage.",
   "timing.basis.repeatAfterFailure": "Same request dispatched again after a recorded failure",
   "timing.basis.successfulReadRepeat": "Same path read again after an earlier successful read",

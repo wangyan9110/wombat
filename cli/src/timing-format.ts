@@ -123,6 +123,18 @@ export function renderTimingResult(result: TimingResult): string {
     ['execution.repeats.eligible',repeats.coverage.eligibleCommands,''],
   ] as const)lines.push(`${t(label)}: ${measured(metric,unit)}`);
   lines.push(t('execution.repeats.layer'),t('execution.repeats.observationNote'),t('execution.repeats.note'),...repeats.coverage.reasonCodes.map(repeatedBehaviorReasonText));
+  if(result.profile==='local') {
+    const navigation=result.evidence.repeatPages;
+    if(navigation.entries.length) {
+      lines.push(t('execution.repeats.details'),t('execution.repeats.proofCount',{count:navigation.locatedOperationCount.value??0}));
+      navigation.entries.forEach((entry,index)=>{
+        lines.push(`${t('execution.repeats.call',{number:index+1})}: ${measured(entry.laterDurationMs,' ms')}`,
+          `  ${t('execution.repeats.later')}: ${terminalText(entry.later.operationAlias)}`);
+        if(entry.afterFailure)lines.push(`  ${t('execution.repeats.previousFailure')}: ${terminalText(entry.afterFailure.operationAlias)}`);
+        entry.successfulReads.forEach((proof,prior)=>lines.push(`  ${t('execution.repeats.previousRead',{number:prior+1})}: ${terminalText(proof.operationAlias)}`));
+      });
+    } else if(navigation.detail.reason==='resource_limit')lines.push(t('execution.repeats.detailLimit'));
+  }
   const allWorkMetrics: Array<[string, Metric]> = [
     ['addedLines', result.work.addedLines],
     ['removedLines', result.work.removedLines],

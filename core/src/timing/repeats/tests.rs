@@ -971,3 +971,113 @@ fn common_matching_validation_rejects_foreign_owner_and_fabricated_mcp_reads() {
         assert!(serde_json::from_value::<Event>(encoded).is_err());
     }
 }
+
+#[test]
+fn many_predecessors_omit_all_proofs_without_losing_full_repeat_totals() {
+    let targets: Vec<_> = (0..210).map(|n| format!("p{n}")).collect();
+    let mut events = vec![];
+    for (n, target) in targets.iter().enumerate() {
+        events.extend(call(
+            (n * 2 + 1) as u64,
+            &format!("prior-{n}"),
+            (n * 2) as i64,
+            (n * 2 + 1) as i64,
+            "completed",
+            target,
+            &[target],
+        ));
+    }
+    let refs: Vec<_> = targets.iter().map(String::as_str).collect();
+    for n in 0..3 {
+        events.extend(call(
+            421 + n * 2,
+            &format!("later-{n}"),
+            500 + n as i64 * 2,
+            501 + n as i64 * 2,
+            if n == 2 { "completed" } else { "failed" },
+            "same",
+            &refs,
+        ));
+    }
+    let result = project_events(&events);
+    assert!(result.detail_limited);
+    assert!(result.details.is_empty());
+    assert_eq!(result.repeated_read.count, Some(3));
+    assert_eq!(result.after_failure.count, Some(2));
+    assert_eq!(result.repeated_read.duration.sum_ms, Some(3));
+}
+
+#[test]
+fn predecessor_proof_retains_later_exit_code_fill_and_conflict_witnesses() {
+    let mut events = call(1, "prior", 10, 20, "completed", "same", &[]);
+    let code = alter(
+        &op(
+            3,
+            Some(20),
+            "prior",
+            Phase::Completed,
+            "completed",
+            "same",
+            &[],
+            None,
+        ),
+        |v| {
+            v["payload"]["value"]["exitCode"] = json!(2);
+        },
+    );
+    events.push(code.clone());
+    events.extend(call(4, "later", 30, 40, "completed", "same", &[]));
+    let result = project_events(&events);
+    assert_eq!(result.after_failure.count, Some(1));
+    assert!(
+        result.details[0]
+            .after_failure_evidence
+            .as_ref()
+            .unwrap()
+            .contains(&code.id().into())
+    );
+    let conflict = alter(
+        &op(
+            6,
+            Some(40),
+            "later",
+            Phase::Completed,
+            "completed",
+            "same",
+            &[],
+            None,
+        ),
+        |v| {
+            v["payload"]["value"]["exitCode"] = json!(0);
+        },
+    );
+    let conflict2 = alter(
+        &op(
+            7,
+            Some(40),
+            "later",
+            Phase::Completed,
+            "completed",
+            "same",
+            &[],
+            None,
+        ),
+        |v| {
+            v["payload"]["value"]["exitCode"] = json!(2);
+        },
+    );
+    events.extend([conflict.clone(), conflict2.clone()]);
+    let result = project_events(&events);
+    assert_eq!(result.after_failure.count, Some(1));
+    assert!(
+        result.details[0]
+            .later_evidence
+            .contains(&conflict.id().into())
+    );
+    assert!(
+        result.details[0]
+            .later_evidence
+            .contains(&conflict2.id().into())
+    );
+    assert!(result.details[0].later_evidence.len() <= PROOF_REF_LIMIT);
+}

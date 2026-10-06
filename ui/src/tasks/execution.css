@@ -6,3 +6,6 @@
 .execution-summary button{display:block;margin-top:8px}.execution-share{max-width:min(680px,calc(100vw - 32px));max-height:85vh;overflow:auto}.execution-share pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}.execution-share button{margin-right:12px}.execution-evidence{padding:16px;background:var(--accent-soft);overflow-wrap:anywhere}.execution-evidence button{margin:8px 12px 8px 0}.evidence-selected{border-left:3px solid var(--text);padding-left:10px}.execution button:focus-visible{outline:2px solid var(--text);outline-offset:3px}.execution-track>span{overflow-wrap:anywhere}.execution .facts>div{display:contents}@media(prefers-reduced-motion:reduce){.execution *{scroll-behavior:auto}}
 
 .execution-operation-coverage{margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:8px}.execution-operation-coverage h4{margin:0 0 12px}.execution-operation-coverage details{margin-top:12px}.execution-operation-coverage summary{cursor:pointer;overflow-wrap:anywhere}
+
+.execution-repeat-call { border-top: 1px solid var(--line); padding: .65rem 0; }
+.execution-repeat-call .link { margin-inline-end: .75rem; }

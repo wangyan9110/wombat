@@ -32,7 +32,7 @@ pub enum ShareProfile {
     ShareV1,
 }
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-pub const OUTPUT_VERSION: u32 = 3;
+pub const OUTPUT_VERSION: u32 = 4;
 pub const METHOD_VERSION: &str = "safe_event_turn_v5";
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
@@ -599,6 +599,7 @@ pub struct IntervalPages {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EvidenceIndex {
+    pub repeat_pages: RepeatPages,
     pub interval_pages: IntervalPages,
     pub collections: Vec<EvidenceCollection>,
     pub available: bool,
@@ -611,7 +612,7 @@ pub struct EvidenceIndex {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalResponse {
     pub uses: LocalUses,
-    #[schemars(range(min = 3, max = 3))]
+    #[schemars(range(min = 4, max = 4))]
     pub output_version: u32,
     pub action: SummaryAction,
     pub method_version: String,
@@ -635,7 +636,7 @@ pub struct LocalResponse {
 pub struct ShareResponse {
     pub uses: UseTotals,
     pub basis_collections: Vec<ShareCollection>,
-    #[schemars(range(min = 3, max = 3))]
+    #[schemars(range(min = 4, max = 4))]
     pub output_version: u32,
     pub action: SummaryAction,
     pub method_version: String,
@@ -669,7 +670,7 @@ pub struct EvidenceRow {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EvidenceResponse {
     pub collection: EventPageKind,
-    #[schemars(range(min = 3, max = 3))]
+    #[schemars(range(min = 4, max = 4))]
     pub output_version: u32,
     pub action: EvidenceAction,
     pub method_version: String,
@@ -683,7 +684,7 @@ pub struct EvidenceResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CapabilitiesResponse {
-    #[schemars(range(min = 3, max = 3))]
+    #[schemars(range(min = 4, max = 4))]
     pub output_version: u32,
     pub action: CapabilitiesAction,
     pub method_version: String,

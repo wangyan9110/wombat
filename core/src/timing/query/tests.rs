@@ -1669,7 +1669,7 @@ fn operation_residual_is_distinct_from_category_gaps_and_share_is_private() {
         boundary(5, Some(30000), Phase::Completed, Some(31000), None),
     ]);
     let l = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(l.output_version, 3);
+    assert_eq!(l.output_version, 4);
     assert_eq!(l.time.native_wall_clock_ms.value, Some(31000));
     assert_eq!(l.time.unclassified_ms.value, Some(10000));
     let c = &l.time.operation_coverage;

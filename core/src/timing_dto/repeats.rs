@@ -1,4 +1,4 @@
-//! Aggregate-only repeated behavior. Private matching keys and target paths never cross this boundary.
+//! Repeated aggregates and local-only proof navigation. Matching keys and target paths stay private.
 use super::*;
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -91,4 +91,45 @@ pub struct RepeatedBehavior {
     pub combined_union_ms: Count,
     pub combined_missing_interval_count: Count,
     pub coverage: RepeatCoverage,
+}
+
+/// Local source-record proofs. Sharing contains no repeat locators or aliases.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RepeatEvidencePage {
+    pub cursor: Option<Cursor>,
+    #[schemars(range(min = 200, max = 200))]
+    pub limit: usize,
+    #[schemars(length(min = 1, max = 16))]
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RepeatProof {
+    pub operation_alias: String,
+    #[schemars(length(min = 1, max = 16))]
+    pub pages: Vec<RepeatEvidencePage>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RepeatEvidenceEntry {
+    pub later: RepeatProof,
+    pub after_failure: Option<RepeatProof>,
+    #[schemars(length(max = 599))]
+    pub successful_reads: Vec<RepeatProof>,
+    pub repeated_read_target_count: u64,
+    pub later_duration_ms: Count,
+    pub recovery_span_ms: Count,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RepeatPages {
+    pub detail: Capability,
+    pub candidate_operation_count: Count,
+    pub located_operation_count: Count,
+    pub page_count: Count,
+    #[schemars(range(min = 65536, max = 65536))]
+    pub limit_bytes: usize,
+    #[schemars(length(max = 200))]
+    pub entries: Vec<RepeatEvidenceEntry>,
 }

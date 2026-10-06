@@ -1,3 +1,4 @@
+import type { LocalResponse as TimingLocalResult } from './generated/timing-local-response.js';
 import type { Request as TimingRequest } from './generated/timing-request.js';
 import type { Response as TimingResult } from './generated/timing-response.js';
 export type { Request as TimingRequest } from './generated/timing-request.js';
@@ -187,11 +188,11 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
 
 function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
   const profile = request.privacyProfile ?? 'local';
-  if (result.outputVersion !== 3 || result.action !== request.action || result.profile !== profile
+  if (result.outputVersion !== 4 || result.action !== request.action || result.profile !== profile
     || result.methodVersion !== 'safe_event_turn_v5') return false;
   if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 3
     || 'totals' in result && result.totals.methodVersion !== 3) return false;
-  if (result.action === 'summary' && (!matchesOperationCoverage(result) || !matchesRepeatedBehavior(result))) return false;
+  if (result.action === 'summary' && (!matchesOperationCoverage(result) || !matchesRepeatedBehavior(result) || (result.profile === 'local' && !matchesRepeatNavigation(result)))) return false;
   if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
   if (request.action === 'summary' && profile === 'share-v1') {
     // Sharing deliberately omits local locating identities; core selection owns
@@ -256,4 +257,35 @@ function matchesRepeatedBehavior(result: Extract<TimingResult, { action: 'summar
   const window = result.time.observedWindowMs.value;
   if (window != null && r.combinedUnionMs.value != null && r.combinedUnionMs.value > window) return false;
   return true;
+}
+
+/** Verify navigation completeness and opaque locator structure, without rematching source requests. */
+function matchesRepeatNavigation(result: TimingLocalResult): boolean {
+  const navigation = result.evidence.repeatPages, r = result.time.repeatedBehavior;
+  if (navigation.candidateOperationCount.value != null && navigation.candidateOperationCount.value !== r.combinedOperationCount.value) return false;
+  if (navigation.detail.support !== 'supported') return navigation.entries.length === 0;
+  if (navigation.locatedOperationCount.value !== navigation.entries.length || navigation.candidateOperationCount.value !== navigation.entries.length) return false;
+  let pages = 0, proofs = 0, failed = 0, reads = 0;
+  for (const [index, entry] of navigation.entries.entries()) {
+    if (!entry.afterFailure && entry.successfulReads.length === 0 || (entry.successfulReads.length === 0) !== (entry.repeatedReadTargetCount === 0)
+      || entry.repeatedReadTargetCount < entry.successfulReads.length || !entry.afterFailure && entry.recoverySpanMs.value != null) return false;
+    if (entry.afterFailure) failed++;
+    if (entry.successfulReads.length) reads++;
+    const selected = [[entry.later, `repeat:${index}:later`], ...(entry.afterFailure ? [[entry.afterFailure, `repeat:${index}:failure`] as const] : []),
+      ...entry.successfulReads.map((proof, prior) => [proof, `repeat:${index}:read:${prior}`] as const)] as const;
+    for (const [proof, alias] of selected) {
+      if (proof.operationAlias !== alias || ++proofs > 600) return false;
+      const references = new Set<string>(), cursors = new Set<string | null>();
+      for (const page of proof.pages) {
+        if (cursors.has(page.cursor?.token ?? null)) return false;
+        cursors.add(page.cursor?.token ?? null);pages++;
+        for (const ref of page.evidenceRefs) {
+          if (!ref.startsWith('event:') || ref.length <= 6 || references.has(ref)) return false;
+          references.add(ref);
+        }
+      }
+      if (references.size > 16) return false;
+    }
+  }
+  return pages === navigation.pageCount.value && failed === r.afterFailure.count.value && reads === r.repeatedRead.count.value;
 }

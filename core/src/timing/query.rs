@@ -21,6 +21,7 @@ pub const MAX_SUMMARY_BYTES: usize = 256 * 1024;
 const MAX_CURSOR_BYTES: usize = 8 * 1024;
 const MAX_LOCATOR_BYTES: usize = 4096;
 mod navigation;
+mod repeats;
 mod uses;
 
 pub fn validate(request: &Request) -> Result<()> {
@@ -663,6 +664,27 @@ fn query_impl(
             quality.reason_codes.push(Basis::ResourceLimit);
         }
     }
+    let repeat_pages = if profile == PrivacyProfile::Local {
+        repeats::build(
+            snapshot,
+            target,
+            &a.repeated_behavior,
+            evidence.as_ref().map(|e| e.events.as_slice()),
+            fallback,
+            cancelled,
+        )?
+    } else {
+        repeats::unavailable(
+            time.repeated_behavior.combined_operation_count.clone(),
+            Basis::UnsupportedMethod,
+        )
+    };
+    if repeat_pages.detail.reason == Basis::ResourceLimit {
+        quality.partial = true;
+        if !quality.reason_codes.contains(&Basis::ResourceLimit) {
+            quality.reason_codes.push(Basis::ResourceLimit);
+        }
+    }
     let (work_projection, work_fallback) = if let Some(e) = &evidence {
         match work::project(work::Input {
             thread,
@@ -793,6 +815,7 @@ fn query_impl(
         quality,
         freshness,
         evidence: EvidenceIndex {
+            repeat_pages,
             interval_pages,
             collections: {
                 let mut collections = Vec::new();
@@ -850,6 +873,14 @@ fn query_impl(
         },
     };
     check(cancelled)?;
+    if !fits(&local)? && !local.evidence.repeat_pages.entries.is_empty() {
+        // Local proof navigation must not evict independent aggregate facts.
+        repeats::omit(&mut local.evidence.repeat_pages, Basis::ResourceLimit);
+        local.quality.partial = true;
+        if !local.quality.reason_codes.contains(&Basis::ResourceLimit) {
+            local.quality.reason_codes.push(Basis::ResourceLimit);
+        }
+    }
     if !fits(&local)? && (!local.uses.objects.is_empty() || local.uses.next_cursor.is_some()) {
         // New detail cannot evict already verified timing/context facts.
         uses::omit_detail(&mut local.uses, Basis::ResourceLimit);
@@ -898,6 +929,8 @@ fn query_impl(
             Some(Basis::ResourceLimit),
         );
         local.evidence.refs.clear();
+        local.evidence.repeat_pages =
+            repeats::unavailable(m::unavailable(Basis::ResourceLimit), Basis::ResourceLimit);
         local.evidence.interval_pages =
             navigation::unavailable(m::unavailable(Basis::ResourceLimit), Basis::ResourceLimit);
         local.quality.partial = true;

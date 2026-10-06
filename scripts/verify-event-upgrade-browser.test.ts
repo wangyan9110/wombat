@@ -19,11 +19,11 @@ test('browser acceptance requires an explicit Playwright module and rejects malf
 });
 
 function share(): Record<string, unknown> {
-  return { profile: 'share-v1', outputVersion: 3, action: 'summary', methodVersion: 'safe_event_turn_v5', basisCollections: [], privacy: {}, scope: {}, capabilities: {}, relativeAnchors: {}, time: {}, context: {}, work: {}, uses: {}, findings: [], coverage: {}, quality: {}, freshness: {} };
+  return { profile: 'share-v1', outputVersion: 4, action: 'summary', methodVersion: 'safe_event_turn_v5', basisCollections: [], privacy: {}, scope: {}, capabilities: {}, relativeAnchors: {}, time: {}, context: {}, work: {}, uses: {}, findings: [], coverage: {}, quality: {}, freshness: {} };
 }
 test('browser share oracle accepts its closed aggregate shape and rejects local fields or private content', () => {
   shareWhitelist(share(), ['SYNTHETIC_PRIVATE']);
-  for (const key of ['path', 'snapshotId', 'threadId', 'server', 'tool', 'title', 'objects', 'rows', 'nextCursor', 'nativeId', 'requestFingerprint', 'receiverOwner', 'operationId', 'afterFailurePredecessor', 'successfulReadPredecessors', 'readTargets']) {
+  for (const key of ['path', 'snapshotId', 'threadId', 'server', 'tool', 'title', 'objects', 'rows', 'nextCursor', 'nativeId', 'requestFingerprint', 'receiverOwner', 'operationId', 'afterFailurePredecessor', 'successfulReadPredecessors', 'readTargets', 'repeatPages', 'operationAlias', 'successfulReads']) {
     const value = share(); value.uses = { nested: [{ [key]: 'synthetic-local-value' }] };
     assert.throws(() => shareWhitelist(value, []), /Share contains local/);
   }

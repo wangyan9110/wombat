@@ -15,7 +15,7 @@ pub(super) fn unavailable(candidate: Count, reason: Basis) -> IntervalPages {
         entries: vec![],
     }
 }
-fn corrupt() -> anyhow::Error {
+pub(super) fn corrupt() -> anyhow::Error {
     operation_error(
         "SNAPSHOT_CORRUPT",
         "Timing fragment evidence does not match the fixed target",
@@ -40,7 +40,7 @@ impl Write for Size<'_> {
         Ok(())
     }
 }
-fn size(value: &impl serde::Serialize, cancelled: &AtomicBool) -> Result<Option<usize>> {
+pub(super) fn size(value: &impl serde::Serialize, cancelled: &AtomicBool) -> Result<Option<usize>> {
     let mut writer = Size {
         bytes: 0,
         cancelled,
@@ -49,7 +49,7 @@ fn size(value: &impl serde::Serialize, cancelled: &AtomicBool) -> Result<Option<
     check(cancelled)?;
     Ok(encoded.is_ok().then_some(writer.bytes))
 }
-fn observed(value: usize) -> Count {
+pub(super) fn observed(value: usize) -> Count {
     m::count(Some(value as u128), Basis::ExactEventPage, &[])
 }
 
@@ -112,23 +112,7 @@ pub(super) fn build(
             selected.entry(id).or_default();
         }
     }
-    for (index, event) in events.iter().enumerate() {
-        check(cancelled)?;
-        if event.thread_id() != Some(target.thread)
-            || event.turn_id() != Some(target.turn)
-            || event.position().source_instance_id != target.source
-        {
-            return Err(corrupt());
-        }
-        if let Some(offset) = selected.get_mut(event.id())
-            && offset.replace(index).is_some()
-        {
-            return Err(corrupt());
-        }
-    }
-    if selected.values().any(Option::is_none) {
-        return Err(corrupt());
-    }
+    locate(events, target, &mut selected, cancelled)?;
     // Groups contain only bounded borrowed refs and integer offsets. Cursor strings
     // are constructed one interval at a time after full locator counts are known.
     let mut groups = Vec::with_capacity(timeline.tracks.len());
@@ -215,4 +199,46 @@ pub(super) fn build(
     }
     check(cancelled)?;
     Ok(result)
+}
+
+/// Shared exact-source order validation; both consumers supply bounded selected identifiers.
+pub(super) fn locate(
+    events: &[Arc<Event>],
+    target: TurnTarget<'_>,
+    selected: &mut BTreeMap<&str, Option<usize>>,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    for (index, event) in events.iter().enumerate() {
+        check(cancelled)?;
+        if event.thread_id() != Some(target.thread)
+            || event.turn_id() != Some(target.turn)
+            || event.position().source_instance_id != target.source
+        {
+            return Err(corrupt());
+        }
+        if let Some(offset) = selected.get_mut(event.id())
+            && offset.replace(index).is_some()
+        {
+            return Err(corrupt());
+        }
+    }
+    if selected.values().any(Option::is_none) {
+        return Err(corrupt());
+    }
+    Ok(())
+}
+pub(super) fn cursor(
+    snapshot: &Snapshot,
+    target: TurnTarget<'_>,
+    offset: usize,
+    cancelled: &AtomicBool,
+) -> Result<Option<Cursor>> {
+    snapshot
+        .event_cursor_at_offset(
+            &EventTarget::turn(target.thread, target.turn),
+            offset,
+            cancelled,
+        )?
+        .map(encode_cursor)
+        .transpose()
 }
