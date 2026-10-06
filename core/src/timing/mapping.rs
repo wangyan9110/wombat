@@ -1,6 +1,7 @@
 //! Analysis-to-protocol mapping. Every numeric value is checked before transport.
 use super::analysis::{Analysis, Issue, State};
 use crate::timing_dto::*;
+mod repeats;
 
 pub(super) fn count(value: Option<u128>, basis: Basis, refs: &[String]) -> Count {
     let valid = value.filter(|value| *value <= u128::from(MAX_SAFE_INTEGER));
@@ -222,6 +223,7 @@ pub(super) fn time(
     let complete =
         fallback.is_none() && a.intervals.observed_window_ms.is_some() && !a.intervals.partial;
     Time {
+        repeated_behavior: repeats::map(a, refs, fallback, missing),
         operation_coverage: operation_coverage(a, refs, fallback, missing),
         timeline: timeline(a, refs, fallback, missing),
         state: match a.state {

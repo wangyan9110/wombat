@@ -19,7 +19,7 @@ export function record(value: unknown): value is Record<string, unknown> {
 export function shareWhitelist(value: unknown, sensitive: string[]): void {
   assert.ok(record(value)); assert.equal(value.profile, 'share-v1');
   assert.deepEqual(Object.keys(value).sort(), ['action', 'basisCollections', 'capabilities', 'context', 'coverage', 'findings', 'freshness', 'methodVersion', 'outputVersion', 'privacy', 'profile', 'quality', 'relativeAnchors', 'scope', 'time', 'uses', 'work'].sort());
-  const forbidden = new Set(['readView', 'snapshotId', 'sourceInstanceId', 'threadId', 'turnId', 'path', 'project', 'server', 'tool', 'title', 'name', 'objects', 'rows', 'cursor', 'nextCursor', 'objectRef', 'nativeId', 'callId', 'itemId', 'collectedAt', 'timestampMs']);
+  const forbidden = new Set(['readView', 'snapshotId', 'sourceInstanceId', 'threadId', 'turnId', 'path', 'project', 'server', 'tool', 'title', 'name', 'objects', 'rows', 'cursor', 'nextCursor', 'objectRef', 'nativeId', 'callId', 'itemId', 'collectedAt', 'timestampMs', 'requestFingerprint', 'receiverOwner', 'operationId', 'afterFailurePredecessor', 'successfulReadPredecessors', 'readTargets']);
   const walk = (child: unknown) => {
     if (Array.isArray(child)) child.forEach(walk);
     else if (record(child)) for (const [key, entry] of Object.entries(child)) { assert.ok(!forbidden.has(key), `Share contains local ${key}`); walk(entry); }

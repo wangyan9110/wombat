@@ -6,9 +6,11 @@ const capabilities = {
   lifecycleIntervals: unavailable, operationIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable,
 };
-export const capabilityResult = { outputVersion: 2, action: 'capabilities', methodVersion: 'safe_event_turn_v4', profile: 'local', capabilities } as const;
+export const capabilityResult = { outputVersion: 3, action: 'capabilities', methodVersion: 'safe_event_turn_v5', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
+const repeatDuration=()=>({knownSumMs:count(),recordedCount:count(),calculatedCount:count(),missingCount:count()});
+const repeatedBehavior=()=>({failureMethod:'same_operation_after_failure_v1' as const,readMethod:'same_target_read_v1' as const,endpointMethodVersion:1,support:unavailable,readLayer:'same_path_range_unconfirmed' as const,afterFailure:{count:count(),duration:repeatDuration()},repeatedRead:{count:count(),duration:repeatDuration()},sameRequestObservationCount:count(),repeatedReadRequestCount:count(),recoverySpanSumMs:count(),missingRecoverySpanCount:count(),combinedOperationCount:count(),combinedUnionMs:count(),combinedMissingIntervalCount:count(),coverage:{candidateOperations:count(),eligibleCommands:count(),missingIdentityRecords:count(),excludedReceivers:count(),missingMatching:count(),conflictingOperations:count(),missingStart:count(),indeterminateOutcomes:count(),orderGaps:count(),contextBoundaries:count(),crossedContext:count(),missingClockDomain:count(),sourceMetadataGaps:count(),durationConflicts:count(),partial:true,reasonCodes:[]}});
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
 const distribution = () => ({ samples: count(), median: count(), p90: count() });
 export const useTotals = () => ({
@@ -17,7 +19,7 @@ export const useTotals = () => ({
   coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() },
 });
 export const local: TimingLocalResult = {
-  outputVersion: 2, action: 'summary', methodVersion: 'safe_event_turn_v4', profile: 'local',
+  outputVersion: 3, action: 'summary', methodVersion: 'safe_event_turn_v5', profile: 'local',
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
   scope, capabilities, anchors: { startMs: count(), endMs: count() },
@@ -27,6 +29,7 @@ export const local: TimingLocalResult = {
     boundaryDiscrepancyMs: count(), observedWindowMs: count(), command: category(), compaction: category(), reasoning: category(), mcp: category(),
     intersectionMasksMs: [count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count()], coveredMs: count(), unclassifiedMs: count(), coverageRatio: count(), waitingProxyMs: count(),
     strictResponseGapMs: count(), exploratoryGapMs: count(),
+    repeatedBehavior:repeatedBehavior(),
     operationCoverage: {methodVersion:1,endpointMethodVersion:1,candidateOperations:count(),pairedOperations:count(),identityGapRecords:count(),conflictingOperations:count(),coveredMs:count(),residualMs:count(),residualRangeCount:count(),partial:true,reasonCodes:['missing_window'],detail:unavailable,detailLimit:200,residualRanges:[]},
   },
   context: {
@@ -51,7 +54,7 @@ export const local: TimingLocalResult = {
   freshness: { status: 'fixed' }, evidence: { intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
 };
 export const share: TimingShareResult = {
-  outputVersion: 2, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
+  outputVersion: 3, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
   privacy: { profile: 'share-v1', omittedFields: ['local_ids'], aliases: 'package' },
   scope: { taskAlias: 'task-1', turnAlias: 'turn-1', wholeTurn: true }, capabilities, relativeAnchors: local.anchors,
   uses: useTotals(), time: local.time, context: local.context, work: local.work, findings: [], coverage: local.coverage, quality: local.quality,

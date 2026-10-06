@@ -33,3 +33,5 @@ Wombat rejects unknown snapshot and index formats without migrating or deleting 
 ## Web Assembly
 
 `wombat web` dynamically loads the local host, injects a Node client, and serves packaged `dist/web/` assets. The CLI owns startup links and shutdown; startup arguments fix source scope.
+
+Timing text renders repeated-behavior aggregates with duration provenance, request observations and localized coverage reasons. JSON retains the generated response unchanged. Calculation and sharing semantics belong to the [core reference](../core/README.en.md).

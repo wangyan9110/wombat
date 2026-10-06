@@ -1,7 +1,9 @@
 //! Narrow timing protocol. Sharing has an independent whitelist; no source payloads.
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+mod repeats;
 mod uses;
+pub use repeats::*;
 pub use uses::*;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
@@ -30,8 +32,8 @@ pub enum ShareProfile {
     ShareV1,
 }
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-pub const OUTPUT_VERSION: u32 = 2;
-pub const METHOD_VERSION: &str = "safe_event_turn_v4";
+pub const OUTPUT_VERSION: u32 = 3;
+pub const METHOD_VERSION: &str = "safe_event_turn_v5";
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum PrivacyProfile {
@@ -122,6 +124,11 @@ pub enum Basis {
     IntervalMask,
     OperationUnion,
     OperationResidual,
+    RepeatAfterFailure,
+    SuccessfulReadRepeat,
+    KnownOperationDuration,
+    FailureRecoverySpan,
+    SameRequestObservation,
     RequestInput,
     HistoricalWindow,
     Type7,
@@ -331,6 +338,7 @@ pub struct OperationCoverage {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Time {
+    pub repeated_behavior: RepeatedBehavior,
     pub operation_coverage: OperationCoverage,
     pub timeline: Timeline,
     pub state: TurnState,
@@ -603,6 +611,7 @@ pub struct EvidenceIndex {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalResponse {
     pub uses: LocalUses,
+    #[schemars(range(min = 3, max = 3))]
     pub output_version: u32,
     pub action: SummaryAction,
     pub method_version: String,
@@ -626,6 +635,7 @@ pub struct LocalResponse {
 pub struct ShareResponse {
     pub uses: UseTotals,
     pub basis_collections: Vec<ShareCollection>,
+    #[schemars(range(min = 3, max = 3))]
     pub output_version: u32,
     pub action: SummaryAction,
     pub method_version: String,
@@ -659,6 +669,7 @@ pub struct EvidenceRow {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EvidenceResponse {
     pub collection: EventPageKind,
+    #[schemars(range(min = 3, max = 3))]
     pub output_version: u32,
     pub action: EvidenceAction,
     pub method_version: String,
@@ -672,6 +683,7 @@ pub struct EvidenceResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CapabilitiesResponse {
+    #[schemars(range(min = 3, max = 3))]
     pub output_version: u32,
     pub action: CapabilitiesAction,
     pub method_version: String,
@@ -693,6 +705,7 @@ pub enum Response {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TimingErrorOutput {
+    #[schemars(range(min = 1, max = 1))]
     pub output_version: u32,
     pub error: TimingError,
 }

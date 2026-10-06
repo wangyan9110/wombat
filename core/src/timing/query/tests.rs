@@ -415,6 +415,21 @@ fn native_fallback_reduces_complete_partition_including_final_conflict() {
     assert_eq!(l.time.native_wall_clock_ms.basis, Basis::BoundaryConflict);
     assert_eq!(l.time.native_ttft_ms.value, Some(5));
     assert_eq!(l.time.derived_wall_clock_ms.basis, Basis::ResourceLimit);
+    assert_eq!(l.time.repeated_behavior.after_failure.count.value, None);
+    assert_eq!(
+        l.time
+            .repeated_behavior
+            .same_request_observation_count
+            .value,
+        None
+    );
+    assert!(
+        l.time
+            .repeated_behavior
+            .coverage
+            .reason_codes
+            .contains(&RepeatCoverageReason::ResourceLimit)
+    );
     assert_eq!(l.time.operation_coverage.candidate_operations.value, None);
     assert_eq!(
         l.time.operation_coverage.residual_ms.basis,
@@ -1517,7 +1532,7 @@ fn mcp_time_is_delivered_in_local_and_private_relative_share_projection() {
         boundary(3, Some(1100), Phase::Completed, Some(100), None),
     ]);
     let result = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(result.method_version, "safe_event_turn_v4");
+    assert_eq!(result.method_version, "safe_event_turn_v5");
     assert_eq!(result.time.mcp.union_ms.value, Some(50));
     assert_eq!(result.time.mcp.sum_ms.value, Some(50));
     assert_eq!(result.time.mcp.closed.value, Some(1));
@@ -1654,7 +1669,7 @@ fn operation_residual_is_distinct_from_category_gaps_and_share_is_private() {
         boundary(5, Some(30000), Phase::Completed, Some(31000), None),
     ]);
     let l = local(query(&snapshot, &request(PrivacyProfile::Local)));
-    assert_eq!(l.output_version, 2);
+    assert_eq!(l.output_version, 3);
     assert_eq!(l.time.native_wall_clock_ms.value, Some(31000));
     assert_eq!(l.time.unclassified_ms.value, Some(10000));
     let c = &l.time.operation_coverage;
@@ -1831,3 +1846,6 @@ fn operation_pairs_without_turn_window_explain_unavailable_residual_instead_of_z
     );
     assert!(c.residual_ranges.is_empty());
 }
+
+#[path = "tests/repeats.rs"]
+mod repeats;

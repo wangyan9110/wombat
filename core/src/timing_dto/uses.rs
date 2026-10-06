@@ -141,6 +141,7 @@ pub struct UseRecord {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UseObjectsResponse {
+    #[schemars(range(min = 3, max = 3))]
     pub output_version: u32,
     pub action: EvidenceAction,
     pub collection: UseObjectPageKind,
@@ -157,6 +158,7 @@ pub struct UseObjectsResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UseRecordsResponse {
+    #[schemars(range(min = 3, max = 3))]
     pub output_version: u32,
     pub action: EvidenceAction,
     pub collection: UseRecordPageKind,

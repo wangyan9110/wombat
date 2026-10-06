@@ -9,7 +9,7 @@
 - The package root exports `createUsageClient({ query, ...transports })`, types, and `CoreError`. Named optional transports include `timing`, `account`, and `handoff`; the root loads no Node or terminal library.
 - `createNodeClient` from `@wombat/client/node` manages the local core subprocess, cancellation, timeouts, and response limits.
 - `UsageClient.live` provides auto/fresh/cached queries and freshness; the Node host manages a shared local service, while `query` retains the fixed-snapshot interface.
-- Optional `UsageClient.timing` provides whole-turn summaries, fixed-snapshot evidence pages, and offline capabilities through Rust-generated v1 contracts. Node selects a live view when no snapshot is supplied; an explicit stored snapshot stays fixed. Timing does not trigger price downloads, Hook capture, configuration scans, or account observations.
+- Optional `UsageClient.timing` provides whole-turn summaries, fixed-snapshot evidence pages, and offline capabilities through Rust-generated contracts. Node selects a live view when no snapshot is supplied; an explicit stored snapshot stays fixed. Timing does not trigger price downloads, Hook capture, configuration scans, or account observations.
 - `UsageClient.prices` provides offline inspection, explicit updates, and `auto_update` checks for missing prices. The Node live client triggers fixed-HTTPS downloads; Rust owns eligibility, persistent throttling, validation, storage, and pricing.
 - Generated files live in `src/generated/`; field and version authority remains with the Rust DTO and [contracts](../docs/development/contracts.en.md).
 

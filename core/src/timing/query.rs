@@ -598,6 +598,21 @@ fn query_impl(
     }
     let mut time = m::time(&a, &turn_refs, fallback, native);
     if quality.reason_codes.contains(&Basis::SourcePartial) {
+        time.repeated_behavior.coverage.partial = true;
+        if !time
+            .repeated_behavior
+            .coverage
+            .reason_codes
+            .contains(&RepeatCoverageReason::SourcePartial)
+        {
+            time.repeated_behavior
+                .coverage
+                .reason_codes
+                .push(RepeatCoverageReason::SourcePartial);
+        }
+        if !matches!(time.repeated_behavior.support.support, Support::Unavailable) {
+            time.repeated_behavior.support.support = Support::Partial;
+        }
         time.operation_coverage.partial = true;
         if !time
             .operation_coverage
@@ -608,6 +623,17 @@ fn query_impl(
             time.operation_coverage
                 .reason_codes
                 .push(OperationCoverageReason::SourcePartial);
+        }
+    }
+    if time
+        .repeated_behavior
+        .coverage
+        .reason_codes
+        .contains(&RepeatCoverageReason::ResourceLimit)
+    {
+        quality.partial = true;
+        if !quality.reason_codes.contains(&Basis::ResourceLimit) {
+            quality.reason_codes.push(Basis::ResourceLimit);
         }
     }
     if context.detail.reason == Basis::ResourceLimit

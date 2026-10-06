@@ -14,8 +14,8 @@
     },
     "outputVersion": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 4294967295
+      "minimum": 3,
+      "maximum": 3
     },
     "action": {
       "$ref": "#/definitions/SummaryAction"
@@ -190,6 +190,11 @@
         "interval_mask",
         "operation_union",
         "operation_residual",
+        "repeat_after_failure",
+        "successful_read_repeat",
+        "known_operation_duration",
+        "failure_recovery_span",
+        "same_request_observation",
         "request_input",
         "historical_window",
         "type7",
@@ -492,6 +497,9 @@
     "Time": {
       "type": "object",
       "properties": {
+        "repeatedBehavior": {
+          "$ref": "#/definitions/RepeatedBehavior"
+        },
         "operationCoverage": {
           "$ref": "#/definitions/OperationCoverage"
         },
@@ -561,6 +569,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "repeatedBehavior",
         "operationCoverage",
         "timeline",
         "state",
@@ -581,6 +590,233 @@
         "waitingProxyMs",
         "strictResponseGapMs",
         "exploratoryGapMs"
+      ]
+    },
+    "RepeatedBehavior": {
+      "type": "object",
+      "properties": {
+        "failureMethod": {
+          "$ref": "#/definitions/FailureRepeatMethod"
+        },
+        "readMethod": {
+          "$ref": "#/definitions/ReadRepeatMethod"
+        },
+        "endpointMethodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "support": {
+          "$ref": "#/definitions/Capability"
+        },
+        "readLayer": {
+          "$ref": "#/definitions/RepeatedReadLayer"
+        },
+        "afterFailure": {
+          "$ref": "#/definitions/RepeatedMetric"
+        },
+        "repeatedRead": {
+          "$ref": "#/definitions/RepeatedMetric"
+        },
+        "sameRequestObservationCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "repeatedReadRequestCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "recoverySpanSumMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingRecoverySpanCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "combinedOperationCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "combinedUnionMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "combinedMissingIntervalCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "coverage": {
+          "$ref": "#/definitions/RepeatCoverage"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "failureMethod",
+        "readMethod",
+        "endpointMethodVersion",
+        "support",
+        "readLayer",
+        "afterFailure",
+        "repeatedRead",
+        "sameRequestObservationCount",
+        "repeatedReadRequestCount",
+        "recoverySpanSumMs",
+        "missingRecoverySpanCount",
+        "combinedOperationCount",
+        "combinedUnionMs",
+        "combinedMissingIntervalCount",
+        "coverage"
+      ]
+    },
+    "FailureRepeatMethod": {
+      "type": "string",
+      "enum": [
+        "same_operation_after_failure_v1"
+      ]
+    },
+    "ReadRepeatMethod": {
+      "type": "string",
+      "enum": [
+        "same_target_read_v1"
+      ]
+    },
+    "RepeatedReadLayer": {
+      "type": "string",
+      "enum": [
+        "same_path_range_unconfirmed"
+      ]
+    },
+    "RepeatedMetric": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "duration": {
+          "$ref": "#/definitions/RepeatedDuration"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "duration"
+      ]
+    },
+    "RepeatedDuration": {
+      "type": "object",
+      "properties": {
+        "knownSumMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "recordedCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "calculatedCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "knownSumMs",
+        "recordedCount",
+        "calculatedCount",
+        "missingCount"
+      ]
+    },
+    "RepeatCoverage": {
+      "type": "object",
+      "properties": {
+        "candidateOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "eligibleCommands": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingIdentityRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "excludedReceivers": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingMatching": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "conflictingOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingStart": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "indeterminateOutcomes": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "orderGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "contextBoundaries": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "crossedContext": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingClockDomain": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "sourceMetadataGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "durationConflicts": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepeatCoverageReason"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "candidateOperations",
+        "eligibleCommands",
+        "missingIdentityRecords",
+        "excludedReceivers",
+        "missingMatching",
+        "conflictingOperations",
+        "missingStart",
+        "indeterminateOutcomes",
+        "orderGaps",
+        "contextBoundaries",
+        "crossedContext",
+        "missingClockDomain",
+        "sourceMetadataGaps",
+        "durationConflicts",
+        "partial",
+        "reasonCodes"
+      ]
+    },
+    "RepeatCoverageReason": {
+      "type": "string",
+      "enum": [
+        "missing_matching",
+        "excluded_receivers",
+        "identity_gaps",
+        "conflicting_operations",
+        "missing_start",
+        "indeterminate_outcomes",
+        "order_gaps",
+        "context_boundaries",
+        "crossed_context",
+        "missing_clock_domain",
+        "source_metadata_gaps",
+        "duration_conflicts",
+        "missing_durations",
+        "missing_recovery_spans",
+        "missing_intervals",
+        "missing_window",
+        "source_partial",
+        "resource_limit",
+        "numeric_range"
       ]
     },
     "OperationCoverage": {

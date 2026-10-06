@@ -187,11 +187,11 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
 
 function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
   const profile = request.privacyProfile ?? 'local';
-  if (result.outputVersion !== 2 || result.action !== request.action || result.profile !== profile
-    || result.methodVersion !== 'safe_event_turn_v4') return false;
+  if (result.outputVersion !== 3 || result.action !== request.action || result.profile !== profile
+    || result.methodVersion !== 'safe_event_turn_v5') return false;
   if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 3
     || 'totals' in result && result.totals.methodVersion !== 3) return false;
-  if (result.action === 'summary' && !matchesOperationCoverage(result)) return false;
+  if (result.action === 'summary' && (!matchesOperationCoverage(result) || !matchesRepeatedBehavior(result))) return false;
   if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
   if (request.action === 'summary' && profile === 'share-v1') {
     // Sharing deliberately omits local locating identities; core selection owns
@@ -234,4 +234,26 @@ function matchesOperationCoverage(result: Extract<TimingResult, { action: 'summa
     previousEnd = range.endMs;
   }
   return total === coverage.residualMs.value;
+}
+
+/** Check bounded aggregate relationships; matching and duration arithmetic remain in Rust. */
+function matchesRepeatedBehavior(result: Extract<TimingResult, { action: 'summary' }>): boolean {
+  const r = result.time.repeatedBehavior, c = r.coverage;
+  for (const m of [r.afterFailure, r.repeatedRead]) {
+    const n = m.count.value, d = m.duration;
+    if (n != null && d.recordedCount.value != null && d.calculatedCount.value != null && d.missingCount.value != null
+      && (d.recordedCount.value > n || d.calculatedCount.value > n - d.recordedCount.value
+        || d.missingCount.value !== n - d.recordedCount.value - d.calculatedCount.value)) return false;
+    if (d.knownSumMs.value != null && n != null && n > 0 && d.recordedCount.value === 0 && d.calculatedCount.value === 0) return false;
+  }
+  const candidates = c.candidateOperations.value, eligible = c.eligibleCommands.value;
+  if (candidates != null && eligible != null && eligible > candidates) return false;
+  const union = r.combinedOperationCount.value, failures = r.afterFailure.count.value, reads = r.repeatedRead.count.value;
+  if (union != null && (failures != null && union < failures || reads != null && union < reads
+    || candidates != null && union > candidates || failures != null && reads != null && union - failures > reads)) return false;
+  if (union != null && (r.combinedMissingIntervalCount.value != null && r.combinedMissingIntervalCount.value > union)) return false;
+  if (failures != null && r.missingRecoverySpanCount.value != null && r.missingRecoverySpanCount.value > failures) return false;
+  const window = result.time.observedWindowMs.value;
+  if (window != null && r.combinedUnionMs.value != null && r.combinedUnionMs.value > window) return false;
+  return true;
 }

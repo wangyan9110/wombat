@@ -158,3 +158,18 @@ test('operation residual uses shared components with independent union and expli
  const noPairs=timingFixture();noPairs.time.operationCoverage.coveredMs.value=0;noPairs.time.operationCoverage.reasonCodes=['no_paired_operations','identity_gaps','source_partial','detail_limit'];noPairs.time.operationCoverage.detail={support:'unavailable',reason:'resource_limit'};noPairs.time.operationCoverage.residualRanges=[];noPairs.time.operationCoverage.residualRangeCount.value=250;const limited=render(noPairs);assert.match(limited,/0 ms/);assert.match(limited,/250/);assert.match(limited,language==='en'?/no operation duration was subtracted/:/没有从轮次窗口减去操作时长/);assert.match(limited,language==='en'?/full durations and interval counts remain/:/完整时长和区间数量仍保留/);}}
  finally{locale.setLocale(previous);}
 });
+
+test('repeat production panel preserves subtotal coverage and explains all core reasons in both locales',()=>{
+ const previous=locale.getSnapshot().locale;
+ try{for(const language of ['en','zh'] as const){
+  locale.setLocale(language);const fixture=timingFixture(),r=fixture.time.repeatedBehavior;
+  r.afterFailure.count.value=2;r.afterFailure.duration.missingCount.value=1;r.combinedOperationCount.value=2;r.coverage.partial=true;
+  r.coverage.reasonCodes=['missing_matching','excluded_receivers','identity_gaps','conflicting_operations','missing_start','indeterminate_outcomes','order_gaps','context_boundaries','crossed_context','missing_clock_domain','source_metadata_gaps','duration_conflicts','missing_durations','missing_recovery_spans','missing_intervals','missing_window','source_partial','resource_limit','numeric_range'];
+  const html=render(fixture);
+  assert.match(html,language==='en'?/Known duration subtotal: 40 ms/:/可计算耗时小计: 40 ms/);
+  assert.match(html,language==='en'?/equal ranges, file versions and content are not established/:/未据此判定读取范围、文件版本或内容相同/);
+  assert.match(html,language==='en'?/not wasted time/:/不表示浪费/);
+  assert.doesNotMatch(html,/execution\.repeats\.|timing\.basis\.repeat|undefined|NaN|未知/);
+  const missing=render(timingFixture('missing'));assert.match(missing,language==='en'?/request observation counts remain available/:/请求出现次数仍可保留/);
+ }}finally{locale.setLocale(previous);}
+});

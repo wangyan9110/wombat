@@ -9,7 +9,7 @@
 - 包根入口导出 `createUsageClient({ query, ...transports })`、类型与 `CoreError`。可选传输使用命名字段，包括 `timing`、`account`、`handoff`；根入口不加载 Node 或终端库。
 - `@wombat/client/node` 的 `createNodeClient` 管理本机内核子进程、取消、超时和响应上限。
 - `UsageClient.live`提供auto/fresh/cached实时查询与新鲜度；Node宿主管理共用本地服务，`query`保留固定快照接口。
-- 可选的 `UsageClient.timing` 通过 Rust 生成的 v1 契约提供整轮耗时摘要、固定快照证据页和离线能力查询。未指定快照时，Node 选择实时读取视图；显式指定已保存快照时保持固定。耗时查询不触发价表下载、Hook 采集、配置扫描或账户观察。
+- 可选的 `UsageClient.timing` 通过 Rust 生成的契约提供整轮耗时摘要、固定快照证据页和离线能力查询。未指定快照时，Node 选择实时读取视图；显式指定已保存快照时保持固定。耗时查询不触发价表下载、Hook 采集、配置扫描或账户观察。
 - `UsageClient.prices`提供离线查询、显式更新和 `auto_update` 缺价检查；Node实时客户端自动触发固定HTTPS下载，Rust负责资格、持久限流、校验、保存及计价。
 - 生成文件位于 `src/generated/`；字段和版本以 Rust DTO 及[契约](../docs/development/contracts.md)为准。
 

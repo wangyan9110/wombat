@@ -69,6 +69,56 @@ impl Aliases {
             sum_ms: self.metric(&c.sum_ms),
         }
     }
+    fn repeated_duration(&mut self, d: &RepeatedDuration) -> RepeatedDuration {
+        RepeatedDuration {
+            known_sum_ms: self.metric(&d.known_sum_ms),
+            recorded_count: self.metric(&d.recorded_count),
+            calculated_count: self.metric(&d.calculated_count),
+            missing_count: self.metric(&d.missing_count),
+        }
+    }
+    fn repeated_metric(&mut self, m: &RepeatedMetric) -> RepeatedMetric {
+        RepeatedMetric {
+            count: self.metric(&m.count),
+            duration: self.repeated_duration(&m.duration),
+        }
+    }
+    fn repeats(&mut self, r: &RepeatedBehavior) -> RepeatedBehavior {
+        RepeatedBehavior {
+            failure_method: r.failure_method,
+            read_method: r.read_method,
+            endpoint_method_version: r.endpoint_method_version,
+            support: r.support.clone(),
+            read_layer: r.read_layer,
+            after_failure: self.repeated_metric(&r.after_failure),
+            repeated_read: self.repeated_metric(&r.repeated_read),
+            same_request_observation_count: self.metric(&r.same_request_observation_count),
+            repeated_read_request_count: self.metric(&r.repeated_read_request_count),
+            recovery_span_sum_ms: self.metric(&r.recovery_span_sum_ms),
+            missing_recovery_span_count: self.metric(&r.missing_recovery_span_count),
+            combined_operation_count: self.metric(&r.combined_operation_count),
+            combined_union_ms: self.metric(&r.combined_union_ms),
+            combined_missing_interval_count: self.metric(&r.combined_missing_interval_count),
+            coverage: RepeatCoverage {
+                candidate_operations: self.metric(&r.coverage.candidate_operations),
+                eligible_commands: self.metric(&r.coverage.eligible_commands),
+                missing_identity_records: self.metric(&r.coverage.missing_identity_records),
+                excluded_receivers: self.metric(&r.coverage.excluded_receivers),
+                missing_matching: self.metric(&r.coverage.missing_matching),
+                conflicting_operations: self.metric(&r.coverage.conflicting_operations),
+                missing_start: self.metric(&r.coverage.missing_start),
+                indeterminate_outcomes: self.metric(&r.coverage.indeterminate_outcomes),
+                order_gaps: self.metric(&r.coverage.order_gaps),
+                context_boundaries: self.metric(&r.coverage.context_boundaries),
+                crossed_context: self.metric(&r.coverage.crossed_context),
+                missing_clock_domain: self.metric(&r.coverage.missing_clock_domain),
+                source_metadata_gaps: self.metric(&r.coverage.source_metadata_gaps),
+                duration_conflicts: self.metric(&r.coverage.duration_conflicts),
+                partial: r.coverage.partial,
+                reason_codes: r.coverage.reason_codes.clone(),
+            },
+        }
+    }
     fn neighbor(&mut self, n: &Neighbor) -> Neighbor {
         Neighbor {
             measurement_ref: self.evidence(&n.measurement_ref),
@@ -83,6 +133,7 @@ pub(super) fn project(local: &LocalResponse) -> ShareResponse {
     let time = &local.time;
     let coverage = &time.operation_coverage;
     let time = Time {
+        repeated_behavior: a.repeats(&time.repeated_behavior),
         operation_coverage: OperationCoverage {
             method_version: coverage.method_version,
             endpoint_method_version: coverage.endpoint_method_version,

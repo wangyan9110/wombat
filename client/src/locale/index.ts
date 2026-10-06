@@ -207,3 +207,5 @@ export { timingCategories, timingCategoryText, timingIntersectionText } from './
 export { tokenSummaryPresentation, tokenSummaryText, analyzedTokenSubtotal, type SummaryTokenField } from './token-summary.js';
 
 export {operationCoverageReasonText} from './operation-coverage.js';
+
+export {repeatedBehaviorReasonText} from './repeated-behavior.js';

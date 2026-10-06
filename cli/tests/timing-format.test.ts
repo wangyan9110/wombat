@@ -104,7 +104,7 @@ test('localized timing reasons replace bare protocol codes and running differs f
 test('object and record pages preserve missing counts, use outcomes and safe display text', () => {
   locale.setLocale('en');
   const zero = { value: 0, status: 'observed', basis: 'safe_event_count', evidenceRefs: [] } as const;
-  const base = { outputVersion: 2, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const, snapshotId: local.readView.snapshotId,
+  const base = { outputVersion: 3, action: 'evidence' as const, methodVersion: local.methodVersion, profile: 'local' as const, snapshotId: local.readView.snapshotId,
     scope: local.scope, totals: local.uses.totals, total: { ...zero, value: 1, evidenceRefs: [] }, nextCursor: { token: 'next' } };
   const objects: TimingResult = { ...base, collection: 'use_objects', rows: [{
     objectRef: 'object-1', kind: 'skill', state: 'used', path: '/synthetic/\u001b[31mSKILL.md', server: null, project: null,
@@ -143,7 +143,7 @@ test('partial object counts retain observed associations including zero without 
   for(const count of [0,2]){
    const metric={value:count,status:'observed' as const,basis:'canonical_use_identity' as const,evidenceRefs:[]};
    const missing={value:null,status:'unavailable' as const,basis:'missing_target' as const,evidenceRefs:[]};
-   const result:TimingResult={outputVersion:2,action:'evidence',profile:'local',methodVersion:local.methodVersion,snapshotId:local.readView.snapshotId,scope:local.scope,totals:local.uses.totals,total:{...metric,value:1},nextCursor:null,collection:'use_objects',rows:[{objectRef:'synthetic-object',kind:'mcp',state:'used',path:null,server:'synthetic-server',project:null,useCount:missing,associatedUseCount:metric,recordCount:{...metric,value:3},unassignedTurnRecords:{...metric,value:0},coverage:local.uses.totals.coverage}]};
+   const result:TimingResult={outputVersion: 3,action:'evidence',profile:'local',methodVersion:local.methodVersion,snapshotId:local.readView.snapshotId,scope:local.scope,totals:local.uses.totals,total:{...metric,value:1},nextCursor:null,collection:'use_objects',rows:[{objectRef:'synthetic-object',kind:'mcp',state:'used',path:null,server:'synthetic-server',project:null,useCount:missing,associatedUseCount:metric,recordCount:{...metric,value:3},unassignedTurnRecords:{...metric,value:0},coverage:local.uses.totals.coverage}]};
    const text=renderTimingResult(result);
    assert.match(text,new RegExp(`已关联次数: ${count}|Associated uses: ${count}`));
    assert.match(text,/完整使用次数|Full use count/);
@@ -174,7 +174,7 @@ test('timing evidence retains native scalars without timestamps and preserves ex
  const saved=locale.getSnapshot().locale;
  try{for(const language of ['zh','en'] as const){locale.setLocale(language);
   for(const duration of [0,25]){
-   const base={outputVersion:2 as const,action:'evidence' as const,methodVersion:local.methodVersion,profile:'local' as const,snapshotId:local.readView.snapshotId,scope:local.scope,total:{value:1,status:'observed' as const,basis:'safe_event_count' as const,evidenceRefs:[]},nextCursor:null};
+   const base={outputVersion: 3 as const,action:'evidence' as const,methodVersion:local.methodVersion,profile:'local' as const,snapshotId:local.readView.snapshotId,scope:local.scope,total:{value:1,status:'observed' as const,basis:'safe_event_count' as const,evidenceRefs:[]},nextCursor:null};
    const events:TimingResult={...base,collection:'turn_events',rows:[{reference:'event-1',recordKind:'turn',phase:'completed',timestampMs:null,durationMs:duration,firstTokenMs:0,gapCodes:['missing_time']}]};
    const eventText=renderTimingResult(events);
    assert.ok(eventText.includes(`${language==='zh'?'原生耗时':'Native duration'}: ${duration} ms`));
@@ -199,4 +199,24 @@ test('operation residual renders supplied durations and coverage reasons in both
  const previous=locale.getSnapshot().locale;
  try {for(const language of ['en','zh'] as const){locale.setLocale(language);const text=renderTimingResult(fixture);assert.match(text,/0 ms/);assert.match(text,/30 ms/);assert.match(text,/0–30 ms/);assert.doesNotMatch(text,/execution\.operations\.|undefined/);assert.match(text,language==='en'?/no operation duration was subtracted/:/没有从轮次窗口减去操作时长/);}}
  finally {locale.setLocale(previous);}
+});
+
+test('repeat text distinguishes confirmed counts, request observations, subtotals and missing durations in both locales',()=>{
+ const previous=locale.getSnapshot().locale;
+ try {for(const language of ['en','zh'] as const){
+  locale.setLocale(language);const fixture=structuredClone(local),r=fixture.time.repeatedBehavior;
+  const m=(value:number)=>({value,status:'derived' as const,basis:'repeat_after_failure' as const,evidenceRefs:[]});
+  r.afterFailure.count=m(2);r.afterFailure.duration={knownSumMs:m(40),recordedCount:m(1),calculatedCount:m(0),missingCount:m(1)};
+  r.repeatedRead.count=m(0);r.sameRequestObservationCount=m(5);r.repeatedReadRequestCount=m(3);
+  r.combinedUnionMs={value:null,status:'unavailable',basis:'missing_time',evidenceRefs:[]};
+  r.coverage.reasonCodes=['missing_start','missing_durations','missing_window'];
+  const text=renderTimingResult(fixture);
+  assert.match(text,language==='en'?/Calls after failure: 2/:/失败后再次调用: 2/);
+  assert.match(text,language==='en'?/Known duration subtotal: 40 ms/:/可计算耗时小计: 40 ms/);
+  assert.match(text,language==='en'?/Calls without usable duration: 1/:/缺少可计算耗时的调用: 1/);
+  assert.match(text,language==='en'?/Additional identical request observations: 5/:/相同请求再次出现次数: 5/);
+  assert.match(text,language==='en'?/not wasted time/:/不表示浪费/);
+  assert.match(text,language==='en'?/counts and duration subtotals are retained/:/仍保留次数与耗时小计/);
+  assert.doesNotMatch(text,/execution\.repeats\.|timing\.basis\.repeat|undefined|NaN/);
+ }}finally{locale.setLocale(previous);}
 });

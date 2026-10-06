@@ -10,6 +10,11 @@ export type Basis =
   | "interval_mask"
   | "operation_union"
   | "operation_residual"
+  | "repeat_after_failure"
+  | "successful_read_repeat"
+  | "known_operation_duration"
+  | "failure_recovery_span"
+  | "same_request_observation"
   | "request_input"
   | "historical_window"
   | "type7"
@@ -48,6 +53,29 @@ export type SummaryAction = "summary";
 export type ShareProfile = "share-v1";
 export type PrivacyProfile = "local" | "share-v1";
 export type Support = "supported" | "partial" | "unavailable";
+export type FailureRepeatMethod = "same_operation_after_failure_v1";
+export type ReadRepeatMethod = "same_target_read_v1";
+export type RepeatedReadLayer = "same_path_range_unconfirmed";
+export type RepeatCoverageReason =
+  | "missing_matching"
+  | "excluded_receivers"
+  | "identity_gaps"
+  | "conflicting_operations"
+  | "missing_start"
+  | "indeterminate_outcomes"
+  | "order_gaps"
+  | "context_boundaries"
+  | "crossed_context"
+  | "missing_clock_domain"
+  | "source_metadata_gaps"
+  | "duration_conflicts"
+  | "missing_durations"
+  | "missing_recovery_spans"
+  | "missing_intervals"
+  | "missing_window"
+  | "source_partial"
+  | "resource_limit"
+  | "numeric_range";
 export type OperationCoverageReason =
   | "no_paired_operations"
   | "missing_window"
@@ -159,6 +187,7 @@ export interface TimingMetricInt64 {
   evidenceRefs: string[];
 }
 export interface Time {
+  repeatedBehavior: RepeatedBehavior;
   operationCoverage: OperationCoverage;
   timeline: Timeline;
   state: TurnState;
@@ -202,6 +231,51 @@ export interface Time {
   waitingProxyMs: TimingMetricUint64;
   strictResponseGapMs: TimingMetricUint64;
   exploratoryGapMs: TimingMetricUint64;
+}
+export interface RepeatedBehavior {
+  failureMethod: FailureRepeatMethod;
+  readMethod: ReadRepeatMethod;
+  endpointMethodVersion: number;
+  support: Capability;
+  readLayer: RepeatedReadLayer;
+  afterFailure: RepeatedMetric;
+  repeatedRead: RepeatedMetric;
+  sameRequestObservationCount: TimingMetricUint64;
+  repeatedReadRequestCount: TimingMetricUint64;
+  recoverySpanSumMs: TimingMetricUint64;
+  missingRecoverySpanCount: TimingMetricUint64;
+  combinedOperationCount: TimingMetricUint64;
+  combinedUnionMs: TimingMetricUint64;
+  combinedMissingIntervalCount: TimingMetricUint64;
+  coverage: RepeatCoverage;
+}
+export interface RepeatedMetric {
+  count: TimingMetricUint64;
+  duration: RepeatedDuration;
+}
+export interface RepeatedDuration {
+  knownSumMs: TimingMetricUint64;
+  recordedCount: TimingMetricUint64;
+  calculatedCount: TimingMetricUint64;
+  missingCount: TimingMetricUint64;
+}
+export interface RepeatCoverage {
+  candidateOperations: TimingMetricUint64;
+  eligibleCommands: TimingMetricUint64;
+  missingIdentityRecords: TimingMetricUint64;
+  excludedReceivers: TimingMetricUint64;
+  missingMatching: TimingMetricUint64;
+  conflictingOperations: TimingMetricUint64;
+  missingStart: TimingMetricUint64;
+  indeterminateOutcomes: TimingMetricUint64;
+  orderGaps: TimingMetricUint64;
+  contextBoundaries: TimingMetricUint64;
+  crossedContext: TimingMetricUint64;
+  missingClockDomain: TimingMetricUint64;
+  sourceMetadataGaps: TimingMetricUint64;
+  durationConflicts: TimingMetricUint64;
+  partial: boolean;
+  reasonCodes: RepeatCoverageReason[];
 }
 export interface OperationCoverage {
   methodVersion: number;

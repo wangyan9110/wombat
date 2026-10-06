@@ -39,7 +39,7 @@ export function usesEvidence(local:TimingLocalResult,scenario:string,request:Ext
  if(scenario==='uses-expired')throw new CoreError('VIEW_EXPIRED','Synthetic fixed view expired');
  if(local.uses.detail.support==='unavailable')throw new CoreError('TIMING_DETAIL_UNAVAILABLE','Synthetic use evidence unavailable');
  const {objects,records}=facts(scenario),start=offset(local,request),limit=request.limit??50;
- const common={outputVersion:2 as const,action:'evidence' as const,profile:'local' as const,methodVersion:local.methodVersion,snapshotId:local.readView.snapshotId,scope:local.scope,totals:structuredClone(local.uses.totals)};
+ const common={outputVersion: 3 as const,action:'evidence' as const,profile:'local' as const,methodVersion:local.methodVersion,snapshotId:local.readView.snapshotId,scope:local.scope,totals:structuredClone(local.uses.totals)};
  if(request.collection==='use_objects')return {...common,collection:'use_objects',total:known(objects.length),rows:objects.slice(start,start+limit),nextCursor:start+limit<objects.length?cursor(local,'use_objects',start+limit):null};
  const filtered=request.objectRef?records.filter(record=>record.objectRef===request.objectRef):records;
  if(request.objectRef&&!objects.some(object=>object.objectRef===request.objectRef))throw new CoreError('NOT_FOUND','Synthetic use object not found');

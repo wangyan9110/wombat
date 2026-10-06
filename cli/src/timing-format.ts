@@ -1,5 +1,5 @@
 import type { TimingResult, TimingLocalResult } from '@wombat/client';
-import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, timingCategories, timingCategoryText, timingIntersectionText, operationCoverageReasonText, type MessageKey } from '@wombat/client/locale';
+import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, timingCategories, timingCategoryText, timingIntersectionText, operationCoverageReasonText, repeatedBehaviorReasonText, type MessageKey } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 
 type Metric = TimingLocalResult['time']['nativeWallClockMs'];
@@ -101,6 +101,28 @@ export function renderTimingResult(result: TimingResult): string {
     `${t('execution.operations.ranges')}: ${measured(operations.residualRangeCount)}`,
     t('execution.operations.note'),...operations.reasonCodes.map(operationCoverageReasonText));
   for(const range of operations.residualRanges)lines.push(`  ${range.startMs}–${range.endMs} ms`);
+  const repeats=result.time.repeatedBehavior;
+  lines.push(t('execution.repeats.title'));
+  if(repeats.coverage.partial)lines.push(t('execution.repeats.partial'));
+  for(const [label,metric] of [['execution.repeats.afterFailure',repeats.afterFailure],['execution.repeats.read',repeats.repeatedRead]] as const){
+    lines.push(`${t(label)}: ${measured(metric.count)}`,
+      `  ${t('execution.repeats.knownSum')}: ${measured(metric.duration.knownSumMs,' ms')}`,
+      `  ${t('execution.repeats.recorded')}: ${measured(metric.duration.recordedCount)}`,
+      `  ${t('execution.repeats.calculated')}: ${measured(metric.duration.calculatedCount)}`,
+      `  ${t('execution.repeats.missing')}: ${measured(metric.duration.missingCount)}`);
+  }
+  for(const [label,metric,unit] of [
+    ['execution.repeats.sameRequest',repeats.sameRequestObservationCount,''],
+    ['execution.repeats.readRequest',repeats.repeatedReadRequestCount,''],
+    ['execution.repeats.recovery',repeats.recoverySpanSumMs,' ms'],
+    ['execution.repeats.missingRecovery',repeats.missingRecoverySpanCount,''],
+    ['execution.repeats.combined',repeats.combinedOperationCount,''],
+    ['execution.repeats.union',repeats.combinedUnionMs,' ms'],
+    ['execution.repeats.missingIntervals',repeats.combinedMissingIntervalCount,''],
+    ['execution.repeats.candidates',repeats.coverage.candidateOperations,''],
+    ['execution.repeats.eligible',repeats.coverage.eligibleCommands,''],
+  ] as const)lines.push(`${t(label)}: ${measured(metric,unit)}`);
+  lines.push(t('execution.repeats.layer'),t('execution.repeats.observationNote'),t('execution.repeats.note'),...repeats.coverage.reasonCodes.map(repeatedBehaviorReasonText));
   const allWorkMetrics: Array<[string, Metric]> = [
     ['addedLines', result.work.addedLines],
     ['removedLines', result.work.removedLines],
