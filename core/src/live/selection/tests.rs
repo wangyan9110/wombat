@@ -28,6 +28,48 @@ fn code(error: anyhow::Error) -> &'static str {
 }
 
 #[test]
+fn auto_reads_reuse_committed_views_until_five_minutes_and_manual_refresh_bypasses_delay() {
+    let root = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let state = shared(&key, roots.clone(), fixture(&key, "ready"));
+    {
+        let mut entries = state.0.lock().unwrap();
+        let entry = entries.get_mut(&key).unwrap();
+        entry.requested = 1;
+        entry.completed = 1;
+        entry.last_sync = Instant::now() - Duration::from_secs(299);
+        assert!(!scheduling::auto_due(entry));
+    }
+    let (jobs, receiver) = mpsc::sync_channel(1);
+    let cancelled = AtomicBool::new(false);
+    let request = ReadViewSelector::new(roots.clone(), None, Mode::Auto, false, false).unwrap();
+    for _ in 0..5 {
+        let (_, freshness) = select_view(&request, &state, &jobs, &cancelled).unwrap();
+        assert_eq!(freshness.status, "current");
+        assert!(receiver.try_recv().is_err());
+    }
+    for (elapsed, mode) in [(1, Mode::Fresh), (301, Mode::Auto)] {
+        state.0.lock().unwrap().get_mut(&key).unwrap().last_sync =
+            Instant::now() - Duration::from_secs(elapsed);
+        let request = ReadViewSelector::new(roots.clone(), None, mode, false, false).unwrap();
+        std::thread::scope(|scope| {
+            let reader = scope.spawn(|| select_view(&request, &state, &jobs, &cancelled).unwrap());
+            let job = receiver.recv_timeout(Duration::from_secs(2)).unwrap();
+            assert_eq!(job.key, key);
+            let mut entries = state.0.lock().unwrap();
+            let entry = entries.get_mut(&key).unwrap();
+            let work = scheduling::begin(entry, true).unwrap();
+            scheduling::finish(entry, work);
+            entry.last_sync = Instant::now();
+            drop(entries);
+            state.1.notify_all();
+            assert_eq!(reader.join().unwrap().1.status, "current");
+        });
+    }
+}
+
+#[test]
 fn selection_policy_is_business_independent_and_keeps_wait_limits() {
     let root = tempfile::tempdir().unwrap();
     let roots = vec![root.path().to_string_lossy().into_owned()];

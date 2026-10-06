@@ -10,7 +10,6 @@ struct TimingMessage {
 pub fn serve() -> Result<()> {
     #[cfg(windows)]
     use crate::live_windows::Listener as UnixListener;
-    use notify::Watcher;
     use std::io::{BufRead, BufReader, Write};
     #[cfg(unix)]
     use std::os::unix::{
@@ -41,14 +40,9 @@ pub fn serve() -> Result<()> {
     let shared: Shared = Arc::new((Mutex::new(BTreeMap::new()), Condvar::new()));
     let (jobs, receiver) = mpsc::sync_channel::<Job>(32);
     let worker_state = Arc::clone(&shared);
-    let (dirty_tx, dirty_rx) = mpsc::sync_channel::<()>(1);
-    let mut watcher = notify::recommended_watcher(move |_| {
-        let _ = dirty_tx.try_send(());
-    })?;
     let worker = std::thread::spawn(move || -> Result<()> {
         let mut lifecycle = scheduling::WorkerLifecycle::new(Arc::clone(&worker_state));
         let mut db = crate::live_index::open(&root.join("index.sqlite")).ok();
-        let mut watched = std::collections::BTreeSet::new();
         let mut caches = BTreeMap::new();
         loop {
             let job = match receiver.recv_timeout(Duration::from_millis(500)) {
@@ -56,7 +50,6 @@ pub fn serve() -> Result<()> {
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(_) => None,
             };
-            let dirty = dirty_rx.try_recv().is_ok();
             let work: Vec<_> = {
                 let entries = worker_state.0.lock().unwrap();
                 entries
@@ -66,12 +59,7 @@ pub fn serve() -> Result<()> {
                             || e.pending.is_none()
                                 && e.following
                                 && e.touched.elapsed() < Duration::from_secs(15)
-                                && (dirty
-                                    || e.checked.is_none()
-                                    || !e.syncing
-                                        && e.views.back().is_some_and(|_| {
-                                            e.last_sync.elapsed() > Duration::from_secs(2)
-                                        }))
+                                && scheduling::auto_due(e)
                     })
                     .map(|(key, e)| {
                         (
@@ -106,14 +94,6 @@ pub fn serve() -> Result<()> {
                     }
                 }
                 let db = db.as_mut().unwrap();
-                for source in sources(&roots).sources {
-                    if watched.insert(source.root.clone()) {
-                        let _ = watcher.watch(
-                            std::path::Path::new(&source.root),
-                            notify::RecursiveMode::Recursive,
-                        );
-                    }
-                }
                 let needs_restore = {
                     let mut entries = worker_state.0.lock().unwrap();
                     let entry = entries.get_mut(&key).unwrap();

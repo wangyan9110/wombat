@@ -102,7 +102,8 @@ pub(super) fn config_query(
             Mode::Auto,
             false,
             false,
-        )?;
+        )?
+        .capture_now();
         let cancelled = std::sync::atomic::AtomicBool::new(false);
         let selected = select_view(&selector, shared, jobs, &cancelled);
         let (snapshot, status) = match selected {

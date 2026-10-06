@@ -56,15 +56,22 @@ fn source_changed() -> anyhow::Error {
     crate::dto::operation_error("SOURCE_CHANGED", "日志读取中发生变化，保留已提交数据并重试")
 }
 
-/// Hash the committed prefix and captured file in one bounded pass. Both checksums
-/// describe the same metadata observation; a concurrent edit requires a retry.
+/// Appends beyond the captured prefix belong to the next synchronization. The
+/// captured prefix is hashed before and after parsing to detect edits within it.
+pub(super) fn contains_capture(expected: &fs::Metadata, current: &fs::Metadata) -> bool {
+    physical_identity(expected) == physical_identity(current)
+        && current.len() >= expected.len()
+        && (current.len() > expected.len() || stamp(expected) == stamp(current))
+}
+
+/// Hash only the captured prefix, even if the writer appends while hashing.
 fn prefix_checksums(path: &Path, offset: u64, expected: &fs::Metadata) -> Result<PrefixChecksums> {
     let mut file = File::open(path)?;
-    if stamp(&file.metadata()?) != stamp(expected) {
+    if !contains_capture(expected, &file.metadata()?) {
         return Err(source_changed());
     }
     let result = prefix_checksums_from(path, offset, expected, &mut file)?;
-    if stamp(&file.metadata()?) != stamp(expected) {
+    if !contains_capture(expected, &file.metadata()?) {
         return Err(source_changed());
     }
     Ok(result)
@@ -76,8 +83,7 @@ fn prefix_checksums_from(
     expected: &fs::Metadata,
     reader: &mut impl Read,
 ) -> Result<PrefixChecksums> {
-    let expected_stamp = stamp(expected);
-    if offset > expected.len() || stamp(&fs::metadata(path)?) != expected_stamp {
+    if offset > expected.len() || !contains_capture(expected, &fs::metadata(path)?) {
         return Err(source_changed());
     }
     let mut digest = Sha256::new();
@@ -96,7 +102,7 @@ fn prefix_checksums_from(
             committed = Some(format!("{:x}", digest.clone().finalize()));
         }
     }
-    if stamp(&fs::metadata(path)?) != expected_stamp {
+    if !contains_capture(expected, &fs::metadata(path)?) {
         return Err(source_changed());
     }
     Ok(PrefixChecksums {
@@ -471,7 +477,7 @@ fn sync_cached_with_context(
                 .as_ref()
                 .is_some_and(|w| w.state != WatermarkState::Missing)
         {
-            unchanged.insert(key, (cp.stamp.clone(), cp.offset, cp.prefix_sha256.clone()));
+            unchanged.insert(key, (meta, cp.offset, cp.prefix_sha256.clone()));
             continue;
         }
         let checksums =
@@ -484,7 +490,7 @@ fn sync_cached_with_context(
             rebuild = true;
             replaced.insert(key.clone());
         }
-        observations.insert(key.clone(), (stamp(&meta), checksums.captured));
+        observations.insert(key.clone(), (meta, checksums.captured));
         dirty.insert(key);
     }
     let missing: BTreeSet<_> = checkpoints
@@ -595,27 +601,20 @@ fn sync_cached_with_context(
                 checkpoint.state.pending_event_generation = pending_generations.get(&path).cloned();
             }
         }
-        let before = fs::metadata(&path)?;
-        let captured = if let Some((observed_stamp, captured)) = observations.get(&path) {
-            if *observed_stamp != stamp(&before) {
-                return Err(source_changed());
-            }
-            captured.clone()
+        let (before, captured) = if let Some((observed, captured)) = observations.get(&path) {
+            (observed.clone(), captured.clone())
         } else {
-            let (offset, expected_prefix) =
-                if let Some((expected_stamp, offset, prefix)) = unchanged.get(&path) {
-                    if *expected_stamp != stamp(&before) {
-                        return Err(source_changed());
-                    }
-                    (*offset, Some(prefix))
+            let (before, offset, expected_prefix) =
+                if let Some((observed, offset, prefix)) = unchanged.get(&path) {
+                    (observed.clone(), *offset, Some(prefix))
                 } else {
-                    (0, None)
+                    (fs::metadata(&path)?, 0, None)
                 };
             let checksums = prefix_checksums(Path::new(&path), offset, &before)?;
             if expected_prefix.is_some_and(|prefix| *prefix != checksums.committed) {
                 return Err(source_changed());
             }
-            checksums.captured
+            (before, checksums.captured)
         };
         checkpoint.issues.clear();
         let first = report.issues.len();
@@ -626,9 +625,10 @@ fn sync_cached_with_context(
             &mut facts,
             &mut report,
             Some(checkpoint),
+            Some(&before),
         );
         let after = fs::metadata(&path)?;
-        if stamp(&before) != stamp(&after)
+        if !contains_capture(&before, &after)
             || report.issues[first..].iter().any(|i| {
                 matches!(
                     i.code.as_str(),
@@ -896,7 +896,7 @@ mod sharing_tests {
         );
     }
     #[test]
-    fn prefix_checksum_rejects_source_change_during_streaming_read() {
+    fn prefix_checksum_accepts_append_during_streaming_read() {
         use std::io::Write;
 
         struct ChangingReader {
@@ -920,7 +920,7 @@ mod sharing_tests {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("changing.jsonl");
         let record = serde_json::json!({"type":"session_meta","payload":{"id":"synthetic","padding":"x".repeat(128 * 1024)}}).to_string() + "\n";
-        fs::write(&path, record).unwrap();
+        fs::write(&path, &record).unwrap();
         let expected = fs::metadata(&path).unwrap();
         let mut reader = ChangingReader {
             file: File::open(&path).unwrap(),
@@ -932,10 +932,120 @@ mod sharing_tests {
             reader.changed,
             "the source changed after checksum reading began"
         );
-        assert!(
-            result.is_err(),
-            "a changing source cannot establish a committed checksum"
+        let result = result.unwrap();
+        let expected_hash = crate::hash(record.as_bytes());
+        assert_eq!(result.captured, expected_hash);
+        assert_eq!(result.committed, expected_hash);
+    }
+
+    #[test]
+    fn captured_reader_defers_appended_records_and_consumes_them_once() {
+        let root = tempfile::tempdir().unwrap();
+        let dir = root.path().join("sessions");
+        fs::create_dir(&dir).unwrap();
+        let path = dir.join("live.jsonl");
+        let header = "{\"type\":\"session_meta\",\"payload\":{\"id\":\"live\"}}\n";
+        let record = |id: &str| {
+            serde_json::json!({"type":"event_msg","payload":{"type":"token_usage_record","thread_id":"live","turn_id":"turn","response_id":id,"usage":{"input_tokens":100,"output_tokens":10,"total_tokens":110}}}).to_string() + "\n"
+        };
+        let initial = format!("{header}{}", record("one"));
+        fs::write(&path, &initial).unwrap();
+        let capture = fs::metadata(&path).unwrap();
+        let captured_hash = prefix_checksums(&path, 0, &capture).unwrap().captured;
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap()
+            .write_all(record("two").as_bytes())
+            .unwrap();
+        let source = CodexAdapter
+            .discover(&DiscoveryRequest {
+                roots: vec![root.path().into()],
+            })
+            .sources
+            .remove(0);
+        let descriptor = CodexAdapter.descriptor();
+        let mut report = SourceReport {
+            source: source.clone(),
+            adapter_version: descriptor.adapter_version,
+            source_versions: vec![],
+            capabilities: descriptor.capabilities,
+            status: "complete".into(),
+            files_read: 0,
+            bytes_read: 0,
+            issues: vec![],
+        };
+        let mut facts = Facts::default();
+        let mut checkpoint = Checkpoint::default();
+        read_file_from(
+            &path,
+            &source,
+            &RunContext::default(),
+            &mut facts,
+            &mut report,
+            Some(&mut checkpoint),
+            Some(&capture),
         );
+        assert!(report.issues.is_empty(), "{:?}", report.issues);
+        assert_eq!(checkpoint.offset, initial.len() as u64);
+        assert_eq!(facts.measurements.len(), 1);
+        let watermark = facts.watermarks.values().next().unwrap();
+        assert_eq!(watermark.observed_bytes, Some(capture.len()));
+        assert_eq!(watermark.committed_offset, capture.len());
+        assert_eq!(
+            prefix_checksums(&path, checkpoint.offset, &capture)
+                .unwrap()
+                .captured,
+            captured_hash
+        );
+        read_file_from(
+            &path,
+            &source,
+            &RunContext::default(),
+            &mut facts,
+            &mut report,
+            Some(&mut checkpoint),
+            None,
+        );
+        assert!(report.issues.is_empty());
+        assert_eq!(facts.measurements.len(), 2);
+        assert_eq!(
+            facts
+                .measurements
+                .values()
+                .map(|v| v.measurement.tokens.total.unwrap())
+                .sum::<u64>(),
+            220
+        );
+        read_file_from(
+            &path,
+            &source,
+            &RunContext::default(),
+            &mut facts,
+            &mut report,
+            Some(&mut checkpoint),
+            None,
+        );
+        assert_eq!(facts.measurements.len(), 2);
+    }
+
+    #[test]
+    fn capture_rejects_truncation_replacement_and_detects_rewrite_with_append() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("capture.jsonl");
+        fs::write(&path, b"original\n").unwrap();
+        let capture = fs::metadata(&path).unwrap();
+        let hash = prefix_checksums(&path, 0, &capture).unwrap().captured;
+        // Growing the file must not hide an edit to its captured prefix.
+        fs::write(&path, b"modified\nappended\n").unwrap();
+        assert_ne!(prefix_checksums(&path, 0, &capture).unwrap().captured, hash);
+        fs::write(&path, b"short").unwrap();
+        assert!(prefix_checksums(&path, 0, &capture).is_err());
+        let original = File::open(&path).unwrap();
+        fs::remove_file(&path).unwrap();
+        fs::write(&path, b"original\n").unwrap();
+        assert!(prefix_checksums(&path, 0, &capture).is_err());
+        drop(original);
     }
 
     fn row(id: &str, total: u64) -> Arc<Measurement> {

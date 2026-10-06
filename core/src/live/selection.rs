@@ -10,6 +10,7 @@ pub(super) struct ReadViewSelector {
     mode: Mode,
     verify: bool,
     refresh: bool,
+    capture_now: bool,
     wait: WaitPolicy,
     key: String,
 }
@@ -29,6 +30,10 @@ impl WaitPolicy {
     }
 }
 impl ReadViewSelector {
+    pub(super) fn capture_now(mut self) -> Self {
+        self.capture_now = true;
+        self
+    }
     pub(super) fn identity(&self) -> Option<&String> {
         self.selector.as_ref()
     }
@@ -85,6 +90,7 @@ impl ReadViewSelector {
             mode,
             verify,
             refresh,
+            capture_now: false,
             wait,
             key,
         })
@@ -123,7 +129,14 @@ pub(super) fn select_view(
         .or_insert_with(|| Entry::new(roots));
     entry.touched = Instant::now();
     let mut ticket = entry.completed;
-    if request.wait != WaitPolicy::None {
+    if request.wait != WaitPolicy::None
+        && (request.mode == Mode::Fresh
+            || request.refresh
+            || request.capture_now
+            || entry.requested == 0
+            || entry.syncing
+            || scheduling::auto_due(entry))
+    {
         ticket = scheduling::request(entry, key, request.verify, jobs)?;
         let preview_at = Instant::now() + Duration::from_millis(250);
         let deadline = Instant::now() + request.wait.timeout();

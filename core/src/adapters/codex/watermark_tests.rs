@@ -174,6 +174,7 @@ fn failed_reader_does_not_advance_a_committed_cursor() {
         &mut facts,
         &mut report,
         Some(&mut checkpoint),
+        None,
     );
     assert_eq!(checkpoint.offset, 40);
     assert_eq!(

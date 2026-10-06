@@ -69,6 +69,8 @@ test('live CLI resumes, keeps fixed views, exports only explicitly and streams a
       const until=async (condition:()=>boolean)=>{const deadline=Date.now()+7000;while(!condition()&&Date.now()<deadline)await delay(30);assert.ok(condition(),error+JSON.stringify(results));};
       await until(()=>results.length>0);
       await appendFile(log,row('three')+'\n');
+      assert.equal(run(['usage']).summary.tokens.total,220, 'auto reads reuse the committed view within five minutes');
+      assert.equal(run(['usage','--fresh']).summary.tokens.total,330, 'explicit refresh bypasses the interval');
       await until(()=>results.some(r=>r.summary?.tokens.total===330));
       const historical=run(['usage','--snapshot',snapshot.snapshotRef.snapshotId]); assert.equal(historical.summary.tokens.total,220);
       const stable=run(['usage','--fresh']); const again=run(['usage','--fresh']); assert.equal(stable.snapshotRef.snapshotId,again.snapshotRef.snapshotId);

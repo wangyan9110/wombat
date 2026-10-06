@@ -1,6 +1,12 @@
 //! Coalesce requests per source while preserving explicit verification strength.
 use super::*;
 
+const AUTO_REFRESH_INTERVAL: Duration = Duration::from_secs(300);
+
+pub(super) fn auto_due(entry: &Entry) -> bool {
+    !entry.syncing && entry.pending.is_none() && entry.last_sync.elapsed() >= AUTO_REFRESH_INTERVAL
+}
+
 /// Wake readers even when the writer returns early or unwinds outside the state lock.
 pub(super) struct WorkerLifecycle {
     shared: Shared,

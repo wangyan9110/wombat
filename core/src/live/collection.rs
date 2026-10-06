@@ -174,6 +174,12 @@ pub(super) fn sync(
                 source_tx.rollback()?;
                 drop(source_tx);
                 caches.remove(&source.id);
+                // Preserve the actual failure for a single-source scan instead
+                // of misreporting an append/edit conflict as an unreadable root.
+                if discovered.sources.len() == 1 {
+                    caches.clear();
+                    return Err(error);
+                }
                 if error
                     .downcast_ref::<crate::dto::OperationError>()
                     .is_some_and(|error| error.code == "UNSUPPORTED_VERSION")

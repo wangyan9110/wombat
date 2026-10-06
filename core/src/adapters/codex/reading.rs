@@ -69,7 +69,7 @@ pub(super) fn read_file(
     facts: &mut Facts,
     report: &mut SourceReport,
 ) {
-    read_file_from(path, source, context, facts, report, None);
+    read_file_from(path, source, context, facts, report, None, None);
 }
 
 pub(super) fn read_file_from(
@@ -79,6 +79,7 @@ pub(super) fn read_file_from(
     facts: &mut Facts,
     report: &mut SourceReport,
     mut checkpoint: Option<&mut incremental::Checkpoint>,
+    capture: Option<&fs::Metadata>,
 ) {
     let evidence_path: Arc<str> = path.to_string_lossy().as_ref().into();
     let file_id = crate::hash(evidence_path.as_bytes());
@@ -115,7 +116,16 @@ pub(super) fn read_file_from(
             return;
         }
     };
-    let before = file.metadata().ok();
+    let opened = file.metadata().ok();
+    if capture.is_some_and(|expected| {
+        opened
+            .as_ref()
+            .is_none_or(|current| !incremental::contains_capture(expected, current))
+    }) {
+        issue(report, "sourceChanged", "日志在读取期间被替换或截断", None);
+        return;
+    }
+    let before = capture.cloned().or(opened);
     let length = before.as_ref().map_or(0, |m| m.len());
     watermark.observed_bytes = before.as_ref().map(|m| m.len());
     facts.watermarks.insert(file_id.clone(), watermark.clone());
