@@ -122,6 +122,8 @@ wombat timing capabilities
 
 ## 静态建议与人工复查
 
+检查一个轮次前，先从任务清单或耗时汇总取得快照、任务和轮次 ID。执行 `wombat optimize activity --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --json`，保留所选视图的 `--root` 及可选 `--source`。文本输出显示三个检查结果及适用的检查建议。此查询不采集配置，不保存处理决定。查看记录时，使用相同选择查询 timing evidence。视图过期后重新打开清单并选择新视图，不混用不同快照的结果。
+
 执行 `wombat optimize list --json`，传与配置相同的 `--root` / `--project-root`。建议已按对象合并，类别为 repair/trim/organize/space；后两类没有适配时明确不可用。检查不接受用量日期或模型，当前静态提醒不等于配置健康。
 
 ```sh

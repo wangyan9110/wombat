@@ -285,6 +285,26 @@ pub fn serve() -> Result<()> {
                             }
                             let r: OptimizeMessage = serde_json::from_value(value)
                                 .map_err(|_| operation_error("INVALID_ARGUMENT", "优化参数无效"))?;
+                            crate::optimize::activity::validate(&r.optimize)?;
+                            if r.optimize.action == crate::optimize_dto::Action::Activity {
+                                if r.native_hooks.is_some() {
+                                    return Err(operation_error(
+                                        "INVALID_ARGUMENT",
+                                        "Activity does not consume host hooks",
+                                    ));
+                                }
+                                let cancelled = std::sync::atomic::AtomicBool::new(false);
+                                let result = timing_query(
+                                    crate::optimize::activity::timing_request(&r.optimize)?,
+                                    &state,
+                                    &jobs,
+                                    &configs,
+                                    &cancelled,
+                                )?;
+                                return Ok(serde_json::to_value(
+                                    crate::optimize::activity::response(result)?,
+                                )?);
+                            }
                             if r.optimize.action == crate::optimize_dto::Action::Capabilities {
                                 let mut response = crate::optimize::capabilities();
                                 response.rule_parameters =

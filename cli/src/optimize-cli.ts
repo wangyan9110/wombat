@@ -1,26 +1,30 @@
 import path from 'node:path';
 import { CoreError, type OptimizeRequest, type OptimizeResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText, useBasisPresentation, assessmentReason, reviewStatusLabel } from '@wombat/client/locale';
+import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText, useBasisPresentation, assessmentReason, reviewStatusLabel, activityRuleTitle, activityCheckText, activityAdviceText } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 export function parseOptimizeArgs(argv: string[]) {
   const request: OptimizeRequest={action:'list'}, roots:string[]=[], projects:string[]=[], seen=new Set<string>();
   let json=false,help=false;
+  const activity:{snapshotId?:string;threadId?:string;turnId?:string}={};
   const fail=(value:string):never=>{throw new CoreError('INVALID_ARGUMENT',t('cli.config.invalid',{value}));};
   if(argv[0]&&!argv[0].startsWith('-')) {
     const command=argv.shift()!;
     if(command==='history')request.group='history';
-    else if(['list','detail','keep','not-applicable','redisplay','recheck','capabilities','checks'].includes(command))request.action=command.replace('-','_') as OptimizeRequest['action'];
+    else if(['list','detail','keep','not-applicable','redisplay','recheck','capabilities','checks','activity'].includes(command))request.action=command.replace('-','_') as OptimizeRequest['action'];
     else fail(command);
   }
   for(let i=0;i<argv.length;i++) {
     const [name,inline]=argv[i].split(/=(.*)/s);
     if(['--help','-h'].includes(name)){help=true;continue;}
     if(name==='--json'){if(json||inline!==undefined)fail(name);json=true;continue;}
-    if(!['--root','--project-root','--project','--source','--suggestion','--item','--reason','--read-view','--decision-revision','--category','--offset','--limit','--agents-bytes','--description-characters'].includes(name))fail(name);
+    if(!['--root','--project-root','--project','--source','--suggestion','--item','--reason','--read-view','--decision-revision','--category','--offset','--limit','--agents-bytes','--description-characters','--snapshot','--thread','--turn'].includes(name))fail(name);
     if(seen.has(name)&&!['--root','--project-root'].includes(name))fail(name);seen.add(name);
     const value=inline??argv[++i];if(!value||value.startsWith('--'))fail(name);
     switch(name){
+      case '--snapshot':activity.snapshotId=value;break;
+      case '--thread':activity.threadId=value;break;
+      case '--turn':activity.turnId=value;break;
       case '--root':roots.push(path.resolve(value));break;
       case '--project-root':projects.push(path.resolve(value));break;
       case '--project':request.project=path.resolve(value);break;
@@ -37,7 +41,15 @@ export function parseOptimizeArgs(argv: string[]) {
   }
   if(!help&&['detail','keep','not_applicable','redisplay'].includes(request.action!)&&!request.suggestionId)fail('--suggestion');
   if(!help&&['keep','not_applicable'].includes(request.action!)&&!request.decisionReason)fail('--reason');
-  if(roots.length)request.roots=roots;request.projectRoots=projects.length?projects:[process.cwd()];
+  if(roots.length)request.roots=roots;
+  if(request.action==='activity'){
+    if(!help&&(!activity.snapshotId||!activity.threadId||!activity.turnId))fail('--snapshot/--thread/--turn');
+    if([...seen].some(name=>!['--root','--source','--snapshot','--thread','--turn'].includes(name)))fail('activity');
+    if(activity.snapshotId&&activity.threadId&&activity.turnId)request.activity={snapshotId:activity.snapshotId,threadId:activity.threadId,turnId:activity.turnId};
+  }else{
+    if(Object.keys(activity).length)fail('activity');
+    request.projectRoots=projects.length?projects:[process.cwd()];
+  }
   return {request,json,help};
 }
 export async function runOptimizeCli(argv:string[]):Promise<number>{
@@ -54,6 +66,13 @@ export async function runOptimizeCli(argv:string[]):Promise<number>{
 
 /** Render recorded decisions and check facts separately; never infer resolution from a decision or item. */
 export function formatOptimizeText(result: OptimizeResult): string {
+  if(result.action==='activity'&&result.activity){
+    const activity=result.activity;
+    return [t('activity.title'),...activity.checks.flatMap(check=>[`${activityRuleTitle(check.rule)}: ${activityCheckText(check)}`,
+      ...(activity.advice.some(rule=>rule===check.rule)?[activityAdviceText(check.rule)]:[])]),
+      t('activity.note'),`${activity.readView.snapshotId} · ${activity.scope.threadId} · ${activity.scope.turnId}`,
+      activity.analysisMethod].map(terminalText).join('\n')+'\n';
+  }
   const lines: string[] = [t('optimize.summaryCount', {pending: result.pending, history: result.history})];
   const add = (...values: string[]) => lines.push(...values);
   const checks = (rows: OptimizeResult['checks']) => {

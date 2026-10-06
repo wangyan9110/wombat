@@ -1,3 +1,4 @@
+import {activityResult} from '../../tests/fixtures/activity.js';
 import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -172,4 +173,28 @@ test('disconnect cancels one timing reader while another completes and late resu
     assert.deepEqual(await f.browser.timing!(summary), local);
     finish.resolve(); await new Promise(resolve => setImmediate(resolve)); assert.equal(calls, 2);
   } finally { finish.resolve(); await f.close(); }
+});
+
+
+test('activity HTTP route binds the published turn without configuration collection', async () => {
+  let calls = 0;
+  const result = activityResult();
+  result.usageRevision = local.readView.snapshotId;
+  result.activity!.readView = local.readView;
+  result.activity!.scope = local.scope;
+  const selected = {action: 'activity' as const, activity: {snapshotId: local.readView.snapshotId, threadId: local.scope.threadId, turnId: local.scope.turnId}, sourceInstanceId: local.scope.sourceInstanceId};
+  const f = await fixture({ optimize: async request => {
+    calls++;
+    assert.deepEqual(request, {...selected, roots: ['/synthetic/source']});
+    return result;
+  }});
+  try {
+    await assert.rejects(f.browser.optimize!(selected), {code: 'INVALID_ARGUMENT'});
+    await f.browser.query({action: 'usage'});
+    const body = await fetch(f.host.origin + '/api/optimize', {method: 'POST', headers: f.headers, body: JSON.stringify({...selected, roots: ['/foreign']})});
+    assert.match(await body.text(), /INVALID_ARGUMENT/);
+    assert.equal(calls, 0);
+    assert.deepEqual(await f.browser.optimize!(selected), result);
+    assert.equal(calls, 1);
+  } finally { await f.close(); }
 });

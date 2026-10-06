@@ -122,6 +122,8 @@ Responses use configuration v1 JSON. Incomplete historical coverage currently re
 
 ## Static suggestions and manual rechecks
 
+To inspect one turn, first obtain its snapshot/thread/turn IDs from the task list or timing summary. Run `wombat optimize activity --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --json`, retaining the same `--root` and optional `--source` as the selected view. Text output shows three check results and applicable inspection advice. This read collects no configuration and saves no handling decisions. Use timing evidence with the same selection to inspect records. If the view expires, reopen the list and select a new view; do not combine results from different snapshots.
+
 Run `wombat optimize list --json` with the same `--root` / `--project-root` as configuration. Suggestions merge by object in repair/trim/organize/space categories; the latter two explicitly remain unavailable without adapters. Checks accept no usage dates/models, and static reminders do not establish configuration health.
 
 ```sh

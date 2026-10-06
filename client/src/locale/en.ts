@@ -1,5 +1,23 @@
 import type { zh } from './zh.js';
 export const en = {
+  "activity.title": "Behavior to inspect",
+  "activity.failure": "Calls after failure",
+  "activity.read": "Same-path reads again",
+  "activity.request": "Repeated request observations",
+  "activity.failureAdvice": "Inspect the earlier failure and later call to decide whether to adjust the request or address the error.",
+  "activity.readAdvice": "Inspect the context of the earlier and later reads. The same path does not establish identical content, ranges, or unnecessary reading.",
+  "activity.requestAdvice": "Inspect the same-request records. Source order alone cannot establish execution order or a retry after failure.",
+  "activity.observed": "{count} observed",
+  "activity.partial": "Within available matching coverage",
+  "activity.miss": "No such behavior observed within complete matching coverage",
+  "activity.coverage": "No such behavior observed in available records; see the turn statistics for coverage limits.",
+  "activity.unsupported": "This measurement basis cannot support this check.",
+  "activity.note": "These are inspection signals, without establishing configuration faults, ineffective work, or time and cost savings.",
+  "activity.records": "Inspect turn records",
+  "activity.unavailable": "Behavior inspection is not available yet; retry the read.",
+  "activity.retry": "Retry inspection",
+  "activity.checks": "Check basis",
+
   "execution.repeats.callDuration": "Duration of this call",
   "execution.repeats.callRecovery": "Span from earlier failure to this completion",
   "execution.repeats.details": "Matched calls and their evidence",
@@ -527,7 +545,7 @@ export const en = {
 
   "webui.nonCacheInput": "Non-cached input",
   "webui.type": "Type",
-  "cli.optimize.help": "Usage: wombat optimize [list|detail|keep|not-applicable|redisplay|recheck|history|capabilities|checks] [--json]\n  --root <log directory> --project-root <config directory> --project <directory>\n  --suggestion <ID> --item <ID> --reason necessary|object_changed|incorrect_evidence --read-view <version> --decision-revision <version>\n  --category repair|trim|organize|space --source <ID> --offset 0 --limit 50\n  --agents-bytes 16384 --description-characters 500\n  inventory: configuration inventory and evidence; see inventory --help.\n  handoff: review and send to local Codex; see handoff --help.\nThese commands manage check facts, user decisions and review records. Exit 2 means incomplete coverage.\n",
+  "cli.optimize.help": "Usage: wombat optimize [list|detail|keep|not-applicable|redisplay|recheck|history|capabilities|checks|activity] [--json]\n  --root <log directory> --project-root <config directory> --project <directory>\n  --suggestion <ID> --item <ID> --reason necessary|object_changed|incorrect_evidence --read-view <version> --decision-revision <version>\n  --category repair|trim|organize|space --source <ID> --offset 0 --limit 50\n  --agents-bytes 16384 --description-characters 500\n  activity: inspect one fixed turn with activity --snapshot <version> --thread <task> --turn <turn> [--source <ID>].\n  inventory: configuration inventory and evidence; see inventory --help.\n  handoff: review and send to local Codex; see handoff --help.\nThese commands manage check facts, user decisions and review records. Exit 2 means incomplete coverage.\n",
   "optimize.summaryCount": "Pending: {pending} · Action history: {history}",
   "optimize.summary": "Configuration suggestions",
   "optimize.scopeNote": "User decisions apply to this object, content version, finding set and project. Changed content or new findings require separate review.",

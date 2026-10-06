@@ -5,11 +5,12 @@ import {TurnExecution} from '../tasks/TurnExecution.js';
 import {useTiming} from '../useTiming.js';
 import {usageFixture,type Scenario} from './fixtures.js';
 import {previewTiming} from './timing.js';
+import {previewActivity} from './activity.js';
 export function createExecutionPreviewClient(scenario:Scenario):UsageClient {
  return createUsageClient({query:async request=>{
   const result=usageFixture(request,scenario);
   return {...result,snapshotRef:{...result.snapshotRef,snapshotId:request.snapshotId??'preview:1'}};
- },timing:previewTiming(scenario)});
+ },timing:previewTiming(scenario),optimize:previewActivity(scenario)});
 }
 export function ExecutionPreview({scenario}:{scenario:Scenario}){
  useSyncExternalStore(locale.subscribe,locale.getSnapshot,locale.getSnapshot);

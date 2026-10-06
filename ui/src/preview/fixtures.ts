@@ -1,3 +1,4 @@
+import {previewActivity} from './activity.js';
 import { withTokenAnalysis, calculatedTokenFixture } from './token-analysis.js';
 import {t} from '@wombat/client/locale';
 import {previewTiming} from './timing.js';
@@ -49,6 +50,6 @@ export function createPreviewClient(scenario:Scenario):UsageClient {
   prices:previewPrices(scenario),
   async account(request,options){await ready(options);return account(request,options);},
   async config(request,options){await ready(options);if(scenario==='config-detail-failed'&&request.action!=='list')throw new CoreError('SOURCE_UNREADABLE','Synthetic configuration detail unavailable');return scenario==='empty'?{...inventoryFixture(request),items:[],evidence:[],relatedScopes:[],summary:{currentItems:0,historicalItems:0,observedItems:0},page:{offset:request.offset??0,limit:request.limit??30,total:0,nextOffset:null}}:inventoryFixture(request);},
-  async optimize(request,options){await ready(options);return rules(request,options);},
+  async optimize(request,options){await ready(options);return request.action==='activity'?previewActivity(scenario)(request):rules(request,options);},
  };
 }

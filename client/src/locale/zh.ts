@@ -1,5 +1,23 @@
 // Product copy. Keep keys stable; add complete messages with parameters.
 export const zh = {
+  "activity.title": "可检查的行为",
+  "activity.failure": "失败后再次调用",
+  "activity.read": "再次读取同一路径",
+  "activity.request": "相同请求再次出现",
+  "activity.failureAdvice": "查看前次失败和后次调用的记录，判断是否需要调整请求或处理错误。",
+  "activity.readAdvice": "查看前后读取的任务背景。同路径不证明内容、读取范围相同，也不证明读取多余。",
+  "activity.requestAdvice": "可以检查相同请求的记录。来源记录顺序不能单独确认执行先后或失败后的重试。",
+  "activity.observed": "已观察到 {count} 次",
+  "activity.partial": "按现有匹配范围",
+  "activity.miss": "完整匹配范围内未观察到该行为",
+  "activity.coverage": "现有记录中未观察到该行为；覆盖限制见轮次统计。",
+  "activity.unsupported": "该测量口径暂不能用于此检查。",
+  "activity.note": "这些是供检查的线索，不证明配置故障、无效工作或可以节省的时间与费用。",
+  "activity.records": "查看整轮记录",
+  "activity.unavailable": "行为建议暂未读取，请重试。",
+  "activity.retry": "重新读取建议",
+  "activity.checks": "检查依据",
+
   "execution.repeats.callDuration": "该次调用耗时",
   "execution.repeats.callRecovery": "前次失败到本次完成的跨度",
   "execution.repeats.details": "匹配调用及依据",
@@ -527,7 +545,7 @@ export const zh = {
 
   "webui.nonCacheInput": "非缓存输入",
   "webui.type": "类型",
-  "cli.optimize.help": "用法：wombat optimize [list|detail|keep|not-applicable|redisplay|recheck|history|capabilities|checks] [--json]\n  --root <日志目录> --project-root <配置目录> --project <目录>\n  --suggestion <ID> --item <ID> --reason necessary|object_changed|incorrect_evidence --read-view <版本> --decision-revision <版本>\n  --category repair|trim|organize|space --source <ID> --offset 0 --limit 50\n  --agents-bytes 16384 --description-characters 500\n  inventory：配置清单与证据查询；使用 inventory --help 查看参数。\n  handoff：确认并发送到本机 Codex；使用 handoff --help 查看参数。\n此处管理检查事实、用户决定和处理记录。覆盖不完整时退出码为 2。\n",
+  "cli.optimize.help": "用法：wombat optimize [list|detail|keep|not-applicable|redisplay|recheck|history|capabilities|checks|activity] [--json]\n  --root <日志目录> --project-root <配置目录> --project <目录>\n  --suggestion <ID> --item <ID> --reason necessary|object_changed|incorrect_evidence --read-view <版本> --decision-revision <版本>\n  --category repair|trim|organize|space --source <ID> --offset 0 --limit 50\n  --agents-bytes 16384 --description-characters 500\n  activity：仅检查固定轮次，使用 activity --snapshot <版本> --thread <任务> --turn <轮次> [--source <ID>]。\n  inventory：配置清单与证据查询；使用 inventory --help 查看参数。\n  handoff：确认并发送到本机 Codex；使用 handoff --help 查看参数。\n此处管理检查事实、用户决定和处理记录。覆盖不完整时退出码为 2。\n",
   "optimize.summaryCount": "待处理：{pending} · 处理记录：{history}",
   "optimize.summary": "配置建议",
   "optimize.scopeNote": "用户决定对应当前对象、内容版本、问题集合和项目；内容变化或新问题单独核对。",

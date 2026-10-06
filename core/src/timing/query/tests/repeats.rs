@@ -441,3 +441,47 @@ fn native_endpoint_proofs_keep_matching_and_duration_witnesses() {
         assert!(refs.contains(&&format!("event:{id}")));
     }
 }
+
+#[test]
+fn activity_checks_consume_fixed_analysis_without_relabeling_request_order() {
+    use crate::optimize_dto::{ActivityRule, RuleOutcome};
+    for timed in [true, false] {
+        let snapshot = make_snapshot(commands(timed));
+        let summary = local(query(&snapshot, &request(PrivacyProfile::Local)));
+        let inspection = crate::optimize::activity::evaluate(&summary);
+        assert_eq!(
+            inspection.read_view.snapshot_id,
+            summary.read_view.snapshot_id
+        );
+        assert_eq!(inspection.scope.turn_id, summary.scope.turn_id);
+        assert_eq!(inspection.checks[2].observed.value, Some(2));
+        assert_eq!(inspection.checks[2].outcome, RuleOutcome::Hit);
+        if timed {
+            assert_eq!(inspection.checks[0].observed.value, Some(1));
+            assert_eq!(inspection.checks[1].observed.value, Some(2));
+            assert_eq!(
+                inspection.advice,
+                vec![
+                    ActivityRule::InspectCallsAfterFailure,
+                    ActivityRule::InspectRepeatedReads
+                ]
+            );
+            let mut partial = summary;
+            partial.coverage.source_status = "partial".into();
+            let partial = crate::optimize::activity::evaluate(&partial);
+            assert!(
+                partial
+                    .checks
+                    .iter()
+                    .all(|check| check.partial && check.outcome == RuleOutcome::Hit)
+            );
+        } else {
+            assert_eq!(inspection.checks[0].outcome, RuleOutcome::Insufficient);
+            assert_eq!(inspection.checks[1].outcome, RuleOutcome::Insufficient);
+            assert_eq!(
+                inspection.advice,
+                vec![ActivityRule::InspectRepeatedRequests]
+            );
+        }
+    }
+}

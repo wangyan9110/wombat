@@ -1,7 +1,7 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
 export type Action =
-  "list" | "detail" | "keep" | "not_applicable" | "redisplay" | "recheck" | "capabilities" | "checks";
+  "list" | "detail" | "keep" | "not_applicable" | "redisplay" | "recheck" | "capabilities" | "checks" | "activity";
 export type HookSupportStatus = "no_verified_adapter" | "registry_observed" | "registry_partial";
 export type Kind = "rule" | "skill" | "mcp" | "hook";
 export type Observation = "used" | "loaded_only" | "unknown";
@@ -71,6 +71,74 @@ export type RelationKind = "chain" | "copy";
 export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
 export type RecordKind = "observation" | "decision" | "recheck" | "redisplay";
 export type FollowUpStatus = "no_observed_records" | "version_unknown" | "unavailable";
+export type MetricStatus = "observed" | "derived" | "proxy" | "unavailable";
+export type Basis =
+  | "native_record"
+  | "explicit_boundary"
+  | "lifecycle_union"
+  | "lifecycle_sum"
+  | "interval_mask"
+  | "operation_union"
+  | "operation_residual"
+  | "repeat_after_failure"
+  | "successful_read_repeat"
+  | "known_operation_duration"
+  | "failure_recovery_span"
+  | "same_request_observation"
+  | "request_input"
+  | "historical_window"
+  | "type7"
+  | "safe_message_record"
+  | "safe_message_delay"
+  | "safe_event_count"
+  | "response_gap_v1"
+  | "not_recorded"
+  | "adapter_not_mapped"
+  | "unsupported_method"
+  | "missing_identity"
+  | "missing_time"
+  | "running_turn"
+  | "exact_event_page"
+  | "boundary_conflict"
+  | "source_partial"
+  | "resource_limit"
+  | "numeric_range"
+  | "no_candidates"
+  | "missing_batch_cycle"
+  | "missing_repository_baseline"
+  | "unknown_message_origin"
+  | "canonical_operation_identity"
+  | "reported_file_paths"
+  | "canonical_use_identity"
+  | "canonical_use_records"
+  | "unassigned_use_index"
+  | "dispatch_not_proven"
+  | "missing_target"
+  | "target_conflict"
+  | "outcome_conflict"
+  | "missing_turn";
+export type RepeatCoverageReason =
+  | "missing_matching"
+  | "excluded_receivers"
+  | "identity_gaps"
+  | "conflicting_operations"
+  | "missing_start"
+  | "indeterminate_outcomes"
+  | "order_gaps"
+  | "context_boundaries"
+  | "crossed_context"
+  | "missing_clock_domain"
+  | "source_metadata_gaps"
+  | "duration_conflicts"
+  | "missing_durations"
+  | "missing_recovery_spans"
+  | "missing_intervals"
+  | "missing_window"
+  | "source_partial"
+  | "resource_limit"
+  | "numeric_range";
+export type ActivityRule = "inspect_calls_after_failure" | "inspect_repeated_reads" | "inspect_repeated_requests";
+export type ActivityReason = "activityMeasureUnavailable" | "activityCoverageIncomplete" | "activityBasisUnsupported";
 
 export interface Response {
   outputVersion: number;
@@ -94,6 +162,7 @@ export interface Response {
    * Derived from the selected usage view; never stored as a user decision or receipt.
    */
   followUps: FollowUpObservation[];
+  activity?: ActivityResult | null;
 }
 export interface Capabilities {
   staticChecks: boolean;
@@ -567,4 +636,80 @@ export interface FollowUpObservation {
   lastRecordAt?: string | null;
   usageRevision?: string | null;
   absenceObservable: boolean;
+}
+export interface ActivityResult {
+  formatVersion: number;
+  readView: ReadView;
+  scope: LocalScope;
+  analysisMethod: string;
+  freshness: QueryFreshness;
+  sourceStatus: string;
+  coverage: RepeatCoverage;
+  /**
+   * @minItems 3
+   * @maxItems 3
+   */
+  checks: [ActivityCheck, ActivityCheck, ActivityCheck];
+  /**
+   * Positive inspection signals; never fault, resolution, causal waste, or savings claims.
+   *
+   * @maxItems 3
+   */
+  advice: [] | [ActivityRule] | [ActivityRule, ActivityRule] | [ActivityRule, ActivityRule, ActivityRule];
+}
+export interface ReadView {
+  snapshotId: string;
+  snapshotSchema: number;
+  createdAt: string;
+  adapterVersions: string[];
+  projectionVersion: number;
+}
+export interface LocalScope {
+  sourceInstanceId: string;
+  threadId: string;
+  turnId: string;
+  agentKind: string;
+  wholeTurn: boolean;
+}
+/**
+ * Internal selector observation; not a request option or source capability.
+ */
+export interface QueryFreshness {
+  status: string;
+  checkedAt?: string | null;
+  revision?: number | null;
+  errorCode?: string | null;
+}
+export interface RepeatCoverage {
+  candidateOperations: TimingMetricUint64;
+  eligibleCommands: TimingMetricUint64;
+  missingIdentityRecords: TimingMetricUint64;
+  excludedReceivers: TimingMetricUint64;
+  missingMatching: TimingMetricUint64;
+  conflictingOperations: TimingMetricUint64;
+  missingStart: TimingMetricUint64;
+  indeterminateOutcomes: TimingMetricUint64;
+  orderGaps: TimingMetricUint64;
+  contextBoundaries: TimingMetricUint64;
+  crossedContext: TimingMetricUint64;
+  missingClockDomain: TimingMetricUint64;
+  sourceMetadataGaps: TimingMetricUint64;
+  durationConflicts: TimingMetricUint64;
+  partial: boolean;
+  reasonCodes: RepeatCoverageReason[];
+}
+export interface TimingMetricUint64 {
+  value: number | null;
+  status: MetricStatus;
+  basis: Basis;
+  evidenceRefs: string[];
+}
+export interface ActivityCheck {
+  rule: ActivityRule;
+  version: number;
+  method: string;
+  outcome: RuleOutcome;
+  observed: TimingMetricUint64;
+  partial: boolean;
+  reason?: ActivityReason | null;
 }

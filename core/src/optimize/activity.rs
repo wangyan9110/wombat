@@ -1,0 +1,200 @@
+//! Pure inspection checks consume shared analysis; no source reads or review-store writes.
+use crate::{dto::operation_error, optimize_dto::*, timing_dto as t};
+use anyhow::Result;
+
+pub(crate) fn validate(request: &Request) -> Result<()> {
+    if request.action != Action::Activity {
+        return if request.activity.is_none() {
+            Ok(())
+        } else {
+            Err(operation_error(
+                "INVALID_ARGUMENT",
+                "Activity scope requires the activity action",
+            ))
+        };
+    }
+    if request.activity.is_none()
+        || request.read_view.is_some()
+        || request.project_roots.is_some()
+        || request.project.is_some()
+        || request.decision_revision.is_some()
+        || request.suggestion_id.is_some()
+        || request.item_id.is_some()
+        || request.decision_reason.is_some()
+        || request.group != Group::Pending
+        || request.category.is_some()
+        || request.offset.is_some()
+        || request.limit.is_some()
+        || request.rule_overrides.is_some()
+    {
+        return Err(operation_error(
+            "INVALID_ARGUMENT",
+            "Activity requires one fixed turn without configuration or handling inputs",
+        ));
+    }
+    crate::timing::validate(&timing_request(request)?)
+}
+pub(crate) fn timing_request(request: &Request) -> Result<t::Request> {
+    let selected = request
+        .activity
+        .as_ref()
+        .ok_or_else(|| operation_error("INVALID_ARGUMENT", "Missing activity scope"))?;
+    Ok(t::Request::Summary {
+        thread_id: selected.thread_id.clone(),
+        turn_id: selected.turn_id.clone(),
+        snapshot_id: Some(selected.snapshot_id.clone()),
+        roots: request.roots.clone().unwrap_or_default(),
+        scope: Some(t::Scope {
+            source_instance_id: request.source_instance_id.clone(),
+            agent_kind: Some("codex".into()),
+        }),
+        mode: t::Mode::Cached,
+        privacy_profile: t::PrivacyProfile::Local,
+    })
+}
+/// A positive observation is useful even with source gaps. A miss needs complete matching coverage.
+fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -> ActivityCheck {
+    let expected_basis = match rule {
+        ActivityRule::InspectCallsAfterFailure => t::Basis::RepeatAfterFailure,
+        ActivityRule::InspectRepeatedReads => t::Basis::SuccessfulReadRepeat,
+        ActivityRule::InspectRepeatedRequests => t::Basis::SameRequestObservation,
+    };
+    let supported_basis =
+        observed.basis == expected_basis && matches!(observed.status, t::MetricStatus::Derived);
+    let (outcome, reason) = if observed.value.is_some() && !supported_basis {
+        (
+            RuleOutcome::Unsupported,
+            Some(ActivityReason::ActivityBasisUnsupported),
+        )
+    } else if observed.value.is_some_and(|n| n > 0) {
+        (RuleOutcome::Hit, None)
+    } else if observed.value == Some(0) && !partial {
+        (RuleOutcome::Miss, None)
+    } else {
+        (
+            RuleOutcome::Insufficient,
+            Some(if observed.value.is_none() {
+                ActivityReason::ActivityMeasureUnavailable
+            } else {
+                ActivityReason::ActivityCoverageIncomplete
+            }),
+        )
+    };
+    ActivityCheck {
+        rule,
+        version: 1,
+        method: method.into(),
+        outcome,
+        observed: observed.clone(),
+        partial,
+        reason,
+    }
+}
+fn count_gap(reasons: &[t::RepeatCoverageReason], source_status: &str, rule: ActivityRule) -> bool {
+    use t::RepeatCoverageReason as Gap;
+    source_status != "complete"
+        || reasons.iter().any(|reason| match reason {
+            Gap::MissingDurations
+            | Gap::MissingRecoverySpans
+            | Gap::MissingIntervals
+            | Gap::MissingWindow
+            | Gap::DurationConflicts
+            | Gap::NumericRange
+            | Gap::ContextBoundaries => false,
+            Gap::MissingStart | Gap::IndeterminateOutcomes => {
+                rule != ActivityRule::InspectRepeatedRequests
+            }
+            _ => true,
+        })
+}
+pub(crate) fn evaluate(summary: &t::LocalResponse) -> ActivityResult {
+    let repeats = &summary.time.repeated_behavior;
+    let checks = vec![
+        check(
+            ActivityRule::InspectCallsAfterFailure,
+            "same_operation_after_failure_v1",
+            &repeats.after_failure.count,
+            count_gap(
+                &repeats.coverage.reason_codes,
+                &summary.coverage.source_status,
+                ActivityRule::InspectCallsAfterFailure,
+            ),
+        ),
+        check(
+            ActivityRule::InspectRepeatedReads,
+            "same_target_read_v1",
+            &repeats.repeated_read.count,
+            count_gap(
+                &repeats.coverage.reason_codes,
+                &summary.coverage.source_status,
+                ActivityRule::InspectRepeatedReads,
+            ),
+        ),
+        check(
+            ActivityRule::InspectRepeatedRequests,
+            "same_request_observation_v1",
+            &repeats.same_request_observation_count,
+            count_gap(
+                &repeats.coverage.reason_codes,
+                &summary.coverage.source_status,
+                ActivityRule::InspectRepeatedRequests,
+            ),
+        ),
+    ];
+    // Keep check facts independent. The broader request hint adds no advice when a confirmed link is available.
+    let confirmed = checks[..2].iter().any(|c| c.outcome == RuleOutcome::Hit);
+    let advice = checks
+        .iter()
+        .filter(|c| {
+            c.outcome == RuleOutcome::Hit
+                && (!confirmed || c.rule != ActivityRule::InspectRepeatedRequests)
+        })
+        .map(|c| c.rule)
+        .collect();
+    ActivityResult {
+        format_version: 1,
+        read_view: summary.read_view.clone(),
+        scope: summary.scope.clone(),
+        analysis_method: summary.method_version.clone(),
+        freshness: summary.freshness.clone(),
+        source_status: summary.coverage.source_status.clone(),
+        coverage: repeats.coverage.clone(),
+        checks,
+        advice,
+    }
+}
+pub(crate) fn response(result: t::Response) -> Result<Response> {
+    let t::Response::Local(summary) = result else {
+        return Err(operation_error(
+            "INVALID_FACTS",
+            "Activity requires local turn analysis",
+        ));
+    };
+    let activity = evaluate(&summary);
+    let mut response = super::capabilities();
+    response.action = Action::Activity;
+    response.usage_revision = Some(summary.read_view.snapshot_id.clone());
+    response.checked_at = summary
+        .freshness
+        .checked_at
+        .clone()
+        .unwrap_or_else(|| summary.read_view.created_at.clone());
+    response.result_status = if activity.checks.iter().any(|check| {
+        check.partial || !matches!(check.outcome, RuleOutcome::Hit | RuleOutcome::Miss)
+    }) {
+        "partial"
+    } else {
+        "complete"
+    }
+    .into();
+    response.activity = Some(activity);
+    if serde_json::to_vec(&response)?.len() > 256 * 1024 {
+        return Err(operation_error(
+            "RESOURCE_LIMIT",
+            "Activity inspection output exceeds its budget",
+        ));
+    }
+    Ok(response)
+}
+#[cfg(test)]
+mod tests;

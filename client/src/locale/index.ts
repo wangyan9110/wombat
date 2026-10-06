@@ -1,3 +1,4 @@
+import {timingMissingValueText} from './timing-basis.js';
 /** Shared presentation-only locale service. Never localize protocol values or source content. */
 import { zh } from './zh.js';
 import { en } from './en.js';
@@ -209,3 +210,19 @@ export { tokenSummaryPresentation, tokenSummaryText, analyzedTokenSubtotal, type
 export {operationCoverageReasonText} from './operation-coverage.js';
 
 export {repeatedBehaviorReasonText} from './repeated-behavior.js';
+
+type ActivityCheck=NonNullable<import('../generated/optimize-response.js').Response['activity']>['checks'][number];
+type ActivityRule=ActivityCheck['rule'];
+export function activityRuleTitle(rule:ActivityRule):string {
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failure');case 'inspect_repeated_reads':return t('activity.read');case 'inspect_repeated_requests':return t('activity.request');}
+}
+export function activityAdviceText(rule:ActivityRule):string {
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failureAdvice');case 'inspect_repeated_reads':return t('activity.readAdvice');case 'inspect_repeated_requests':return t('activity.requestAdvice');}
+}
+export function activityCheckText(check:ActivityCheck):string {
+  if(check.outcome==='hit'&&check.observed.value!=null)return t('activity.observed',{count:check.observed.value})+(check.partial?` · ${t('activity.partial')}`:'');
+  if(check.outcome==='miss')return t('activity.miss');
+  if(check.reason==='activityCoverageIncomplete')return t('activity.coverage');
+  if(check.reason==='activityBasisUnsupported')return t('activity.unsupported');
+  return timingMissingValueText(check.observed.basis);
+}

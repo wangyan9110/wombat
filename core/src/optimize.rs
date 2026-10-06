@@ -1,4 +1,5 @@
 //! Static optimization rules and durable review decisions share one inventory basis.
+pub(crate) mod activity;
 mod cache;
 mod detection;
 mod evaluation;
@@ -23,7 +24,7 @@ pub(crate) use service::pending_for_handoff;
 use crate::optimize_dto::*;
 pub(crate) fn capabilities() -> Response {
     Response {
-        output_version: 1,
+        output_version: 2,
         action: Action::Capabilities,
         capabilities: Capabilities::default(),
         read_view: None,
@@ -46,5 +47,6 @@ pub(crate) fn capabilities() -> Response {
         rule_catalog: registry::catalog(),
         checks: vec![],
         follow_ups: vec![],
+        activity: None,
     }
 }

@@ -15,6 +15,7 @@ pub enum Action {
     Recheck,
     Capabilities,
     Checks,
+    Activity,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -43,6 +44,7 @@ pub struct Request {
     pub offset: Option<usize>,
     pub limit: Option<usize>,
     pub rule_overrides: Option<RuleOverrides>,
+    pub activity: Option<ActivitySelection>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -463,8 +465,9 @@ impl Default for Capabilities {
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Response {
+    #[schemars(range(min = 2, max = 2))]
     pub output_version: u32,
     pub action: Action,
     pub capabilities: Capabilities,
@@ -484,6 +487,7 @@ pub struct Response {
     pub checks: Vec<RuleAssessment>,
     /// Derived from the selected usage view; never stored as a user decision or receipt.
     pub follow_ups: Vec<FollowUpObservation>,
+    pub activity: Option<ActivityResult>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -507,4 +511,59 @@ pub struct FollowUpObservation {
     pub last_record_at: Option<String>,
     pub usage_revision: Option<String>,
     pub absence_observable: bool,
+}
+
+/// Fixed turn analysis, separate from configuration identities and durable handling decisions.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivitySelection {
+    #[schemars(length(min = 1, max = 4096))]
+    pub snapshot_id: String,
+    #[schemars(length(min = 1, max = 4096))]
+    pub thread_id: String,
+    #[schemars(length(min = 1, max = 4096))]
+    pub turn_id: String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ActivityRule {
+    InspectCallsAfterFailure,
+    InspectRepeatedReads,
+    InspectRepeatedRequests,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum ActivityReason {
+    ActivityMeasureUnavailable,
+    ActivityCoverageIncomplete,
+    ActivityBasisUnsupported,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityCheck {
+    pub rule: ActivityRule,
+    #[schemars(range(min = 1, max = 1))]
+    pub version: u32,
+    pub method: String,
+    pub outcome: RuleOutcome,
+    pub observed: crate::timing_dto::Count,
+    pub partial: bool,
+    pub reason: Option<ActivityReason>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityResult {
+    #[schemars(range(min = 1, max = 1))]
+    pub format_version: u32,
+    pub read_view: crate::timing_dto::ReadView,
+    pub scope: crate::timing_dto::LocalScope,
+    pub analysis_method: String,
+    pub freshness: crate::timing_dto::QueryFreshness,
+    pub source_status: String,
+    pub coverage: crate::timing_dto::RepeatCoverage,
+    #[schemars(length(min = 3, max = 3))]
+    pub checks: Vec<ActivityCheck>,
+    /// Positive inspection signals; never fault, resolution, causal waste, or savings claims.
+    #[schemars(length(max = 3))]
+    pub advice: Vec<ActivityRule>,
 }

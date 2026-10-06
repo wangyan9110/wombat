@@ -140,9 +140,10 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
     ...(optimizeTransport ? { async optimize(request: OptimizeRequest, options: QueryOptions ={} ): Promise<OptimizeResult> {
       const [{validate:validateOptimizeRequest},{validate:validateOptimizeResult}]=await Promise.all([import('./generated/validate-optimize-request.js'),import('./generated/validate-optimize-response.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
-      if (!validateOptimizeRequest(request)) throw new CoreError('INVALID_ARGUMENT', '优化参数不符合数据协议');
+      if (!validateOptimizeRequest(request) || !validActivityRequest(request)) throw new CoreError('INVALID_ARGUMENT', '优化参数不符合数据协议');
       const result = await optimizeTransport(request, options);
-      if (!validateOptimizeResult(result) || result.outputVersion !== 1 || result.action !== (request.action ?? 'list')) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
+      if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
+      if (!validateOptimizeResult(result) || result.outputVersion !== 2 || result.action !== (request.action ?? 'list') || !matchesActivity(request,result)) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
       return result;
     } } : {}),
     ...(configTransport ? { async config(request: ConfigRequest, options: QueryOptions ={} ): Promise<ConfigResult> {
@@ -288,4 +289,31 @@ function matchesRepeatNavigation(result: TimingLocalResult): boolean {
     }
   }
   return pages === navigation.pageCount.value && failed === r.afterFailure.count.value && reads === r.repeatedRead.count.value;
+}
+
+function validActivityRequest(request: OptimizeRequest): boolean {
+  if (request.action !== 'activity') return request.activity == null;
+  return request.activity != null && [request.readView,request.projectRoots,request.project,request.decisionRevision,
+    request.suggestionId,request.itemId,request.decisionReason,request.category,request.offset,request.limit,request.ruleOverrides].every(value=>value==null)
+    && (request.group==null||request.group==='pending');
+}
+function matchesActivity(request: OptimizeRequest, result: OptimizeResult): boolean {
+  if(request.action!=='activity')return result.activity==null;
+  const activity=result.activity,selected=request.activity;
+  if(!activity||!selected||activity.formatVersion!==1||activity.analysisMethod!=='safe_event_turn_v5'
+    || activity.scope.agentKind!=='codex'||!activity.scope.wholeTurn||activity.readView.snapshotId!==selected.snapshotId || activity.scope.threadId!==selected.threadId
+    || activity.scope.turnId!==selected.turnId || request.sourceInstanceId!=null&&activity.scope.sourceInstanceId!==request.sourceInstanceId
+    || result.usageRevision!==selected.snapshotId||result.readView!=null||result.suggestions.length||result.checks.length||result.followUps.length) return false;
+  const definitions=[['inspect_calls_after_failure','same_operation_after_failure_v1','repeat_after_failure'],
+    ['inspect_repeated_reads','same_target_read_v1','successful_read_repeat'],
+    ['inspect_repeated_requests','same_request_observation_v1','same_request_observation']] as const;
+  for(const [index,check] of activity.checks.entries()){
+    const expected=definitions[index];
+    if(!expected||check.rule!==expected[0]||check.method!==expected[1]||check.version!==1) return false;
+    if(check.outcome==='hit'&&(check.observed.value==null||check.observed.value<=0||check.observed.basis!==expected[2]||check.observed.status!=='derived' || check.reason!=null))return false;
+    if(check.outcome==='miss'&&(check.observed.value!==0||check.partial||check.reason!=null||check.observed.basis!==expected[2]||check.observed.status!=='derived'))return false;
+  }
+  const confirmed=activity.checks.slice(0,2).some(check=>check.outcome==='hit');
+  const expected=activity.checks.filter(check=>check.outcome==='hit'&&(!confirmed||check.rule!=='inspect_repeated_requests')).map(check=>check.rule);
+  return activity.advice.length===expected.length&&activity.advice.every((rule,index)=>rule===expected[index]);
 }

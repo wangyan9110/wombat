@@ -70,7 +70,7 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 ## 优化与偏好契约 v1
 
-`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v1.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
+`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v2.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities/activity；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
 
 建议身份绑定来源、对象、内容指纹、问题与项目范围。readView固定事实，decisionRevision固定记录，冲突返回VIEW_EXPIRED。keep需原因necessary；not_applicable需object_changed或incorrect_evidence。用户决定保存真实时间，与规则结果独立；已确认重试不重复追加。redisplay只清除最新展示决定。recheck重采集当前范围，不撤销决定，返回stillNeedsReview、verified或recheckUnavailable及独立检查事实。verified只证明原问题对应规则的可观察检查通过，不证明采用或节省；历史事件保留不可变recordId与recordedAt。
 
@@ -82,9 +82,11 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 `core/src/preferences.rs` 生成[偏好请求](../schemas/preferences-request-v1.schema.json)与[响应](../schemas/preferences-response-v1.schema.json)，`UsageClient.preferences` 仅 get/set zh/en；私有原子文件为 `user-v1/language.json`，不接受任意路径或内容。Web 的语言优先级见[语言契约](../i18n/product.md)。
 
+`optimize` 响应版本 2 增加固定轮次的活动检查；请求版本 1 和持久复查格式保持原版本。`action: activity` 必须选择一个快照、任务和轮次，不接受配置视图或处理记录参数。它消费共用轮次分析，不采集配置、宿主钩子或价格，也不写复查历史。行为见[内核说明](../../core/README.md)，操作见[CLI 指南](../guides/cli.md)。无法识别的响应版本或字段会被拒绝。
+
 当前规则使用static-config-v7。bodyTokenEstimate独立分词精确正文，payload=skillBody，含tokenizerVersion、method/contentHash及referenceEncodingOnly，所在configRevision/readView固定快照。bodyEstimateStatus公开未知/解析/资源缺口，旧缓存默认unknown；解析失败不写零。全文/正文各≤1MiB，两者输入都计入单轮8MiB预算。AGENTS.md>16,384B为产品提醒，Skill正文≥5,000为参考提醒，description501—1,024为产品提醒，>1,024为规范问题且不重复500提醒。ruleOverrides只允许agentsBytes正安全整数及descriptionCharacters 0..1024，ruleParameters返回默认/覆盖/固定线及授权当前配置适用边界；记录保留原规则，recheckRuleParameters保存复查规则。规范约束不可覆盖，正文未知不能复查通过。加载预算诊断/闲置/空间能力仍关闭，边界见[优化闭环提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)。
 
-首次显式复查保存reviewBaseline：原始安全测量元数据，不含正文；后续复查保留基线并更新item。recheckRuleParameters记录实际复查参数。字节/码点需两端完整且当前；正文Token比较另须两端估算可用、方法/编码/载荷/分词器版本一致。仅展示文本变化，不将阈值差额或关联用量解释为节省。Web关联用量复用config evidence及usageRevision，日期不改变规则身份；CLI/Agent通过inventory evidence和turns读取同口径。
+首次观察保存reviewBaseline：原始安全测量元数据，不含正文；后续复查保留基线并更新item。recheckRuleParameters记录实际复查参数。字节/码点需两端完整且当前；正文Token比较另须两端估算可用、方法/编码/载荷/分词器版本一致。仅展示文本变化，不将阈值差额或关联用量解释为节省。Web关联用量复用config evidence及usageRevision，日期不改变规则身份；CLI/Agent通过inventory evidence和turns读取同口径。
 
 完整块与显式副本证据，公开文件版本、原文字节/行位置、声明哈希、方向和变换，不返回正文。config capabilities可返回启动授权根与宿主复制用重启命令；不是扫描成功事实，也不提供执行接口。live freshness.errorCode公开存储错误；facets.discoveredThreadCount只表示快照内已发现任务元数据，不是日期筛选后的计量数。
 

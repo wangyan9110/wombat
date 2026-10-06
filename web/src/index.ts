@@ -4,7 +4,7 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { CoreError, createUsageClient, type QueryOptions, type UsageClient, type UsageRequest } from '@wombat/client';
 import { backgroundPrices } from './automatic-prices.js';
-import { timingAccess, publishTiming } from './timing.js';
+import { timingAccess, publishTiming, activityAccess } from './timing.js';
 
 const BODY_LIMIT = 64 * 1024;
 const OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -95,9 +95,11 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
     if (request.roots != null || (request.snapshotId != null && !snapshots.has(request.snapshotId))) throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
     return { ...request, roots: request.snapshotId && !request.snapshotId.startsWith('live:') ? undefined : options.roots };
   };
-  const timing = timingAccess(options.client, snapshots, () => options.roots, async query => {
+  const revalidateFixed = async (query:import('@wombat/client').QueryOptions) => {
     if (options.client.directories) updateGrants(await options.client.directories({ action: 'list' }, query));
-  });
+  };
+  const timing = timingAccess(options.client,snapshots,()=>options.roots,revalidateFixed);
+  const activity = activityAccess(options.client,snapshots,()=>options.roots,revalidateFixed);
   const client = createUsageClient({
     timing,
     query: async (r, q) => {
@@ -122,6 +124,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       return {...result,authorizedSourceRoots:options.roots??result.authorizedSourceRoots,authorizedProjects:projects,hostRestartCommand:options.restartCommand??null};
     },
     optimize: async (r, q) => {
+      if(r.action==='activity')return activity(r,q);
       if (!options.client.optimize) throw new CoreError('OPTIMIZE_UNAVAILABLE', 'Optimization queries unavailable');
       if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView))) throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
       await discoverProject(r.project, q);

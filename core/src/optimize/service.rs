@@ -27,6 +27,13 @@ fn execute_at_inner(
     path: &Path,
     all: bool,
 ) -> Result<Response> {
+    super::activity::validate(&r)?;
+    if r.action == Action::Activity {
+        return Err(operation_error(
+            "INVALID_ARGUMENT",
+            "Activity requires the fixed-snapshot entry",
+        ));
+    }
     if r.project
         .as_ref()
         .is_some_and(|p| !view.projects.contains(p))
@@ -227,7 +234,7 @@ fn execute_at_inner(
         }),
     );
     Ok(Response {
-        output_version: 1,
+        output_version: 2,
         action: r.action,
         capabilities,
         read_view: Some(id),
@@ -253,6 +260,7 @@ fn execute_at_inner(
         rule_catalog: registry::catalog(),
         checks: vec![],
         follow_ups,
+        activity: None,
     })
 }
 

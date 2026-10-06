@@ -5,8 +5,8 @@
   "properties": {
     "outputVersion": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 4294967295
+      "minimum": 2,
+      "maximum": 2
     },
     "action": {
       "$ref": "#/definitions/Action"
@@ -84,8 +84,19 @@
       "items": {
         "$ref": "#/definitions/FollowUpObservation"
       }
+    },
+    "activity": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ActivityResult"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
+  "additionalProperties": false,
   "required": [
     "outputVersion",
     "action",
@@ -115,7 +126,8 @@
         "redisplay",
         "recheck",
         "capabilities",
-        "checks"
+        "checks",
+        "activity"
       ]
     },
     "Capabilities": {
@@ -2546,6 +2558,407 @@
         "no_observed_records",
         "version_unknown",
         "unavailable"
+      ]
+    },
+    "ActivityResult": {
+      "type": "object",
+      "properties": {
+        "formatVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "readView": {
+          "$ref": "#/definitions/ReadView"
+        },
+        "scope": {
+          "$ref": "#/definitions/LocalScope"
+        },
+        "analysisMethod": {
+          "type": "string"
+        },
+        "freshness": {
+          "$ref": "#/definitions/QueryFreshness"
+        },
+        "sourceStatus": {
+          "type": "string"
+        },
+        "coverage": {
+          "$ref": "#/definitions/RepeatCoverage"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActivityCheck"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "advice": {
+          "description": "Positive inspection signals; never fault, resolution, causal waste, or savings claims.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActivityRule"
+          },
+          "maxItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "formatVersion",
+        "readView",
+        "scope",
+        "analysisMethod",
+        "freshness",
+        "sourceStatus",
+        "coverage",
+        "checks",
+        "advice"
+      ]
+    },
+    "ReadView": {
+      "type": "object",
+      "properties": {
+        "snapshotId": {
+          "type": "string"
+        },
+        "snapshotSchema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "adapterVersions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "projectionVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "snapshotId",
+        "snapshotSchema",
+        "createdAt",
+        "adapterVersions",
+        "projectionVersion"
+      ]
+    },
+    "LocalScope": {
+      "type": "object",
+      "properties": {
+        "sourceInstanceId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "agentKind": {
+          "type": "string"
+        },
+        "wholeTurn": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sourceInstanceId",
+        "threadId",
+        "turnId",
+        "agentKind",
+        "wholeTurn"
+      ]
+    },
+    "QueryFreshness": {
+      "description": "Internal selector observation; not a request option or source capability.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ]
+    },
+    "RepeatCoverage": {
+      "type": "object",
+      "properties": {
+        "candidateOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "eligibleCommands": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingIdentityRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "excludedReceivers": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingMatching": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "conflictingOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingStart": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "indeterminateOutcomes": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "orderGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "contextBoundaries": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "crossedContext": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "missingClockDomain": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "sourceMetadataGaps": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "durationConflicts": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RepeatCoverageReason"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "candidateOperations",
+        "eligibleCommands",
+        "missingIdentityRecords",
+        "excludedReceivers",
+        "missingMatching",
+        "conflictingOperations",
+        "missingStart",
+        "indeterminateOutcomes",
+        "orderGaps",
+        "contextBoundaries",
+        "crossedContext",
+        "missingClockDomain",
+        "sourceMetadataGaps",
+        "durationConflicts",
+        "partial",
+        "reasonCodes"
+      ]
+    },
+    "TimingMetric_uint64": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "$ref": "#/definitions/MetricStatus"
+        },
+        "basis": {
+          "$ref": "#/definitions/Basis"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "status",
+        "basis",
+        "evidenceRefs"
+      ]
+    },
+    "MetricStatus": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "derived",
+        "proxy",
+        "unavailable"
+      ]
+    },
+    "Basis": {
+      "type": "string",
+      "enum": [
+        "native_record",
+        "explicit_boundary",
+        "lifecycle_union",
+        "lifecycle_sum",
+        "interval_mask",
+        "operation_union",
+        "operation_residual",
+        "repeat_after_failure",
+        "successful_read_repeat",
+        "known_operation_duration",
+        "failure_recovery_span",
+        "same_request_observation",
+        "request_input",
+        "historical_window",
+        "type7",
+        "safe_message_record",
+        "safe_message_delay",
+        "safe_event_count",
+        "response_gap_v1",
+        "not_recorded",
+        "adapter_not_mapped",
+        "unsupported_method",
+        "missing_identity",
+        "missing_time",
+        "running_turn",
+        "exact_event_page",
+        "boundary_conflict",
+        "source_partial",
+        "resource_limit",
+        "numeric_range",
+        "no_candidates",
+        "missing_batch_cycle",
+        "missing_repository_baseline",
+        "unknown_message_origin",
+        "canonical_operation_identity",
+        "reported_file_paths",
+        "canonical_use_identity",
+        "canonical_use_records",
+        "unassigned_use_index",
+        "dispatch_not_proven",
+        "missing_target",
+        "target_conflict",
+        "outcome_conflict",
+        "missing_turn"
+      ]
+    },
+    "RepeatCoverageReason": {
+      "type": "string",
+      "enum": [
+        "missing_matching",
+        "excluded_receivers",
+        "identity_gaps",
+        "conflicting_operations",
+        "missing_start",
+        "indeterminate_outcomes",
+        "order_gaps",
+        "context_boundaries",
+        "crossed_context",
+        "missing_clock_domain",
+        "source_metadata_gaps",
+        "duration_conflicts",
+        "missing_durations",
+        "missing_recovery_spans",
+        "missing_intervals",
+        "missing_window",
+        "source_partial",
+        "resource_limit",
+        "numeric_range"
+      ]
+    },
+    "ActivityCheck": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "$ref": "#/definitions/ActivityRule"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "method": {
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/definitions/RuleOutcome"
+        },
+        "observed": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ActivityReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "version",
+        "method",
+        "outcome",
+        "observed",
+        "partial"
+      ]
+    },
+    "ActivityRule": {
+      "type": "string",
+      "enum": [
+        "inspect_calls_after_failure",
+        "inspect_repeated_reads",
+        "inspect_repeated_requests"
+      ]
+    },
+    "ActivityReason": {
+      "type": "string",
+      "enum": [
+        "activityMeasureUnavailable",
+        "activityCoverageIncomplete",
+        "activityBasisUnsupported"
       ]
     }
   }

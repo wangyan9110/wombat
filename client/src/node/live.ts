@@ -41,7 +41,7 @@ export async function queryLive(request: ProductRequest, options: QueryOptions, 
   if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
   let observed: NativeRequest = request;
   const product = 'config' in request ? request.config : 'optimize' in request ? request.optimize : 'handoff' in request ? request.handoff : undefined;
-  const fresh = product && product.action !== 'capabilities' && (!product.readView || product.action === 'recheck' || product.action === 'send');
+  const fresh = product && product.action !== 'capabilities' && product.action !== 'activity' && (!product.readView || product.action === 'recheck' || product.action === 'send');
   if (fresh) {
     const {captureHooks} = await import('./codex/hooks.js');
     observed = {...request, nativeHooks: await captureHooks({roots:product.roots,projectRoots:product.projectRoots}, options, config)};

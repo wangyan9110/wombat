@@ -30,7 +30,7 @@ function result(): OptimizeResult {
   const current = check();
   const original = { ...check(), assessmentId: 'original-assessment', contentVersion: 'original-content' };
   return {
-    outputVersion: 1, action: 'detail', capabilities: { staticChecks: true, manualEditReview: true, decisions: true, inactivity: false,
+    outputVersion: 2, action: 'detail', capabilities: { staticChecks: true, manualEditReview: true, decisions: true, inactivity: false,
       mcpFaults: false, spaceCleanup: false, loadingBudgetDiagnosis: false, exactInstructionBlocks: true, declaredCopyDrift: true,
       hookSupport: { effectiveRegistry: false, status: 'no_verified_adapter' } },
     configRevision: 'synthetic-config', usageRevision: null, readView: 'synthetic-fixed-view', decisionRevision: 'synthetic-decision', checkedAt: at,
@@ -134,3 +134,14 @@ test('review headings localize recorded states and omit absent headline metrics'
     rule: 'bodyTokens', status: 'failed', observed: 0, threshold: 5000, evidenceCodes: [] }];
   assert.match(formatOptimizeText(fixture), /  0 /);
 }));
+
+test('activity CLI requires a fixed turn and renders inspection signals in both languages',async()=>{
+ const {parseOptimizeArgs}=await import('../src/optimize-cli.js');
+ const {activityResult}=await import('../../tests/fixtures/activity.js');
+ const parsed=parseOptimizeArgs(['activity','--snapshot','live:synthetic:fixed','--thread','task','--turn','turn','--json']);
+ assert.equal(parsed.request.action,'activity');assert.equal(parsed.request.projectRoots,undefined);
+ assert.deepEqual(parsed.request.activity,{snapshotId:'live:synthetic:fixed',threadId:'task',turnId:'turn'});
+ for(const args of [['activity'],['activity','--snapshot','fixed','--thread','task'],['activity','--snapshot','fixed','--thread','task','--turn','turn','--read-view','config:other'],['list','--turn','turn']])assert.throws(()=>parseOptimizeArgs(args));
+ const previous=locale.getSnapshot().locale;
+ try{for(const language of ['en','zh'] as const){locale.setLocale(language);const text=formatOptimizeText(activityResult());assert.match(text,language==='en'?/Calls after failure: 1 observed/:/失败后再次调用: 已观察到 1 次/);assert.match(text,language==='en'?/same path does not establish identical content/:/同路径不证明内容/);assert.doesNotMatch(text,/activity\.|undefined|NaN|未知/);}}finally{locale.setLocale(previous);}
+});
