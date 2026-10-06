@@ -91,6 +91,7 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   await details(page, 'execution.distribution'); await text(execution(page), label('execution.concurrent'));
   assert.equal(await metric(page, '.turn[open] .execution', label('execution.category.command')), t('execution.unionSum', { union: '50000 ms', sum: '60000 ms' }));
   await activate(page.locator(width <= 760 ? '.execution-list button' : '.execution-track button').first()); await page.locator('aside.execution-evidence').waitFor();
+  assert.equal(await page.evaluate<boolean>('document.activeElement?.matches("aside.execution-evidence")??false'), true);
   await text(page.locator('aside.execution-evidence'), label('execution.wholeTurn'));
   await activate(page.locator('aside.execution-evidence').getByRole('button', { name: label('execution.closeEvidence'), exact: true }));
 
@@ -101,6 +102,7 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   assert.equal(await records.locator('article').count(), 3); await text(records, label('execution.useOutcome.failed'));
   assert.equal(await skill.locator('dd').first().innerText(), '3');
   await activate(records.getByRole('button', { name: label('execution.closeEvidence'), exact: true }));
+  assert.equal(await skill.getByRole('button', { name: label('execution.useEvidence'), exact: true }).evaluate(button => button === document.activeElement), true);
 
   await details(page, 'execution.moreMetrics'); const ttft = await metric(page, '.turn[open] .execution', label('execution.nativeTtft'));
   assert.ok(ttft.startsWith('0 ms')); assert.ok(ttft.includes(label('execution.evidence')));
@@ -185,10 +187,13 @@ export async function previews(page: Page, origin: string, language: Language, w
   // Application preview exercises production App navigation separately from
   // real-core acceptance above.
   await page.goto(origin + `/preview.html?page=threads&allTime=1&lang=${language}`);
-  await page.locator('.thread-row').first().waitFor(); await activate(page.locator('.thread-row').first()); await page.locator('.turn[open]').waitFor();
+  await page.locator('.thread-row').nth(1).waitFor(); const returning = page.locator('.thread-row').nth(1); await activate(returning); await page.locator('.turn[open]').waitFor();
   await settled(page);
   if (width <= 760) await activate(page.locator('.task-return')); else await page.goBack();
-  await page.locator('.thread-row').first().waitFor();
+  await returning.waitFor();
+  await page.waitForFunction(() => !new URL(location.href).searchParams.has('thread'));
+  await settled(page);
+  assert.equal(await returning.evaluate(button => button === document.activeElement), true);
   await overflow(page); assert.deepEqual(errors, []);
   return { source: 'preview', language, width, journeys: ['production-App-return', 'parallel-explanation-presentation-only', 'uses-failure-expiry-refresh', 'zero-missing-running', 'dense-object-and-record-pages-keyboard'] };
 }

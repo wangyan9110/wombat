@@ -15,9 +15,9 @@ export function TaskListSummary({ result }: { result: UsageResult }) {
   </div>;
 }
 
-export function TaskRow({ task, selected, route, suggestion, open }: { task: TaskItem; selected: boolean; route: Route; suggestion?: TaskSuggestionSummary; open: () => void }) {
+export function TaskRow({ task, selected, route, suggestion, open }: { task: TaskItem; selected: boolean; route: Route; suggestion?: TaskSuggestionSummary; open: (trigger: HTMLButtonElement) => void }) {
   const usage = task.matchedUsage;
-  return <button className={`thread-row task-row ${selected ? 'active' : ''}`} aria-current={selected ? 'true' : undefined} onClick={open}>
+  return <button className={`thread-row task-row ${selected ? 'active' : ''}`} aria-current={selected ? 'true' : undefined} onClick={event=>open(event.currentTarget)}>
     <strong><span>{task.title?.trim() || t('common.untitled_thread')}</span><span className="task-enter" aria-hidden="true">›</span></strong>
     <span className="row-meta"><span title={task.project ?? ''}>{directoryName(task.project)}</span><span>{task.matchedLastActivityAt ? timestamp(task.matchedLastActivityAt, route.timezone).slice(0, 10) : t('webui.undated')}</span></span>
     <span className="task-row-stats">

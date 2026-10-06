@@ -162,6 +162,8 @@ MCP now has a separate timeline category. Associated calls with reliable endpoin
 
 The shared preview already provides synthetic scenarios including complete records, missing time records, and a running turn, and reuses the production turn component. These scenarios support review of the timeline, list fallback, and group refresh; they do not establish wide/narrow layout or interaction acceptance. Review visual hierarchy, long names, expanded content spacing, and keyboard paths. Clickable controls alone do not establish design acceptance, and screenshots do not replace real-browser acceptance.
 
+The old standalone prototype pages, styles and simulations have been removed. Production components and the shared preview are the only UI implementation. Old check archives remain historical evidence and do not establish U19 results.
+
 #### 16.4 Visual direction and structural sketch
 
 Retain Wombat's white canvas and restrained typography, making the execution timeline the primary visual focus. Use compact summary rows and lists for usage records rather than equal-sized cards everywhere, redundant borders, shadows, or decorative numbering. Left-align text and align tabular numerals within columns. Retain system fonts and Chinese fallbacks without adding remote font dependencies. Follow existing title, body, and supporting-text scales while keeping supporting text legible.

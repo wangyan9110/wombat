@@ -44,7 +44,8 @@
     "test:repo": "node --import tsx --test scripts/*.test.mjs scripts/*.test.ts",
     "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
     "benchmark:live": "node --import tsx scripts/benchmark-live.ts",
-    "docs:structure": "node scripts/check-doc-structure.ts"
+    "docs:structure": "node scripts/check-doc-structure.ts",
+    "preview:retire": "node --import tsx scripts/retire-prototype.ts"
   },
   "devDependencies": {
     "@types/node": "26.0.0",

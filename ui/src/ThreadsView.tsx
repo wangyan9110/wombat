@@ -15,17 +15,18 @@ import type { WorkspaceData } from './useWorkspace.js';
 type Turn=Extract<UsageItem,{kind:'turn'}>;
 export function ThreadsView({empty,client,data,route,navigate,basis,usage,refresh}:{empty:ReactNode;refresh:()=>void;client:UsageClient;data:WorkspaceData;route:Route;navigate:(r:Partial<Route>)=>void;usage:(s:UsageSelection)=>void;basis:(s:UsageSummary)=>void}){
  const rows=data.list.items.filter((i):i is Extract<UsageItem,{kind:'thread'}>=>i.kind==='thread');
- const selected=rows.find(i=>i.id===route.thread||i.upstreamId===route.thread)??rows[0];
+ const rememberedTask=useRef(route.thread);
+ const selected=(route.thread?rows.find(i=>i.id===route.thread||i.upstreamId===route.thread):undefined)??(rememberedTask.current?rows.find(i=>i.id===rememberedTask.current||i.upstreamId===rememberedTask.current):undefined)??rows[0];
  const suggestions=useTaskSuggestions(client,data.list.snapshotRef.snapshotId,route,rows.map(row=>row.id));
- const listPosition=useRef(0),previousThread=useRef(route.thread);
- useEffect(()=>{if(previousThread.current&&!route.thread){window.scrollTo(0,listPosition.current);document.querySelector<HTMLElement>('.thread-row.active')?.focus({preventScroll:true});}previousThread.current=route.thread;},[route.thread]);
+ const listPosition=useRef(0),panelPosition=useRef(0),previousThread=useRef(route.thread),list=useRef<HTMLElement|null>(null),listOpener=useRef<HTMLButtonElement|null>(null);
+ useEffect(()=>{if(previousThread.current&&!route.thread){window.scrollTo(0,listPosition.current);if(list.current)list.current.scrollTop=panelPosition.current;const target=listOpener.current?.isConnected?listOpener.current:list.current?.querySelector<HTMLElement>('.thread-row.active');target?.focus({preventScroll:true});}if(route.thread)rememberedTask.current=route.thread;previousThread.current=route.thread;},[route.thread]);
  const [search,setSearch]=useState(route.search??'');useEffect(()=>setSearch(route.search??''),[route.search]);
  const reviewReturn=returnRoute(route);
  return <>
   {reviewReturn&&<p className="read-notice"><button className="link" onClick={()=>navigate(reviewReturn)}>{t('webui.back')}</button></p>}
   <Heading title={t('webui.threads')} sub={t('task.purpose')}/>
   <div className={`split task-split ${route.thread?'task-selected':''}`}>
-   <section className="panel thread-list" data-view-scroll data-view-key="task-list" aria-label={t('webui.threadList')}>
+   <section ref={list} className="panel thread-list" data-view-scroll data-view-key="task-list" aria-label={t('webui.threadList')}>
     <div className="list-head">
      <form className="search-form" onSubmit={e=>{e.preventDefault();navigate({search:search||undefined,offset:0,thread:undefined,turn:undefined,turnOffset:0});}}>
       <input aria-label={t('webui.searchLabel')} placeholder={t('webui.search')} value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -34,7 +35,7 @@ export function ThreadsView({empty,client,data,route,navigate,basis,usage,refres
      <div className="list-meta"><select aria-label={t('webui.threadSort')} value={route.sort} onChange={e=>navigate({sort:e.target.value as Route['sort'],offset:0,thread:undefined,turn:undefined,turnOffset:0})}><SortOptions/></select></div>
     </div>
     <TaskListSummary result={data.list}/>
-    {rows.map(task=><TaskRow key={task.id} task={task} selected={task.id===selected?.id} route={route} suggestion={suggestions.get(task.id)} open={()=>{listPosition.current=window.scrollY;navigate({thread:task.id,turn:undefined,turnOffset:0,offset:data.list.page.offset});}}/>)}
+    {rows.map(task=><TaskRow key={task.id} task={task} selected={task.id===selected?.id} route={route} suggestion={suggestions.get(task.id)} open={trigger=>{rememberedTask.current=task.id;listOpener.current=trigger;panelPosition.current=list.current?.scrollTop??0;listPosition.current=window.scrollY;navigate({thread:task.id,turn:undefined,turnOffset:0,offset:data.list.page.offset});}}/>)}
     {!rows.length&&<p className="compact-note">{t('webui.noMatch')}</p>}
     <Pagination page={data.list.page} onPage={offset=>navigate({offset,thread:undefined,turn:undefined,turnOffset:0})}/>
     <p className="compact-note">{t('task.listNote')}</p>

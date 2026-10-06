@@ -13,6 +13,7 @@ export interface Locator {
   nth(index: number): Locator;
   count(): Promise<number>;
   innerText(): Promise<string>;
+  evaluate<T>(callback: (element: HTMLElement) => T): Promise<T>;
   getAttribute(name: string): Promise<string | null>;
   click(): Promise<void>;
   press(key: string): Promise<void>;
