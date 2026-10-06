@@ -18,7 +18,10 @@ function exchange(socket: string, request: NativeRequest, options: QueryOptions,
       if (error) reject(error); else resolve(result);
     };
     const abort = () => finish(new CoreError('CANCELLED', '已取消'));
-    const timer = setTimeout(() => finish(new CoreError('TIMEOUT', '实时用量查询超时')), config.timeoutMs ?? 12_000);
+    // Explicit refresh also writes and syncs an immutable generation. Keep the
+    // short read deadline separate from that bounded publication operation.
+    const timeoutMs = config.timeoutMs ?? ('query' in request && request.query.action === 'refresh' ? 120_000 : 12_000);
+    const timer = setTimeout(() => finish(new CoreError('TIMEOUT', '实时用量查询超时')), timeoutMs);
     options.signal?.addEventListener('abort', abort, { once: true });
     if (options.signal?.aborted) { abort(); return; }
     client.on('connect', () => client.write(JSON.stringify(request) + '\n'));

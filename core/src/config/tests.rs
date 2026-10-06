@@ -402,6 +402,27 @@ fn thread_scope_retains_read_candidates_and_their_queryable_evidence() {
 }
 
 #[test]
+fn thread_scope_retains_loaded_instructions_without_counting_a_file_read() {
+    let mut load = use_operation("instruction", "instructionLoad", "completed");
+    load.call_id = None;
+    let mut view = use_view(vec![load]);
+    view.items[0].kind = Kind::Rule;
+    let mut request = uses_request();
+    request.scope.thread_id = Some("thread".into());
+    let result = execute(request.clone(), "config:uses".into(), &view).unwrap();
+    assert_eq!(result.items.len(), 1);
+    assert_eq!(result.items[0].observation, Observation::LoadedOnly);
+    assert_eq!(result.items[0].counts.file_reads, 0);
+    request.scope.thread_id = Some("other-thread".into());
+    assert!(
+        execute(request, "config:uses".into(), &view)
+            .unwrap()
+            .items
+            .is_empty()
+    );
+}
+
+#[test]
 fn thread_scope_retains_missing_time_coverage_without_inventing_evidence_dates() {
     let mut read = use_operation("known-call-without-time", "skillRead", "failed");
     read.timestamp = None;

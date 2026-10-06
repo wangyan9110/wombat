@@ -31,6 +31,21 @@ pub fn atomic_write(file: &Path, content: &[u8]) -> Result<()> {
         Ok(())
     })
 }
+/// Write a new file in a caller-owned unpublished generation. The caller must
+/// sync that directory before publishing it; existing files are never replaced.
+pub(crate) fn write_unpublished(file: &Path, content: &[u8]) -> Result<()> {
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut output = options.open(file)?;
+    output.write_all(content)?;
+    output.sync_all()?;
+    Ok(())
+}
 fn atomic_with(file: &Path, write: impl FnOnce(&mut fs::File) -> Result<()>) -> Result<()> {
     let file = absolute(file)?;
     let parent = file
@@ -55,6 +70,26 @@ fn atomic_with(file: &Path, write: impl FnOnce(&mut fs::File) -> Result<()>) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn unpublished_files_are_private_and_cannot_replace_existing_targets() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("shard.json");
+        write_unpublished(&file, b"complete shard").unwrap();
+        assert!(write_unpublished(&file, b"replacement").is_err());
+        assert_eq!(fs::read(&file).unwrap(), b"complete shard");
+        #[cfg(unix)]
+        {
+            use std::os::unix::{fs::PermissionsExt, fs::symlink};
+            assert_eq!(
+                fs::metadata(&file).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+            let link = dir.path().join("link.json");
+            symlink(&file, &link).unwrap();
+            assert!(write_unpublished(&link, b"replacement").is_err());
+            assert_eq!(fs::read(&file).unwrap(), b"complete shard");
+        }
+    }
     #[test]
     fn private_atomic_file() {
         let dir = std::env::temp_dir().join(format!("wombat-rust-{}", uuid::Uuid::new_v4()));

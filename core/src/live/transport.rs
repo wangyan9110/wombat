@@ -368,6 +368,11 @@ pub fn serve() -> Result<()> {
                 });
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // Publication can take longer than the idle grace period.
+                // Count idle time after active readers finish, not from accept.
+                if active.load(std::sync::atomic::Ordering::Relaxed) != 0 {
+                    last_client = Instant::now();
+                }
                 if last_client.elapsed() > Duration::from_secs(15)
                     && active.load(std::sync::atomic::Ordering::Relaxed) == 0
                     && !configs.lock().unwrap().has_views()

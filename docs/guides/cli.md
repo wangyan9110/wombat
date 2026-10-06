@@ -62,19 +62,19 @@ wombat timing evidence --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID 
 wombat timing capabilities
 ```
 
-`timing` 与 `timing summary` 等价，默认输出一个最终 v1 JSON 对象；`--text` 选择本地化文本，不能与 `--json` 同用。使用任务查询返回的完整 Wombat 任务和轮次身份。未知值在 JSON 中保留 null，文本显示未知；原生耗时、派生耗时、原生 TTFT 与首条内容记录延迟分别展示。区间并集与累加可能重叠，不能相加。
+`timing` 与 `timing summary` 等价，默认输出一个最终 v6 JSON 对象；`--text` 选择本地化文本，不能与 `--json` 同用。使用任务查询返回的完整 Wombat 任务和轮次身份。缺失值在 JSON 中保留 null，文本说明所需记录或可用范围；原生耗时、派生耗时、原生 TTFT 与首条内容记录延迟分别展示。区间并集与累加可能重叠，不能相加。
 
 摘要支持重复 `--root`、`--source`，以及 `--fresh` 或 `--cached` 之一。`--snapshot` 固定结果，不能与 `--fresh` 同用；固定版本同时指定来源根或来源时，必须匹配该版本的授权范围。后续证据页使用结果返回的快照身份；缺失或过期版本不会退回 latest。证据只支持本机投影，要求固定快照与相同目标和范围，接受 `--limit 1..200`（默认50）及原样传回的 `nextCursor.token`，不接受刷新模式。分页不改变整轮摘要。能力查询只接受输出、语言选项和可选 `--share`，不执行扫描；它报告解析器支持，不能证明某轮次实际存在这些字段。
 
-`--share` 请求 Rust 独立的安全摘要投影，CLI 不从本机 JSON 删除字段拼成分享结果。耗时查询绕过自动补价、配置扫描、Hook 采集和账户观察，拒绝日期、Token、金额、offset、compare、watch 参数。达到资源上限时，结果仍可保留已验证原生标量，派生值保持未知。
+`--share` 请求 Rust 独立的安全摘要投影，CLI 不从本机 JSON 删除字段拼成分享结果。耗时查询绕过自动补价、配置扫描、Hook 采集和账户观察，拒绝日期、Token、金额、offset、compare、watch 参数。达到资源上限时，结果仍可保留已验证原生标量，受影响的派生值省略并说明计算限制。
 
-摘要在内核标明已检查范围完整时退出0，即使可选值未知；部分或暂定结果退出2。证据导航和能力查询成功时退出0，不据此证明整轮完整。错误退出1，取消退出130；JSON 错误使用 `{outputVersion:1,error:{code,message}}` 本地化安全模板，包括 NOT_FOUND 和 VIEW_EXPIRED，不输出来源路径或底层错误详情。状态写 stderr；Ctrl+C 取消本次调用，不终止共享同步。独立合成 CLI 测试已通过，真实内核与浏览器耗时联调尚未验收。
+摘要在内核标明已检查范围完整时退出0，即使可选字段未记录；部分或暂定结果退出2。证据导航和能力查询成功时退出0，不据此证明整轮完整。错误退出1，取消退出130；JSON 错误使用 `{outputVersion:1,error:{code,message}}` 本地化安全模板，包括 NOT_FOUND 和 VIEW_EXPIRED，不输出来源路径或底层错误详情。状态写 stderr；Ctrl+C 取消本次调用，不终止共享同步。真实内核与浏览器验收使用 `corepack pnpm verify:e2e`；结果只覆盖所选平台与范围。
 
 ## 官方价表
 
 实时查询发现可补齐的缺价会自动检查官方价表；失败保留现有结果并返回 `priceUpdate`。失败15分钟、成功24小时内不重复下载；设置 `WOMBAT_AUTO_PRICES=0` 可关闭自动联网，`--cached` 和 `--snapshot` 始终不触发自动更新。手动 `prices update` 不受自动重试间隔限制。
 
-`prices`（或 `prices status`）离线查看当前完整价表；`prices update` 从固定官方地址联网下载并校验，默认输出简要结果，`--json` 返回 `outputVersion:1`、action、origin、updated、source、sourceHash、catalogHash和完整catalog。价格响应/错误版本独立于用量v3；错误仍为`{outputVersion:1,error:{code,message}}`，退出码1或取消130。常见失败包括PRICE_FETCH_FAILED、PRICE_SOURCE_CHANGED、PRICE_CACHE_INVALID、OUTPUT_LIMIT、TIMEOUT和UPDATE_BUSY。
+`prices`（或 `prices status`）离线查看当前完整价表；`prices update` 从固定官方地址联网下载并校验，默认输出简要结果，`--json` 返回 `outputVersion:1`、action、origin、updated、source、sourceHash、catalogHash和完整catalog。价格响应/错误版本独立于用量v5；错误仍为`{outputVersion:1,error:{code,message}}`，退出码1或取消130。常见失败包括PRICE_FETCH_FAILED、PRICE_SOURCE_CHANGED、PRICE_CACHE_INVALID、OUTPUT_LIMIT、TIMEOUT和UPDATE_BUSY。
 
 更新成功后，下一次实时同步按新价表生成完整读取版本；执行`refresh`可另存快照，旧快照金额保留。更新不支持自定义URL、导入路径或用量筛选。网络范围、代理、支持模型表与保存规则见[价格口径](../reference/pricing.md#联网更新价表)。
 
@@ -90,17 +90,17 @@ wombat timing capabilities
 
 ## JSON
 
-用量使用 `outputVersion: 3`。成功对象包含 action、snapshotRef、scope、availableRange、summary、items、page、quality。运行时对生成 Schema 校验，未知参数拒绝。普通查询 stdout 只有一个最终 JSON 对象，watch为NDJSON；状态说明写stderr。实时结果另有freshness，status区分current、syncing、stale、failed和fixed，checkedAt为最后成功检查时间；current只表示已处理本次观察到的日志范围。
+用量使用 `outputVersion: 5`。成功对象包含 action、snapshotRef、scope、availableRange、summary、items、page、quality。运行时对生成 Schema 校验，未知参数拒绝。普通查询 stdout 只有一个最终 JSON 对象，watch为NDJSON；状态说明写stderr。实时结果另有freshness，status区分current、syncing、stale、failed和fixed，checkedAt为最后成功检查时间；current只表示已处理本次观察到的日志范围。
 
 金额为十进制字符串；Token 为安全整数或 null。`price.cost=null` 表示金额不完整，`knownCost` 为已知小计，status 区分 priced、partial、unknown。缺失不是零，reportedCost 不与标准折算相加。不能从已显示的两位金额重新求和。
 
 任务返回 matchedUsage 与 threadUsage。轮次默认覆盖完整任务，matchedUsage 保留来处条件；turns 可加 --matched-only 仅返回有匹配计量的轮次，--locate-turn ID 定位其所在页（定位成功优先于 offset，否则使用 offset）。筛选轮次不改变完整任务汇总。轮次份额分母为完整任务，步骤份额分母为完整轮次。操作没有独占计量，不显示费用。`unassigned` 承载任务内未归轮记录。
 
-退出码：0 成功或空范围；2 有结果但读取不完整或未确认同步完成；1 错误；130 取消。错误结构为 `{outputVersion:3,error:{code,message}}`，常见 code 包括 INVALID_ARGUMENT、NO_SNAPSHOT、SOURCE_UNREADABLE、SNAPSHOT_CORRUPT、UNSUPPORTED_VERSION、UPDATE_BUSY、CANCELLED、RESOURCE_LIMIT、DETAIL_UNAVAILABLE。部分结果仍可用返回的固定快照继续查询。
+退出码：0 成功或空范围；2 有结果但读取不完整或未确认同步完成；1 错误；130 取消。错误结构为 `{outputVersion:5,error:{code,message}}`，常见 code 包括 INVALID_ARGUMENT、NO_SNAPSHOT、SOURCE_UNREADABLE、SNAPSHOT_CORRUPT、UNSUPPORTED_VERSION、UPDATE_BUSY、CANCELLED、RESOURCE_LIMIT、DETAIL_UNAVAILABLE。部分结果仍可用返回的固定快照继续查询。
 
 ## 旧版迁移
 
-仅读取当前 usage-v4 快照（schema4）；用量 JSON v3 与耗时 JSON v1 是独立输出格式。未知版本拒绝并保留已有文件和用户记录。不提供迁移或旧命令/输出兼容。已退出的scan/report/checkup/quota/codex/observe/compare命令不留占位入口。
+仅读取当前 usage-v4 快照（schema4）；用量 JSON v5 与耗时 JSON v6 是独立输出格式。未知版本拒绝并保留已有文件和用户记录。不提供迁移或旧命令/输出兼容。已退出的scan/report/checkup/quota/codex/observe/compare命令不留占位入口。
 
 ## 本机 Web
 

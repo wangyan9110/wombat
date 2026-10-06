@@ -41,7 +41,7 @@ test('natural follow-up records remain version unknown in CLI/API without changi
     // A dispatched read with no source time cannot be placed in the follow-up window.
     await appendFile(log,jsonl([{type:'response_item',payload:{type:'function_call',call_id:'undated',name:'read_file',arguments:JSON.stringify({path:file})}},{type:'response_item',payload:{type:'function_call_output',call_id:'undated',output:'PRIVATE_SYNTHETIC_OUTPUT'}}]));
     const uncertain=await http.optimize!({group:'history',project,suggestionId:suggestion.id});const unknown=uncertain.followUps[0];
-    assert.equal(unknown.status,'unavailable');assert.equal(unknown.observedRecords,null);assert.equal(unknown.useBasis?.status,'unknown');assert.equal(unknown.useBasis?.coverage.timeGaps,1);assert.equal(unknown.absenceObservable,false);
+    assert.equal(unknown.status,'version_unknown');assert.equal(unknown.observedRecords,1,'an undated observation must not erase the established follow-up subtotal');assert.equal(unknown.useBasis?.status,'partial');assert.equal(unknown.useBasis?.coverage.timeGaps,1);assert.equal(unknown.absenceObservable,false);
     assert.equal(unknown.recordId,baseline.recordId);assert.equal(unknown.after,baseline.after);assert.equal(uncertain.decisionRevision,first.decisionRevision);
   }finally{await host.close();service.kill('SIGTERM');await once(service,'exit').catch(()=>{});for(const[k,v]of Object.entries(old)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
 });

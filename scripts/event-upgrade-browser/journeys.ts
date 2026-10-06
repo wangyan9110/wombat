@@ -92,7 +92,7 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   assert.equal(await metric(page, '.turn[open] .execution', label('execution.category.command')), t('execution.unionSum', { union: '50000 ms', sum: '60000 ms' }));
   await activate(page.locator(width <= 760 ? '.execution-list button' : '.execution-track button').first()); await page.locator('aside.execution-evidence').waitFor();
   assert.equal(await page.evaluate<boolean>('document.activeElement?.matches("aside.execution-evidence")??false'), true);
-  await text(page.locator('aside.execution-evidence'), label('execution.wholeTurn'));
+  await text(page.locator('aside.execution-evidence'), label('execution.selectedRecords'));
   await activate(page.locator('aside.execution-evidence').getByRole('button', { name: label('execution.closeEvidence'), exact: true }));
 
   const skill = uses(page).locator('article').filter({ hasText: fixture.skill }).first(); await skill.waitFor();
@@ -136,6 +136,39 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group'] };
 }
 
+async function rulePreviews(page: Page, origin: string, language: Language): Promise<void> {
+  const open = async () => { await activate(page.locator('.review-list .review-row').first()); await page.locator('dialog .review-detail').waitFor(); };
+  const action = async (key: PlainKey) => {
+    await activate(page.locator('dialog .review-actions').getByRole('button', { name: label(key), exact: true }));
+    await page.locator('dialog .review-detail').waitFor({ state: 'hidden' });
+    await open();
+  };
+  const latest = () => page.locator('dialog .review-related').filter({ hasText: label('optimize.assessment.latest') });
+  await page.goto(origin + `/preview.html?scenario=complete&page=optimize&allTime=1&lang=${language}`);
+  await open();
+  for (const outcome of ['hit', 'miss', 'insufficient', 'unsupported', 'error'] as const) await text(latest(), label(`optimize.check.${outcome}`));
+  await action('optimize.keep');
+  await text(page.locator('dialog .review-history'), label('optimize.assessment.decisionNote'));
+  await action('optimize.recheck');
+  await text(latest(), label('optimize.check.hit'));
+  await text(page.locator('dialog .review-history'), label('optimize.assessment.necessary'));
+  await action('optimize.redisplay');
+  await page.locator('dialog .review-actions').getByRole('combobox', { name: label('optimize.decisionReason'), exact: true }).selectOption('incorrect_evidence');
+  await action('optimize.notApplicable');
+  await text(page.locator('dialog .review-history'), label('optimize.reason.incorrectEvidence'));
+  await text(latest(), label('optimize.check.hit'));
+  await overflow(page);
+  for (const [scenario, comparison] of [['resolved', 'comparable'], ['rule-upgraded', 'incomparable'], ['evidence-gap', 'unknown']] as const) {
+    await page.goto(origin + `/preview.html?scenario=${scenario}&page=optimize&allTime=1&lang=${language}`);
+    await open(); await action('optimize.recheck');
+    await text(latest(), label(`optimize.assessment.comparison.${comparison}`));
+    await text(latest(), label(scenario === 'resolved' ? 'optimize.check.miss' : scenario === 'evidence-gap' ? 'optimize.check.insufficient' : 'optimize.check.hit'));
+    await activate(page.locator('dialog summary').filter({ hasText: label('optimize.assessment.original') }).first());
+    await text(page.locator('dialog details').filter({ hasText: label('optimize.assessment.original') }).first(), label('optimize.check.hit'));
+    await overflow(page);
+  }
+}
+
 export async function previews(page: Page, origin: string, language: Language, width: number): Promise<Case> {
   locale.setLocale(language); await page.setViewportSize({ width, height: 900 }); const errors = pageErrors(page);
   await page.goto(origin + `/preview.html?previewModule=execution&lang=${language}`);
@@ -145,14 +178,14 @@ export async function previews(page: Page, origin: string, language: Language, w
   const skill = uses(page).locator('article').filter({ hasText: 'SKILL.md' }).first(); await skill.waitFor();
   assert.equal(await skill.locator('dd').first().innerText(), '3');
   assert.equal(await skill.locator('dd').nth(3).innerText(), '0');
-  assert.equal(await uses(page).locator('article').nth(1).locator('dd').first().innerText(), label('execution.missing'));
+  assert.equal(await uses(page).locator('article').nth(1).locator('dd').first().innerText(), '2', 'partial MCP coverage retains the observed associated uses');
   await activate(skill.getByRole('button', { name: label('execution.useEvidence'), exact: true }));
   await uses(page).locator('aside article').first().waitFor(); await text(uses(page).locator('aside'), label('execution.useOutcome.failed'));
   await activate(uses(page).locator('aside').getByRole('button', { name: label('execution.closeEvidence'), exact: true }));
 
-  await scenario.selectOption('missing'); await execution(page).waitFor(); await text(execution(page), label('execution.missing'));
+  await scenario.selectOption('missing'); await execution(page).waitFor(); await text(execution(page), label('timing.basis.notRecorded'));
   assert.equal(await page.locator('.execution-track button').count(), 0);
-  await scenario.selectOption('running'); await text(execution(page), label('execution.running')); await text(execution(page), label('execution.timeGap'));
+  await scenario.selectOption('running'); await text(execution(page), label('execution.running')); await text(execution(page), label('timing.running')); await text(execution(page), label('timing.censored'));
   await scenario.selectOption('empty');
   await waitCount(page, `section[aria-label=${JSON.stringify(label('execution.uses'))}]`, 0);
   await text(execution(page), label('execution.missing'));
@@ -186,7 +219,7 @@ export async function previews(page: Page, origin: string, language: Language, w
 
   // Application preview exercises production App navigation separately from
   // real-core acceptance above.
-  await page.goto(origin + `/preview.html?page=threads&allTime=1&lang=${language}`);
+  await page.goto(origin + `/preview.html?scenario=tasks-pages&page=threads&allTime=1&lang=${language}`);
   await page.locator('.thread-row').nth(1).waitFor(); const returning = page.locator('.thread-row').nth(1); await activate(returning); await page.locator('.turn[open]').waitFor();
   await settled(page);
   if (width <= 760) await activate(page.locator('.task-return')); else await page.goBack();
@@ -194,6 +227,6 @@ export async function previews(page: Page, origin: string, language: Language, w
   await page.waitForFunction(() => !new URL(location.href).searchParams.has('thread'));
   await settled(page);
   assert.equal(await returning.evaluate(button => button === document.activeElement), true);
-  await overflow(page); assert.deepEqual(errors, []);
-  return { source: 'preview', language, width, journeys: ['production-App-return', 'parallel-explanation-presentation-only', 'uses-failure-expiry-refresh', 'zero-missing-running', 'dense-object-and-record-pages-keyboard'] };
+  await overflow(page); await rulePreviews(page, origin, language); assert.deepEqual(errors, []);
+  return { source: 'preview', language, width, journeys: ['production-App-return', 'parallel-explanation-presentation-only', 'uses-failure-expiry-refresh', 'zero-missing-running', 'dense-object-and-record-pages-keyboard', 'rule-decisions-separate-from-checks', 'rule-recheck-resolution-version-and-evidence'] };
 }

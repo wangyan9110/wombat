@@ -706,6 +706,7 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
         items.retain(|i| {
             i.counts.file_reads + i.counts.tool_calls + i.counts.resource_reads > 0
                 || i.usage_count.unwrap_or(0) > 0
+                || i.observation == Observation::LoadedOnly
                 || uncertain_items.contains(&i.id)
         });
     }

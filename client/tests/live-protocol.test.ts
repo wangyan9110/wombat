@@ -8,6 +8,40 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { queryLive } from '../src/node/live.js';
 
+test('explicit refresh can publish beyond the read deadline while caller timeout and cancellation still apply', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-wire-refresh-'));
+  const endpoint = process.platform === 'win32' ? `\\\\.\\pipe\\wombat-test-${randomUUID()}` : path.join(dir, 'socket');
+  const connections = new Set<Socket>();
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  const controller = new AbortController();
+  let received = 0;
+  const server = createServer(socket => {
+    connections.add(socket); socket.once('close', () => connections.delete(socket));
+    socket.once('data', bytes => {
+      assert.equal(JSON.parse(bytes.toString()).query.action, 'refresh');
+      if (++received === 1) { controller.abort(); return; }
+      const timer = setTimeout(() => { timers.delete(timer); socket.end('{"ok":true,"value":{"marker":"published"}}\n'); }, 12_300);
+      timers.add(timer);
+    });
+  });
+  try {
+    server.listen(endpoint); await once(server, 'listening');
+    const binaryPath = path.join(dir, 'endpoint.cjs');
+    const response = JSON.stringify({ ok: true, value: { protocolVersion: 2, socket: endpoint } });
+    await writeFile(binaryPath, `process.stdin.resume();process.stdin.on('end',()=>console.log(${JSON.stringify(response)}));`);
+    await chmod(binaryPath, 0o700);
+    const request = { query: { action: 'refresh' as const } };
+    await assert.rejects(queryLive(request, { signal: controller.signal }, { binaryPath }), { code: 'CANCELLED' });
+    await assert.rejects(queryLive(request, {}, { binaryPath, timeoutMs: 1000 }), { code: 'TIMEOUT' });
+    assert.deepEqual(await queryLive(request, {}, { binaryPath }), { marker: 'published' });
+  } finally {
+    for (const timer of timers) clearTimeout(timer);
+    for (const connection of connections) connection.destroy();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('live client accepts a split response without waiting for server EOF', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'wombat-wire-'));
   const endpoint = process.platform === 'win32' ? `\\\\.\\pipe\\wombat-test-${randomUUID()}` : path.join(dir, 'socket');

@@ -94,7 +94,7 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 当前配置按本机规范路径、种类和原生键聚合物理对象，共享项目仅采集一次。authorizedProjects保留重叠根成员，project仅为展示归属；sourceContexts保留逐来源盘点身份、来源/版本及观察，sourceInstanceId仅为展示归属。来源筛选只计匹配事件；关联Token和金额仍用原账本并集。同一当前对象只产生一条建议，处理在所有匹配来源中一致，声明依据仍逐来源独立。操作只接受当前物理对象身份，不合并账本身份；文件在采集间改变版本时公开configContentChangedDuringScan并保留分项。
 
-reviews.sqlite3仅使用user_version=3：review_events保存独立决定与检查状态，review_parts共享不可变依据、item、baseline及检查事实，内部采用SQLite JSONB。按授权对象/项目/类别COUNT及LIMIT/OFFSET后解码页面；状态只读轻量元数据，全局复查逐个解码历史对象。仅初始化空数据库，未知布局或版本拒绝，不迁移或删除。4MiB页缓存、512页检查点及8MiB WAL保留目标不是硬上限。共享依据与分页理由见[决定](../decisions/implemented/architecture/2026-10-02-rule-review-integrity.md)。
+reviews.sqlite3仅使用user_version=4：review_events保存独立决定与检查状态，review_parts共享不可变依据、item、baseline及检查事实，内部采用SQLite JSONB。按授权对象/项目/类别COUNT及LIMIT/OFFSET后解码页面；状态只读轻量元数据，全局复查逐个解码历史对象。仅初始化空数据库，未知布局或版本拒绝，不迁移或删除。4MiB页缓存、512页检查点及8MiB WAL保留目标不是硬上限。共享依据与分页理由见[决定](../decisions/implemented/architecture/2026-10-02-rule-review-integrity.md)。
 
 
 跨文件检查读取授权项目已有的 `.wombat/analysis.json`，格式见[生成 Schema](../schemas/analysis-declaration-v1.schema.json)。不创建声明或读取清单外文件；路径仅允许授权根内相对普通分量，双方须在完整当前清单内。chains仅用于Rule，identity-v1比较完整原文字节（含行尾），不证明原件正确或实际加载。单文件1MiB、单轮8MiB、32,768块、每组4,096位置、每对象256分支、输出证据2MiB；声明64KiB、256关系、每链2—64路径。超限公开缺口，不能完整复查通过；正文仅本轮有界驻留。

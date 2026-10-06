@@ -31,7 +31,7 @@ test('fixed-snapshot CLI has one JSON object and partial exit 2', async () => {
     assert.equal(success.code, 0);
     assert.equal(success.stdout.trim().split('\n').length, 1);
     const value = JSON.parse(success.stdout);
-    assert.equal(value.outputVersion, 3);
+    assert.equal(value.outputVersion, 5);
     assert.equal(value.action, 'usage');
     assert.equal(success.stderr, '');
     const partial = await run(['usage', '--snapshot', 'synthetic', '--json'], { WOMBAT_CORE_BIN: core.binary, WOMBAT_TEST_PARTIAL: '1' });

@@ -45,12 +45,21 @@ pub(super) fn file_ref(file: &str, bytes: &[u8]) -> FileRef {
         sha256: crate::hash(bytes),
     }
 }
+#[cfg(test)]
 pub(super) fn save_json<T: Serialize>(directory: &Path, name: &str, value: &T) -> Result<FileRef> {
     let bytes = serde_json::to_vec(value)?;
     if bytes.len() as u64 > MAX_FILE_BYTES {
         return Err(operation_error("RESOURCE_LIMIT", "快照分片超过512 MiB"));
     }
     crate::storage::atomic_write(&directory.join(name), &bytes)?;
+    Ok(file_ref(name, &bytes))
+}
+fn save_pending_json<T: Serialize>(directory: &Path, name: &str, value: &T) -> Result<FileRef> {
+    let bytes = serde_json::to_vec(value)?;
+    if bytes.len() as u64 > MAX_FILE_BYTES {
+        return Err(operation_error("RESOURCE_LIMIT", "快照分片超过512 MiB"));
+    }
+    crate::storage::write_unpublished(&directory.join(name), &bytes)?;
     Ok(file_ref(name, &bytes))
 }
 pub fn save(collected: Collected) -> Result<Snapshot> {
@@ -91,7 +100,7 @@ pub(super) fn save_with_prices(
     drop(pool);
     // Reject unusable totals before publishing any new latest pointer.
     crate::usage_app::summarize(&records.iter().collect::<Vec<_>>())?;
-    let ledger = save_json(directory, "ledger.json", &records)?;
+    let ledger = save_pending_json(directory, "ledger.json", &records)?;
     let events = super::events::save_events(directory, collected.events)?;
     let mut by_thread: BTreeMap<String, BTreeMap<String, TurnData>> = BTreeMap::new();
     for row in &records {
@@ -164,7 +173,7 @@ pub(super) fn save_with_prices(
                 },
             );
         }
-        crate::storage::atomic_write(&directory.join(&filename), &bytes)?;
+        crate::storage::write_unpublished(&directory.join(&filename), &bytes)?;
         threads.push(ThreadEntry {
             unassigned_uses: unassigned_uses.remove(&thread.id).unwrap_or_default(),
             thread,
@@ -193,9 +202,11 @@ pub(super) fn save_with_prices(
         events,
         threads,
     };
-    save_json(directory, "manifest.json", &manifest)?;
+    save_pending_json(directory, "manifest.json", &manifest)?;
     // Moving one completed directory publishes all files together. latest is independent of previous formats.
     let final_dir = generation.join("committed");
+    #[cfg(unix)]
+    fs::File::open(directory)?.sync_all()?;
     fs::rename(directory, &final_dir)?;
     #[cfg(unix)]
     fs::File::open(&generation)?.sync_all()?;

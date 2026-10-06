@@ -45,7 +45,7 @@ test('MCP attempts, resources, fork replay and append/restart share exact CLI an
   const restored=await client.config!({...scope,kind:'mcp'});assert.equal(restored.items[0].usageCount,4);assert.deepEqual(restored.items[0].counts,appended.items[0].counts);assert.equal(restored.items[0].usage?.tokens.total,110);
   // An unclassified resource result creates a target gap; the prefix-only request remains unproven.
   await appendFile(parentFile,jsonl([request('prefix','mcp__docs__unconfirmed',{}),end('ambiguous','u','read_mcp_resource')]));
-  const uncertain=await client.config!({...scope,kind:'mcp'}),unknown=uncertain.items[0];assert.equal(unknown.usageCount,null);assert.equal(unknown.useBasis?.status,'unknown');assert.ok((unknown.useBasis?.coverage.targetGaps??0)>0);assert.equal(uncertain.coverage.absenceObservable,false);
+  const uncertain=await client.config!({...scope,kind:'mcp'}),unknown=uncertain.items[0];assert.equal(unknown.usageCount,4,'unbound evidence must not erase confirmed uses');assert.equal(unknown.useBasis?.status,'partial');assert.ok((unknown.useBasis?.coverage.targetGaps??0)>0);assert.equal(uncertain.coverage.absenceObservable,false);
   assert.deepEqual(unknown.counts,restored.items[0].counts,'unproven operations do not become confirmed uses');assert.equal(unknown.usage?.tokens.total,110);
   assert.equal((await client.config!({...scope,readView:restored.readView,kind:'mcp'})).items[0].usageCount,4,'the retained complete view stays complete');
  }finally{await host.close();service.kill('SIGTERM');await once(service,'exit').catch(()=>{});for(const[k,v]of Object.entries(old)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}

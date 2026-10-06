@@ -83,7 +83,7 @@ test('configuration evidence shares the ledger, pins versions and enforces host 
     assert.equal(result.summary.usage?.tokens.total, 110, 'shared turns must be counted once');
     const rule = result.items.find(i => i.kind === 'rule' && i.current)!;
     assert.equal(rule.observation, 'loaded_only');
-    assert.equal(rule.counts.fileReads, 1);
+    assert.equal(rule.counts.fileReads, 0, 'instruction loading is evidence of loading, not a dispatched file read');
     assert.equal(rule.usage?.tokens.total, 110);
     const ruleEvidence = await browser.config!({ action: 'evidence', readView: result.readView, itemId: rule.id, scope });
     assert.equal(ruleEvidence.evidence.length, 1);

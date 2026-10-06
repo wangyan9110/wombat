@@ -158,7 +158,7 @@ test('v3 用量 → 跨日对话 → 轮次 → 操作，Token 和十进制金�
   const f = await fixture();
   try {
     const updated = f.refresh();
-    assert.equal(updated.outputVersion, 3);
+    assert.equal(updated.outputVersion, 5);
     assert.equal(updated.summary.tokens.total, 5_100);
     assert.equal(updated.summary.price.status, 'partial');
     assert.equal(updated.summary.price.cost, null);

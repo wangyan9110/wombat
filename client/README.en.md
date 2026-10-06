@@ -19,13 +19,13 @@
 
 The client allows only operations in the generated request union; it exposes no arbitrary shell, file write, or generic dispatch. It validates requests and results at the process boundary; build and run focused tests after changes, following the [client rules](AGENTS.md).
 
-The Node client and local service use protocol 2 with a separate endpoint and service lock; protocol 1 is rejected. Timing validates the response action, privacy profile, method, and local target and fixed snapshot identity. Share output omits local identities, so Rust owns its target binding. Live cancellation closes only the caller's connection and rejects late results; shared synchronization continues, and disconnects do not yet cancel the server's query computation.
+The Node client and local service use protocol 2 with a separate endpoint and service lock; protocol 1 is rejected. Ordinary live reads wait up to 12 seconds by default. Explicit `refresh` also writes and syncs a fixed snapshot, so it waits up to 120 seconds by default. `timeoutMs` overrides either client deadline; core synchronization still waits up to 10 seconds. Timing validates the response action, privacy profile, method, and local target and fixed snapshot identity. Share output omits local identities, so Rust owns its target binding. Live cancellation closes only the caller's connection and rejects late results; shared synchronization continues, and disconnects do not yet cancel the server's query computation.
 
 ## HTTP Transport
 
 `@wombat/client/http` exports `createHttpClient({ origin, token })`, implementing the same `UsageClient`, validating results and preserving progress, cancellation, and errors. The browser sends narrow operations to the local host rather than accessing the core directly.
 
-The local Web host implements `/api/timing`; see the [Web host](../web/README.en.md) for scope and version authorization. The CLI exposes timing summary, evidence, and capabilities; see the [CLI guide](../docs/guides/cli.en.md). The shared timing UI is connected; integration with the real core and browser has not been accepted.
+The local Web host implements `/api/timing`; see the [Web host](../web/README.en.md) for scope and version authorization. The CLI exposes timing summary, evidence, and capabilities; see the [CLI guide](../docs/guides/cli.en.md). The shared timing UI is connected. Use `corepack pnpm verify:e2e` for real-core and browser acceptance; results cover only the selected platform and scope.
 
 `UsageClient.config` provides measurements/evidence, `optimize` static suggestions, user records and manual rechecks, and `preferences` only gets/sets zh/en. Configuration objects and follow-up observations carry the shared typed `useBasis`, preserving fixed scope, method, source completeness, five coverage dimensions, and unavailable versus known-zero observations. `@wombat/client/locale` explains these fields for CLI/UI without deriving counts or historical adoption. Rust generates all three v1 contracts with peer Node/HTTP implementations; see [public contracts](../docs/development/contracts.en.md).
 

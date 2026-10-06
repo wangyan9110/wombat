@@ -245,14 +245,6 @@ try {
   assert.equal(sourceTreeIdentity(source).sha256, appendedCorpus.sha256, 'Source changed while saving fixed snapshot');
   const snapshotDirectory = path.join(initialDataHome, 'usage-v4', 'generations', snapshotId, 'committed');
   const fixedSnapshotBytes = snapshotFootprint(snapshotDirectory);
-  const fixedUsageStart = performance.now();
-  const fixedUsage = usage(firstService.environment, snapshotId);
-  const fixedThreads = assertThreadHierarchy(firstService.environment, totalTokens, totalCost, snapshotId);
-  const fixedSnapshotQueryMs = performance.now() - fixedUsageStart;
-  assertUsageHierarchy(fixedUsage.value, totalTokens, totalCost);
-  assert.deepEqual(normalizeUsageOracle(fixedUsage.value), finalOracle.usage, 'Fixed snapshot usage differs from appended live usage');
-  assert.deepEqual(fixedThreads.pages.map(normalizeUsageOracle), finalOracle.threads, 'Fixed snapshot thread hierarchy differs from appended live hierarchy');
-
   const liveIdleStart = performance.now(), liveCpuStart = cpuSeconds(firstService.processPid);
   await delay(5000);
   const liveFinalRssKiB = processRssKiB(firstService.processPid);
@@ -260,6 +252,16 @@ try {
   const liveSpaceBeforeExit = indexAndDisk(initialDataHome);
   const firstExit = await finishService(firstService, liveIdleStart);
   const initialDataBytesAfterIdleExit = directoryBytes(initialDataHome);
+
+  // Fixed queries use separate core processes and may outlast the live daemon's
+  // idle lifetime. Finish live-process measurements before those offline reads.
+  const fixedUsageStart = performance.now();
+  const fixedUsage = usage(firstService.environment, snapshotId);
+  const fixedThreads = assertThreadHierarchy(firstService.environment, totalTokens, totalCost, snapshotId);
+  const fixedSnapshotQueryMs = performance.now() - fixedUsageStart;
+  assertUsageHierarchy(fixedUsage.value, totalTokens, totalCost);
+  assert.deepEqual(normalizeUsageOracle(fixedUsage.value), finalOracle.usage, 'Fixed snapshot usage differs from appended live usage');
+  assert.deepEqual(fixedThreads.pages.map(normalizeUsageOracle), finalOracle.threads, 'Fixed snapshot thread hierarchy differs from appended live hierarchy');
 
   // Rebuild from the exact appended corpus in a never-used data home, after the first daemon exited.
   const rebuildDataHome = path.join(temporary, 'data-rebuild');

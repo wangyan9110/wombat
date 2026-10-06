@@ -230,7 +230,7 @@ fn build_events(
             let name = format!("events-{number}-{}.json", chunks.len());
             let sha256 = format!("{:x}", writer.hash.unwrap().finalize());
             if let (Some(directory), Some(bytes)) = (directory, writer.output) {
-                crate::storage::atomic_write(&directory.join(&name), &bytes)?;
+                crate::storage::write_unpublished(&directory.join(&name), &bytes)?;
             }
             chunks.push(EventChunk {
                 offset: start,

@@ -29,15 +29,12 @@ pub(super) fn query(
         // Export only on an explicit refresh. Automatic updates never create snapshots.
         let _lock = crate::usage_store::RefreshLock::acquire()?;
         let saved = snapshot.export_live()?;
-        query.action = usage_app_dto::Action::Usage;
-        let mut result = crate::usage_app::execute_snapshot(query, &saved)?;
-        result.summary = crate::usage_app::summarize(&saved.ledger()?.iter().collect::<Vec<_>>())?;
-        result.scope = usage_app_dto::Scope::default();
-        result.action = usage_app_dto::Action::Refresh;
-        result.items.clear();
-        result.page.total = 0;
-        result.page.next_offset = None;
-        result
+        // The exporter has checked the price catalog and saved these same facts.
+        // Do not reread the ledger or construct period rows only to discard them.
+        let rows = snapshot
+            .live_ledger()
+            .ok_or_else(|| operation_error("INVALID_FACTS", "保存视图缺少实时计量"))?;
+        crate::usage_app::refresh_response(&saved, &rows)?
     } else {
         crate::usage_app::execute_snapshot(query, &snapshot)?
     };

@@ -29,6 +29,32 @@ pub fn dispatch(args: &Value) -> Result<Value> {
         serde_json::from_value(args.clone()).map_err(|e| invalid(format!("无效用量请求：{e}")))?;
     Ok(serde_json::to_value(execute(request)?)?)
 }
+/// Refresh publishes a whole-source summary, not a report that is then discarded.
+pub(crate) fn refresh_response(
+    snapshot: &Snapshot,
+    rows: &[&PricedMeasurement],
+) -> Result<Response> {
+    Ok(Response {
+        facets: None,
+        distribution: None,
+        price_update: None,
+        freshness: None,
+        output_version: 5,
+        action: Action::Refresh,
+        snapshot_ref: snapshot.manifest.snapshot_ref.clone(),
+        scope: Scope::default(),
+        available_range: available(rows, chrono_tz::UTC),
+        summary: summarize(rows)?,
+        items: vec![],
+        page: Page {
+            offset: 0,
+            limit: 50,
+            total: 0,
+            next_offset: None,
+        },
+        quality: quality(snapshot, rows.len()),
+    })
+}
 pub fn execute(request: Request) -> Result<Response> {
     validate(&request)?;
     if request.action == Action::Refresh {
@@ -65,26 +91,7 @@ pub fn execute(request: Request) -> Result<Response> {
         let snapshot = usage_store::save(collected)?;
         let rows = snapshot.ledger()?;
         let selected = rows.iter().collect::<Vec<_>>();
-        return Ok(Response {
-            facets: None,
-            distribution: None,
-            price_update: None,
-            freshness: None,
-            output_version: 5,
-            action: Action::Refresh,
-            snapshot_ref: snapshot.manifest.snapshot_ref.clone(),
-            scope: Scope::default(),
-            available_range: available(&selected, chrono_tz::UTC),
-            summary: summarize(&selected)?,
-            items: vec![],
-            page: Page {
-                offset: 0,
-                limit: 50,
-                total: 0,
-                next_offset: None,
-            },
-            quality: quality(&snapshot, selected.len()),
-        });
+        return refresh_response(&snapshot, &selected);
     }
     let snapshot = usage_store::load(request.snapshot_id.as_deref())?;
     execute_snapshot(request, &snapshot)

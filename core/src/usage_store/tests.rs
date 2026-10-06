@@ -258,6 +258,30 @@ fn compact_live_indices_preserve_order_and_old_revision() {
 }
 
 #[test]
+fn refresh_response_uses_captured_rows_without_reading_or_building_a_report() {
+    let root = tempfile::tempdir().unwrap();
+    let snapshot = memory(
+        fixture(),
+        "live:refresh".into(),
+        crate::pricing_sync::current_at(root.path()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let rows = snapshot.live_ledger().unwrap();
+    let result = crate::usage_app::refresh_response(&snapshot, &rows).unwrap();
+    assert_eq!(result.action, crate::usage_app_dto::Action::Refresh);
+    assert_eq!(result.summary.tokens.total, Some(110));
+    assert_eq!(result.summary.measurement_count, 1);
+    assert_eq!(result.available_range.since.as_deref(), Some("2026-09-29"));
+    assert_eq!(result.available_range.until.as_deref(), Some("2026-09-30"));
+    assert_eq!(result.snapshot_ref.snapshot_id, "live:refresh");
+    assert!(result.items.is_empty());
+    assert!(result.facets.is_none());
+    assert!(result.distribution.is_none());
+    assert_eq!(result.page.total, 0);
+}
+
+#[test]
 fn immutable_generation_and_exact_turn_read() {
     let root = tempfile::tempdir().unwrap();
     let old = save_at(root.path(), fixture()).unwrap();
