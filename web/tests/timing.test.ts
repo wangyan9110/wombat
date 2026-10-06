@@ -12,7 +12,7 @@ import { publishTiming, timingAccess } from '../src/timing.js';
 import { capabilityResult, local, share } from './fixtures/timing.js';
 const summary: TimingRequest = { action: 'summary', threadId: 'thread', turnId: 'turn', snapshotId: local.readView.snapshotId, scope: { sourceInstanceId: 'source' } };
 const usage = (snapshotId = local.readView.snapshotId): UsageResult => ({
-  outputVersion: 4, action: 'usage', snapshotRef: { snapshotId, createdAt: local.readView.createdAt }, scope: {}, availableRange: {},
+  outputVersion: 5, action: 'usage', snapshotRef: { snapshotId, createdAt: local.readView.createdAt }, scope: {}, availableRange: {},
   summary: withTokenAnalysis({ tokens: { input: 10, output: 2, total: 12 }, measurementCount: 1,
     price: { currency: 'USD', policy: 'synthetic', priceRevision: 'synthetic', cost: '0.1', knownCost: '0.1', status: 'priced', components: [], basis: [], issues: [] } }),
   items: [], page: { offset: 0, limit: 50, total: 0 }, quality: { status: 'complete', issues: [], sources: [] },

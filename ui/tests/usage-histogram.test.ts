@@ -21,7 +21,7 @@ test('trend labels keep missing Token totals distinct from observed zero in both
   const zero = { ...base, isSubtotal: true, date: '2026-10-04', usage: withTokenAnalysis({ ...base.usage, tokens: { ...base.usage.tokens, total: 0 } }) };
   overview.items = [missing, zero];
   overview.page.total = 2;
-  overview.distribution = { tokenBasis:'recorded_subtotals', maxTokens: null, maxCost: null, peakTokenDates: [], peakCostDates: [], peakTokenScopes: [], peakCostScopes: [] };
+  overview.distribution = { tokenBasis:'analyzed_totals', maxTokens: null, maxCost: null, peakTokenDates: [], peakCostDates: [], peakTokenScopes: [], peakCostScopes: [] };
   const previous = locale.getSnapshot().locale;
   try {
     for (const language of ['zh', 'en'] as const) {

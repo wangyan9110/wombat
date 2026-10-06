@@ -1,4 +1,4 @@
-import { recordedTokenSubtotal } from '@wombat/client/locale';
+import { analyzedTokenSubtotal } from '@wombat/client/locale';
 import type { UsageClient, UsageRequest, UsageResult, QueryOptions } from '@wombat/client';
 import { connectionExpired } from './session.js';
 import { readUsage, readUsagePage, scopeOf, type Route } from './state.js';
@@ -110,7 +110,7 @@ export class Workspace {
         route.page === 'sources' ? Promise.resolve(metadata) : read(listRequest),
       ]);
       const max = overview.distribution?.maxTokens;
-      const peak = route.page === 'usage' && max != null && !overview.items.some(item => item.kind === 'usage' && recordedTokenSubtotal(item.usage) === max)
+      const peak = route.page === 'usage' && max != null && !overview.items.some(item => item.kind === 'usage' && analyzedTokenSubtotal(item.usage) === max)
         ? await read({ ...overviewRequest, offset: 0, limit: 1, sort: 'tokens' }) : undefined;
       if (!controller.signal.aborted) this.publish({ data: { overview, list, peak, route,freshness,priceUpdate,readAt:new Date().toISOString() },freshness, error: '', errorCode: undefined, updatesAvailable: false,pending:false,waitingSince:freshness?.initialScan?this.state.waitingSince??Date.now():undefined });
     };

@@ -108,12 +108,12 @@ export function usageTableHeader(width = 116): string {
 }
 function tokenTableCell(summary: UsageSummary, field: SummaryTokenField): string {
   const value = tokenSummaryPresentation(summary, field);
-  return `${tableCount(value.value)}${value.state === 'partial' ? '*' : ''}`;
+  return `${tableCount(value.value)}${value.qualifier ? '*' : ''}`;
 }
 function tokenCoverageLines(summary: UsageSummary, width: number, fields: readonly SummaryTokenField[] = ['total']): string[] {
   return fields.flatMap(field => {
     const value = tokenSummaryPresentation(summary, field);
-    return value.state === 'partial' || value.state === 'unavailable'
+    return value.qualifier || value.state === 'unavailable'
       ? wrapDisplay(`${field === 'total' ? 'Token' : categoryLabels[field] ?? field}: ${value.qualifier || value.unavailable} · ${value.description}`, width)
       : [];
   });

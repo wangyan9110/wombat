@@ -19,3 +19,20 @@ test('CLI token summaries and narrow or wide rows show the core subtotal with co
  assert.ok(summaryDetails(usage).some(row=>row.includes('100')));
  }}finally{locale.setLocale(previous);}
 });
+
+test('CLI labels complete and partial calculated totals at narrow and wide widths',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);
+  for(const unavailableRecords of [0,1]){
+   const calculated:UsageSummary={...base,tokenAnalysis:{...base.tokenAnalysis,totalAnalysis:{methodVersion:1,subtotal:120,coveredRecords:2-unavailableRecords,recordedRecords:0,calculatedRecords:2-unavailableRecords,unavailableRecords,overflowRecords:0}}};
+   const item:UsageItem={kind:'usage',isSubtotal:true,date:'2026-10-05',scope:{},usage:calculated};
+   const result={snapshotRef:{createdAt:'2026-10-05T00:00:00Z'},scope:{}} as UsageResult;
+   for(const width of [60,120]){
+    const text=itemLines(item,result,width).join('\n');
+    assert.match(text,language==='en'?/Calculated value/:/计算值/);assert.match(text,/120/);
+    assert.ok(text.includes(language==='en'?'raw input':'原始输入'));
+    if(unavailableRecords)assert.match(text,language==='en'?/Known subtotal/:/已知小计/);
+   }
+  }
+ }}finally{locale.setLocale(saved);}
+});

@@ -160,7 +160,7 @@ pub(super) fn dimension_items(
             is_subtotal: true,
             model: if by_project { None } else { key },
             reasoning_effort: None,
-            share: share(usage.tokens.total, total.tokens.total),
+            share: share(usage.complete_token_total(), total.complete_token_total()),
             cost_share: cost_share(&usage, total),
             usage,
             scope,

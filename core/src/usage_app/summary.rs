@@ -76,7 +76,63 @@ fn token_analysis(rows: &[&PricedMeasurement]) -> Result<TokenAnalysis> {
         method_version: TokenAnalysis::METHOD_VERSION,
         scope: TokenAnalysisScope::SelectedCanonicalMeasurements,
         fields,
+        total_analysis: Some(analyzed_total(rows)?),
     })
+}
+
+fn analyzed_total(rows: &[&PricedMeasurement]) -> Result<AnalyzedTokenTotal> {
+    let mut total = AnalyzedTokenTotal {
+        method_version: 1,
+        subtotal: None,
+        covered_records: 0,
+        recorded_records: 0,
+        calculated_records: 0,
+        unavailable_records: 0,
+        overflow_records: 0,
+    };
+    let mut recorded_subtotal = 0u64;
+    let mut calculated_subtotal = 0u128;
+    for row in rows {
+        let fact = &row.fact;
+        let value = if let Some(native) = fact.tokens.total {
+            total.recorded_records = checked_record_increment(total.recorded_records)?;
+            // Native per-field aggregation has already enforced the safe range.
+            recorded_subtotal += native;
+            Some(native)
+        } else if fact.request_scoped && fact.grain.as_ref() == "response" {
+            let parts = fact.tokens.raw_input.zip(fact.tokens.output);
+            let calculated = parts.and_then(|(input, output)| {
+                input.checked_add(output).filter(|n| *n <= MAX_SAFE_INTEGER)
+            });
+            if let Some(calculated_value) = calculated {
+                total.calculated_records = checked_record_increment(total.calculated_records)?;
+                calculated_subtotal += u128::from(calculated_value);
+            } else if parts.is_some() {
+                total.overflow_records = checked_record_increment(total.overflow_records)?;
+            }
+            calculated
+        } else {
+            None
+        };
+        if value.is_some() {
+            total.covered_records = checked_record_increment(total.covered_records)?;
+        } else {
+            total.unavailable_records = checked_record_increment(total.unavailable_records)?;
+        }
+    }
+    let combined = u128::from(recorded_subtotal) + calculated_subtotal;
+    if combined > u128::from(MAX_SAFE_INTEGER) {
+        // Exclude the alternative cohort together, independent of row order.
+        // Native subtotals and all category evidence remain independently usable.
+        total.overflow_records += total.calculated_records;
+        total.unavailable_records += total.calculated_records;
+        total.covered_records = total.recorded_records;
+        total.calculated_records = 0;
+        total.subtotal = (total.recorded_records > 0).then_some(recorded_subtotal);
+    } else {
+        total.subtotal = (total.covered_records > 0).then_some(combined as u64);
+    }
+    Ok(total)
 }
 
 fn checked_record_increment(value: u64) -> Result<u64> {
@@ -199,23 +255,17 @@ pub(super) fn consumption_order(
     if *sort == Some(Sort::Cost) {
         known_cost(b).cmp(&known_cost(a))
     } else {
-        b.token_analysis
-            .field(TokenField::Total)
-            .observed_subtotal
-            .cmp(&a.token_analysis.field(TokenField::Total).observed_subtotal)
+        b.available_token_subtotal()
+            .cmp(&a.available_token_subtotal())
     }
 }
 
-pub(super) fn max_observed_tokens<'a>(
+pub(super) fn max_available_tokens<'a>(
     summaries: impl IntoIterator<Item = &'a UsageSummary>,
 ) -> Option<u64> {
     let mut maximum = None;
     for summary in summaries {
-        let Some(value) = summary
-            .token_analysis
-            .field(TokenField::Total)
-            .observed_subtotal
-        else {
+        let Some(value) = summary.available_token_subtotal() else {
             continue;
         };
         maximum = Some(maximum.map_or(value, |current: u64| current.max(value)));

@@ -151,6 +151,185 @@ fn empty_scope_keeps_legacy_complete_zero_but_has_no_observed_subtotal() {
 }
 
 #[test]
+fn calculated_total_keeps_native_evidence_price_and_coverage_separate() {
+    let native = row(TokenUsage {
+        raw_input: Some(100),
+        output: Some(20),
+        total: Some(119),
+        ..Default::default()
+    });
+    let calculated = row(TokenUsage {
+        raw_input: Some(200),
+        output: Some(30),
+        reasoning: Some(10),
+        ..Default::default()
+    });
+    let before = serde_json::to_value(&calculated.fact).unwrap();
+    let calculated_only = summarize(&[&calculated]).unwrap();
+    let native_only = summarize(&[&native]).unwrap();
+    assert_eq!(
+        max_available_tokens([&calculated_only, &native_only]),
+        Some(230)
+    );
+    assert_eq!(
+        consumption_order(&calculated_only, &native_only, &Some(Sort::Tokens)),
+        std::cmp::Ordering::Less
+    );
+    let summary = summarize(&[&native, &calculated]).unwrap();
+    let analysis = summary.token_analysis.total_analysis.as_ref().unwrap();
+    assert_eq!(summary.tokens.total, None);
+    assert_eq!(
+        summary.token_analysis.fields.total.observed_subtotal,
+        Some(119)
+    );
+    assert_eq!(analysis.subtotal, Some(349));
+    assert_eq!(analysis.recorded_records, 1);
+    assert_eq!(analysis.calculated_records, 1);
+    assert_eq!(analysis.covered_records, 2);
+    assert_eq!(analysis.unavailable_records, 0);
+    assert_eq!(summary.complete_token_total(), Some(349));
+    assert_eq!(serde_json::to_value(&calculated.fact).unwrap(), before);
+    assert_eq!(summarize(&[&calculated]).unwrap().price, *calculated.price);
+    // Native values, including a discrepancy with categories, always win.
+    assert_eq!(
+        summarize(&[&native]).unwrap().available_token_subtotal(),
+        Some(119)
+    );
+
+    let missing = row(TokenUsage::default());
+    let partial = summarize(&[&native, &calculated, &missing]).unwrap();
+    assert_eq!(partial.available_token_subtotal(), Some(349));
+    assert_eq!(partial.complete_token_total(), None);
+    assert_eq!(
+        share(
+            summary.complete_token_total(),
+            partial.complete_token_total()
+        ),
+        None
+    );
+}
+
+#[test]
+fn alternative_total_does_not_repair_conflicts_or_guess_counter_intervals() {
+    for reason in [
+        TokenUnavailableReason::Missing,
+        TokenUnavailableReason::Invalid,
+        TokenUnavailableReason::Conflicting,
+        TokenUnavailableReason::Indeterminate,
+    ] {
+        let mut value = row(TokenUsage {
+            raw_input: Some(100),
+            output: Some(10),
+            ..Default::default()
+        });
+        Arc::make_mut(&mut value.fact)
+            .token_unavailable_reasons
+            .total = Some(reason);
+        let summary = summarize(&[&value]).unwrap();
+        assert_eq!(summary.tokens.total, None);
+        assert_eq!(summary.available_token_subtotal(), Some(110));
+        assert_eq!(value.fact.token_unavailable_reasons.total, Some(reason));
+        let native_coverage = summary.token_analysis.fields.total.clone();
+        assert_eq!(native_coverage.covered_records, 0);
+        assert_eq!(
+            native_coverage.missing_records
+                + native_coverage.invalid_records
+                + native_coverage.conflicting_records
+                + native_coverage.indeterminate_records,
+            1
+        );
+        Arc::make_mut(&mut value.fact).request_scoped = false;
+        Arc::make_mut(&mut value.fact).grain = "interval".into();
+        assert_eq!(
+            summarize(&[&value]).unwrap().available_token_subtotal(),
+            None
+        );
+    }
+    let incomplete = row(TokenUsage {
+        input: Some(50),
+        cache_read: Some(60),
+        cache_create: Some(0),
+        output: Some(10),
+        ..Default::default()
+    });
+    assert_eq!(
+        summarize(&[&incomplete])
+            .unwrap()
+            .available_token_subtotal(),
+        None
+    );
+}
+
+#[test]
+fn zero_overflow_and_native_replacement_do_not_double_count_calculations() {
+    let zero = row(TokenUsage {
+        raw_input: Some(0),
+        output: Some(0),
+        ..Default::default()
+    });
+    let summary = summarize(&[&zero]).unwrap();
+    assert_eq!(summary.available_token_subtotal(), Some(0));
+    assert_eq!(summary.complete_token_total(), Some(0));
+    let overflow = row(TokenUsage {
+        raw_input: Some(MAX_SAFE_INTEGER),
+        output: Some(1),
+        ..Default::default()
+    });
+    let summary = summarize(&[&overflow]).unwrap();
+    assert_eq!(summary.input_total, Some(MAX_SAFE_INTEGER));
+    assert_eq!(summary.tokens.output, Some(1));
+    let analysis = summary.token_analysis.total_analysis.unwrap();
+    assert_eq!(analysis.subtotal, None);
+    assert_eq!(analysis.overflow_records, 1);
+    assert_eq!(analysis.unavailable_records, 1);
+    let mut value = row(TokenUsage {
+        raw_input: Some(100),
+        output: Some(10),
+        ..Default::default()
+    });
+    let old = summarize(&[&value]).unwrap();
+    assert_eq!(
+        old.token_analysis
+            .total_analysis
+            .as_ref()
+            .unwrap()
+            .calculated_records,
+        1
+    );
+    let fact = Arc::make_mut(&mut value.fact);
+    fact.tokens.total = Some(112);
+    fact.token_unavailable_reasons.total = None;
+    let new = summarize(&[&value]).unwrap();
+    assert_eq!(new.available_token_subtotal(), Some(112));
+    assert_eq!(
+        new.token_analysis
+            .total_analysis
+            .as_ref()
+            .unwrap()
+            .calculated_records,
+        0
+    );
+    assert_eq!(old.available_token_subtotal(), Some(110));
+}
+
+#[test]
+fn captured_native_only_review_summaries_keep_their_original_analysis() {
+    let native = row(TokenUsage {
+        total: Some(10),
+        ..Default::default()
+    });
+    let mut captured = serde_json::to_value(summarize(&[&native]).unwrap()).unwrap();
+    captured["tokenAnalysis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("totalAnalysis");
+    let restored: UsageSummary = serde_json::from_value(captured.clone()).unwrap();
+    assert!(restored.token_analysis.total_analysis.is_none());
+    assert_eq!(restored.available_token_subtotal(), Some(10));
+    assert_eq!(serde_json::to_value(restored).unwrap(), captured);
+}
+
+#[test]
 fn token_analysis_keeps_unavailable_categories_disjoint() {
     let known = row(TokenUsage {
         raw_input: Some(5),
@@ -230,11 +409,11 @@ fn recorded_token_max_includes_partial_buckets_without_claiming_complete_totals(
             .observed_subtotal,
         Some(1_000)
     );
-    assert_eq!(max_observed_tokens([&partial, &complete]), Some(1_000));
-    assert_eq!(max_observed_tokens(std::iter::empty()), None);
+    assert_eq!(max_available_tokens([&partial, &complete]), Some(1_000));
+    assert_eq!(max_available_tokens(std::iter::empty()), None);
     // The query computes this from all groups before it paginates the response.
-    assert_eq!(max_observed_tokens([&partial, &complete]), Some(1_000));
-    assert_eq!(max_observed_tokens([&complete]), Some(500));
+    assert_eq!(max_available_tokens([&partial, &complete]), Some(1_000));
+    assert_eq!(max_available_tokens([&complete]), Some(500));
     assert_eq!(
         consumption_order(&partial, &complete, &Some(Sort::Tokens)),
         std::cmp::Ordering::Less
@@ -454,4 +633,32 @@ fn cumulative_differences_keep_the_ledger_and_price_conserved() {
         summary.price,
         crate::pricing::sum_prices(rows.iter().map(|r| r.price.as_ref())).unwrap()
     );
+}
+
+#[test]
+fn optional_calculation_overflow_preserves_native_subtotals_and_categories() {
+    let native = row(TokenUsage {
+        total: Some(5),
+        ..Default::default()
+    });
+    let alternative = row(TokenUsage {
+        raw_input: Some(MAX_SAFE_INTEGER),
+        output: Some(0),
+        ..Default::default()
+    });
+    let first = summarize(&[&native, &alternative]).unwrap();
+    let reverse = summarize(&[&alternative, &native]).unwrap();
+    assert_eq!(first.token_analysis, reverse.token_analysis);
+    assert_eq!(first.available_token_subtotal(), Some(5));
+    assert_eq!(first.complete_token_total(), None);
+    assert_eq!(
+        first.token_analysis.fields.raw_input.observed_subtotal,
+        Some(MAX_SAFE_INTEGER)
+    );
+    let total = first.token_analysis.total_analysis.unwrap();
+    assert_eq!(total.recorded_records, 1);
+    assert_eq!(total.calculated_records, 0);
+    assert_eq!(total.covered_records, 1);
+    assert_eq!(total.unavailable_records, 1);
+    assert_eq!(total.overflow_records, 1);
 }

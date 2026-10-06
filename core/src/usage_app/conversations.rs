@@ -176,7 +176,7 @@ pub(super) fn turn_items(
             continue;
         }
         let usage = summarize(current)?;
-        let ratio = share(usage.tokens.total, total.tokens.total);
+        let ratio = share(usage.complete_token_total(), total.complete_token_total());
         let (models, reasoning_efforts) = dimensions(current);
         result.push(Item::Turn {
             cost_share: cost_share(&usage, total),
@@ -265,7 +265,7 @@ pub(super) fn step_items(
             timestamp: r.timestamp,
             model: r.model.raw.as_deref().map(str::to_owned),
             reasoning_effort: r.reasoning_effort.as_deref().map(str::to_owned),
-            share: share(usage.tokens.total, total.tokens.total),
+            share: share(usage.complete_token_total(), total.complete_token_total()),
             usage,
             sequence: r.sequence,
             time_precision: r.time_precision.to_string(),

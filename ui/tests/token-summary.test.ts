@@ -45,7 +45,7 @@ test('partial token trend uses the core recorded peak and one color without rebu
  try{for(const language of ['zh','en'] as const){locale.setLocale(language);
   const overview=usageFixture({action:'usage',scope:{allTime:true}},'complete');
   overview.summary=partial;overview.items=[{kind:'usage',isSubtotal:true,date:'2026-10-04',scope:{},usage:partial,share:null}];
-  overview.distribution={tokenBasis:'recorded_subtotals',maxTokens:110,maxCost:null,unpricedTokens:null,peakTokenDates:['2026-10-04'],peakCostDates:[],peakTokenScopes:[{}],peakCostScopes:[]};
+  overview.distribution={tokenBasis:'analyzed_totals',maxTokens:110,maxCost:null,unpricedTokens:null,peakTokenDates:['2026-10-04'],peakCostDates:[],peakTokenScopes:[{}],peakCostScopes:[]};
   const html=renderToStaticMarkup(createElement(UsageView,{empty:null,setReading(){},client:{} as UsageClient,refresh(){},data:{overview,list:overview,route},route,navigate(){},drill(){},usage(){},basis(){}}));
   assert.match(html,/class="bar" style="height:100%"/);assert.match(html,/class="bar-recorded"/);
   assert.doesNotMatch(html,/class="bar-input"|class="bar-cache"|class="bar-output"/);
@@ -60,10 +60,29 @@ test('complete native total is plotted without assuming category sums agree',()=
   const usage=withTokenAnalysis({...base,measurementCount:1,inputTotal:100,tokens:{rawInput:100,input:100,output:20,cacheRead:0,cacheCreate:0,reasoning:0,total:119}});
   const overview=usageFixture({action:'usage',scope:{allTime:true}},'complete');overview.summary=usage;
   overview.items=[{kind:'usage',isSubtotal:true,date:'2026-10-04',scope:{},usage}];
-  overview.distribution={tokenBasis:'recorded_subtotals',maxTokens:119,maxCost:null,unpricedTokens:null,peakTokenDates:['2026-10-04'],peakCostDates:[],peakTokenScopes:[{}],peakCostScopes:[]};
+  overview.distribution={tokenBasis:'analyzed_totals',maxTokens:119,maxCost:null,unpricedTokens:null,peakTokenDates:['2026-10-04'],peakCostDates:[],peakTokenScopes:[{}],peakCostScopes:[]};
   const html=renderToStaticMarkup(createElement(UsageView,{empty:null,setReading(){},client:{} as UsageClient,refresh(){},data:{overview,list:overview,route},route,navigate(){},drill(){},usage(){},basis(){}}));
   assert.match(html,/class="bar" style="height:100%"/);assert.match(html,/class="bar-recorded" style="height:100%"/);
   assert.doesNotMatch(html,/class="bar-input"|class="bar-cache"|class="bar-output"|class="legend"/);
   assert.match(html,/119 Token/);assert.match(html,/100 Token/);assert.match(html,/20 Token/); // Independent categories remain available.
  }}finally{locale.setLocale(previous);}
+});
+
+test('calculated totals appear in visible labels, accessible descriptions and chart peaks',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);
+  const summary:UsageSummary={...base,tokenAnalysis:{...base.tokenAnalysis,totalAnalysis:{methodVersion:1,subtotal:240,coveredRecords:2,recordedRecords:0,calculatedRecords:2,unavailableRecords:0,overflowRecords:0}}};
+  const token=renderToStaticMarkup(createElement(SummaryToken,{summary,interactive:true}));
+  assert.ok(token.includes(t('usage.tokenAnalysis.calculated')));
+  assert.ok(token.includes(t('usage.tokenAnalysis.formula',{count:2})));
+  assert.ok(token.includes(t('usage.tokenAnalysis.covered',{count:2})));
+  assert.match(token,/240 Token/);
+  const overview=usageFixture({action:'usage',scope:{allTime:true}},'complete');overview.summary=summary;
+  overview.items=[{kind:'usage',isSubtotal:true,date:'2026-10-04',scope:{},usage:summary,share:1}];
+  overview.distribution={tokenBasis:'analyzed_totals',maxTokens:240,maxCost:null,unpricedTokens:null,peakTokenDates:['2026-10-04'],peakCostDates:[],peakTokenScopes:[{}],peakCostScopes:[]};
+  const html=renderToStaticMarkup(createElement(UsageView,{empty:null,setReading(){},client:{} as UsageClient,refresh(){},data:{overview,list:overview,route},route,navigate(){},drill(){},usage(){},basis(){}}));
+  assert.match(html,/class="bar" style="height:100%"/);assert.match(html,/peak-summary/);
+  assert.ok(html.includes(t('usage.tokenAnalysis.calculated')));assert.match(html,/240 Token/);
+  assert.equal(summary.tokens.total,null);
+ }}finally{locale.setLocale(saved);}
 });

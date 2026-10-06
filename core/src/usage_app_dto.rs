@@ -100,6 +100,46 @@ pub struct TokenAnalysis {
     pub method_version: u32,
     pub scope: TokenAnalysisScope,
     pub fields: TokenFields<ObservedTokenSubtotal>,
+    /// Independent analysis; immutable historical review items may contain only
+    /// the native observations captured when the user made the decision.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_analysis: Option<AnalyzedTokenTotal>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AnalyzedTokenTotal {
+    #[schemars(range(min = 1, max = 1))]
+    pub method_version: u32,
+    pub subtotal: Option<u64>,
+    pub covered_records: u64,
+    pub recorded_records: u64,
+    /// Unavailable native totals use recorded input (including caches) plus output
+    /// only for an identified response grain. Reasoning is already in output.
+    pub calculated_records: u64,
+    pub unavailable_records: u64,
+    /// Alternative records excluded by individual or combined safe-integer limits.
+    pub overflow_records: u64,
+}
+
+impl UsageSummary {
+    pub fn available_token_subtotal(&self) -> Option<u64> {
+        match &self.token_analysis.total_analysis {
+            Some(total) => total.subtotal,
+            None => self.token_analysis.fields.total.observed_subtotal,
+        }
+    }
+    /// Fractions require all selected canonical measurements to have a usable
+    /// value under this analysis method; partial subtotals are not denominators.
+    pub fn complete_token_total(&self) -> Option<u64> {
+        match &self.token_analysis.total_analysis {
+            Some(total) if total.unavailable_records == 0 => total
+                .subtotal
+                .or((self.measurement_count == 0).then_some(0)),
+            Some(_) => None,
+            None => self.tokens.total,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -248,7 +288,7 @@ pub struct Distribution {
     pub unpriced_tokens: Option<u64>,
     /// Basis for maxTokens and peak token scopes/dates.
     pub token_basis: TokenBasis,
-    /// Maximum of bucket total observed subtotals; not necessarily a complete total.
+    /// Maximum of bucket analyzed subtotals; not necessarily a complete total.
     pub max_tokens: Option<u64>,
     pub max_cost: Option<String>,
     pub peak_token_dates: Vec<Option<String>>,
@@ -260,7 +300,7 @@ pub struct Distribution {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TokenBasis {
-    RecordedSubtotals,
+    AnalyzedTotals,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -273,6 +313,7 @@ pub struct Response {
     pub price_update: Option<crate::pricing_sync::Automatic>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freshness: Option<crate::live::Freshness>,
+    #[schemars(range(min = 5, max = 5))]
     pub output_version: u32,
     pub action: Action,
     pub snapshot_ref: SnapshotRef,

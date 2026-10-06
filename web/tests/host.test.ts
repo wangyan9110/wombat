@@ -10,7 +10,7 @@ import { createHttpClient } from '@wombat/client/http';
 import { startWebHost } from '../src/index.js';
 
 const response: UsageResult = {
-  outputVersion: 4, action: 'usage', snapshotRef: { snapshotId: 'synthetic', createdAt: '2026-10-01T00:00:00Z' },
+  outputVersion: 5, action: 'usage', snapshotRef: { snapshotId: 'synthetic', createdAt: '2026-10-01T00:00:00Z' },
   scope: {}, availableRange: {}, summary: withTokenAnalysis({ tokens: { input: 10, output: 2, total: 12 }, measurementCount: 1,
     price: { currency: 'USD', policy: 'synthetic', priceRevision: 'synthetic', cost: '0.1', knownCost: '0.1', status: 'priced', components: [], basis: [], issues: [] } }),
   items: [], page: { offset: 0, limit: 50, total: 0 }, quality: { status: 'complete', issues: [], sources: [] },

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { CoreError, createUsageClient, type UsageRequest, type UsageResult } from '@wombat/client';
 
 const response: UsageResult = {
-  outputVersion: 4, action: 'usage',
+  outputVersion: 5, action: 'usage',
   snapshotRef: { snapshotId: 'synthetic', createdAt: '2026-09-30T00:00:00Z' },
   scope: {}, availableRange: {},
   summary: withTokenAnalysis({
@@ -40,7 +40,7 @@ test('portable client keeps generated results and forwards cancellation and prog
 });
 
 test('portable client rejects wrong version, malformed result and mismatched operation', async () => {
-  for (const invalid of [{ ...response, outputVersion: 2 }, { ...response, outputVersion: 3 }, { ...response, action: 'refresh' }, { ...response, summary: {} }, null]) {
+  for (const invalid of [{ ...response, outputVersion: 2 }, { ...response, outputVersion: 3 }, { ...response, outputVersion: 4 }, { ...response, action: 'refresh' }, { ...response, summary: {} }, null]) {
     await assert.rejects(createUsageClient({ query: async () => invalid }).query({ action: 'usage' }), (error: unknown) => error instanceof CoreError && error.code === 'PROTOCOL_ERROR');
   }
 });
@@ -60,7 +60,7 @@ test('configuration review and preference transports reject broad commands, bad 
  await assert.rejects(client.preferences!({action:'set',language:'zh'}),{code:'PROTOCOL_ERROR'});
 });
 
-test('usage v4 requires per-field token analysis and its exact method and scope', async()=>{
+test('usage v5 requires per-field token analysis and its exact method and scope', async()=>{
  const {tokenAnalysis,...oldSummary}=response.summary;
  const variations=[{...response,summary:oldSummary},
   ...[0,2].map(methodVersion=>({...response,summary:{...response.summary,tokenAnalysis:{...tokenAnalysis,methodVersion}}})),
@@ -68,4 +68,14 @@ test('usage v4 requires per-field token analysis and its exact method and scope'
   {...response,summary:{...response.summary,tokenAnalysis:{...tokenAnalysis,fields:{...tokenAnalysis.fields,total:{...tokenAnalysis.fields.total,coveredRecords:-1}}}}},
  ];
  for(const result of variations)await assert.rejects(createUsageClient({query:async()=>result}).query({action:'usage'}),{code:'PROTOCOL_ERROR'});
+});
+
+
+test('usage v5 accepts separate calculation analysis and rejects unsupported methods',async()=>{
+ const totalAnalysis={methodVersion:1,subtotal:12,coveredRecords:1,recordedRecords:0,calculatedRecords:1,unavailableRecords:0,overflowRecords:0};
+ const value={...response,summary:{...response.summary,tokenAnalysis:{...response.summary.tokenAnalysis,totalAnalysis}}};
+ assert.deepEqual(await createUsageClient({query:async()=>value}).query({action:'usage'}),value);
+ for(const invalid of [{...totalAnalysis,methodVersion:2},{...totalAnalysis,subtotal:9007199254740992},{...totalAnalysis,overflowRecords:-1},{...totalAnalysis,unexpected:true}]){
+  await assert.rejects(createUsageClient({query:async()=>({...value,summary:{...value.summary,tokenAnalysis:{...value.summary.tokenAnalysis,totalAnalysis:invalid}}})}).query({action:'usage'}),{code:'PROTOCOL_ERROR'});
+ }
 });

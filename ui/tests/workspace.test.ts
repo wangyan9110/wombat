@@ -140,7 +140,7 @@ test('a trend page outside the peak retains the full-range peak through one boun
     calls.push(request.query);
     const response = await f.client.live!(request, options);
     const tokens = request.query.sort === 'tokens' ? 660 : 110;
-    response.result.distribution = {tokenBasis:'recorded_subtotals',maxTokens:660} as UsageResult['distribution'];
+    response.result.distribution = {tokenBasis:'analyzed_totals',maxTokens:660} as UsageResult['distribution'];
     response.result.items = [{kind:'usage',isSubtotal:true,scope:{},usage:withTokenAnalysis({measurementCount:1,tokens:{total:tokens}})}] as UsageResult['items'];
     return response;
   }} as UsageClient;

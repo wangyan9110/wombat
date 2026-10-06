@@ -1,6 +1,6 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type TokenBasis = "recorded_subtotals";
+export type TokenBasis = "analyzed_totals";
 export type AutomaticStatus = "checking" | "updated" | "unchanged" | "failed";
 export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
 export type TokenAnalysisScope = "selected_canonical_measurements";
@@ -129,7 +129,7 @@ export interface Distribution {
    */
   tokenBasis: TokenBasis;
   /**
-   * Maximum of bucket total observed subtotals; not necessarily a complete total.
+   * Maximum of bucket analyzed subtotals; not necessarily a complete total.
    */
   maxTokens?: number | null;
   maxCost?: string | null;
@@ -218,6 +218,11 @@ export interface TokenAnalysis {
   methodVersion: number;
   scope: TokenAnalysisScope;
   fields: TokenFields;
+  /**
+   * Independent analysis; immutable historical review items may contain only
+   * the native observations captured when the user made the decision.
+   */
+  totalAnalysis?: AnalyzedTokenTotal | null;
 }
 export interface TokenFields {
   input: ObservedTokenSubtotal;
@@ -238,6 +243,22 @@ export interface ObservedTokenSubtotal {
   conflictingRecords: number;
   invalidRecords: number;
   indeterminateRecords: number;
+}
+export interface AnalyzedTokenTotal {
+  methodVersion: number;
+  subtotal?: number | null;
+  coveredRecords: number;
+  recordedRecords: number;
+  /**
+   * Unavailable native totals use recorded input (including caches) plus output
+   * only for an identified response grain. Reasoning is already in output.
+   */
+  calculatedRecords: number;
+  unavailableRecords: number;
+  /**
+   * Alternative records excluded by individual or combined safe-integer limits.
+   */
+  overflowRecords: number;
 }
 export interface PriceResult {
   currency: string;

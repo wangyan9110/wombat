@@ -90,3 +90,67 @@ fn unsupported_review_schema_keeps_existing_records() {
         );
     }
 }
+
+#[test]
+fn review_store_preserves_native_only_and_calculated_usage_evidence() {
+    use crate::adapters::contract::{TokenFields, TokenUsage};
+    use crate::usage_app_dto::{
+        AnalyzedTokenTotal, ObservedTokenSubtotal, TokenAnalysis, TokenAnalysisScope, UsageSummary,
+    };
+    for calculated in [false, true] {
+        let tokens = TokenUsage {
+            raw_input: Some(10),
+            output: Some(2),
+            total: (!calculated).then_some(12),
+            ..Default::default()
+        };
+        let fields = TokenFields::from_fn(|field| {
+            let value = tokens.get(field);
+            ObservedTokenSubtotal {
+                observed_subtotal: value,
+                covered_records: u64::from(value.is_some()),
+                missing_records: u64::from(value.is_none()),
+                conflicting_records: 0,
+                invalid_records: 0,
+                indeterminate_records: 0,
+            }
+        });
+        let price = crate::pricing::sum_prices(std::iter::empty()).unwrap();
+        let summary = UsageSummary {
+            input_total: Some(10),
+            cache_hit_rate: None,
+            unpriced_tokens: None,
+            tokens,
+            measurement_count: 1,
+            price,
+            token_analysis: TokenAnalysis {
+                method_version: 1,
+                scope: TokenAnalysisScope::SelectedCanonicalMeasurements,
+                fields,
+                total_analysis: calculated.then_some(AnalyzedTokenTotal {
+                    method_version: 1,
+                    subtotal: Some(12),
+                    covered_records: 1,
+                    recorded_records: 0,
+                    calculated_records: 1,
+                    unavailable_records: 0,
+                    overflow_records: 0,
+                }),
+            },
+        };
+        let before = serde_json::to_value(&summary).unwrap();
+        let mut v = view();
+        v.items[0].usage = Some(summary);
+        let mut suggestion = detect(&v, &RuleParameters::default()).remove(0);
+        let dir = tempfile::tempdir().unwrap();
+        let mut db = connect(&dir.path().join("reviews.sqlite3")).unwrap();
+        let tx = db.transaction().unwrap();
+        store::append(&tx, &mut suggestion, RecordKind::Observation).unwrap();
+        let restored = store::get(&tx, 1).unwrap();
+        assert_eq!(serde_json::to_value(&restored.item.usage).unwrap(), before);
+        assert_eq!(
+            serde_json::to_value(&restored).unwrap(),
+            serde_json::to_value(&suggestion).unwrap()
+        );
+    }
+}

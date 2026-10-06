@@ -109,6 +109,11 @@ export interface TokenAnalysis {
   methodVersion: number;
   scope: TokenAnalysisScope;
   fields: TokenFields;
+  /**
+   * Independent analysis; immutable historical review items may contain only
+   * the native observations captured when the user made the decision.
+   */
+  totalAnalysis?: AnalyzedTokenTotal | null;
 }
 export interface TokenFields {
   input: ObservedTokenSubtotal;
@@ -129,6 +134,22 @@ export interface ObservedTokenSubtotal {
   conflictingRecords: number;
   invalidRecords: number;
   indeterminateRecords: number;
+}
+export interface AnalyzedTokenTotal {
+  methodVersion: number;
+  subtotal?: number | null;
+  coveredRecords: number;
+  recordedRecords: number;
+  /**
+   * Unavailable native totals use recorded input (including caches) plus output
+   * only for an identified response grain. Reasoning is already in output.
+   */
+  calculatedRecords: number;
+  unavailableRecords: number;
+  /**
+   * Alternative records excluded by individual or combined safe-integer limits.
+   */
+  overflowRecords: number;
 }
 export interface PriceResult {
   currency: string;

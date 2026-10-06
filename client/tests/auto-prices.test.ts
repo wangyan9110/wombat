@@ -7,7 +7,7 @@ import { withAutomaticPrices } from '../dist/node/auto-prices.js';
 
 function result(): LiveResult {
   return { outputVersion: 1, freshness: { status: 'current', revision: 'one' }, result: {
-    outputVersion: 4, action: 'usage', snapshotRef: { snapshotId: 'one', createdAt: '2026-09-30T00:00:00Z' }, scope: {}, availableRange: {},
+    outputVersion: 5, action: 'usage', snapshotRef: { snapshotId: 'one', createdAt: '2026-09-30T00:00:00Z' }, scope: {}, availableRange: {},
     summary: withTokenAnalysis({ tokens: { total: 110 }, measurementCount: 1, price: { currency: 'USD', policy: 'synthetic', priceRevision: 'old', cost: null, knownCost: '0', status: 'unknown', components: [], basis: [], issues: ['catalogPriceMissing'] } }),
     items: [], page: { offset: 0, limit: 50, total: 0 }, quality: { status: 'complete', issues: [], sources: [] },
   } };
