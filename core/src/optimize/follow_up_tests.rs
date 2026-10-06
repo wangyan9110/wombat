@@ -430,7 +430,7 @@ fn native_read_candidates_and_target_conflicts_preserve_partial_zero_counts() {
     second.path = "/synthetic/second/SKILL.md".into();
     let mut native = operation("native", "command", &first);
     native.path = None;
-    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"SKILL.md"},{"kind":"read","path":"second/SKILL.md"},{"kind":"read","path":"./SKILL.md"}]},"gaps":[]})).unwrap());
+    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":crate::adapters::contract::WORK_OBSERVATION_VERSION,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"SKILL.md"},{"kind":"read","path":"second/SKILL.md"},{"kind":"read","path":"./SKILL.md"}]},"gaps":[]})).unwrap());
     let suggestions = vec![suggestion(&first), suggestion(&second)];
     let v = view(
         vec![first.clone(), second.clone()],
@@ -475,7 +475,7 @@ fn native_read_candidates_and_target_conflicts_preserve_partial_zero_counts() {
 fn native_rule_read_without_a_skill_path_is_dispatch_unknown_not_observed_rule_use() {
     let object = item("rule", Kind::Rule);
     let mut op = operation("native-rule", "command", &object);
-    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"AGENTS.md"}]},"gaps":[]})).unwrap());
+    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":crate::adapters::contract::WORK_OBSERVATION_VERSION,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"AGENTS.md"}]},"gaps":[]})).unwrap());
     let out = observe(&[suggestion(&object)], &single(&object, vec![op]), None);
     assert_eq!(out[0].observed_records, Some(0));
     assert_eq!(out[0].status, FollowUpStatus::NoObservedRecords);

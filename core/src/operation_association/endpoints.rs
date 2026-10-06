@@ -34,6 +34,10 @@ pub(crate) struct EndpointGroup<'a> {
     pub indices: Vec<usize>,
     pub start_ms: Option<i64>,
     pub end_ms: Option<i64>,
+    /// A closed completion can be known without a dispatch anchor. It cannot form an interval.
+    pub completion_ms: Option<i64>,
+    /// Repeat chains require one physical file generation, independent of cross-file pairs.
+    pub clock_domain: Option<(&'a str, &'a str)>,
     pub evidence_ids: Vec<String>,
     pub identity_conflict: bool,
     pub time_conflict: bool,
@@ -207,6 +211,12 @@ pub(crate) fn reduce<'a>(
             }
         }
         let unique_pair = (pairs.len() == 1).then(|| *pairs.first().unwrap());
+        let clock_domain =
+            (group.domains.len() == 1).then(|| *group.domains.first_key_value().unwrap().0);
+        let completion_ms = clock_domain.and_then(|key| {
+            let domain = &group.domains[&key];
+            domain.closed.then(|| singleton(&ends)).flatten()
+        });
         let mut evidence_ids = vec![];
         if let Some(selected) = unique_pair {
             for domain in group.domains.values() {
@@ -243,6 +253,8 @@ pub(crate) fn reduce<'a>(
             indices: group.indices,
             start_ms: singleton(&starts),
             end_ms: unique_pair.map(|(_, end)| end),
+            completion_ms,
+            clock_domain,
             evidence_ids,
             identity_conflict: group.identity_conflict,
             time_conflict: starts.len() > 1 || ends.len() > 1,

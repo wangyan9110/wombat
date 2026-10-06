@@ -4,6 +4,7 @@ pub mod context;
 pub mod intervals;
 mod mapping;
 mod query;
+pub mod repeats;
 mod share;
 pub(crate) mod uses;
 pub(crate) mod work;

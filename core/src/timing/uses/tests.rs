@@ -446,7 +446,7 @@ fn unknown_replay_targets_poison_the_same_family_in_both_input_orders() {
 fn native_multiple_skill_candidates_share_one_canonical_row_and_no_invented_dispatch() {
     let mut op = operation("native", "command").as_ref().clone();
     op.path = None;
-    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"a/SKILL.md"},{"kind":"read","path":"b/SKILL.md"},{"kind":"read","path":"a/./SKILL.md"}]},"gaps":[]})).unwrap());
+    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":crate::adapters::contract::WORK_OBSERVATION_VERSION,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"a/SKILL.md"},{"kind":"read","path":"b/SKILL.md"},{"kind":"read","path":"a/./SKILL.md"}]},"gaps":[]})).unwrap());
     let operations = vec![Arc::new(op)];
     let owner = thread();
     let cancelled = AtomicBool::new(false);

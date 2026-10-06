@@ -212,7 +212,7 @@ fn read_modes_native_multi_target_candidates_charge_one_unassigned_operation_and
     let root = tempfile::tempdir().unwrap();
     let mut native = operation("native", "command", None).as_ref().clone();
     native.path = None;
-    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"a/SKILL.md"},{"kind":"read","path":"b/SKILL.md"},{"kind":"read","path":"a/SKILL.md"}]},"gaps":[]})).unwrap());
+    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":crate::adapters::contract::WORK_OBSERVATION_VERSION,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"a/SKILL.md"},{"kind":"read","path":"b/SKILL.md"},{"kind":"read","path":"a/SKILL.md"}]},"gaps":[]})).unwrap());
     let mut user = native.clone();
     user.id = "user".into();
     let crate::adapters::contract::WorkData::Command { source, .. } =

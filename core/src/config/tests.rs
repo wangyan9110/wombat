@@ -454,7 +454,7 @@ fn unmatched_operation_from_another_project_does_not_pollute_selected_coverage()
 fn native_multiple_read_candidates_match_each_object_without_pretending_dispatch() {
     let mut native = use_operation("native", "command", "completed");
     native.path = None;
-    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"SKILL.md"},{"kind":"read","path":"second/SKILL.md"},{"kind":"read","path":"./SKILL.md"}]},"gaps":[]})).unwrap());
+    native.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":crate::adapters::contract::WORK_OBSERVATION_VERSION,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"SKILL.md"},{"kind":"read","path":"second/SKILL.md"},{"kind":"read","path":"./SKILL.md"}]},"gaps":[]})).unwrap());
     let mut v = use_view_paths(vec![native.clone(), native.clone()], true);
     let mut second = v.items[0].clone();
     second.id = "second".into();
@@ -523,7 +523,7 @@ fn canonical_replay_target_conflicts_do_not_depend_on_input_order() {
 #[test]
 fn native_rule_read_display_label_is_not_loaded_or_an_executed_file_read() {
     let mut op = use_operation("native-rule", "command", "completed");
-    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":2,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"AGENTS.md"}]},"gaps":[]})).unwrap());
+    op.work=Some(serde_json::from_value(serde_json::json!({"formatVersion":crate::adapters::contract::WORK_OBSERVATION_VERSION,"stage":"terminal","data":{"kind":"command","cwd":"/synthetic","source":"agent","parsed_commands":[{"kind":"read","path":"AGENTS.md"}]},"gaps":[]})).unwrap());
     let mut v = use_view_paths(vec![op], true);
     v.items[0].kind = Kind::Rule;
     v.items[0].path = "/synthetic/AGENTS.md".into();

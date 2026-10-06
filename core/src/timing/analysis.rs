@@ -111,6 +111,7 @@ pub struct Analysis {
     pub boundary_delta_ms: Option<i128>,
     pub intervals: intervals::IntervalMetrics,
     pub operation_coverage: OperationCoverage,
+    pub repeated_behavior: super::repeats::Projection,
     /// Unknown without observed candidates and at least one valid closed interval.
     /// Counts describe observations only; absence never establishes source completeness.
     pub category_union_ms: [Option<u64>; intervals::CATEGORY_COUNT],
@@ -504,6 +505,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             endpoint_method_version: operation_association::endpoints::METHOD_VERSION,
             ..OperationCoverage::default()
         },
+        repeated_behavior: super::repeats::Projection::default(),
         category_union_ms: [None; intervals::CATEGORY_COUNT],
         context: None,
         response_gap_support: ResponseGapSupport::UnsupportedMissingBatchAndCycleEvidence,
@@ -529,6 +531,8 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         result.coverage.partial = true;
         result.operation_coverage.partial = true;
         result.operation_coverage.budget_exceeded = true;
+        result.repeated_behavior.coverage.budget_exceeded = true;
+        result.repeated_behavior.coverage.partial = true;
         result.issues.push(Issue::ResourceLimit);
         return Ok(result);
     }
@@ -734,8 +738,22 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             .push(intervals::Issue::ResourceLimit);
         result.operation_coverage.partial = true;
         result.operation_coverage.budget_exceeded = true;
+        result.repeated_behavior.coverage.budget_exceeded = true;
+        result.repeated_behavior.coverage.partial = true;
         return Ok(result);
     }
+    result.repeated_behavior = super::repeats::project(
+        &events,
+        &discontinuities,
+        &observations,
+        &endpoints,
+        window,
+        super::repeats::Budget {
+            operations: input.budget.lifecycle_records,
+            ..Default::default()
+        },
+        cancelled,
+    )?;
     let mut mapped = Vec::new();
     let mut operation_intervals = Vec::new();
     for endpoint in endpoints.groups {
