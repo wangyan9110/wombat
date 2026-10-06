@@ -39,6 +39,8 @@ export const en = {
 "execution.copied": "Copied.",
 "execution.copyFailed": "Could not copy. Select the preview text or retry.",
 "execution.close": "Close",
+  "preview.token-calculated": "Calculated Token total",
+  "preview.token-partial-calculated": "Calculated Token subtotal with gaps",
   "preview.title": "Preview · Synthetic data",
   "preview.scenario": "Preview scenario",
   "preview.task": "Review the post-login redirect",

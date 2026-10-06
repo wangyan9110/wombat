@@ -39,6 +39,8 @@ export const zh = {
 "execution.copied": "已复制。",
 "execution.copyFailed": "未能复制，请选择预览文字复制或重试。",
 "execution.close": "关闭",
+  "preview.token-calculated": "Token 总量采用计算值",
+  "preview.token-partial-calculated": "Token 计算小计与记录缺口",
   "preview.title": "预览 · 模拟数据",
   "preview.scenario": "预览场景",
   "preview.task": "核对登录后的跳转",

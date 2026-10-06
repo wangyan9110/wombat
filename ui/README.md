@@ -74,6 +74,8 @@ URL 保存范围、筛选、搜索、排序、趋势/对话/轮次分页及选�
 
 通过 `corepack pnpm --filter @wombat/ui exec node --import tsx --test tests/preview.test.ts tests/preview-hosts.test.ts tests/preview-content.test.ts tests/preview-states.test.ts` 检查模拟数据行为及宿主契约。评估与复查模拟数据使用同一公开校验器和正式组件，定向测试覆盖中英两种语言，不运行浏览器。中间阶段使用模块测试和 DOM/交互检查，完整产品集成仍在最终阶段进行。组件与样式只维护一份；新增场景通过模拟数据接入，不另写 HTML 界面。
 
+Token 计算预览：打开 `preview.html?scenario=token-calculated&page=usage&allTime=1&lang=zh`；将 `scenario` 改为 `token-partial-calculated` 可查看有记录缺口的计算小计。两个场景使用正式总览、任务和轮次组件及合成响应，展示计算依据、原始字段缺口和独立的价格覆盖；刷新保留 URL 选择。
+
 执行过程预览：在同一开发服务打开 `preview.html?previewModule=execution&lang=zh`。预览注入模拟的 typed UsageClient，使用正式轮次组 hook 和组件；模拟事实通过生成的耗时校验器，不维护另一套展示输入模型。提供完整、时间缺失、进行中、大量操作、空结果、加载和失败场景。
 
 执行过程绑定正在展示的轮次结果 snapshotRef。首次耗时加载时保留用量；刷新保留旧用量/耗时/证据组，两个替换查询确认同版后一起切换，失败保留旧组。目标或范围变化取消本次连接并丢弃迟到结果；版本过期停止新证据读取，提供显式整组刷新。区间导航消费内核不透明页定位；定位不可用时不把第一页当作相关记录。分享另行请求同一固定版本的 share-v1，预览和复制原样返回对象，不加入本机标题或路径。浏览器只展示内核相对轨道、测量、零值、未知和暂定状态，不配对事件或计算汇总。命令、压缩、推理和 MCP 轨道使用同一视图；类别并集、累加与交集耗时均由内核提供。Skill/MCP 使用消费内核完整轮次总计及独立对象／记录页，区分全轮与已关联次数、重放、候选、失败结果和归属未知。分页、取消及过期固定同一快照；过期要求整组刷新。分享只导出数值使用总计，不含对象路径或服务器身份。

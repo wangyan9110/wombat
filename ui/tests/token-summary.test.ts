@@ -86,3 +86,22 @@ test('calculated totals appear in visible labels, accessible descriptions and ch
   assert.equal(summary.tokens.total,null);
  }}finally{locale.setLocale(saved);}
 });
+
+
+test('shared calculated preview renders complete and partial supplied facts in both locales',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);
+  for(const scenario of ['token-calculated','token-partial-calculated'] as const){
+   const overview=usageFixture({action:'usage',scope:{allTime:true}},scenario);
+   for(const component of [createElement(SummaryToken,{summary:overview.summary}),createElement(Pair,{summary:overview.summary})]){
+    const html=renderToStaticMarkup(component);assert.match(html,/1,100 Token/);
+    assert.ok(html.includes(t('usage.tokenAnalysis.formula',{count:1})));
+    assert.ok(html.includes(t('usage.tokenAnalysis.calculated')));
+    if(scenario==='token-partial-calculated')assert.ok(html.includes(t('usage.tokenAnalysis.subtotal')));
+   }
+   const html=renderToStaticMarkup(createElement(UsageView,{empty:null,setReading(){},client:{} as UsageClient,refresh(){},data:{overview,list:overview,route},route,navigate(){},drill(){},usage(){},basis(){}}));
+   assert.match(html,/class="bar" style="height:100%"/);assert.match(html,/peak-summary/);
+   assert.equal(overview.summary.tokens.total,null);
+  }
+ }}finally{locale.setLocale(saved);}
+});
