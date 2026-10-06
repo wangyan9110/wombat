@@ -100,6 +100,58 @@ fn measurements_distinguish_complete_missing_and_unknown_for_each_object_class()
     }
 }
 #[test]
+fn metadata_size_is_independent_of_content_read_failures_and_runtime_support() {
+    let rules = RuleParameters::default();
+    let mut v = clean_skill();
+    v.items[0].kind = Kind::Rule;
+    v.items[0].configured_state = "unreadable".into();
+    v.items[0].measurement_status = "unavailable".into();
+    v.items[0].content_hash.clear();
+    v.items[0].bytes_source = Some("filesystemMetadata".into());
+    v.items[0].bytes = Some(20_000);
+    let size = check(&v, &rules, "fileSize");
+    assert_eq!(size.outcome, RuleOutcome::Hit);
+    assert_eq!(size.findings[0].observed, Some(20_000));
+    assert!(
+        size.method_versions
+            .iter()
+            .any(|m| m.method == "measurementSource:filesystemMetadata")
+    );
+    assert_eq!(
+        check(&v, &rules, "localReference").outcome,
+        RuleOutcome::Insufficient
+    );
+    assert_eq!(
+        check(&v, &rules, "instructionSelection").outcome,
+        RuleOutcome::Unsupported
+    );
+    for bytes in [Some(0), Some(16_384), Some(16_385), None] {
+        v.items[0].bytes = bytes;
+        assert_eq!(
+            check(&v, &rules, "fileSize").outcome,
+            match bytes {
+                Some(n) if n > 16_384 => RuleOutcome::Hit,
+                Some(_) => RuleOutcome::Miss,
+                None => RuleOutcome::Insufficient,
+            }
+        );
+    }
+    v.items[0].bytes = Some(20_000);
+    for source in [None, Some("utf8Payload"), Some("unverified")] {
+        v.items[0].bytes_source = source.map(str::to_owned);
+        assert_eq!(
+            check(&v, &rules, "fileSize").outcome,
+            RuleOutcome::Insufficient
+        );
+    }
+    v.items[0].bytes_source = Some("filesystemMetadata".into());
+    v.items[0].stale = true;
+    assert_eq!(
+        check(&v, &rules, "fileSize").outcome,
+        RuleOutcome::Insufficient
+    );
+}
+#[test]
 fn unsupported_rules_ignore_unrelated_static_findings_instead_of_passing_or_hitting() {
     let rules = RuleParameters::default();
     let mut v = clean_skill();

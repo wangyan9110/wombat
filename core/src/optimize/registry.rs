@@ -1,5 +1,8 @@
 //! Stable rule directory; evaluation belongs to the fixed-input evaluator.
-use crate::{config_dto::Kind, optimize_dto::*};
+use crate::{
+    config_dto::{Item, Kind},
+    optimize_dto::*,
+};
 pub(super) fn catalog() -> Vec<RuleDefinition> {
     Rule::ALL
         .into_iter()
@@ -51,7 +54,14 @@ impl Rule {
             _ => (Evidence::Unsupported, "unavailable-v1"),
         };
         Dependencies {
-            semantics_version: 1,
+            semantics_version: if matches!(
+                evidence,
+                Evidence::FileMeasurement | Evidence::Unsupported
+            ) {
+                2
+            } else {
+                1
+            },
             evidence,
             method,
             max_key_bytes: super::cache::MAX_ENTRY_BYTES,
@@ -147,6 +157,28 @@ pub(super) enum Evidence {
     Relations,
     HostTargets,
     Unsupported,
+}
+impl Evidence {
+    /// Each check consumes its own observation. A failed content read does not
+    /// invalidate authorized filesystem size, and cannot make an unsupported
+    /// algorithm appear to be waiting for more content.
+    pub(super) fn accepts(self, item: &Item) -> bool {
+        match self {
+            Self::Existence => matches!(item.measurement_status.as_str(), "complete" | "missing"),
+            Self::FileMeasurement => {
+                item.measurement_status == "complete"
+                    || (item.measurement_status == "unavailable"
+                        && item.bytes_source.as_deref() == Some("filesystemMetadata")
+                        && item.bytes.is_some())
+            }
+            Self::SkillMetadata
+            | Self::BodyMeasurement
+            | Self::References
+            | Self::Blocks
+            | Self::Relations => item.measurement_status == "complete",
+            Self::HostTargets | Self::Unsupported => true,
+        }
+    }
 }
 #[derive(serde::Serialize)]
 pub(super) struct Dependencies {

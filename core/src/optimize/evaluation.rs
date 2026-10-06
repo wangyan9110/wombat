@@ -152,10 +152,7 @@ fn assess_fixed(
     {
         return Ok(Assessment::Insufficient("currentVersionUnavailable"));
     }
-    if !matches!(rule, Rule::HookTarget)
-        && item.measurement_status != "complete"
-        && !(matches!(rule, Rule::MissingInstruction) && item.measurement_status == "missing")
-    {
+    if !rule.dependencies().evidence.accepts(item) {
         return Ok(Assessment::Insufficient("checkEvidenceIncomplete"));
     }
     let cached = key

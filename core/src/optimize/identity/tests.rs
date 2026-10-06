@@ -232,6 +232,35 @@ fn missing_current_and_partial_evidence_cannot_resolve() {
     );
 }
 #[test]
+fn size_recheck_uses_its_measurement_method_without_requiring_file_content() {
+    let mut v = view();
+    v.items[0].measurement_status = "unavailable".into();
+    v.items[0].configured_state = "unreadable".into();
+    v.items[0].content_hash.clear();
+    v.items[0].bytes_source = Some("filesystemMetadata".into());
+    let old = original(&v);
+    v.items[0].bytes = Some(0);
+    let check = recheck(&v, &old, &RuleParameters::default());
+    assert_eq!(check.outcome, RuleOutcome::Miss);
+    assert_eq!(check.comparison.status, ComparisonStatus::Comparable);
+    assert_eq!(reviews::status(&[check], 1), "verified");
+
+    v.items[0].bytes_source = Some("completeUtf8File".into());
+    v.items[0].measurement_status = "complete".into();
+    v.items[0].content_hash = "new-content".into();
+    let check = recheck(&v, &old, &RuleParameters::default());
+    assert_eq!(check.outcome, RuleOutcome::Miss);
+    assert_eq!(check.comparison.status, ComparisonStatus::Incomparable);
+    assert_eq!(reviews::status(&[check], 1), "recheckUnavailable");
+
+    v.items[0].bytes_source = Some("filesystemMetadata".into());
+    v.items[0].measurement_status = "unavailable".into();
+    v.items[0].bytes = None;
+    let check = recheck(&v, &old, &RuleParameters::default());
+    assert_eq!(check.outcome, RuleOutcome::Insufficient);
+    assert_eq!(check.comparison.status, ComparisonStatus::Unknown);
+}
+#[test]
 fn reference_and_block_aggregates_do_not_gain_identity_from_name_hash_or_line() {
     let v = view();
     let mut f = original(&v).findings.remove(0);
