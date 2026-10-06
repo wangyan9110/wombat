@@ -81,7 +81,24 @@ impl Aliases {
 pub(super) fn project(local: &LocalResponse) -> ShareResponse {
     let mut a = Aliases::new();
     let time = &local.time;
+    let coverage = &time.operation_coverage;
     let time = Time {
+        operation_coverage: OperationCoverage {
+            method_version: coverage.method_version,
+            endpoint_method_version: coverage.endpoint_method_version,
+            candidate_operations: a.metric(&coverage.candidate_operations),
+            paired_operations: a.metric(&coverage.paired_operations),
+            identity_gap_records: a.metric(&coverage.identity_gap_records),
+            conflicting_operations: a.metric(&coverage.conflicting_operations),
+            covered_ms: a.metric(&coverage.covered_ms),
+            residual_ms: a.metric(&coverage.residual_ms),
+            residual_range_count: a.metric(&coverage.residual_range_count),
+            partial: coverage.partial,
+            reason_codes: coverage.reason_codes.clone(),
+            detail: coverage.detail.clone(),
+            detail_limit: coverage.detail_limit,
+            residual_ranges: coverage.residual_ranges.clone(),
+        },
         timeline: Timeline {
             presentation: time.timeline.presentation,
             detail: time.timeline.detail.clone(),

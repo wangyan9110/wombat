@@ -1,10 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "LocalResponse",
+  "title": "ShareResponse",
   "type": "object",
   "properties": {
     "uses": {
-      "$ref": "#/definitions/LocalUses"
+      "$ref": "#/definitions/UseTotals"
+    },
+    "basisCollections": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ShareCollection"
+      }
     },
     "outputVersion": {
       "type": "integer",
@@ -18,21 +24,18 @@
       "type": "string"
     },
     "profile": {
-      "$ref": "#/definitions/LocalProfile"
+      "$ref": "#/definitions/ShareProfile"
     },
     "privacy": {
       "$ref": "#/definitions/Privacy"
     },
-    "readView": {
-      "$ref": "#/definitions/ReadView"
-    },
     "scope": {
-      "$ref": "#/definitions/LocalScope"
+      "$ref": "#/definitions/ShareScope"
     },
     "capabilities": {
       "$ref": "#/definitions/Capabilities"
     },
-    "anchors": {
+    "relativeAnchors": {
       "$ref": "#/definitions/Anchors"
     },
     "time": {
@@ -57,74 +60,30 @@
       "$ref": "#/definitions/Quality"
     },
     "freshness": {
-      "$ref": "#/definitions/QueryFreshness"
-    },
-    "evidence": {
-      "$ref": "#/definitions/EvidenceIndex"
+      "$ref": "#/definitions/ShareFreshness"
     }
   },
   "additionalProperties": false,
   "required": [
     "uses",
+    "basisCollections",
     "outputVersion",
     "action",
     "methodVersion",
     "profile",
     "privacy",
-    "readView",
     "scope",
     "capabilities",
-    "anchors",
+    "relativeAnchors",
     "time",
     "context",
     "work",
     "findings",
     "coverage",
     "quality",
-    "freshness",
-    "evidence"
+    "freshness"
   ],
   "definitions": {
-    "LocalUses": {
-      "type": "object",
-      "properties": {
-        "totals": {
-          "$ref": "#/definitions/UseTotals"
-        },
-        "detail": {
-          "$ref": "#/definitions/Capability"
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 50,
-          "maximum": 50
-        },
-        "objects": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/UseObject"
-          },
-          "maxItems": 50
-        },
-        "nextCursor": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Cursor"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "totals",
-        "detail",
-        "limit",
-        "objects"
-      ]
-    },
     "UseTotals": {
       "type": "object",
       "properties": {
@@ -229,6 +188,8 @@
         "lifecycle_union",
         "lifecycle_sum",
         "interval_mask",
+        "operation_union",
+        "operation_residual",
         "request_input",
         "historical_window",
         "type7",
@@ -296,125 +257,46 @@
         "associatedTurnGaps"
       ]
     },
-    "Capability": {
+    "ShareCollection": {
       "type": "object",
       "properties": {
-        "support": {
-          "$ref": "#/definitions/Support"
-        },
-        "reason": {
-          "$ref": "#/definitions/Basis"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "support",
-        "reason"
-      ]
-    },
-    "Support": {
-      "type": "string",
-      "enum": [
-        "supported",
-        "partial",
-        "unavailable"
-      ]
-    },
-    "UseObject": {
-      "type": "object",
-      "properties": {
-        "objectRef": {
+        "reference": {
           "type": "string"
         },
         "kind": {
-          "$ref": "#/definitions/UseObjectKind"
+          "$ref": "#/definitions/CollectionKind"
         },
-        "state": {
-          "$ref": "#/definitions/UseState"
+        "taskAlias": {
+          "type": "string"
         },
-        "path": {
-          "description": "Resolved historical local target; never sent by share-v1.",
-          "type": [
-            "string",
-            "null"
-          ]
+        "turnAlias": {
+          "type": "string"
         },
-        "server": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "project": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "associatedUseCount": {
-          "description": "Exact count in the positively associated canonical set; coverage explains local gaps.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/TimingMetric_uint64"
-            }
-          ]
-        },
-        "useCount": {
-          "description": "Complete turn count is unavailable when association or unassigned-membership evidence has gaps.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/TimingMetric_uint64"
-            }
-          ]
-        },
-        "recordCount": {
+        "count": {
           "$ref": "#/definitions/TimingMetric_uint64"
         },
-        "unassignedTurnRecords": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "coverage": {
-          "$ref": "#/definitions/UseCoverage"
+        "method": {
+          "type": "string"
         }
       },
       "additionalProperties": false,
       "required": [
-        "objectRef",
+        "reference",
         "kind",
-        "state",
-        "associatedUseCount",
-        "useCount",
-        "recordCount",
-        "unassignedTurnRecords",
-        "coverage"
+        "taskAlias",
+        "turnAlias",
+        "count",
+        "method"
       ]
     },
-    "UseObjectKind": {
+    "CollectionKind": {
       "type": "string",
       "enum": [
-        "skill",
-        "mcp"
-      ]
-    },
-    "UseState": {
-      "type": "string",
-      "enum": [
-        "used",
-        "candidate",
-        "unclassified"
-      ]
-    },
-    "Cursor": {
-      "type": "object",
-      "properties": {
-        "token": {
-          "type": "string",
-          "maxLength": 8192
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "token"
+        "turn_events",
+        "canonical_measurements",
+        "canonical_operations",
+        "source_controls",
+        "native_boundary_index"
       ]
     },
     "SummaryAction": {
@@ -423,10 +305,10 @@
         "summary"
       ]
     },
-    "LocalProfile": {
+    "ShareProfile": {
       "type": "string",
       "enum": [
-        "local"
+        "share-v1"
       ]
     },
     "Privacy": {
@@ -459,54 +341,13 @@
         "share-v1"
       ]
     },
-    "ReadView": {
+    "ShareScope": {
       "type": "object",
       "properties": {
-        "snapshotId": {
+        "taskAlias": {
           "type": "string"
         },
-        "snapshotSchema": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "adapterVersions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "projectionVersion": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "snapshotId",
-        "snapshotSchema",
-        "createdAt",
-        "adapterVersions",
-        "projectionVersion"
-      ]
-    },
-    "LocalScope": {
-      "type": "object",
-      "properties": {
-        "sourceInstanceId": {
-          "type": "string"
-        },
-        "threadId": {
-          "type": "string"
-        },
-        "turnId": {
-          "type": "string"
-        },
-        "agentKind": {
+        "turnAlias": {
           "type": "string"
         },
         "wholeTurn": {
@@ -515,10 +356,8 @@
       },
       "additionalProperties": false,
       "required": [
-        "sourceInstanceId",
-        "threadId",
-        "turnId",
-        "agentKind",
+        "taskAlias",
+        "turnAlias",
         "wholeTurn"
       ]
     },
@@ -535,6 +374,9 @@
           "$ref": "#/definitions/Capability"
         },
         "lifecycleIntervals": {
+          "$ref": "#/definitions/Capability"
+        },
+        "operationIntervals": {
           "$ref": "#/definitions/Capability"
         },
         "contextPressure": {
@@ -565,6 +407,7 @@
         "nativeTtft",
         "firstContentRecordDelay",
         "lifecycleIntervals",
+        "operationIntervals",
         "contextPressure",
         "strictResponseGap",
         "exploratoryGap",
@@ -572,6 +415,30 @@
         "fileChanges",
         "messageRecords",
         "objectUses"
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "properties": {
+        "support": {
+          "$ref": "#/definitions/Support"
+        },
+        "reason": {
+          "$ref": "#/definitions/Basis"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "support",
+        "reason"
+      ]
+    },
+    "Support": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "partial",
+        "unavailable"
       ]
     },
     "Anchors": {
@@ -625,6 +492,9 @@
     "Time": {
       "type": "object",
       "properties": {
+        "operationCoverage": {
+          "$ref": "#/definitions/OperationCoverage"
+        },
         "timeline": {
           "$ref": "#/definitions/Timeline"
         },
@@ -691,6 +561,7 @@
       },
       "additionalProperties": false,
       "required": [
+        "operationCoverage",
         "timeline",
         "state",
         "nativeWallClockMs",
@@ -710,6 +581,117 @@
         "waitingProxyMs",
         "strictResponseGapMs",
         "exploratoryGapMs"
+      ]
+    },
+    "OperationCoverage": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "endpointMethodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "candidateOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "pairedOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "identityGapRecords": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "conflictingOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "coveredMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "residualMs": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "residualRangeCount": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OperationCoverageReason"
+          }
+        },
+        "detail": {
+          "$ref": "#/definitions/Capability"
+        },
+        "detailLimit": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 200
+        },
+        "residualRanges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OperationResidualRange"
+          },
+          "maxItems": 200
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "endpointMethodVersion",
+        "candidateOperations",
+        "pairedOperations",
+        "identityGapRecords",
+        "conflictingOperations",
+        "coveredMs",
+        "residualMs",
+        "residualRangeCount",
+        "partial",
+        "reasonCodes",
+        "detail",
+        "detailLimit",
+        "residualRanges"
+      ]
+    },
+    "OperationCoverageReason": {
+      "type": "string",
+      "enum": [
+        "no_paired_operations",
+        "missing_window",
+        "unlocated_operations",
+        "identity_gaps",
+        "conflicting_operations",
+        "source_partial",
+        "resource_limit",
+        "numeric_range",
+        "detail_limit"
+      ]
+    },
+    "OperationResidualRange": {
+      "type": "object",
+      "properties": {
+        "startMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "startMs",
+        "endMs"
       ]
     },
     "Timeline": {
@@ -1396,26 +1378,11 @@
         "summaryLimitBytes"
       ]
     },
-    "QueryFreshness": {
-      "description": "Internal selector observation; not a request option or source capability.",
+    "ShareFreshness": {
       "type": "object",
       "properties": {
         "status": {
           "type": "string"
-        },
-        "checkedAt": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "revision": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
         },
         "errorCode": {
           "type": [
@@ -1427,192 +1394,6 @@
       "additionalProperties": false,
       "required": [
         "status"
-      ]
-    },
-    "EvidenceIndex": {
-      "type": "object",
-      "properties": {
-        "intervalPages": {
-          "$ref": "#/definitions/IntervalPages"
-        },
-        "collections": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/EvidenceCollection"
-          }
-        },
-        "available": {
-          "type": "boolean"
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "snapshotId": {
-          "type": "string"
-        },
-        "refs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "method": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "intervalPages",
-        "collections",
-        "available",
-        "limit",
-        "snapshotId",
-        "refs",
-        "method"
-      ]
-    },
-    "IntervalPages": {
-      "type": "object",
-      "properties": {
-        "detail": {
-          "$ref": "#/definitions/Capability"
-        },
-        "candidateIntervalCount": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "locatedIntervalCount": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "missingEventRefCount": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "pageCount": {
-          "description": "Sum of page locators over intervals, after merging each interval's same-page refs.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/TimingMetric_uint64"
-            }
-          ]
-        },
-        "limitBytes": {
-          "type": "integer",
-          "minimum": 65536,
-          "maximum": 65536
-        },
-        "entries": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/IntervalPage"
-          },
-          "maxItems": 200
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "detail",
-        "candidateIntervalCount",
-        "locatedIntervalCount",
-        "missingEventRefCount",
-        "pageCount",
-        "limitBytes",
-        "entries"
-      ]
-    },
-    "IntervalPage": {
-      "description": "Local navigation only: the sharing DTO has no evidence index or cursor type.",
-      "type": "object",
-      "properties": {
-        "intervalAlias": {
-          "type": "string"
-        },
-        "pages": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/FragmentPage"
-          },
-          "maxItems": 3
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "intervalAlias",
-        "pages"
-      ]
-    },
-    "FragmentPage": {
-      "type": "object",
-      "properties": {
-        "cursor": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Cursor"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 200,
-          "maximum": 200
-        },
-        "evidenceRefs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 3
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "limit",
-        "evidenceRefs"
-      ]
-    },
-    "EvidenceCollection": {
-      "type": "object",
-      "properties": {
-        "reference": {
-          "type": "string"
-        },
-        "kind": {
-          "$ref": "#/definitions/CollectionKind"
-        },
-        "snapshotId": {
-          "type": "string"
-        },
-        "scope": {
-          "$ref": "#/definitions/LocalScope"
-        },
-        "count": {
-          "$ref": "#/definitions/TimingMetric_uint64"
-        },
-        "method": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "reference",
-        "kind",
-        "snapshotId",
-        "scope",
-        "count",
-        "method"
-      ]
-    },
-    "CollectionKind": {
-      "type": "string",
-      "enum": [
-        "turn_events",
-        "canonical_measurements",
-        "canonical_operations",
-        "source_controls",
-        "native_boundary_index"
       ]
     }
   }

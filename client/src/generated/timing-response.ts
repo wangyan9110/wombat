@@ -10,6 +10,8 @@ export type Basis =
   | "lifecycle_union"
   | "lifecycle_sum"
   | "interval_mask"
+  | "operation_union"
+  | "operation_residual"
   | "request_input"
   | "historical_window"
   | "type7"
@@ -48,6 +50,16 @@ export type UseState = "used" | "candidate" | "unclassified";
 export type SummaryAction = "summary";
 export type LocalProfile = "local";
 export type PrivacyProfile = "local" | "share-v1";
+export type OperationCoverageReason =
+  | "no_paired_operations"
+  | "missing_window"
+  | "unlocated_operations"
+  | "identity_gaps"
+  | "conflicting_operations"
+  | "source_partial"
+  | "resource_limit"
+  | "numeric_range"
+  | "detail_limit";
 export type TimelinePresentation = "timeline" | "list";
 export type TrackCategory = "command" | "compaction" | "reasoning" | "mcp";
 export type FragmentEvidence = "event_records" | "turn_collection" | "unavailable";
@@ -177,6 +189,7 @@ export interface Capabilities {
   nativeTtft: Capability;
   firstContentRecordDelay: Capability;
   lifecycleIntervals: Capability;
+  operationIntervals: Capability;
   contextPressure: Capability;
   strictResponseGap: Capability;
   exploratoryGap: Capability;
@@ -196,6 +209,7 @@ export interface TimingMetricInt64 {
   evidenceRefs: string[];
 }
 export interface Time {
+  operationCoverage: OperationCoverage;
   timeline: Timeline;
   state: TurnState;
   nativeWallClockMs: TimingMetricUint64;
@@ -238,6 +252,29 @@ export interface Time {
   waitingProxyMs: TimingMetricUint64;
   strictResponseGapMs: TimingMetricUint64;
   exploratoryGapMs: TimingMetricUint64;
+}
+export interface OperationCoverage {
+  methodVersion: number;
+  endpointMethodVersion: number;
+  candidateOperations: TimingMetricUint64;
+  pairedOperations: TimingMetricUint64;
+  identityGapRecords: TimingMetricUint64;
+  conflictingOperations: TimingMetricUint64;
+  coveredMs: TimingMetricUint64;
+  residualMs: TimingMetricUint64;
+  residualRangeCount: TimingMetricUint64;
+  partial: boolean;
+  reasonCodes: OperationCoverageReason[];
+  detail: Capability;
+  detailLimit: number;
+  /**
+   * @maxItems 200
+   */
+  residualRanges: OperationResidualRange[];
+}
+export interface OperationResidualRange {
+  startMs: number;
+  endMs: number;
 }
 export interface Timeline {
   presentation: TimelinePresentation;

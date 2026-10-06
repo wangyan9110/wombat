@@ -415,6 +415,17 @@ fn native_fallback_reduces_complete_partition_including_final_conflict() {
     assert_eq!(l.time.native_wall_clock_ms.basis, Basis::BoundaryConflict);
     assert_eq!(l.time.native_ttft_ms.value, Some(5));
     assert_eq!(l.time.derived_wall_clock_ms.basis, Basis::ResourceLimit);
+    assert_eq!(l.time.operation_coverage.candidate_operations.value, None);
+    assert_eq!(
+        l.time.operation_coverage.residual_ms.basis,
+        Basis::ResourceLimit
+    );
+    assert!(
+        l.time
+            .operation_coverage
+            .reason_codes
+            .contains(&OperationCoverageReason::ResourceLimit)
+    );
     assert_eq!(l.time.timeline.presentation, TimelinePresentation::List);
     assert_eq!(l.time.timeline.entry_count.value, None);
     assert_eq!(l.time.timeline.entry_count.basis, Basis::ResourceLimit);
@@ -1609,4 +1620,214 @@ fn mcp_target_and_outcome_conflicts_preserve_time_and_report_local_quality() {
             .contains(&Basis::MissingIdentity)
     );
     assert!(!result.quality.reason_codes.contains(&Basis::MissingTime));
+}
+
+fn interval_item(
+    offset: u64,
+    kind: crate::session_events::ItemKind,
+    id: Option<&str>,
+    start: i64,
+    end: i64,
+) -> Arc<Event> {
+    event(
+        offset,
+        None,
+        Payload::Item {
+            item_kind: kind,
+            native_id: id.map(str::to_owned),
+            phase: Phase::Completed,
+            started_at_ms: Some(start),
+            completed_at_ms: Some(end),
+            duration: None,
+        },
+    )
+}
+#[test]
+fn operation_residual_is_distinct_from_category_gaps_and_share_is_private() {
+    use crate::session_events::ItemKind;
+    let snapshot = make_snapshot(vec![
+        boundary(0, Some(0), Phase::Started, None, None),
+        interval_item(1, ItemKind::Tool, Some("tool-private"), 2000, 10000),
+        interval_item(2, ItemKind::File, Some("file-private"), 8000, 12000),
+        interval_item(3, ItemKind::Reasoning, Some("reason-private"), 12000, 30000),
+        interval_item(4, ItemKind::Compaction, Some("compact-private"), 0, 2000),
+        boundary(5, Some(30000), Phase::Completed, Some(31000), None),
+    ]);
+    let l = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    assert_eq!(l.output_version, 2);
+    assert_eq!(l.time.native_wall_clock_ms.value, Some(31000));
+    assert_eq!(l.time.unclassified_ms.value, Some(10000));
+    let c = &l.time.operation_coverage;
+    assert_eq!(c.method_version, 1);
+    assert_eq!(c.endpoint_method_version, 1);
+    assert_eq!(c.candidate_operations.value, Some(2));
+    assert_eq!(c.paired_operations.value, Some(2));
+    assert_eq!(c.covered_ms.value, Some(10000));
+    assert_eq!(c.covered_ms.basis, Basis::OperationUnion);
+    assert_eq!(c.residual_ms.value, Some(20000));
+    assert_eq!(c.residual_ms.basis, Basis::OperationResidual);
+    assert_eq!(c.residual_ms.status, MetricStatus::Derived);
+    assert_eq!(c.residual_range_count.value, Some(2));
+    assert_eq!(
+        c.residual_ranges
+            .iter()
+            .map(|r| (r.start_ms, r.end_ms))
+            .collect::<Vec<_>>(),
+        vec![(0, 2000), (12000, 30000)]
+    );
+    assert!(!c.partial);
+    let Response::Share(s) = query(&snapshot, &request(PrivacyProfile::ShareV1)) else {
+        panic!()
+    };
+    assert_eq!(
+        s.time.operation_coverage.residual_ms.value,
+        c.residual_ms.value
+    );
+    assert_eq!(
+        s.time.operation_coverage.covered_ms.value,
+        c.covered_ms.value
+    );
+    let text = serde_json::to_string(&s).unwrap();
+    for private in [
+        "source-private",
+        "file-private",
+        "tool-private",
+        "thread-private",
+        "turn-private",
+        "live:private",
+    ] {
+        assert!(!text.contains(private));
+    }
+}
+#[test]
+fn operation_residual_without_pairs_preserves_zero_and_explains_no_subtraction() {
+    for end in [0, 30000] {
+        let l = local(query(
+            &make_snapshot(vec![
+                boundary(0, Some(0), Phase::Started, None, None),
+                boundary(1, Some(end), Phase::Completed, None, None),
+            ]),
+            &request(PrivacyProfile::Local),
+        ));
+        let c = l.time.operation_coverage;
+        assert_eq!(c.candidate_operations.value, Some(0));
+        assert_eq!(c.paired_operations.value, Some(0));
+        assert_eq!(c.covered_ms.value, Some(0));
+        assert_eq!(c.residual_ms.value, Some(end as u64));
+        assert_eq!(c.residual_range_count.value, Some(u64::from(end > 0)));
+        assert!(
+            c.reason_codes
+                .contains(&OperationCoverageReason::NoPairedOperations)
+        );
+        assert_eq!(c.detail.support, Support::Supported);
+    }
+}
+#[test]
+fn operation_residual_retains_values_with_identity_and_source_gaps() {
+    use crate::session_events::ItemKind;
+    let mut events = vec![
+        boundary(0, Some(0), Phase::Started, None, None),
+        interval_item(1, ItemKind::Tool, Some("paired"), 2000, 10000),
+        interval_item(2, ItemKind::Tool, None, 10000, 12000),
+        boundary(4, Some(30000), Phase::Completed, None, None),
+    ];
+    events.push(event(
+        3,
+        Some(13000),
+        Payload::Item {
+            item_kind: ItemKind::File,
+            native_id: Some("open".into()),
+            phase: Phase::Started,
+            started_at_ms: Some(13000),
+            completed_at_ms: None,
+            duration: None,
+        },
+    ));
+    let root = tempfile::tempdir().unwrap();
+    let mut collected = data(events);
+    collected.sources[0].status = "partial".into();
+    let snapshot = usage_store::memory(
+        collected,
+        "live:private".into(),
+        crate::pricing_sync::current_at(root.path()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let c = local(query(&snapshot, &request(PrivacyProfile::Local)))
+        .time
+        .operation_coverage;
+    assert_eq!(c.candidate_operations.value, Some(2));
+    assert_eq!(c.paired_operations.value, Some(1));
+    assert_eq!(c.identity_gap_records.value, Some(1));
+    assert_eq!(c.covered_ms.value, Some(8000));
+    assert_eq!(c.residual_ms.value, Some(22000));
+    assert!(c.partial);
+    for reason in [
+        OperationCoverageReason::IdentityGaps,
+        OperationCoverageReason::UnlocatedOperations,
+        OperationCoverageReason::SourcePartial,
+    ] {
+        assert!(c.reason_codes.contains(&reason));
+    }
+}
+#[test]
+fn operation_residual_detail_limit_preserves_full_totals_and_range_count() {
+    use crate::session_events::ItemKind;
+    let mut events = vec![boundary(0, Some(0), Phase::Started, None, None)];
+    for i in 0..250 {
+        events.push(interval_item(
+            i + 1,
+            ItemKind::Tool,
+            Some(&format!("tool-{i}")),
+            (i * 2) as i64,
+            (i * 2 + 1) as i64,
+        ));
+    }
+    events.push(boundary(251, Some(1000), Phase::Completed, None, None));
+    let c = local(query(
+        &make_snapshot(events),
+        &request(PrivacyProfile::Local),
+    ))
+    .time
+    .operation_coverage;
+    assert_eq!(c.paired_operations.value, Some(250));
+    assert_eq!(c.covered_ms.value, Some(250));
+    assert_eq!(c.residual_ms.value, Some(750));
+    assert_eq!(c.residual_range_count.value, Some(250));
+    assert!(!c.partial);
+    assert!(c.residual_ranges.is_empty());
+    assert_eq!(c.detail.support, Support::Unavailable);
+    assert!(
+        c.reason_codes
+            .contains(&OperationCoverageReason::DetailLimit)
+    );
+}
+
+#[test]
+fn operation_pairs_without_turn_window_explain_unavailable_residual_instead_of_zero() {
+    let l = local(query(
+        &make_snapshot(vec![interval_item(
+            0,
+            crate::session_events::ItemKind::Tool,
+            Some("pair"),
+            2000,
+            10000,
+        )]),
+        &request(PrivacyProfile::Local),
+    ));
+    let c = l.time.operation_coverage;
+    assert_eq!(c.paired_operations.value, Some(1));
+    assert!(c.partial);
+    assert_eq!(c.residual_ms.value, None);
+    assert_eq!(c.covered_ms.value, None);
+    assert_eq!(c.residual_range_count.value, None);
+    assert!(
+        c.reason_codes
+            .contains(&OperationCoverageReason::MissingWindow)
+    );
+    assert!(
+        !c.reason_codes
+            .contains(&OperationCoverageReason::ResourceLimit)
+    );
+    assert!(c.residual_ranges.is_empty());
 }

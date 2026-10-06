@@ -30,7 +30,7 @@ pub enum ShareProfile {
     ShareV1,
 }
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-pub const OUTPUT_VERSION: u32 = 1;
+pub const OUTPUT_VERSION: u32 = 2;
 pub const METHOD_VERSION: &str = "safe_event_turn_v4";
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
@@ -120,6 +120,8 @@ pub enum Basis {
     LifecycleUnion,
     LifecycleSum,
     IntervalMask,
+    OperationUnion,
+    OperationResidual,
     RequestInput,
     HistoricalWindow,
     Type7,
@@ -186,6 +188,7 @@ pub struct Capabilities {
     pub native_ttft: Capability,
     pub first_content_record_delay: Capability,
     pub lifecycle_intervals: Capability,
+    pub operation_intervals: Capability,
     pub context_pressure: Capability,
     pub strict_response_gap: Capability,
     pub exploratory_gap: Capability,
@@ -284,9 +287,51 @@ pub struct Timeline {
     #[schemars(length(max = 200))]
     pub unclassified_gaps: Vec<TimelineGap>,
 }
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum OperationCoverageReason {
+    NoPairedOperations,
+    MissingWindow,
+    UnlocatedOperations,
+    IdentityGaps,
+    ConflictingOperations,
+    SourcePartial,
+    ResourceLimit,
+    NumericRange,
+    DetailLimit,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OperationResidualRange {
+    pub start_ms: u64,
+    pub end_ms: u64,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OperationCoverage {
+    #[schemars(range(min = 1, max = 1))]
+    pub method_version: u32,
+    #[schemars(range(min = 1, max = 1))]
+    pub endpoint_method_version: u32,
+    pub candidate_operations: Count,
+    pub paired_operations: Count,
+    pub identity_gap_records: Count,
+    pub conflicting_operations: Count,
+    pub covered_ms: Count,
+    pub residual_ms: Count,
+    pub residual_range_count: Count,
+    pub partial: bool,
+    pub reason_codes: Vec<OperationCoverageReason>,
+    pub detail: Capability,
+    #[schemars(range(min = 200, max = 200))]
+    pub detail_limit: usize,
+    #[schemars(length(max = 200))]
+    pub residual_ranges: Vec<OperationResidualRange>,
+}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Time {
+    pub operation_coverage: OperationCoverage,
     pub timeline: Timeline,
     pub state: TurnState,
     pub native_wall_clock_ms: Count,

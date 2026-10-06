@@ -24,7 +24,7 @@ wombat timing capabilities [--share]
 
 摘要支持重复 `--root`、`--source`、`--fresh` / `--cached`、`--snapshot`、`--lang` 与取消。只接受完整 Wombat 身份，不默认转用上游 ID；目标不匹配或不存在明确报错。`--turn` 必填，任务级汇总后续独立交付。拒绝日期/Token/金额筛选和分页对摘要整轮窗口的切碎。证据要求相同固定目标、版本和范围，默认50/最大200条，通过不透明游标分页，仅支持本机投影且不接受刷新模式。能力查询不接受目标或来源路径，不执行扫描。默认最终单个 JSON，状态写 stderr；显式 `--text` 与 `--json` 互斥。分享请求 Rust 独立投影。耗时查询绕过自动补价、配置扫描、Hook 采集和账户观察。错误保留独立 v1 安全信封；取消退出130，不终止共享同步。
 
-新增独立 `timing_dto.rs`，Rust 生成 Schema、TS 与校验器；操作 `timing` 的 request 使用 `summary/evidence/capabilities` 窄联合类型（技术装配见第15节），响应 `outputVersion:1`，另有 `methodVersion`。用量 JSON v3、适配器、索引、耗时分析快照及分析方法分别版本化；不把耗时分析 action 塞进旧 usage union 而仍宣称协议不变。普通本机 JSON 含本机定位身份，分享版另行投影。
+新增独立 `timing_dto.rs`，Rust 生成 Schema、TS 与校验器；操作 `timing` 的 request 使用 `summary/evidence/capabilities` 窄联合类型（技术装配见第15节），响应 `outputVersion:2`，另有 `methodVersion`。用量 JSON v3、适配器、索引、耗时分析快照及分析方法分别版本化；不把耗时分析 action 塞进旧 usage union 而仍宣称协议不变。普通本机 JSON 含本机定位身份，分享版另行投影。
 
 | 顶层字段 | 契约 |
 |---|---|

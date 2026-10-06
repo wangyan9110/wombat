@@ -131,12 +131,15 @@ pub struct OperationCoverage {
     /// Canonical groups with an eligible operation; paired is their usable endpoint subset.
     pub candidates: usize,
     pub paired: usize,
+    pub computed: bool,
+    pub budget_exceeded: bool,
     /// Physical observations without operation identity; independent of canonical groups.
     pub missing_identity: usize,
     pub conflicting: usize,
     pub covered_ms: Option<u64>,
     pub residual_ms: Option<u64>,
     pub residual_ranges: Vec<(u64, u64)>,
+    pub residual_range_count: usize,
     pub detail_limited: bool,
     pub partial: bool,
 }
@@ -525,6 +528,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
     {
         result.coverage.partial = true;
         result.operation_coverage.partial = true;
+        result.operation_coverage.budget_exceeded = true;
         result.issues.push(Issue::ResourceLimit);
         return Ok(result);
     }
@@ -729,6 +733,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
             .issues
             .push(intervals::Issue::ResourceLimit);
         result.operation_coverage.partial = true;
+        result.operation_coverage.budget_exceeded = true;
         return Ok(result);
     }
     let mut mapped = Vec::new();
@@ -839,6 +844,9 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         input.budget.lifecycle_records,
         cancelled,
     )?;
+    result.operation_coverage.computed = true;
+    result.operation_coverage.budget_exceeded =
+        operation_records > input.budget.lifecycle_records || operation_metrics.partial;
     result.operation_coverage.partial = result.coverage.partial
         || result.operation_coverage.candidates != result.operation_coverage.paired
         || result.operation_coverage.missing_identity > 0
@@ -849,6 +857,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         result.operation_coverage.residual_ms = operation_metrics.unclassified_ms;
     }
     if result.operation_coverage.residual_ms.is_some() {
+        result.operation_coverage.residual_range_count = operation_metrics.timeline.gap_count;
         result.operation_coverage.residual_ranges = operation_metrics.timeline.gaps;
     }
     result.operation_coverage.detail_limited = operation_metrics.timeline.limited;

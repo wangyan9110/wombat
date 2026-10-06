@@ -187,10 +187,11 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
 
 function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
   const profile = request.privacyProfile ?? 'local';
-  if (result.outputVersion !== 1 || result.action !== request.action || result.profile !== profile
+  if (result.outputVersion !== 2 || result.action !== request.action || result.profile !== profile
     || result.methodVersion !== 'safe_event_turn_v4') return false;
   if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 3
     || 'totals' in result && result.totals.methodVersion !== 3) return false;
+  if (result.action === 'summary' && !matchesOperationCoverage(result)) return false;
   if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
   if (request.action === 'summary' && profile === 'share-v1') {
     // Sharing deliberately omits local locating identities; core selection owns
@@ -208,4 +209,29 @@ function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
       && (request.objectRef == null || result.rows.every(row => row.objectRef === request.objectRef)));
   return 'readView' in result && result.privacy.profile === profile
     && (request.snapshotId == null || result.readView.snapshotId === request.snapshotId);
+}
+
+/** Validate core-owned relationships without reconstructing operation intervals. */
+function matchesOperationCoverage(result: Extract<TimingResult, { action: 'summary' }>): boolean {
+  const coverage = result.time.operationCoverage;
+  const window = result.time.observedWindowMs.value;
+  const candidates = coverage.candidateOperations.value;
+  const paired = coverage.pairedOperations.value;
+  const conflicts = coverage.conflictingOperations.value;
+  if (candidates != null && (paired != null && paired > candidates
+    || conflicts != null && conflicts > candidates
+    || paired != null && conflicts != null && paired > candidates - conflicts)) return false;
+  if (window != null && coverage.coveredMs.value != null && coverage.residualMs.value != null
+    && coverage.coveredMs.value !== window - coverage.residualMs.value) return false;
+  const ranges = coverage.residualRanges;
+  if (coverage.detail.support !== 'supported') return ranges.length === 0;
+  if (window == null || coverage.residualMs.value == null
+    || coverage.residualRangeCount.value !== ranges.length) return false;
+  let previousEnd = 0, total = 0;
+  for (const range of ranges) {
+    if (range.startMs >= range.endMs || range.startMs < previousEnd || range.endMs > window) return false;
+    total += range.endMs - range.startMs;
+    previousEnd = range.endMs;
+  }
+  return total === coverage.residualMs.value;
 }

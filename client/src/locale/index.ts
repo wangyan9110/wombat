@@ -205,3 +205,5 @@ export function reviewStatusLabel(status: string): string {
 export { timingCategories, timingCategoryText, timingIntersectionText } from './timing-categories.js';
 
 export { tokenSummaryPresentation, tokenSummaryText, analyzedTokenSubtotal, type SummaryTokenField } from './token-summary.js';
+
+export {operationCoverageReasonText} from './operation-coverage.js';

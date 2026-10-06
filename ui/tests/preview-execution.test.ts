@@ -28,7 +28,7 @@ test('running and censored timing have separate explanations; partial without re
  try{locale.setLocale('en');const running=render(timingFixture('running'));assert.match(running,/The turn is still running; only observed records are shown/);assert.match(running,/Results are limited to the current observation window/);const partial=timingFixture('missing');partial.quality.reasonCodes=[];assert.match(render(partial),/Partial results/);}finally{locale.setLocale(previous);}
 });
 test('timeline and expandable distribution preserve core ranges and concurrent union versus sum',()=>{
- const summary=timingFixture(),html=render(summary);assert.equal(summary.time.command.unionMs.value,5000);assert.equal(summary.time.command.sumMs.value,6000);assert.match(html,/1000–4000 ms/);assert.match(html,/5000 ms/);assert.match(html,/6000 ms/);assert.doesNotMatch(html,/11000 ms/);assert.match(html,/execution-gap/);assert.equal(summary.time.timeline.tracks.length,3);
+ const summary=timingFixture(),html=render(summary);assert.equal(summary.time.command.unionMs.value,3020);assert.equal(summary.time.command.sumMs.value,9000);assert.match(html,/1000–4000 ms/);assert.match(html,/3020 ms/);assert.match(html,/9000 ms/);assert.doesNotMatch(html,/11000 ms/);assert.match(html,/execution-gap/);assert.equal(summary.time.timeline.tracks.length,3);
 });
 test('synthetic timing client passes the real generated validator for local share and evidence',async()=>{
  const client=createUsageClient({query:async request=>usageFixture(request,'complete'),timing:previewTiming('complete')});
@@ -62,7 +62,7 @@ test('actual ThreadsView renders its turn hook on the server with a stable loadi
  assert.match(html,/task-turns/);assert.match(html,/role="status"/);assert.doesNotMatch(html,/Missing getServerSnapshot/);
 });
 test('dense core tracks fold by category without dropping intervals or creating object use counts',()=>{
- const summary=timingFixture('dense'),html=render(summary);assert.equal(summary.time.timeline.tracks.length,200);assert.equal((html.match(/aria-label="[^"<>]* ms"/g)??[]).length,201);assert.match(html,/execution-track-group/);assert.doesNotMatch(html,/class="execution-track-group" open/);assert.doesNotMatch(html,/200 uses|200 次/);
+ const summary=timingFixture('dense'),html=render(summary);assert.equal(summary.time.timeline.tracks.length,200);assert.equal((html.match(/aria-label="[^"<>]* ms"/g)??[]).length,200);assert.match(html,/execution-track-group/);assert.doesNotMatch(html,/class="execution-track-group" open/);assert.doesNotMatch(html,/200 uses|200 次/);
 });
 test('stopping a detail reader prevents late evidence from completing after a target change',async()=>{
  let release!:()=>void,signal:AbortSignal|undefined;const timing=previewTiming('complete');
@@ -150,4 +150,11 @@ test('event evidence displays native duration and first Token delay without inve
    assert.ok(!absent.includes(t('execution.nativeDuration')));assert.ok(!absent.includes(t('execution.nativeTtft')));
   }
  }}finally{locale.setLocale(saved);}
+});
+
+test('operation residual uses shared components with independent union and explicit bounded coverage explanations',()=>{
+ const previous=locale.getSnapshot().locale;
+ try {for(const language of ['en','zh'] as const){locale.setLocale(language);const mixed=timingFixture('mcp-mixed');assert.equal(mixed.time.unclassifiedMs.value,2000);assert.equal(mixed.time.operationCoverage.residualMs.value,3000);const html=render(mixed);assert.match(html,/7000–10000 ms/);assert.match(html,/3000 ms/);assert.doesNotMatch(html,/execution\.operations\.|undefined/);
+ const noPairs=timingFixture();noPairs.time.operationCoverage.coveredMs.value=0;noPairs.time.operationCoverage.reasonCodes=['no_paired_operations','identity_gaps','source_partial','detail_limit'];noPairs.time.operationCoverage.detail={support:'unavailable',reason:'resource_limit'};noPairs.time.operationCoverage.residualRanges=[];noPairs.time.operationCoverage.residualRangeCount.value=250;const limited=render(noPairs);assert.match(limited,/0 ms/);assert.match(limited,/250/);assert.match(limited,language==='en'?/no operation duration was subtracted/:/没有从轮次窗口减去操作时长/);assert.match(limited,language==='en'?/full durations and interval counts remain/:/完整时长和区间数量仍保留/);}}
+ finally{locale.setLocale(previous);}
 });

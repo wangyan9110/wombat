@@ -597,6 +597,19 @@ fn query_impl(
         }
     }
     let mut time = m::time(&a, &turn_refs, fallback, native);
+    if quality.reason_codes.contains(&Basis::SourcePartial) {
+        time.operation_coverage.partial = true;
+        if !time
+            .operation_coverage
+            .reason_codes
+            .iter()
+            .any(|reason| matches!(reason, OperationCoverageReason::SourcePartial))
+        {
+            time.operation_coverage
+                .reason_codes
+                .push(OperationCoverageReason::SourcePartial);
+        }
+    }
     if context.detail.reason == Basis::ResourceLimit
         || time.timeline.detail.reason == Basis::ResourceLimit
     {

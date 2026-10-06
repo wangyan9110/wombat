@@ -92,6 +92,7 @@ pub(super) fn capabilities() -> Capabilities {
         native_ttft: capability(Support::Partial, Basis::NativeRecord),
         first_content_record_delay: capability(Support::Partial, Basis::SafeMessageRecord),
         lifecycle_intervals: capability(Support::Partial, Basis::LifecycleUnion),
+        operation_intervals: capability(Support::Partial, Basis::OperationUnion),
         context_pressure: capability(Support::Partial, Basis::HistoricalWindow),
         strict_response_gap: capability(Support::Unavailable, Basis::MissingBatchCycle),
         exploratory_gap: capability(Support::Unavailable, Basis::UnsupportedMethod),
@@ -221,6 +222,7 @@ pub(super) fn time(
     let complete =
         fallback.is_none() && a.intervals.observed_window_ms.is_some() && !a.intervals.partial;
     Time {
+        operation_coverage: operation_coverage(a, refs, fallback, missing),
         timeline: timeline(a, refs, fallback, missing),
         state: match a.state {
             State::Running => TurnState::Running,
@@ -677,5 +679,120 @@ pub(super) fn work(
         reasoning_message_records: marker(a.coverage.reasoning_message_records),
         compaction_records: marker(a.coverage.lifecycle_candidates[1]),
         repository_baseline: capability(Support::Unavailable, Basis::MissingRepositoryBaseline),
+    }
+}
+
+fn operation_coverage(
+    a: &Analysis,
+    refs: &[String],
+    fallback: Option<Basis>,
+    missing: Basis,
+) -> OperationCoverage {
+    use OperationCoverageReason as Reason;
+    let c = &a.operation_coverage;
+    let available = c.computed && fallback.is_none();
+    let limit = fallback == Some(Basis::ResourceLimit) || c.budget_exceeded;
+    let missing = if limit { Basis::ResourceLimit } else { missing };
+    let scalar = |value: usize, basis| {
+        if available {
+            count(Some(value as u128), basis, refs)
+        } else {
+            unavailable(missing)
+        }
+    };
+    let duration = |value: Option<u64>, basis| {
+        count(
+            available.then_some(value).flatten().map(u128::from),
+            if available && value.is_some() {
+                basis
+            } else {
+                missing
+            },
+            refs,
+        )
+    };
+    let covered_ms = duration(c.covered_ms, Basis::OperationUnion);
+    let residual_ms = duration(c.residual_ms, Basis::OperationResidual);
+    let numeric = available
+        && (covered_ms.basis == Basis::NumericRange
+            || residual_ms.basis == Basis::NumericRange
+            || a.derived_wall_clock_ms
+                .is_some_and(|value| value > MAX_SAFE_INTEGER));
+    let detail_reason = if limit {
+        Basis::ResourceLimit
+    } else if numeric {
+        Basis::NumericRange
+    } else if !available || c.residual_ms.is_none() {
+        missing
+    } else if c.detail_limited {
+        Basis::ResourceLimit
+    } else {
+        Basis::OperationResidual
+    };
+    let detail_available =
+        available && c.residual_ms.is_some() && !limit && !numeric && !c.detail_limited;
+    let mut reason_codes = vec![];
+    if limit {
+        reason_codes.push(Reason::ResourceLimit);
+    }
+    if available {
+        if c.paired == 0 {
+            reason_codes.push(Reason::NoPairedOperations);
+        }
+        if c.residual_ms.is_none() && !limit {
+            reason_codes.push(Reason::MissingWindow);
+        }
+        if c.missing_identity > 0 {
+            reason_codes.push(Reason::IdentityGaps);
+        }
+        if c.conflicting > 0 {
+            reason_codes.push(Reason::ConflictingOperations);
+        }
+        if c.candidates.saturating_sub(c.paired) > c.conflicting {
+            reason_codes.push(Reason::UnlocatedOperations);
+        }
+        if a.coverage.partial {
+            reason_codes.push(Reason::SourcePartial);
+        }
+        if numeric {
+            reason_codes.push(Reason::NumericRange);
+        }
+        if c.detail_limited {
+            reason_codes.push(Reason::DetailLimit);
+        }
+    }
+    OperationCoverage {
+        method_version: c.method_version,
+        endpoint_method_version: c.endpoint_method_version,
+        candidate_operations: scalar(c.candidates, Basis::CanonicalOperationIdentity),
+        paired_operations: scalar(c.paired, Basis::ExplicitBoundary),
+        identity_gap_records: scalar(c.missing_identity, Basis::SafeEventCount),
+        conflicting_operations: scalar(c.conflicting, Basis::CanonicalOperationIdentity),
+        covered_ms,
+        residual_ms,
+        residual_range_count: if available && c.residual_ms.is_some() {
+            scalar(c.residual_range_count, Basis::OperationResidual)
+        } else {
+            unavailable(missing)
+        },
+        partial: !available || c.partial || c.residual_ms.is_none() || numeric,
+        reason_codes,
+        detail: capability(
+            if detail_available {
+                Support::Supported
+            } else {
+                Support::Unavailable
+            },
+            detail_reason,
+        ),
+        detail_limit: super::intervals::DETAIL_LIMIT,
+        residual_ranges: if detail_available {
+            c.residual_ranges
+                .iter()
+                .map(|&(start_ms, end_ms)| OperationResidualRange { start_ms, end_ms })
+                .collect()
+        } else {
+            vec![]
+        },
     }
 }

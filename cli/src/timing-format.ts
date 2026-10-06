@@ -1,5 +1,5 @@
 import type { TimingResult, TimingLocalResult } from '@wombat/client';
-import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, timingCategories, timingCategoryText, timingIntersectionText, type MessageKey } from '@wombat/client/locale';
+import { t, timingBasisText, timingMissingValueText, timingSourceStatusText, timingCategories, timingCategoryText, timingIntersectionText, operationCoverageReasonText, type MessageKey } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 
 type Metric = TimingLocalResult['time']['nativeWallClockMs'];
@@ -42,7 +42,7 @@ export function renderTimingResult(result: TimingResult): string {
   if (result.action === 'capabilities') {
     const labels = {
       objectUses: 'cli.timing.cap.objectUses', wallClock: 'cli.timing.cap.wallClock', nativeTtft: 'cli.timing.nativeTtft', firstContentRecordDelay: 'cli.timing.firstContentDelay',
-      lifecycleIntervals: 'cli.timing.cap.lifecycleIntervals', contextPressure: 'cli.timing.cap.contextPressure',
+      lifecycleIntervals: 'cli.timing.cap.lifecycleIntervals', operationIntervals: 'cli.timing.cap.operationIntervals', contextPressure: 'cli.timing.cap.contextPressure',
       strictResponseGap: 'cli.timing.cap.strictResponseGap', exploratoryGap: 'cli.timing.cap.exploratoryGap',
       commandLabels: 'cli.timing.cap.commandLabels', fileChanges: 'cli.timing.cap.fileChanges', messageRecords: 'cli.timing.cap.messageRecords',
     } as const;
@@ -90,6 +90,17 @@ export function renderTimingResult(result: TimingResult): string {
   });
   lines.push(`${t('execution.covered')}: ${measured(result.time.coveredMs, ' ms')}`,
     `${t('execution.unclassified')}: ${measured(result.time.unclassifiedMs, ' ms')}`);
+  const operations=result.time.operationCoverage;
+  lines.push(t('execution.operations.title'),
+    `${t('execution.operations.covered')}: ${measured(operations.coveredMs,' ms')}`,
+    `${t('execution.operations.residual')}: ${measured(operations.residualMs,' ms')}`,
+    `${t('execution.operations.candidates')}: ${measured(operations.candidateOperations)}`,
+    `${t('execution.operations.paired')}: ${measured(operations.pairedOperations)}`,
+    `${t('execution.operations.identityGaps')}: ${measured(operations.identityGapRecords)}`,
+    `${t('execution.operations.conflicts')}: ${measured(operations.conflictingOperations)}`,
+    `${t('execution.operations.ranges')}: ${measured(operations.residualRangeCount)}`,
+    t('execution.operations.note'),...operations.reasonCodes.map(operationCoverageReasonText));
+  for(const range of operations.residualRanges)lines.push(`  ${range.startMs}–${range.endMs} ms`);
   const allWorkMetrics: Array<[string, Metric]> = [
     ['addedLines', result.work.addedLines],
     ['removedLines', result.work.removedLines],

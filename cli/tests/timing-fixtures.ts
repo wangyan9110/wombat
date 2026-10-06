@@ -3,10 +3,10 @@ const metric = { value: null, status: 'unavailable', basis: 'not_recorded', evid
 const unavailable = { support: 'unavailable', reason: 'not_recorded' } as const;
 const capabilities = {
   objectUses: unavailable, wallClock: unavailable, nativeTtft: unavailable, firstContentRecordDelay: unavailable,
-  lifecycleIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
+  lifecycleIntervals: unavailable, operationIntervals: unavailable, contextPressure: unavailable, strictResponseGap: unavailable,
   exploratoryGap: unavailable, commandLabels: unavailable, fileChanges: unavailable, messageRecords: unavailable,
 };
-export const capabilityResult = { outputVersion: 1, action: 'capabilities', methodVersion: 'safe_event_turn_v4', profile: 'local', capabilities } as const;
+export const capabilityResult = { outputVersion: 2, action: 'capabilities', methodVersion: 'safe_event_turn_v4', profile: 'local', capabilities } as const;
 const scope = { sourceInstanceId: 'source', threadId: 'thread', turnId: 'turn', agentKind: 'codex', wholeTurn: true };
 const count = () => ({ ...metric, evidenceRefs: [] });
 const category = () => ({ candidates: count(), closed: count(), unionMs: count(), sumMs: count() });
@@ -17,7 +17,7 @@ export const useTotals = () => ({
   coverage: { dispatchGaps: count(), identityGaps: count(), targetGaps: count(), timeGaps: count(), associatedTurnGaps: count() },
 });
 export const local: TimingLocalResult = {
-  outputVersion: 1, action: 'summary', methodVersion: 'safe_event_turn_v4', profile: 'local',
+  outputVersion: 2, action: 'summary', methodVersion: 'safe_event_turn_v4', profile: 'local',
   privacy: { profile: 'local', omittedFields: [], aliases: 'none' },
   readView: { snapshotId: 'live:scope:fixed', snapshotSchema: 4, createdAt: '2026-10-05T00:00:00Z', adapterVersions: [], projectionVersion: 1 },
   scope, capabilities, anchors: { startMs: count(), endMs: count() },
@@ -27,6 +27,7 @@ export const local: TimingLocalResult = {
     boundaryDiscrepancyMs: count(), observedWindowMs: count(), command: category(), compaction: category(), reasoning: category(), mcp: category(),
     intersectionMasksMs: [count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count(), count()], coveredMs: count(), unclassifiedMs: count(), coverageRatio: count(), waitingProxyMs: count(),
     strictResponseGapMs: count(), exploratoryGapMs: count(),
+    operationCoverage: {methodVersion:1,endpointMethodVersion:1,candidateOperations:count(),pairedOperations:count(),identityGapRecords:count(),conflictingOperations:count(),coveredMs:count(),residualMs:count(),residualRangeCount:count(),partial:true,reasonCodes:['missing_window'],detail:unavailable,detailLimit:200,residualRanges:[]},
   },
   context: {
     activeContextOccupancy: count(), compactionRecords: count(), compactionTimeMs: count(), method: 'synthetic', quantileMethod: 'type7',
@@ -50,7 +51,7 @@ export const local: TimingLocalResult = {
   freshness: { status: 'fixed' }, evidence: { intervalPages: { detail: unavailable, candidateIntervalCount: count(), locatedIntervalCount: count(), missingEventRefCount: count(), pageCount: count(), limitBytes: 65536, entries: [] }, collections: [], available: false, limit: 50, snapshotId: 'live:scope:fixed', refs: [], method: 'synthetic' },
 };
 export const share: TimingShareResult = {
-  outputVersion: 1, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
+  outputVersion: 2, action: 'summary', methodVersion: local.methodVersion, profile: 'share-v1',
   privacy: { profile: 'share-v1', omittedFields: ['local_ids'], aliases: 'package' },
   scope: { taskAlias: 'task-1', turnAlias: 'turn-1', wholeTurn: true }, capabilities, relativeAnchors: local.anchors,
   uses: useTotals(), time: local.time, context: local.context, work: local.work, findings: [], coverage: local.coverage, quality: local.quality,

@@ -10,6 +10,8 @@ const methodBasis = {
   lifecycle_union: 'timing.basis.lifecycleUnion',
   lifecycle_sum: 'timing.basis.lifecycleSum',
   interval_mask: 'timing.basis.intervalMask',
+  operation_union: 'timing.basis.operationUnion',
+  operation_residual: 'timing.basis.operationResidual',
   request_input: 'timing.basis.requestInput',
   historical_window: 'timing.basis.historicalWindow',
   type7: 'timing.basis.type7',

@@ -35,8 +35,9 @@ for (const [op, name] of [["schema_timing_error_output","timing-error-output"],[
   const ajv = new Ajv({ code: { source: true, esm: true }, strict: true });
   const validate = ajv.compile(schema);
   const rootType=name==='timing-error-output'?'TimingErrorOutput':name==='timing-local-response'?'LocalResponse':name==='timing-share-response'?'ShareResponse':name==='analysis-declaration'?'AnalysisDeclaration':name.endsWith("request")?"Request":"Response";
+  const timingResult = ["timing-response", "timing-local-response", "timing-share-response"].includes(name);
   const outputs = {
-    [`docs/schemas/${name}-${(name=== "analysis-declaration" || name.startsWith("pricing-") || name.startsWith("live-") || name.startsWith("config-") || name.startsWith("optimize-") || name.startsWith("preferences-") || name.startsWith("directories-") || name.startsWith("account-") || name.startsWith("handoff-") || name.startsWith("timing-")) ? "v1" : name === "usage-app" ? "v5" : "v3"}.schema.json`]:
+    [`docs/schemas/${name}-${timingResult ? "v2" : (name=== "analysis-declaration" || name.startsWith("pricing-") || name.startsWith("live-") || name.startsWith("config-") || name.startsWith("optimize-") || name.startsWith("preferences-") || name.startsWith("directories-") || name.startsWith("account-") || name.startsWith("handoff-") || name.startsWith("timing-")) ? "v1" : name === "usage-app" ? "v5" : "v3"}.schema.json`]:
       JSON.stringify(schema, null, 2) + "\n",
     [`client/src/generated/${name}.ts`]: await compile(schema, rootType, {
       bannerComment: "/* Generated from Rust. Run pnpm contracts:generate. */",
