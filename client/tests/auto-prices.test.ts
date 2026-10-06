@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CoreError, type UsageClient, type LiveResult, type PricingResult } from '@wombat/client';
@@ -6,8 +7,8 @@ import { withAutomaticPrices } from '../dist/node/auto-prices.js';
 
 function result(): LiveResult {
   return { outputVersion: 1, freshness: { status: 'current', revision: 'one' }, result: {
-    outputVersion: 3, action: 'usage', snapshotRef: { snapshotId: 'one', createdAt: '2026-09-30T00:00:00Z' }, scope: {}, availableRange: {},
-    summary: { tokens: { total: 110 }, measurementCount: 1, price: { currency: 'USD', policy: 'synthetic', priceRevision: 'old', cost: null, knownCost: '0', status: 'unknown', components: [], basis: [], issues: ['catalogPriceMissing'] } },
+    outputVersion: 5, action: 'usage', snapshotRef: { snapshotId: 'one', createdAt: '2026-09-30T00:00:00Z' }, scope: {}, availableRange: {},
+    summary: withTokenAnalysis({ tokens: { total: 110 }, measurementCount: 1, price: { currency: 'USD', policy: 'synthetic', priceRevision: 'old', cost: null, knownCost: '0', status: 'unknown', components: [], basis: [], issues: ['catalogPriceMissing'] } }),
     items: [], page: { offset: 0, limit: 50, total: 0 }, quality: { status: 'complete', issues: [], sources: [] },
   } };
 }

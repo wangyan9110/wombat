@@ -2,7 +2,27 @@
 
 export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
 export type Kind = "rule" | "skill" | "mcp" | "hook";
+export type TokenAnalysisScope = "selected_canonical_measurements";
 export type Observation = "used" | "loaded_only" | "unknown";
+export type UseBasisStatus = ("observed" | "unavailable") | "partial";
+export type UseUnit = "object_use" | "rule_read" | "rule_load_or_read";
+export type UseWindow =
+  | {
+      kind: "all_history";
+    }
+  | {
+      since: string;
+      until: string;
+      timezone: string;
+      kind: "date_window";
+    }
+  | {
+      after: string;
+      through: string;
+      kind: "follow_up";
+    };
+export type UseTimeBasis = "source_operation_time";
+export type UseSourceCompleteness = "complete" | "partial" | "unknown";
 export type HookRegistryStatus = "unavailable" | "partial" | "observed";
 export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
 export type HookHandler = "command" | "mcpTool" | "prompt" | "agent";
@@ -62,6 +82,7 @@ export interface UsageSummary {
   cacheHitRate?: number | null;
   unpricedTokens?: number | null;
   tokens: TokenUsage;
+  tokenAnalysis: TokenAnalysis;
   price: PriceResult;
   measurementCount: number;
 }
@@ -79,6 +100,56 @@ export interface TokenUsage {
    * Source input including caches; retained for request-level price conditions.
    */
   rawInput?: number | null;
+}
+/**
+ * Token subtotals are scoped to the canonical measurements selected by this query.
+ * Existing `tokens` fields remain complete totals; partial observations live here.
+ */
+export interface TokenAnalysis {
+  methodVersion: number;
+  scope: TokenAnalysisScope;
+  fields: TokenFields;
+  /**
+   * Independent analysis; immutable historical review items may contain only
+   * the native observations captured when the user made the decision.
+   */
+  totalAnalysis?: AnalyzedTokenTotal | null;
+}
+export interface TokenFields {
+  input: ObservedTokenSubtotal;
+  cacheRead: ObservedTokenSubtotal;
+  cacheCreate: ObservedTokenSubtotal;
+  output: ObservedTokenSubtotal;
+  reasoning: ObservedTokenSubtotal;
+  total: ObservedTokenSubtotal;
+  rawInput: ObservedTokenSubtotal;
+}
+/**
+ * An observed subtotal never implies that unavailable records contributed zero.
+ */
+export interface ObservedTokenSubtotal {
+  observedSubtotal?: number | null;
+  coveredRecords: number;
+  missingRecords: number;
+  conflictingRecords: number;
+  invalidRecords: number;
+  indeterminateRecords: number;
+}
+export interface AnalyzedTokenTotal {
+  methodVersion: number;
+  subtotal?: number | null;
+  coveredRecords: number;
+  recordedRecords: number;
+  /**
+   * Unavailable native totals use recorded input (including caches) plus output
+   * only for an identified response grain. Reasoning is already in output.
+   */
+  calculatedRecords: number;
+  unavailableRecords: number;
+  /**
+   * Alternative records excluded by individual or combined safe-integer limits.
+   */
+  overflowRecords: number;
 }
 export interface PriceResult {
   currency: string;
@@ -154,6 +225,7 @@ export interface Item {
   bodyTokenEstimate?: ContentEstimate | null;
   bodyEstimateStatus: string;
   usageCount?: number | null;
+  useBasis?: UseBasis | null;
   lastRecordAt?: string | null;
   observation: Observation;
   counts: Counts;
@@ -204,6 +276,37 @@ export interface SkillDiagnostic {
   column?: number | null;
   current?: string | null;
   expected?: string | null;
+}
+export interface UseBasis {
+  methodVersion: number;
+  status: UseBasisStatus;
+  unit: UseUnit;
+  /**
+   * Observer cutoff, distinct from individual event times and source dispatch.
+   */
+  capturedAt: string;
+  snapshotId?: string | null;
+  scope: UseScope;
+  timeBasis: UseTimeBasis;
+  coverage: UseCoverage;
+  /**
+   * Completeness of selected source reports, not proof of all native use mechanisms.
+   */
+  sourceCompleteness: UseSourceCompleteness;
+}
+export interface UseScope {
+  sourceInstanceIds: string[];
+  project?: string | null;
+  threadId?: string | null;
+  agentKind?: string | null;
+  window: UseWindow;
+}
+export interface UseCoverage {
+  dispatchGaps?: number | null;
+  identityGaps?: number | null;
+  targetGaps?: number | null;
+  timeGaps?: number | null;
+  turnGaps?: number | null;
 }
 export interface Evidence {
   id: string;

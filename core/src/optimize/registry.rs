@@ -1,192 +1,192 @@
-//! Independent check outcomes: absent findings never imply unsupported rules passed.
-use super::detection::known_body;
-use crate::{config::View, config_dto::Kind, optimize_dto::*};
+//! Stable rule directory; evaluation belongs to the fixed-input evaluator.
+use crate::{
+    config_dto::{Item, Kind},
+    optimize_dto::*,
+};
 pub(super) fn catalog() -> Vec<RuleDefinition> {
-    let text = vec![Kind::Rule, Kind::Skill];
-    [
-        (
-            "missingInstruction",
-            vec![Kind::Rule],
-            "authorizedExistenceCheck",
-        ),
-        ("fileSize", vec![Kind::Rule], "productReminder"),
-        (
-            "instructionSelection",
-            vec![Kind::Rule],
-            "effectiveHostConfiguration",
-        ),
-        ("skillFormat", vec![Kind::Skill], "agentSkillsSpecification"),
-        (
-            "descriptionStandard",
-            vec![Kind::Skill],
-            "agentSkillsSpecification",
-        ),
-        ("descriptionSize", vec![Kind::Skill], "productReminder"),
-        ("bodyTokens", vec![Kind::Skill], "referenceEncodingOnly"),
-        (
-            "localReference",
-            text.clone(),
-            "authorizedMarkdownResources",
-        ),
-        ("exactInstructionBlocks", text.clone(), "staticExactBlocks"),
-        (
-            "declaredCopyDrift",
-            text.clone(),
-            "explicitSourceCopyRelation",
-        ),
-        (
-            "skillDependency",
-            vec![Kind::Skill],
-            "effectiveHostDependencyResolution",
-        ),
-        (
-            "hookTarget",
-            vec![Kind::Hook],
-            "effectiveTrustedEnabledHookRegistry",
-        ),
-        (
-            "runtimeDuplicateInjection",
-            text,
-            "requestContextGenerationPositions",
-        ),
-        (
-            "skillInactivity",
-            vec![Kind::Skill],
-            "continuousEnabledCoverage30Days",
-        ),
-        (
-            "mcpInactivity",
-            vec![Kind::Mcp],
-            "continuousEnabledCoverage30Days",
-        ),
-        ("mcpFault", vec![Kind::Mcp], "verifiedRuntimeConnection"),
-    ]
-    .into_iter()
-    .map(|(rule, kinds, basis)| RuleDefinition {
-        rule: rule.into(),
-        version: RuleParameters::default().version,
-        kinds,
-        basis: basis.into(),
-    })
-    .collect()
-}
-#[cfg(test)]
-pub(crate) fn checks(
-    view: &View,
-    rules: &RuleParameters,
-    item: &crate::config_dto::Item,
-    findings: &[Finding],
-) -> Vec<RuleAssessment> {
-    checks_for(view, rules, item, findings, None)
-}
-pub(crate) fn checks_for(
-    view: &View,
-    rules: &RuleParameters,
-    item: &crate::config_dto::Item,
-    findings: &[Finding],
-    project: Option<&str>,
-) -> Vec<RuleAssessment> {
-    catalog()
+    Rule::ALL
         .into_iter()
-        .filter(|d| d.kinds.contains(&item.kind))
-        .map(|definition| {
-            let matched: Vec<_> = findings
-                .iter()
-                .filter(|f| f.rule == definition.rule)
-                .cloned()
-                .collect();
-            let (outcome, reason) = if !item.current || item.stale {
-                (RuleOutcome::Insufficient, Some("currentVersionUnavailable"))
-            } else if definition.rule != "hookTarget"
-                && item.measurement_status != "complete"
-                && !(definition.rule == "missingInstruction"
-                    && item.measurement_status == "missing")
-            {
-                (RuleOutcome::Insufficient, Some("checkEvidenceIncomplete"))
-            } else if !matched.is_empty() {
-                (RuleOutcome::Hit, None)
-            } else {
-                let known = match definition.rule.as_str() {
-                    "hookTarget" => {
-                        if !cfg!(unix)
-                            || matches!(
-                                view.hook_registry.status,
-                                crate::config_dto::HookRegistryStatus::Unavailable
-                            )
-                        {
-                            None
-                        } else {
-                            let projects: Vec<_> = view
-                                .projects
-                                .iter()
-                                .filter(|p| {
-                                    item.applies(None, Some(p))
-                                        && project.is_none_or(|scope| scope == *p)
-                                })
-                                .collect();
-                            Some(
-                                !projects.is_empty()
-                                    && projects.iter().all(|p| {
-                                        view.analysis
-                                            .hook_checks
-                                            .get(&(item.id.clone(), (*p).clone()))
-                                            == Some(&true)
-                                    }),
-                            )
-                        }
-                    }
-                    "missingInstruction" => Some(matches!(
-                        item.measurement_status.as_str(),
-                        "complete" | "missing"
-                    )),
-                    "fileSize" => {
-                        Some(item.measurement_status == "complete" && item.bytes.is_some())
-                    }
-                    "skillFormat" => Some(
-                        item.skill_metadata
-                            .as_ref()
-                            .is_some_and(|m| matches!(m.status.as_str(), "parsed" | "invalid")),
-                    ),
-                    "descriptionStandard" | "descriptionSize" => Some(
-                        item.skill_metadata
-                            .as_ref()
-                            .is_some_and(|m| m.description_characters.is_some()),
-                    ),
-                    "bodyTokens" => Some(known_body(item).is_some()),
-                    "exactInstructionBlocks" => Some(view.analysis.blocks_complete(&item.id)),
-                    "localReference" => Some(
-                        view.analysis
-                            .reference_checks
-                            .get(&item.id)
-                            .is_some_and(|c| c.complete),
-                    ),
-                    "declaredCopyDrift" => view.analysis.copy_complete(&item.id),
-                    _ => None,
-                };
-                match known {
-                    Some(true) => (RuleOutcome::Miss, None),
-                    Some(false) => (RuleOutcome::Insufficient, Some("checkEvidenceIncomplete")),
-                    None => (
-                        RuleOutcome::Unsupported,
-                        Some(match definition.rule.as_str() {
-                            "declaredCopyDrift" => "copyRelationNotDeclared",
-                            "skillInactivity" | "mcpInactivity" => "continuousCoverageUnavailable",
-                            "runtimeDuplicateInjection" => "runtimeInjectionUnavailable",
-                            _ => "verifiedHostAdapterUnavailable",
-                        }),
-                    ),
-                }
-            };
-            RuleAssessment {
-                rule: definition.rule,
-                rule_version: rules.version.clone(),
-                item_id: item.id.clone(),
-                content_version: item.content_hash.clone(),
-                checked_at: view.checked.clone(),
-                outcome,
-                reason: reason.map(str::to_owned),
-                findings: matched,
-            }
+        .map(|rule| RuleDefinition {
+            rule: rule.id().into(),
+            version: RuleParameters::default().version,
+            kinds: rule.kinds().to_vec(),
+            basis: rule.basis().into(),
         })
         .collect()
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum Rule {
+    MissingInstruction,
+    FileSize,
+    InstructionSelection,
+    SkillFormat,
+    DescriptionStandard,
+    DescriptionSize,
+    BodyTokens,
+    LocalReference,
+    ExactInstructionBlocks,
+    DeclaredCopyDrift,
+    SkillDependency,
+    HookTarget,
+    RuntimeDuplicateInjection,
+    SkillInactivity,
+    McpInactivity,
+    McpFault,
+}
+impl Rule {
+    /// Independent algorithm declarations; runtime rules remain unsupported.
+    pub(super) fn dependencies(self) -> Dependencies {
+        let (evidence, method) = match self {
+            Self::MissingInstruction => (Evidence::Existence, "authorized-existence-v1"),
+            Self::FileSize => (Evidence::FileMeasurement, "file-bytes-v1"),
+            Self::SkillFormat | Self::DescriptionStandard | Self::DescriptionSize => {
+                (Evidence::SkillMetadata, "skill-frontmatter-v1")
+            }
+            Self::BodyTokens => (
+                Evidence::BodyMeasurement,
+                "tiktoken-rs-0.12.0/o200k_base/ordinary-v1",
+            ),
+            Self::LocalReference => (Evidence::References, "authorized-local-reference-v1"),
+            Self::ExactInstructionBlocks => (Evidence::Blocks, "exact-instruction-block-v1"),
+            Self::DeclaredCopyDrift => (Evidence::Relations, "raw-utf8/identity-v1"),
+            Self::HookTarget => (Evidence::HostTargets, "trusted-enabled-hook-target-v1"),
+            _ => (Evidence::Unsupported, "unavailable-v1"),
+        };
+        Dependencies {
+            semantics_version: if matches!(
+                evidence,
+                Evidence::FileMeasurement | Evidence::Unsupported
+            ) {
+                2
+            } else {
+                1
+            },
+            evidence,
+            method,
+            max_key_bytes: super::cache::MAX_ENTRY_BYTES,
+            max_dependency_rows: 1024,
+            max_candidate_rows: 4096,
+        }
+    }
+    pub(super) const ALL: [Self; 16] = [
+        Self::MissingInstruction,
+        Self::FileSize,
+        Self::InstructionSelection,
+        Self::SkillFormat,
+        Self::DescriptionStandard,
+        Self::DescriptionSize,
+        Self::BodyTokens,
+        Self::LocalReference,
+        Self::ExactInstructionBlocks,
+        Self::DeclaredCopyDrift,
+        Self::SkillDependency,
+        Self::HookTarget,
+        Self::RuntimeDuplicateInjection,
+        Self::SkillInactivity,
+        Self::McpInactivity,
+        Self::McpFault,
+    ];
+    pub(super) fn id(self) -> &'static str {
+        match self {
+            Self::MissingInstruction => "missingInstruction",
+            Self::FileSize => "fileSize",
+            Self::InstructionSelection => "instructionSelection",
+            Self::SkillFormat => "skillFormat",
+            Self::DescriptionStandard => "descriptionStandard",
+            Self::DescriptionSize => "descriptionSize",
+            Self::BodyTokens => "bodyTokens",
+            Self::LocalReference => "localReference",
+            Self::ExactInstructionBlocks => "exactInstructionBlocks",
+            Self::DeclaredCopyDrift => "declaredCopyDrift",
+            Self::SkillDependency => "skillDependency",
+            Self::HookTarget => "hookTarget",
+            Self::RuntimeDuplicateInjection => "runtimeDuplicateInjection",
+            Self::SkillInactivity => "skillInactivity",
+            Self::McpInactivity => "mcpInactivity",
+            Self::McpFault => "mcpFault",
+        }
+    }
+    fn kinds(self) -> &'static [Kind] {
+        match self {
+            Self::MissingInstruction | Self::FileSize | Self::InstructionSelection => &[Kind::Rule],
+            Self::SkillFormat
+            | Self::DescriptionStandard
+            | Self::DescriptionSize
+            | Self::BodyTokens
+            | Self::SkillDependency
+            | Self::SkillInactivity => &[Kind::Skill],
+            Self::LocalReference
+            | Self::ExactInstructionBlocks
+            | Self::DeclaredCopyDrift
+            | Self::RuntimeDuplicateInjection => &[Kind::Rule, Kind::Skill],
+            Self::HookTarget => &[Kind::Hook],
+            Self::McpInactivity | Self::McpFault => &[Kind::Mcp],
+        }
+    }
+    fn basis(self) -> &'static str {
+        match self {
+            Self::MissingInstruction => "authorizedExistenceCheck",
+            Self::FileSize | Self::DescriptionSize => "productReminder",
+            Self::InstructionSelection => "effectiveHostConfiguration",
+            Self::SkillFormat | Self::DescriptionStandard => "agentSkillsSpecification",
+            Self::BodyTokens => "referenceEncodingOnly",
+            Self::LocalReference => "authorizedMarkdownResources",
+            Self::ExactInstructionBlocks => "staticExactBlocks",
+            Self::DeclaredCopyDrift => "explicitSourceCopyRelation",
+            Self::SkillDependency => "effectiveHostDependencyResolution",
+            Self::HookTarget => "effectiveTrustedEnabledHookRegistry",
+            Self::RuntimeDuplicateInjection => "requestContextGenerationPositions",
+            Self::SkillInactivity | Self::McpInactivity => "continuousEnabledCoverage30Days",
+            Self::McpFault => "verifiedRuntimeConnection",
+        }
+    }
+    pub(super) fn applies(self, kind: &Kind) -> bool {
+        self.kinds().contains(kind)
+    }
+}
+
+#[derive(Clone, Copy, serde::Serialize)]
+pub(super) enum Evidence {
+    Existence,
+    FileMeasurement,
+    SkillMetadata,
+    BodyMeasurement,
+    References,
+    Blocks,
+    Relations,
+    HostTargets,
+    Unsupported,
+}
+impl Evidence {
+    /// Each check consumes its own observation. A failed content read does not
+    /// invalidate authorized filesystem size, and cannot make an unsupported
+    /// algorithm appear to be waiting for more content.
+    pub(super) fn accepts(self, item: &Item) -> bool {
+        match self {
+            Self::Existence => matches!(item.measurement_status.as_str(), "complete" | "missing"),
+            Self::FileMeasurement => {
+                item.measurement_status == "complete"
+                    || (item.measurement_status == "unavailable"
+                        && item.bytes_source.as_deref() == Some("filesystemMetadata")
+                        && item.bytes.is_some())
+            }
+            Self::SkillMetadata
+            | Self::BodyMeasurement
+            | Self::References
+            | Self::Blocks
+            | Self::Relations => item.measurement_status == "complete",
+            Self::HostTargets | Self::Unsupported => true,
+        }
+    }
+}
+#[derive(serde::Serialize)]
+pub(super) struct Dependencies {
+    pub semantics_version: u32,
+    pub evidence: Evidence,
+    pub method: &'static str,
+    /// Reuse work is bounded separately from the collector's analysis budgets.
+    pub max_key_bytes: usize,
+    pub max_dependency_rows: usize,
+    pub max_candidate_rows: usize,
 }

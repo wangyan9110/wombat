@@ -126,6 +126,9 @@
     "Finding": {
       "type": "object",
       "properties": {
+        "identity": {
+          "$ref": "#/definitions/FindingIdentity"
+        },
         "rule": {
           "type": "string"
         },
@@ -172,10 +175,39 @@
           ]
         }
       },
+      "additionalProperties": false,
       "required": [
+        "identity",
         "rule",
         "status",
         "evidenceCodes"
+      ]
+    },
+    "FindingIdentity": {
+      "description": "Problem identity is independent of revisions, thresholds and check timestamps.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "findingId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gap": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "version"
       ]
     },
     "StaticEvidence": {

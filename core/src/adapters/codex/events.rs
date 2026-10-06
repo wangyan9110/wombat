@@ -4,6 +4,7 @@ use super::*;
 pub(super) fn process(
     kind: &str,
     p: Payload<'_>,
+    raw_payload: &serde_json::value::RawValue,
     time: Option<String>,
     raw_time: Option<&str>,
     evidence: EvidenceRef,
@@ -23,10 +24,10 @@ pub(super) fn process(
         if let Some(upstream) = p.id.as_deref().or(p.session_id.as_deref()) {
             state.break_context();
             state.uncertain_counter = false;
-            let thread = facts.thread(source, upstream, time.as_deref(), p.cwd.as_deref());
+            let thread = facts.thread(source, upstream, time.as_deref(), p.cwd.as_deref(), report);
             if let Some(parent) = p.forked_from_id.as_deref() {
                 let parent = stable_id(&["codex", &source.id, "thread", parent]);
-                facts.parents.insert(thread.clone(), parent);
+                timing::ancestry(facts, &thread, parent, report, &evidence);
             }
             state.thread = Some(thread);
         }
@@ -40,20 +41,60 @@ pub(super) fn process(
     let owner = p
         .thread_id
         .as_deref()
-        .map(|upstream| facts.thread(source, upstream, time.as_deref(), None))
+        .map(|upstream| facts.thread(source, upstream, time.as_deref(), None, report))
         .or_else(|| state.thread.clone());
     if let Some(thread) = &owner
-        && let Some(t) = facts.threads.get_mut(thread)
-        && time
-            .as_ref()
-            .is_some_and(|new| t.last_activity_at.as_ref().is_none_or(|old| new > old))
+        && let Some(t) = facts.threads.get(thread)
+        && p.thread_id.is_none()
+        && time.is_some()
     {
-        t.last_activity_at = time.clone();
+        let upstream = t.upstream_id.clone();
+        facts.thread_activity(source, &upstream, time.as_deref(), report);
     }
     let explicit_turn = owner
         .as_ref()
         .zip(p.turn_id.as_deref().filter(|id| !id.is_empty()))
-        .map(|(thread, turn)| facts.turn(thread, turn, time.as_deref(), None));
+        .map(|(thread, turn)| facts.turn(thread, turn, time.as_deref(), None, report));
+    let decoded_item = match p.item {
+        Some(raw) => match serde_json::from_str::<Payload>(raw.get()) {
+            Ok(item) => Some(item),
+            Err(_) => {
+                let affected_turn = explicit_turn.clone().or_else(|| {
+                    (event != "task_started" && owner == state.thread)
+                        .then(|| state.turn.clone())
+                        .flatten()
+                });
+                timing::invalid_item(facts, owner.clone(), affected_turn, report, &evidence);
+                if owner == state.thread && (explicit_turn.is_none() || explicit_turn == state.turn)
+                {
+                    state.corrupt_boundary();
+                }
+                issue(
+                    report,
+                    "invalidOperation",
+                    "操作记录格式无效",
+                    Some(evidence),
+                );
+                return;
+            }
+        },
+        _ => None,
+    };
+    let item = decoded_item.as_ref().unwrap_or(&p);
+    timing::observe(
+        &p,
+        item,
+        event,
+        owner.as_deref(),
+        explicit_turn.as_deref().or_else(|| {
+            (event != "task_started" && owner == state.thread)
+                .then_some(state.turn.as_deref())
+                .flatten()
+        }),
+        facts,
+        report,
+        &evidence,
+    );
     if kind == "response_item"
         && let Some(loads) = instructions::loads(&p)
         && let Some(thread) = &owner
@@ -62,7 +103,7 @@ pub(super) fn process(
             .turn_id
             .as_deref()
             .filter(|id| !id.is_empty())
-            .map(|id| facts.turn(thread, id, time.as_deref(), None))
+            .map(|id| facts.turn(thread, id, time.as_deref(), None, report))
             .or(explicit_turn.clone());
         for path in loads.paths {
             let identity = stable_id(&[
@@ -94,7 +135,7 @@ pub(super) fn process(
             .turn_id
             .as_deref()
             .filter(|id| !id.is_empty())
-            .map(|id| facts.turn(thread, id, time.as_deref(), None))
+            .map(|id| facts.turn(thread, id, time.as_deref(), None, report))
             .or(explicit_turn.clone());
         let catalog_identity =
             stable_id(&[p.id.as_deref().unwrap_or(&fingerprint), "skillCatalog"]);
@@ -167,23 +208,36 @@ pub(super) fn process(
             .and_then(|id| facts.threads.get(id))
             .map(|t| t.upstream_id.clone())
         {
-            facts.thread(source, &upstream, time.as_deref(), p.cwd.as_deref());
+            facts.thread(source, &upstream, time.as_deref(), p.cwd.as_deref(), report);
         }
         if owner != state.thread {
             state.break_context();
             state.thread = owner.clone();
         }
+        let new_turn = explicit_turn.is_some() && explicit_turn != state.turn;
+        let (model, effort, mut conflict) = context_fields(&p);
+        context::inherit_conflicts(
+            &model,
+            effort.as_deref(),
+            if event == "thread_settings_applied" || new_turn {
+                &state.thread_context_conflicts
+            } else {
+                &state.context_conflicts
+            },
+            &mut conflict,
+        );
         if let Some(turn) = explicit_turn {
             state.turn = Some(turn);
         }
-        let (model, effort, conflict) = context_fields(&p);
         state.model = model;
         state.effort = effort;
+        state.context_conflicts = conflict.clone();
         if event == "thread_settings_applied" {
             state.thread_model = state.model.clone();
             state.thread_effort = state.effort.clone();
+            state.thread_context_conflicts = state.context_conflicts.clone();
         }
-        if conflict {
+        if !conflict.is_empty() {
             issue(
                 report,
                 "contextConflict",
@@ -204,10 +258,11 @@ pub(super) fn process(
             _ => "interrupted",
         };
         if let (Some(thread), Some(upstream)) = (&owner, p.turn_id.as_deref()) {
-            let new_turn = facts.turn(thread, upstream, time.as_deref(), Some(status));
+            let new_turn = facts.turn(thread, upstream, time.as_deref(), Some(status), report);
             if event == "task_started" && state.turn.as_deref() != Some(&new_turn) {
                 state.model = state.thread_model.clone();
                 state.effort = state.thread_effort.clone();
+                state.context_conflicts = state.thread_context_conflicts.clone();
             }
             state.turn = Some(new_turn);
             if event == "task_started" {
@@ -218,6 +273,7 @@ pub(super) fn process(
             state.turn = None;
             state.model = state.thread_model.clone();
             state.effort = state.thread_effort.clone();
+            state.context_conflicts = state.thread_context_conflicts.clone();
         }
         return;
     }
@@ -291,12 +347,12 @@ pub(super) fn process(
             let latest_owner = latest
                 .thread_id
                 .as_deref()
-                .map(|id| facts.thread(source, id, time.as_deref(), None))
+                .map(|id| facts.thread(source, id, time.as_deref(), None, report))
                 .or(owner.clone());
             let latest_turn = latest_owner
                 .as_ref()
                 .zip(latest.turn_id.as_deref())
-                .map(|(t, id)| facts.turn(t, id, time.as_deref(), None));
+                .map(|(t, id)| facts.turn(t, id, time.as_deref(), None, report));
             direct_measurement(
                 &latest,
                 latest_owner,
@@ -333,11 +389,13 @@ pub(super) fn process(
         operations::mcp_event(
             &p, event, &thread, turn, time, raw_time, evidence, facts, report,
         );
-    } else if (kind == "response_item" || matches!(event, "item_completed" | "item_started"))
+    } else if (kind == "response_item"
+        || matches!(event, "item_completed" | "item_started" | "patch_apply_end"))
         && let Some(thread) = owner
     {
         operation(
             &p,
+            item,
             event,
             &thread,
             turn,
@@ -345,6 +403,7 @@ pub(super) fn process(
             raw_time,
             evidence,
             &fingerprint,
+            p.item.unwrap_or(raw_payload),
             facts,
             report,
         );
@@ -369,9 +428,10 @@ pub(super) fn direct_measurement(
         issue(report, "missingUsage", "逐响应记录缺少用量", Some(evidence));
         return;
     };
-    let Some(tokens) = parse_tokens(raw, report, &evidence) else {
+    let Some(observed) = parse_tokens(raw, report, &evidence) else {
         return;
     };
+    let tokens = observed.tokens;
     let response = p.response_id.as_deref();
     let id = if let Some(response) = response {
         stable_id(&[
@@ -400,11 +460,12 @@ pub(super) fn direct_measurement(
     let cumulative = p
         .thread_token_usage
         .and_then(|raw| serde_json::from_str::<Counts>(raw.get()).ok())
-        .and_then(|c| c.total_tokens);
+        .and_then(|c| c.total_tokens)
+        .filter(|value| *value <= MAX_SAFE_INTEGER);
     let interval_start = cumulative
         .zip(tokens.total)
         .and_then(|(a, b)| a.checked_sub(b));
-    let (model, effort) = measurement_context(
+    let (model, effort, conflicts) = measurement_context(
         p,
         state,
         owner.as_ref() == state.thread.as_ref(),
@@ -426,6 +487,10 @@ pub(super) fn direct_measurement(
                 model,
                 reasoning_effort: effort.map(Into::into),
                 tokens,
+                token_unavailable_reasons: observed.reasons,
+                pricing_context_conflict: conflicts
+                    .iter()
+                    .any(|field| *field != crate::session_events::MeasurementContextField::Effort),
                 request_scoped: true,
                 reported_cost: reported_cost(p.cost),
                 service_tier: p.service_tier.as_deref().map(safe_text),
@@ -438,6 +503,7 @@ pub(super) fn direct_measurement(
             interval_start,
             fingerprint,
         },
+        &conflicts,
         report,
     );
 }
@@ -471,7 +537,14 @@ pub(super) fn legacy_measurement(
     if total.is_none() && last.is_none() {
         return;
     }
-    let previous_total = state.previous.as_ref().and_then(|v| v.total).unwrap_or(0);
+    // Only the first counter observation with no preceding discontinuity has
+    // the protocol's zero origin. A cleared or incomplete baseline is unknown.
+    let initial = state.ordinal == 0 && state.previous.is_none() && !state.uncertain_counter;
+    let previous_total = state
+        .previous
+        .as_ref()
+        .and_then(|v| v.tokens.total)
+        .or(initial.then_some(0));
     if total
         .as_ref()
         .is_some_and(|new| state.previous.as_ref() == Some(new))
@@ -492,7 +565,7 @@ pub(super) fn legacy_measurement(
             Some(evidence.clone()),
         );
     }
-    let (tokens, request_scoped) = if state.uncertain_counter {
+    let (observed, request_scoped) = if state.uncertain_counter {
         issue(
             report,
             "counterGap",
@@ -503,7 +576,10 @@ pub(super) fn legacy_measurement(
         if let Some(last) = last {
             (last, true)
         } else {
-            (TokenUsage::default(), false)
+            (
+                TokenObservation::unavailable(TokenUnavailableReason::Indeterminate),
+                false,
+            )
         }
     } else if regression {
         if let Some(last) = last {
@@ -515,10 +591,13 @@ pub(super) fn legacy_measurement(
                 "累计回退缺少单次用量，保留未知计量",
                 Some(evidence.clone()),
             );
-            (TokenUsage::default(), false)
+            (
+                TokenObservation::unavailable(TokenUnavailableReason::Indeterminate),
+                false,
+            )
         }
     } else if let Some(total) = &total {
-        let delta = subtract(total, state.previous.as_ref());
+        let delta = subtract(total, state.previous.as_ref(), initial);
         let scoped = last.as_ref().is_some_and(|last| last == &delta);
         (delta, scoped)
     } else if let Some(last) = last {
@@ -526,13 +605,14 @@ pub(super) fn legacy_measurement(
     } else {
         return;
     };
-    let cumulative = total.as_ref().and_then(|v| v.total);
+    let tokens = observed.tokens;
+    let cumulative = total.as_ref().and_then(|v| v.tokens.total);
     let interval_start = if regression {
         cumulative
             .zip(tokens.total)
             .and_then(|(a, b)| a.checked_sub(b))
     } else {
-        Some(previous_total)
+        previous_total
     };
     state.previous = total;
     state.ordinal += 1;
@@ -555,7 +635,7 @@ pub(super) fn legacy_measurement(
             &state.ordinal.to_string(),
         ])
     };
-    let (model, effort) = measurement_context(
+    let (model, effort, conflicts) = measurement_context(
         p,
         state,
         owner.as_ref() == state.thread.as_ref(),
@@ -582,6 +662,10 @@ pub(super) fn legacy_measurement(
                 model,
                 reasoning_effort: effort.map(Into::into),
                 tokens,
+                token_unavailable_reasons: observed.reasons,
+                pricing_context_conflict: conflicts
+                    .iter()
+                    .any(|field| *field != crate::session_events::MeasurementContextField::Effort),
                 request_scoped,
                 reported_cost: reported_cost(p.cost),
                 service_tier: p.service_tier.as_deref().map(safe_text),
@@ -594,6 +678,10 @@ pub(super) fn legacy_measurement(
             interval_start,
             fingerprint,
         },
+        &conflicts,
         report,
     );
 }
+
+#[cfg(test)]
+mod tests;

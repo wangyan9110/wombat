@@ -2,20 +2,24 @@
   "version": 2,
   "sections": {
     "/public-contracts": {
-      "zh": "4e3369a68c97ceec8fa560e1b91d31e016e0909800558ffdc10f1dbd66cadb5f",
-      "en": "42eacf3888a50ae7d33e85f9c0c0143588921e74e519fc2af020e4f3f2b4a01e"
+      "zh": "cb86f54cd0f8987bfb96bf82411a05004c7d93b1b98de0d76c3b572e76bcae4d",
+      "en": "b36c0afab080f806edb6bc55f963b99e76c6562bf671a0432067b0e92de8647f"
     },
     "/public-contracts/client-entries": {
       "zh": "43df27589e6cac42deff22d885581433bb66077922612dcb496abf56f4557b4f",
       "en": "d0ef4dba22e780929a3e8a6026abfd1c58f2912a649e69fc0752dc52ea43e6ae"
+    },
+    "/public-contracts/whole-turn-timing-contract-v6": {
+      "zh": "bfd09b53b40568cfee3da7662ef8beb68a121490b571137f303b814df10de3ef",
+      "en": "7f54a197bef83811b5c6e4a0fd5eef2ccc25c26c45ff804b63fb6404aacfc8d6"
     },
     "/public-contracts/read-only-configuration-contract-v1": {
       "zh": "003fcf5dfe8f914bcc67c1f2591e260cf6d74844378c8af50c2354b0a00c1465",
       "en": "a654f66798b55f3ba73d27de3be7777209ee15fea963afcbd831673b60a37950"
     },
     "/public-contracts/optimize-and-preference-contracts-v1": {
-      "zh": "616d867998b210bd06d4d655f48d73d19106a07f06d1116a755696bbfd4e8c17",
-      "en": "95ea7fe21600a156d5b7f48d70265127488c9fca43d780caf8c5a49d0f8bca46"
+      "zh": "dcf34039102a422b5d534f44609714d8cc105848b67dc56dff8669f91a4611c7",
+      "en": "cdfe9932d9df04bef480405ffcfa629b7bd0820e872d913482b4eaadaa85bf38"
     },
     "/public-contracts/account-contract-v1": {
       "zh": "390c4e1b573c6d836b89d887b8d1a9ad3fec8073bb3d93b858e38f5c9fd4a746",

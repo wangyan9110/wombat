@@ -1,3 +1,12 @@
+import type { ShareResponse as TimingShareResult } from './generated/timing-share-response.js';
+import type { LocalResponse as TimingLocalResult } from './generated/timing-local-response.js';
+import type { Request as TimingRequest } from './generated/timing-request.js';
+import type { Response as TimingResult } from './generated/timing-response.js';
+export type { Request as TimingRequest } from './generated/timing-request.js';
+export type { Response as TimingResult } from './generated/timing-response.js';
+export type { LocalResponse as TimingLocalResult } from './generated/timing-local-response.js';
+export type { ShareResponse as TimingShareResult } from './generated/timing-share-response.js';
+export type TimingTransport = (request: TimingRequest, options: QueryOptions) => Promise<unknown>;
 import type { Request as LiveRequest } from './generated/live-request.js';
 import type { Response as LiveResult } from './generated/live-response.js';
 import type {Request as AccountRequest} from './generated/account-request.js';
@@ -56,6 +65,7 @@ export type PricingTransport = (request: PricingRequest, options: QueryOptions) 
 export type LiveTransport = (request: LiveRequest, options: QueryOptions) => Promise<unknown>;
 
 export interface UsageClient {
+  timing?(request: TimingRequest, options?: QueryOptions): Promise<TimingResult>;
   handoff?(request:HandoffRequest,options?:QueryOptions):Promise<HandoffResult>;
   account?(request:AccountRequest,options?:QueryOptions):Promise<AccountResult>;
   directories?(request:DirectoriesRequest,options?:QueryOptions):Promise<DirectoriesResult>;
@@ -67,8 +77,36 @@ export interface UsageClient {
   prices(request: PricingRequest, options?: QueryOptions): Promise<PricingResult>;
 }
 
-export function createUsageClient(transport: UsageTransport, pricingTransport?: PricingTransport, liveTransport?: LiveTransport, configTransport?: ConfigTransport, optimizeTransport?: OptimizeTransport, preferencesTransport?: PreferencesTransport,directoriesTransport?:DirectoriesTransport,hosts:HostTransports={}): UsageClient {
+export interface ClientTransports extends HostTransports {
+  query: UsageTransport;
+  prices?: PricingTransport;
+  live?: LiveTransport;
+  config?: ConfigTransport;
+  optimize?: OptimizeTransport;
+  preferences?: PreferencesTransport;
+  directories?: DirectoriesTransport;
+  timing?: TimingTransport;
+}
+
+export function createUsageClient(transports: ClientTransports): UsageClient {
+  const { query: transport, prices: pricingTransport, live: liveTransport,
+    config: configTransport, optimize: optimizeTransport, preferences: preferencesTransport,
+    directories: directoriesTransport } = transports;
+  const hosts = transports;
   return {
+    ...(transports.timing ? { async timing(request: TimingRequest, options: QueryOptions = {}): Promise<TimingResult> {
+      const [{validate: input}, {validate: output}] = await Promise.all([
+        import('./generated/validate-timing-request.js'), import('./generated/validate-timing-response.js'),
+      ]);
+      if (options.signal?.aborted) throw new CoreError('CANCELLED', 'Cancelled');
+      if (!input(request) || request.action === 'evidence' && (request.privacyProfile === 'share-v1'
+        || request.objectRef != null && (request.collection !== 'use_records' || !/^use:[0-9a-fA-F]{64}$/.test(request.objectRef))))
+        throw new CoreError('INVALID_ARGUMENT', 'Invalid timing request');
+      const result = await transports.timing!(request, options);
+      if (options.signal?.aborted) throw new CoreError('CANCELLED', 'Cancelled');
+      if (!output(result) || !matchesTiming(request, result)) throw new CoreError('PROTOCOL_ERROR', 'Invalid timing response');
+      return result;
+    } } : {}),
     ...(hosts.handoff?{async handoff(request:HandoffRequest,options:QueryOptions={}):Promise<HandoffResult>{
       const [{validate:input},{validate:output}]=await Promise.all([import('./generated/validate-handoff-request.js'),import('./generated/validate-handoff-response.js')]);
       if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
@@ -103,9 +141,10 @@ export function createUsageClient(transport: UsageTransport, pricingTransport?: 
     ...(optimizeTransport ? { async optimize(request: OptimizeRequest, options: QueryOptions ={} ): Promise<OptimizeResult> {
       const [{validate:validateOptimizeRequest},{validate:validateOptimizeResult}]=await Promise.all([import('./generated/validate-optimize-request.js'),import('./generated/validate-optimize-response.js')]);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
-      if (!validateOptimizeRequest(request)) throw new CoreError('INVALID_ARGUMENT', '优化参数不符合数据协议');
+      if (!validateOptimizeRequest(request) || !validActivityRequest(request)) throw new CoreError('INVALID_ARGUMENT', '优化参数不符合数据协议');
       const result = await optimizeTransport(request, options);
-      if (!validateOptimizeResult(result) || result.outputVersion !== 1 || result.action !== (request.action ?? 'list')) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
+      if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
+      if (!validateOptimizeResult(result) || result.outputVersion !== 4 || result.action !== (request.action ?? 'list') || !matchesActivity(request,result)) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
       return result;
     } } : {}),
     ...(configTransport ? { async config(request: ConfigRequest, options: QueryOptions ={} ): Promise<ConfigResult> {
@@ -141,10 +180,205 @@ export function createUsageClient(transport: UsageTransport, pricingTransport?: 
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateRequest(request)) throw new CoreError('INVALID_ARGUMENT', '查询参数不符合数据协议');
       const result = await transport(request, options);
-      if (!validateResponse(result) || result.outputVersion !== 3 || result.action !== request.action) {
+      if (!validateResponse(result) || result.outputVersion !== 5 || result.action !== request.action) {
         throw new CoreError('PROTOCOL_ERROR', '用量数据格式不正确');
       }
       return result;
     },
   };
+}
+
+function matchesTiming(request: TimingRequest, result: TimingResult): boolean {
+  const profile = request.privacyProfile ?? 'local';
+  if (result.outputVersion !== 6 || result.action !== request.action || result.profile !== profile
+    || result.methodVersion !== 'safe_event_turn_v7') return false;
+  if ('uses' in result && ('totals' in result.uses ? result.uses.totals : result.uses).methodVersion !== 3
+    || 'totals' in result && result.totals.methodVersion !== 3) return false;
+  if (result.action === 'summary' && (!validInputChange(result.context.inputChange) || !matchesOutcomeStatistics(result) || !matchesOperationCoverage(result) || !matchesRepeatedBehavior(result) || (result.profile === 'local' && !matchesRepeatNavigation(result)))) return false;
+  if (request.action === 'capabilities') return !('scope' in result) && !('readView' in result);
+  if (request.action === 'summary' && profile === 'share-v1') {
+    // Sharing deliberately omits local locating identities; core selection owns
+    // target binding. The separate schema validates the identifier-free branch.
+    return 'relativeAnchors' in result && !('readView' in result)
+      && result.privacy.profile === profile;
+  }
+  if (!('scope' in result) || !('threadId' in result.scope)
+    || result.scope.threadId !== request.threadId || result.scope.turnId !== request.turnId
+    || result.scope.wholeTurn !== true || result.scope.agentKind !== (request.scope?.agentKind ?? 'codex')
+    || (request.scope?.sourceInstanceId != null && result.scope.sourceInstanceId !== request.scope.sourceInstanceId)) return false;
+  if (request.action === 'evidence') return 'rows' in result && result.snapshotId === request.snapshotId
+    && result.collection === (request.collection ?? 'turn_events')
+    && (result.collection !== 'use_records' || (result.objectRef ?? null) === (request.objectRef ?? null)
+      && (request.objectRef == null || result.rows.every(row => row.objectRef === request.objectRef)));
+  return 'readView' in result && result.privacy.profile === profile
+    && (request.snapshotId == null || result.readView.snapshotId === request.snapshotId);
+}
+
+/** Validate core-owned relationships without reconstructing operation intervals. */
+function matchesOperationCoverage(result: Extract<TimingResult, { action: 'summary' }>): boolean {
+  const coverage = result.time.operationCoverage;
+  const window = result.time.observedWindowMs.value;
+  const candidates = coverage.candidateOperations.value;
+  const paired = coverage.pairedOperations.value;
+  const conflicts = coverage.conflictingOperations.value;
+  if (candidates != null && (paired != null && paired > candidates
+    || conflicts != null && conflicts > candidates
+    || paired != null && conflicts != null && paired > candidates - conflicts)) return false;
+  if (window != null && coverage.coveredMs.value != null && coverage.residualMs.value != null
+    && coverage.coveredMs.value !== window - coverage.residualMs.value) return false;
+  const ranges = coverage.residualRanges;
+  if (coverage.detail.support !== 'supported') return ranges.length === 0;
+  if (window == null || coverage.residualMs.value == null
+    || coverage.residualRangeCount.value !== ranges.length) return false;
+  let previousEnd = 0, total = 0;
+  for (const range of ranges) {
+    if (range.startMs >= range.endMs || range.startMs < previousEnd || range.endMs > window) return false;
+    total += range.endMs - range.startMs;
+    previousEnd = range.endMs;
+  }
+  return total === coverage.residualMs.value;
+}
+
+/** Check bounded aggregate relationships; matching and duration arithmetic remain in Rust. */
+function matchesRepeatedBehavior(result: Extract<TimingResult, { action: 'summary' }>): boolean {
+  const r = result.time.repeatedBehavior, c = r.coverage;
+  for (const m of [r.afterFailure, r.repeatedRead]) {
+    const n = m.count.value, d = m.duration;
+    if (n != null && d.recordedCount.value != null && d.calculatedCount.value != null && d.missingCount.value != null
+      && (d.recordedCount.value > n || d.calculatedCount.value > n - d.recordedCount.value
+        || d.missingCount.value !== n - d.recordedCount.value - d.calculatedCount.value)) return false;
+    if (d.knownSumMs.value != null && n != null && n > 0 && d.recordedCount.value === 0 && d.calculatedCount.value === 0) return false;
+  }
+  const candidates = c.candidateOperations.value, eligible = c.eligibleCommands.value;
+  if (candidates != null && eligible != null && eligible > candidates) return false;
+  const union = r.combinedOperationCount.value, failures = r.afterFailure.count.value, reads = r.repeatedRead.count.value;
+  if (union != null && (failures != null && union < failures || reads != null && union < reads
+    || candidates != null && union > candidates || failures != null && reads != null && union - failures > reads)) return false;
+  if (union != null && (r.combinedMissingIntervalCount.value != null && r.combinedMissingIntervalCount.value > union)) return false;
+  if (failures != null && r.missingRecoverySpanCount.value != null && r.missingRecoverySpanCount.value > failures) return false;
+  const window = result.time.observedWindowMs.value;
+  if (window != null && r.combinedUnionMs.value != null && r.combinedUnionMs.value > window) return false;
+  return true;
+}
+
+/** Verify navigation completeness and opaque locator structure, without rematching source requests. */
+function matchesRepeatNavigation(result: TimingLocalResult): boolean {
+  const navigation = result.evidence.repeatPages, r = result.time.repeatedBehavior;
+  if (navigation.candidateOperationCount.value != null && navigation.candidateOperationCount.value !== r.combinedOperationCount.value) return false;
+  if (navigation.detail.support !== 'supported') return navigation.entries.length === 0;
+  if (navigation.locatedOperationCount.value !== navigation.entries.length || navigation.candidateOperationCount.value !== navigation.entries.length) return false;
+  let pages = 0, proofs = 0, failed = 0, reads = 0;
+  for (const [index, entry] of navigation.entries.entries()) {
+    if (!entry.afterFailure && entry.successfulReads.length === 0 || (entry.successfulReads.length === 0) !== (entry.repeatedReadTargetCount === 0)
+      || entry.repeatedReadTargetCount < entry.successfulReads.length || !entry.afterFailure && entry.recoverySpanMs.value != null) return false;
+    if (entry.afterFailure) failed++;
+    if (entry.successfulReads.length) reads++;
+    const selected = [[entry.later, `repeat:${index}:later`], ...(entry.afterFailure ? [[entry.afterFailure, `repeat:${index}:failure`] as const] : []),
+      ...entry.successfulReads.map((proof, prior) => [proof, `repeat:${index}:read:${prior}`] as const)] as const;
+    for (const [proof, alias] of selected) {
+      if (proof.operationAlias !== alias || ++proofs > 600) return false;
+      const references = new Set<string>(), cursors = new Set<string | null>();
+      for (const page of proof.pages) {
+        if (cursors.has(page.cursor?.token ?? null)) return false;
+        cursors.add(page.cursor?.token ?? null);pages++;
+        for (const ref of page.evidenceRefs) {
+          if (!ref.startsWith('event:') || ref.length <= 6 || references.has(ref)) return false;
+          references.add(ref);
+        }
+      }
+      if (references.size > 16) return false;
+    }
+  }
+  return pages === navigation.pageCount.value && failed === r.afterFailure.count.value && reads === r.repeatedRead.count.value;
+}
+
+function validActivityRequest(request: OptimizeRequest): boolean {
+  if (request.action !== 'activity') return request.activity == null;
+  return request.activity != null && [request.readView,request.projectRoots,request.project,request.decisionRevision,
+    request.suggestionId,request.itemId,request.decisionReason,request.category,request.offset,request.limit,request.ruleOverrides].every(value=>value==null)
+    && (request.group==null||request.group==='pending');
+}
+/** Validate Rust's published subset relationships; do not choose or reconstruct a denominator. */
+function matchesOutcomeStatistics(result: TimingLocalResult | TimingShareResult): boolean {
+  return validOutcomeStatistics(result.work.outcomes,result.coverage.sourceStatus);
+}
+function validOutcomeStatistics(o:TimingLocalResult['work']['outcomes'],sourceStatus:string):boolean{
+  if(o.method!=='terminal_success_failure_subset_v1'||sourceStatus!=='complete'&&!o.partial)return false;
+  const counts=[o.determinateOperations,o.succeeded,o.failed,o.interrupted,o.rejected,o.nonterminal,o.indeterminate,o.conflicting,o.identityGapRecords,o.unclassified];
+  if(counts.every(metric=>metric.value==null))return counts.every(metric=>metric.status==='unavailable')&&o.failureRatio.value==null&&o.failureRatio.status==='unavailable'&&o.partial;
+  if(counts.some(metric=>metric.value==null||metric.status!=='derived'||metric.basis!=='determinate_terminal_outcomes'))return false;
+  const denominator=o.determinateOperations.value!,failed=o.failed.value!,succeeded=o.succeeded.value!;
+  if(denominator!==failed+succeeded)return false;
+  if([o.nonterminal,o.indeterminate,o.conflicting,o.identityGapRecords,o.unclassified].some(metric=>metric.value!>0)&&!o.partial)return false;
+  return denominator===0?o.failureRatio.value==null&&o.failureRatio.status==='unavailable'&&o.failureRatio.basis==='no_candidates'
+    :o.failureRatio.status==='derived'&&o.failureRatio.basis==='determinate_terminal_outcomes'&&o.failureRatio.value!=null&&o.failureRatio.value===failed/denominator;
+}
+/** Validate bounded core-owned comparisons; do not reconstruct historical stages in the client. */
+function validInputChange(change: TimingLocalResult['context']['inputChange']): boolean {
+  const s=change.statistics;
+  if(change.method!=='request_input_observation_change_v1')return false;
+  if(change.availability.support!=='supported')return s==null;
+  if(change.availability.reason!=='request_input'||!s)return false;
+  if(s.orderedSamples+s.nonRequestScoped+s.missingInput+s.unassociated+s.numericRange!==s.candidates
+    ||s.increasingStages+s.decreasingStages+s.unchangedStages!==s.comparableStages
+    ||s.comparableStages*2>s.orderedSamples||s.stages.length>s.comparableStages
+    ||!s.detailsOmitted&&s.stages.length!==s.comparableStages
+    ||(s.nonRequestScoped+s.missingInput+s.unassociated+s.numericRange>0&&!s.partial))return false;
+  const max=s.maximumIncrease;
+  if(s.comparableStages===0){if(max.value!=null||max.status!=='unavailable'||max.basis!=='no_candidates')return false;}
+  else if(max.value==null||max.status!=='derived'||max.basis!=='request_input'||(max.value>0)!==(s.increasingStages>0))return false;
+  const validStage=(stage:NonNullable<typeof s.largestIncrease>)=>stage.firstRef!==stage.lastRef
+    &&stage.delta===stage.lastInput-stage.firstInput
+    &&(stage.firstInput===0?stage.factor==null:stage.factor===stage.lastInput/stage.firstInput);
+  if(s.stages.some(stage=>!validStage(stage))||new Set(s.stages.map(stage=>stage.id)).size!==s.stages.length
+    ||s.stages.reduce((n,stage)=>n+stage.samples,0)>s.orderedSamples)return false;
+  if(s.largestIncrease){if(!validStage(s.largestIncrease)||s.largestIncrease.delta<=0||s.largestIncrease.delta!==max.value)return false;}
+  else if(s.increasingStages>0&&!s.detailsOmitted)return false;
+  return s.stages.every(stage=>stage.delta<=Math.max(max.value??0,0));
+}
+function matchesActivity(request: OptimizeRequest, result: OptimizeResult): boolean {
+  if(request.action!=='activity')return result.activity==null;
+  const activity=result.activity,selected=request.activity;
+  if(!activity||!selected||activity.formatVersion!==3||activity.analysisMethod!=='safe_event_turn_v7'
+    || activity.scope.agentKind!=='codex'||!activity.scope.wholeTurn||activity.readView.snapshotId!==selected.snapshotId || activity.scope.threadId!==selected.threadId
+    || activity.scope.turnId!==selected.turnId || request.sourceInstanceId!=null&&activity.scope.sourceInstanceId!==request.sourceInstanceId
+    || result.usageRevision!==selected.snapshotId||result.readView!=null||result.suggestions.length||result.checks.length||result.followUps.length) return false;
+  const definitions=[['inspect_calls_after_failure','same_operation_after_failure_v1','repeat_after_failure'],
+    ['inspect_repeated_reads','same_target_read_v1','successful_read_repeat'],
+    ['inspect_repeated_requests','same_request_observation_v1','same_request_observation'],
+    ['inspect_failure_share','terminal_failure_inspection_v1','determinate_terminal_outcomes'],
+    ['inspect_input_change','request_input_change_inspection_v1','request_input']] as const;
+  for(const [index,check] of activity.checks.entries()){
+    const expected=definitions[index];
+    if(!expected||check.rule!==expected[0]||check.method!==expected[1]||check.version!==1) return false;
+    if(index===4){
+      const change=check.inputChange,policy=check.inputPolicy;
+      if(!change||!policy||!validInputChange(change)||check.outcomes!=null||check.failurePolicy!=null)return false;
+      const stats=change.statistics,available=change.availability.support==='supported';
+      const outcome=!available||!stats||stats.comparableStages===0?'insufficient':stats.maximumIncrease.value!>=policy.minimumIncrease?'hit':'miss';
+      const reason=!available?'activityMeasureUnavailable':!stats||stats.comparableStages===0?'activitySampleTooSmall':null;
+      if(check.outcome!==outcome||check.reason!==reason||check.partial!==(activity.sourceStatus!=='complete'||(stats?.partial??true)))return false;
+      if(stats){const m=stats.maximumIncrease; if(check.observed.value!==m.value||check.observed.status!==m.status||check.observed.basis!==m.basis||check.observed.evidenceRefs.length!==m.evidenceRefs.length||check.observed.evidenceRefs.some((ref,i)=>ref!==m.evidenceRefs[i]))return false;}
+      else if(check.observed.value!=null||check.observed.status!=='unavailable'||check.observed.basis!==change.availability.reason)return false;
+      continue;
+    }
+    if(check.inputChange!=null||check.inputPolicy!=null)return false;
+    if(index===3){
+      const o=check.outcomes,policy=check.failurePolicy;
+      if(!o||!policy||!validOutcomeStatistics(o,activity.sourceStatus)||check.partial!==o.partial
+        ||check.observed.value!==o.failed.value||check.observed.status!==o.failed.status||check.observed.basis!==o.failed.basis
+        ||check.observed.evidenceRefs.length!==o.failed.evidenceRefs.length||check.observed.evidenceRefs.some((ref,i)=>ref!==o.failed.evidenceRefs[i]))return false;
+      const n=o.determinateOperations.value;
+      const outcome=n==null||n<policy.minimumDeterminate?'insufficient':o.failed.value!>=policy.minimumFailures&&o.failureRatio.value!>=policy.minimumRatio?'hit':'miss';
+      const reason=n==null?'activityMeasureUnavailable':n<policy.minimumDeterminate?'activitySampleTooSmall':null;
+      if(check.outcome!==outcome||check.reason!==reason)return false;
+      continue;
+    }
+    if(check.outcomes!=null||check.failurePolicy!=null)return false;
+    if(check.outcome==='hit'&&(check.observed.value==null||check.observed.value<=0||check.observed.basis!==expected[2]||check.observed.status!=='derived' || check.reason!=null))return false;
+    if(check.outcome==='miss'&&(check.observed.value!==0||check.partial||check.reason!=null||check.observed.basis!==expected[2]||check.observed.status!=='derived'))return false;
+  }
+  const confirmed=activity.checks.slice(0,2).some(check=>check.outcome==='hit');
+  const expected=activity.checks.filter(check=>check.outcome==='hit'&&(!confirmed||check.rule!=='inspect_repeated_requests')).map(check=>check.rule);
+  return activity.advice.length===expected.length&&activity.advice.every((rule,index)=>rule===expected[index]);
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { UsageClient, UsageScope, UsageSummary } from '@wombat/client';
-import { t, monthLabel } from '@wombat/client/locale';
+import { t, monthLabel, pricingIssueText } from '@wombat/client/locale';
 import { Composition, Modal, Pair, Pagination, Token, amount, currency, directoryName } from './components.js';
 import { QueryError } from './Feedback.js';
 import { useUsageQuery } from './useUsageQuery.js';
@@ -13,6 +13,6 @@ export function UsageDrawer({client,selection,route,navigate,onClose}:{client:Us
  const go=(patch:Partial<Route>)=>{onClose();navigate({...fromScope(scope),returnTo:linkedReturn(route),page:'threads',snapshot:snapshotId,offset:0,thread:undefined,turn:undefined,...patch});};
  return <Modal title={t('webui.usageDetail')} onClose={onClose} drawer><div className="drawer-total"><Pair summary={summary}/></div><p className="note">{[scope.undated?t('webui.undated'):scope.allTime?t('webui.allDates'):scope.since??t('webui.allDates'),scope.until?shiftDate(scope.until,-1):undefined,scope.timezone??route.timezone].filter(Boolean).join(' · ')}</p><Composition summary={summary}/><CostComposition summary={summary}/><p className="note">{t('webui.costNote')}</p><nav className="config-types drawer-tabs" aria-label={t('webui.usageDetail')}>{(['time','models','projects','threads'] as const).map(d=><button key={d} aria-pressed={dimension===d} onClick={()=>{setDimension(d);setOffset(0);}}>{t(d==='time'?'webui.trend':d==='threads'?'webui.relatedTasks':`webui.${d}`)}</button>)}</nav>
  {q.loading&&<p role="status">{t('webui.loading')}</p>}{q.error&&<QueryError error={q.error} code={q.errorCode} retry={q.retry}/>}{q.result?.items.map((i,n)=>i.kind==='usage'?<button className="drawer-row" key={n} onClick={()=>go(fromScope(i.scope))}><span title={i.scope.project??''}>{dimension==='projects'?directoryName(i.scope.project):dimension==='models'?i.model??t('webui.unknown'):i.date?(route.group==='month'?monthLabel(i.date):i.date):t('webui.undated')}</span><Pair summary={i.usage}/></button>:i.kind==='thread'?<button className="drawer-row" key={i.id} onClick={()=>go({thread:i.id})}><span>{i.title??i.upstreamId??i.id}</span><Pair summary={i.matchedUsage}/></button>:null)}{q.result&&<Pagination page={q.result.page} onPage={setOffset}/>}
- <details className="provenance"><summary>{t('webui.basis')}</summary><p>{amount(summary)} · {summary.price.priceRevision}</p><p>{summary.price.issues.join(' · ')}</p><p>{snapshotId}</p></details></Modal>;
+ <details className="provenance"><summary>{t('webui.basis')}</summary><p>{amount(summary)} · {summary.price.priceRevision}</p><ul>{summary.price.issues.map((issue,index)=><li key={index}>{pricingIssueText(issue)} <code>({issue})</code></li>)}</ul><p>{snapshotId}</p></details></Modal>;
 }
 function categoryLabel(category:string){switch(category){case 'input':return t('webui.nonCacheInput');case 'output':return t('webui.output');case 'cacheRead':return t('webui.cacheRead');case 'cacheCreate':return t('webui.cacheCreate');default:return category;}}

@@ -4,6 +4,7 @@ use crate::{
         collect,
         contract::{DiscoveryRequest, RunContext},
     },
+    config_dto::{UseBasisStatus, UseCoverage, UseSourceCompleteness, UseWindow},
     optimize::{detection::detect, follow_up::observe},
 };
 use serde_json::json;
@@ -105,6 +106,21 @@ fn follow_up_observes_only_canonical_associations_after_recheck_in_the_authorize
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].status, FollowUpStatus::VersionUnknown);
     assert_eq!(result[0].observed_records, Some(3));
+    let unknown = result[0].use_basis.as_ref().unwrap();
+    assert_eq!(unknown.status, UseBasisStatus::Partial);
+    assert_eq!(unknown.source_completeness, UseSourceCompleteness::Complete);
+    assert_eq!(unknown.scope.project.as_deref(), Some(a.to_str().unwrap()));
+    assert_eq!(unknown.scope.source_instance_ids, vec![source.clone()]);
+    assert_eq!(
+        unknown.coverage,
+        UseCoverage {
+            dispatch_gaps: Some(0),
+            identity_gaps: Some(0),
+            target_gaps: Some(0),
+            time_gaps: Some(1),
+            turn_gaps: Some(0),
+        }
+    );
     assert_eq!(
         result[0].last_record_at.as_deref(),
         Some("2026-10-01T01:00:00.500+00:00")
@@ -112,15 +128,56 @@ fn follow_up_observes_only_canonical_associations_after_recheck_in_the_authorize
     assert!(!result[0].absence_observable);
     assert_eq!(result[0].record_id, "record");
     s.scope_project = Some(b.to_string_lossy().into());
-    assert_eq!(observe(&[s.clone()], &v, None)[0].observed_records, Some(1));
+    let in_window = observe(&[s.clone()], &v, None);
+    assert_eq!(in_window[0].observed_records, Some(1));
+    assert_eq!(
+        in_window[0].use_basis.as_ref().unwrap().status,
+        UseBasisStatus::Observed
+    );
     s.checked_at = "2026-10-01T02:00:00Z".into();
     let none = observe(&[s.clone()], &v, None);
     assert_eq!(none[0].status, FollowUpStatus::NoObservedRecords);
-    assert_eq!(none[0].observed_records, None);
+    // Project b has one timed canonical read at 01:00; after 02:00 its captured
+    // window is reliably empty. Project a's undated read cannot taint this scope.
+    assert_eq!(none[0].observed_records, Some(0));
+    assert!(!none[0].absence_observable);
+    let known_empty = none[0].use_basis.as_ref().unwrap();
+    assert_eq!(known_empty.status, UseBasisStatus::Observed);
     assert_eq!(
-        observe(&[s.clone()], &v, Some("unrelated"))[0].observed_records,
-        None
+        known_empty.source_completeness,
+        UseSourceCompleteness::Complete
     );
+    assert_eq!(
+        known_empty.scope.project.as_deref(),
+        Some(b.to_str().unwrap())
+    );
+    assert_eq!(known_empty.scope.source_instance_ids, vec![source]);
+    assert_eq!(
+        known_empty.scope.window,
+        UseWindow::FollowUp {
+            after: s.checked_at.clone(),
+            through: v.checked.clone(),
+        }
+    );
+    assert_eq!(
+        known_empty.coverage,
+        UseCoverage {
+            dispatch_gaps: Some(0),
+            identity_gaps: Some(0),
+            target_gaps: Some(0),
+            time_gaps: Some(0),
+            turn_gaps: Some(0),
+        }
+    );
+    let unavailable = observe(&[s.clone()], &v, Some("unrelated"));
+    assert_eq!(unavailable[0].observed_records, None);
+    let unavailable_basis = unavailable[0].use_basis.as_ref().unwrap();
+    assert_eq!(unavailable_basis.status, UseBasisStatus::Unavailable);
+    assert_eq!(
+        unavailable_basis.source_completeness,
+        UseSourceCompleteness::Unknown
+    );
+    assert_eq!(unavailable_basis.coverage.time_gaps, None);
     for state in ["updating", "unavailable"] {
         v.history_status = state.into();
         assert_eq!(
@@ -195,15 +252,18 @@ fn mcp_follow_up_requires_unambiguous_ownership_across_the_whole_inventory() {
     // The competing declaration has no handling record and is outside the requested page.
     s.scope_project = Some(projects[0].to_string_lossy().into());
     let ambiguous = observe(&[s.clone()], &v, None);
-    assert_eq!(ambiguous[0].status, FollowUpStatus::Unavailable);
-    assert_eq!(ambiguous[0].observed_records, None);
+    assert_eq!(ambiguous[0].status, FollowUpStatus::NoObservedRecords);
+    assert_eq!(ambiguous[0].observed_records, Some(0));
     assert_eq!(ambiguous[0].last_record_at, None);
     s.scope_project = Some(projects[1].to_string_lossy().into());
     let known = observe(&[s.clone()], &v, None);
     assert_eq!(known[0].status, FollowUpStatus::VersionUnknown);
     assert_eq!(known[0].observed_records, Some(1));
     s.scope_project = None;
-    assert_eq!(observe(&[s.clone()], &v, None)[0].observed_records, Some(1));
+    let unscoped = observe(&[s.clone()], &v, None);
+    assert_eq!(unscoped[0].status, FollowUpStatus::VersionUnknown);
+    assert_eq!(unscoped[0].observed_records, Some(1));
+    s.scope_project = Some(projects[1].to_string_lossy().into());
     // Distinct historical cutoffs for one physical object do not create ownership ambiguity.
     let mut earlier = s.clone();
     earlier.record_id = Some("earlier-record".into());

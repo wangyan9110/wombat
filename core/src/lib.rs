@@ -12,16 +12,22 @@ mod live_index;
 #[cfg(windows)]
 mod live_windows;
 mod log_io;
+pub(crate) mod observation_versions;
+pub(crate) mod operation_association;
 mod optimize;
 pub mod optimize_dto;
 pub mod preferences;
 pub mod pricing;
 pub mod pricing_sync;
 mod query_cache;
+pub mod session_events;
 mod shared_text;
 pub mod storage;
+pub mod timing;
+pub mod timing_dto;
 pub mod usage_app;
 pub mod usage_app_dto;
+pub(crate) mod usage_observations;
 pub mod usage_store;
 use anyhow::Result;
 use serde_json::Value;
@@ -59,6 +65,35 @@ pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
 
 pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
     match op {
+        "timing" => Ok(serde_json::to_value(timing::dispatch(
+            serde_json::from_value(args.clone())
+                .map_err(|_| dto::operation_error("INVALID_ARGUMENT", "Invalid timing request"))?,
+        )?)?),
+        "schema_timing_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<timing_dto::Request>(),
+        )?),
+        "schema_timing_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<timing_dto::Response>(),
+        )?),
+        "schema_timing_local_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<timing_dto::LocalResponse>(),
+        )?),
+        "schema_timing_error_output" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<timing_dto::TimingErrorOutput>(),
+        )?),
+        "schema_timing_share_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<timing_dto::ShareResponse>(),
+        )?),
         "schema_handoff_request" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()
                 .into_generator()

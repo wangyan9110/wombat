@@ -396,6 +396,7 @@ mod tests {
             &tokens,
             &pricing::PricingContext {
                 request_scoped: true,
+                model_conflicted: false,
             },
             &catalog,
             "synthetic",
@@ -414,7 +415,8 @@ mod tests {
                 &m,
                 &long,
                 &pricing::PricingContext {
-                    request_scoped: true
+                    request_scoped: true,
+                    model_conflicted: false,
                 },
                 &catalog,
                 "synthetic"

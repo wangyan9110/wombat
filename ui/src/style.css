@@ -5,3 +5,9 @@
 .task-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 12px 0; }
 
 @media(max-width:760px){.topbar{height:auto;min-height:64px;padding-top:10px;padding-bottom:10px;gap:8px;flex-wrap:wrap}.scope-heading{min-width:0}.scope-heading>span{display:none}.top-actions{margin-left:auto;flex-wrap:wrap;justify-content:flex-end;gap:2px}.top-actions .quiet{padding:7px 8px}}
+
+@media(max-width:760px){.mobile-scope select{min-width:0}}
+
+#preview-controls select{min-width:0;max-width:100%}
+
+.startup-directories{max-width:560px;margin:24px auto}.startup-directories ul{list-style:none;padding:0;max-height:360px;overflow:auto}.startup-directories li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}.startup-directories small{display:block;overflow-wrap:anywhere;color:var(--muted);margin-top:4px}.startup-directories li>div{min-width:0}.startup-directories li>button{flex-shrink:0}.preparation>details{margin:12px 0}

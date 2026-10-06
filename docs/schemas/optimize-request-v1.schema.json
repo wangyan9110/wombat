@@ -118,6 +118,16 @@
           "type": "null"
         }
       ]
+    },
+    "activity": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ActivitySelection"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "additionalProperties": false,
@@ -132,7 +142,8 @@
         "redisplay",
         "recheck",
         "capabilities",
-        "checks"
+        "checks",
+        "activity"
       ]
     },
     "DecisionReason": {
@@ -180,6 +191,33 @@
         }
       },
       "additionalProperties": false
+    },
+    "ActivitySelection": {
+      "description": "Fixed turn analysis, separate from configuration identities and durable handling decisions.",
+      "type": "object",
+      "properties": {
+        "snapshotId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "threadId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "turnId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "snapshotId",
+        "threadId",
+        "turnId"
+      ]
     }
   }
 }

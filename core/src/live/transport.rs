@@ -1,5 +1,12 @@
 //! Local service transport, bounded requests and connection lifecycle.
 use super::*;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TimingMessage {
+    timing: crate::timing_dto::Request,
+}
+
 pub fn serve() -> Result<()> {
     #[cfg(windows)]
     use crate::live_windows::Listener as UnixListener;
@@ -15,7 +22,7 @@ pub fn serve() -> Result<()> {
     options.read(true).write(true).create(true).truncate(false);
     #[cfg(unix)]
     options.mode(0o600);
-    let lock = options.open(root.join("service.lock"))?;
+    let lock = options.open(root.join("service-v2.lock"))?;
     if lock.try_lock().is_err() {
         return Ok(());
     }
@@ -217,6 +224,20 @@ pub fn serve() -> Result<()> {
                         }
                         let value: Value = serde_json::from_str(&input)
                             .map_err(|_| operation_error("INVALID_ARGUMENT", "查询参数无效"))?;
+                        if value.get("timing").is_some() {
+                            let request: TimingMessage =
+                                serde_json::from_value(value).map_err(|_| {
+                                    operation_error("INVALID_ARGUMENT", "Invalid timing request")
+                                })?;
+                            let cancelled = std::sync::atomic::AtomicBool::new(false);
+                            return Ok(serde_json::to_value(timing_query(
+                                request.timing,
+                                &state,
+                                &jobs,
+                                &configs,
+                                &cancelled,
+                            )?)?);
+                        }
                         if value.get("handoff").is_some() {
                             #[derive(Deserialize)]
                             #[serde(deny_unknown_fields)]
@@ -264,6 +285,26 @@ pub fn serve() -> Result<()> {
                             }
                             let r: OptimizeMessage = serde_json::from_value(value)
                                 .map_err(|_| operation_error("INVALID_ARGUMENT", "优化参数无效"))?;
+                            crate::optimize::activity::validate(&r.optimize)?;
+                            if r.optimize.action == crate::optimize_dto::Action::Activity {
+                                if r.native_hooks.is_some() {
+                                    return Err(operation_error(
+                                        "INVALID_ARGUMENT",
+                                        "Activity does not consume host hooks",
+                                    ));
+                                }
+                                let cancelled = std::sync::atomic::AtomicBool::new(false);
+                                let result = timing_query(
+                                    crate::optimize::activity::timing_request(&r.optimize)?,
+                                    &state,
+                                    &jobs,
+                                    &configs,
+                                    &cancelled,
+                                )?;
+                                return Ok(serde_json::to_value(
+                                    crate::optimize::activity::response(result)?,
+                                )?);
+                            }
                             if r.optimize.action == crate::optimize_dto::Action::Capabilities {
                                 let mut response = crate::optimize::capabilities();
                                 response.rule_parameters =
@@ -327,6 +368,11 @@ pub fn serve() -> Result<()> {
                 });
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // Publication can take longer than the idle grace period.
+                // Count idle time after active readers finish, not from accept.
+                if active.load(std::sync::atomic::Ordering::Relaxed) != 0 {
+                    last_client = Instant::now();
+                }
                 if last_client.elapsed() > Duration::from_secs(15)
                     && active.load(std::sync::atomic::Ordering::Relaxed) == 0
                     && !configs.lock().unwrap().has_views()
@@ -344,4 +390,26 @@ pub fn serve() -> Result<()> {
     #[cfg(unix)]
     let _ = fs::remove_file(socket);
     Ok(())
+}
+
+#[cfg(test)]
+mod timing_tests {
+    use super::*;
+
+    #[test]
+    fn timing_envelope_rejects_other_product_inputs_and_hooks() {
+        let request = json!({"action":"capabilities"});
+        assert!(serde_json::from_value::<TimingMessage>(json!({"timing":request})).is_ok());
+        for field in ["query", "config", "optimize", "nativeHooks", "handoff"] {
+            let mut value = json!({"timing":request});
+            value[field] = json!({});
+            assert!(serde_json::from_value::<TimingMessage>(value).is_err());
+        }
+        assert!(
+            serde_json::from_value::<TimingMessage>(json!({
+                "timing":{"action":"capabilities","verify":true}
+            }))
+            .is_err()
+        );
+    }
 }

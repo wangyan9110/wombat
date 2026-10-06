@@ -2,13 +2,13 @@
 use super::{
     capabilities,
     detection::{detect_for, parameters},
-    registry,
+    evaluation, registry,
     repository::connect,
     reviews, store,
 };
 use crate::{config::View, dto::operation_error, optimize_dto::*};
 use anyhow::Result;
-use std::{collections::BTreeMap, path::Path};
+use std::path::Path;
 pub(crate) fn execute(request: Request, id: String, view: &View) -> Result<Response> {
     let path = crate::storage::data_home()?.join("user-v1/reviews.sqlite3");
     execute_at(request, id, view, &path)
@@ -27,6 +27,13 @@ fn execute_at_inner(
     path: &Path,
     all: bool,
 ) -> Result<Response> {
+    super::activity::validate(&r)?;
+    if r.action == Action::Activity {
+        return Err(operation_error(
+            "INVALID_ARGUMENT",
+            "Activity requires the fixed-snapshot entry",
+        ));
+    }
     if r.project
         .as_ref()
         .is_some_and(|p| !view.projects.contains(p))
@@ -51,7 +58,12 @@ fn execute_at_inner(
             "处理记录版本已变化，请刷新",
         ));
     }
-    let mut current = detect_for(view, &rules, r.project.as_deref());
+    let mut current = detect_for(
+        view,
+        &rules,
+        r.project.as_deref(),
+        r.source_instance_id.as_deref(),
+    );
     let accessible = |i: &crate::config_dto::Item| {
         i.applies(r.source_instance_id.as_deref(), r.project.as_deref())
     };
@@ -96,11 +108,21 @@ fn execute_at_inner(
     }
     revision = store::revision(&tx)?;
     let latest = store::states(&tx, r.project.as_deref())?;
-    current.retain(|s| {
-        latest
-            .get(&s.id)
-            .is_none_or(|r| !r.decided && r.status != "verified")
-    });
+    let mut pending_current = Vec::with_capacity(current.len());
+    for suggestion in current {
+        let suppressed = match latest.get(&suggestion.id) {
+            Some(state) if state.decided => {
+                let old = store::get(&tx, state.seq)?;
+                suppresses(&old, &suggestion)
+            }
+            Some(_) => false,
+            None => false,
+        };
+        if !suppressed {
+            pending_current.push(suggestion);
+        }
+    }
+    let mut current = pending_current;
     for state in latest
         .values()
         .filter(|s| !s.decided && s.status == "recheckUnavailable")
@@ -127,21 +149,14 @@ fn execute_at_inner(
         if r.item_id.is_some() && items.is_empty() {
             return Err(operation_error("NOT_FOUND", "未找到检查对象"));
         }
-        let raw = detect_for(view, &rules, r.project.as_deref())
-            .into_iter()
-            .map(|s| (s.item.id, s.findings))
-            .collect::<BTreeMap<_, _>>();
         let checks = items
             .iter()
             .skip(offset)
             .take(limit)
             .flat_map(|i| {
-                registry::checks_for(
-                    view,
-                    &rules,
-                    i,
-                    raw.get(&i.id).map(Vec::as_slice).unwrap_or_default(),
-                    r.project.as_deref(),
+                evaluation::evaluate(
+                    &evaluation::Input::initial(view, i, &rules, r.project.as_deref())
+                        .with_source(r.source_instance_id.as_deref()),
                 )
             })
             .collect();
@@ -219,7 +234,7 @@ fn execute_at_inner(
         }),
     );
     Ok(Response {
-        output_version: 1,
+        output_version: crate::optimize_dto::OUTPUT_VERSION,
         action: r.action,
         capabilities,
         read_view: Some(id),
@@ -245,6 +260,7 @@ fn execute_at_inner(
         rule_catalog: registry::catalog(),
         checks: vec![],
         follow_ups,
+        activity: None,
     })
 }
 
@@ -266,4 +282,13 @@ fn observed_capabilities(view: &View) -> Capabilities {
         hook_support,
         ..Capabilities::default()
     }
+}
+
+/// Current hits are hidden only by a still-applicable explicit user decision.
+/// A historical verified miss cannot suppress a recurrence.
+pub(super) fn suppresses(previous: &Suggestion, current: &Suggestion) -> bool {
+    previous
+        .decision
+        .as_ref()
+        .is_some_and(|decision| super::identity::decision_applies(decision, current))
 }

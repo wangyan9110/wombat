@@ -203,6 +203,7 @@ pub(super) fn evaluate(
                 out.push(
                     &target.id,
                     Finding {
+                        identity: Default::default(),
                         rule: "declaredCopyDrift".into(),
                         status: "needsReview".into(),
                         observed: None,

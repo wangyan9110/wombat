@@ -6,7 +6,7 @@ use rusqlite::{OptionalExtension, Transaction, params};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
-const VERSION: i64 = 3;
+const VERSION: i64 = 4;
 const SCHEMA: &str = "CREATE TABLE review_parts(id INTEGER PRIMARY KEY, hash TEXT NOT NULL UNIQUE, payload BLOB NOT NULL);
 CREATE TABLE review_events(seq INTEGER PRIMARY KEY AUTOINCREMENT, object_id TEXT NOT NULL, suggestion_id TEXT NOT NULL, scope_project TEXT, status TEXT NOT NULL, decided INTEGER NOT NULL, kind TEXT NOT NULL, category TEXT NOT NULL, basis INTEGER NOT NULL REFERENCES review_parts(id), item INTEGER NOT NULL REFERENCES review_parts(id), baseline INTEGER REFERENCES review_parts(id), checks INTEGER NOT NULL REFERENCES review_parts(id), event BLOB NOT NULL);
 CREATE INDEX review_scope_seq ON review_events(scope_project,seq DESC);
@@ -23,7 +23,7 @@ pub(super) fn initialize(db: &mut Connection) -> Result<()> {
     }
     if version != 0 {
         return Err(operation_error(
-            "REVIEWS_UNAVAILABLE",
+            "UNSUPPORTED_VERSION",
             "处理记录版本不支持，原数据未被丢弃",
         ));
     }
@@ -119,6 +119,8 @@ pub(super) fn append(tx: &Transaction<'_>, s: &mut Suggestion, kind: RecordKind)
     if count >= 20_000 {
         return Err(operation_error("RESOURCE_LIMIT", "处理记录达到上限"));
     }
+    super::identity::capture(s);
+    validate(s)?;
     s.record_id = Some(uuid::Uuid::new_v4().to_string());
     s.recorded_at = Some(chrono::Utc::now().to_rfc3339());
     s.record_kind = Some(kind);
@@ -179,6 +181,21 @@ fn decode(row: &rusqlite::Row<'_>) -> rusqlite::Result<Suggestion> {
             .as_object()
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("invalid review basis"))?;
+        match basis.get("reviewFormatVersion").and_then(Value::as_u64) {
+            Some(1) => (),
+            Some(_) => {
+                return Err(operation_error(
+                    "UNSUPPORTED_VERSION",
+                    "处理记录版本不支持，原数据未被更改",
+                ));
+            }
+            None => {
+                return Err(operation_error(
+                    "REVIEWS_CORRUPT",
+                    "处理记录版本头缺失或无效，原数据未被更改",
+                ));
+            }
+        }
         basis.insert("item".into(), read(1)?);
         basis.insert("checks".into(), read(4)?);
         basis.insert(
@@ -195,14 +212,26 @@ fn decode(row: &rusqlite::Row<'_>) -> rusqlite::Result<Suggestion> {
                 .cloned()
                 .ok_or_else(|| anyhow::anyhow!("invalid review event"))?,
         );
-        Ok(serde_json::from_value(Value::Object(basis))?)
+        let value = Value::Object(basis);
+        check_headers(&value)?;
+        let suggestion = serde_json::from_value(value)?;
+        validate(&suggestion)?;
+        Ok(suggestion)
     })();
     parsed.map_err(|e| {
-        rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, e.into())
+        let error = e
+            .downcast::<crate::dto::OperationError>()
+            .unwrap_or_else(|_| crate::dto::OperationError {
+                code: "REVIEWS_CORRUPT",
+                message: "处理记录格式损坏，原数据未被更改".into(),
+                details: None,
+            });
+        rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(error))
     })
 }
 pub(super) fn get(tx: &Transaction<'_>, seq: i64) -> Result<Suggestion> {
-    Ok(tx.query_row(&format!("{SELECT} WHERE d.seq=?1"), [seq], decode)?)
+    tx.query_row(&format!("{SELECT} WHERE d.seq=?1"), [seq], decode)
+        .map_err(read_error)
 }
 pub(super) fn history_count(tx: &Transaction<'_>, project: Option<&str>) -> Result<usize> {
     Ok(tx.query_row("SELECT COUNT(*) FROM review_events d JOIN authorized_review_objects a ON a.id=d.object_id WHERE d.scope_project IS ?1 AND d.kind!='observation'", [project], |r| r.get::<_, i64>(0))? as usize)
@@ -233,6 +262,95 @@ pub(super) fn page(
             params![r.project, category, target, limit as i64, offset as i64],
             decode,
         )?
-        .collect::<rusqlite::Result<_>>()?;
+        .collect::<rusqlite::Result<_>>()
+        .map_err(read_error)?;
     Ok((total, items))
+}
+
+fn read_error(error: rusqlite::Error) -> anyhow::Error {
+    if let rusqlite::Error::FromSqlConversionFailure(_, _, inner) = &error
+        && let Some(error) = inner.downcast_ref::<crate::dto::OperationError>()
+    {
+        return operation_error(error.code, error.message.clone());
+    }
+    operation_error("REVIEWS_CORRUPT", "处理记录无法读取，原数据未被更改")
+}
+fn validate(s: &Suggestion) -> Result<()> {
+    let baseline = s
+        .review_baseline
+        .as_ref()
+        .ok_or_else(|| operation_error("REVIEWS_CORRUPT", "原始检查基线缺失"))?;
+    if s.review_format_version != 1
+        || baseline.version != 1
+        || s.decision.as_ref().is_some_and(|d| d.binding.version != 1)
+        || s.findings.iter().any(|f| f.identity.version != 1)
+        || s.checks
+            .iter()
+            .chain(&baseline.assessments)
+            .any(|c| c.basis.version != 1 || c.findings.iter().any(|f| f.identity.version != 1))
+    {
+        return Err(operation_error(
+            "UNSUPPORTED_VERSION",
+            "检查依据版本不支持，原数据未被更改",
+        ));
+    }
+    if baseline.assessments.is_empty()
+        || s.checks.is_empty()
+        || baseline.scope != baseline.assessments[0].basis.scope
+        || s.checks.iter().chain(&baseline.assessments).any(|c| {
+            c.assessment_id.is_none() && c.identity_gap.is_none()
+                || c.basis.dependency_revision.is_none() && c.basis.gaps.is_empty()
+                || c.findings
+                    .iter()
+                    .any(|f| f.identity.finding_id.is_none() && f.identity.gap.is_none())
+        })
+    {
+        return Err(operation_error(
+            "REVIEWS_CORRUPT",
+            "检查依据格式损坏，原数据未被更改",
+        ));
+    }
+    Ok(())
+}
+
+fn required_version(value: &Value, name: &str) -> Result<()> {
+    match value.get(name).and_then(Value::as_u64) {
+        Some(1) => Ok(()),
+        Some(_) => Err(operation_error(
+            "UNSUPPORTED_VERSION",
+            "检查依据版本不支持，原数据未被更改",
+        )),
+        None => Err(operation_error(
+            "REVIEWS_CORRUPT",
+            "检查依据版本头缺失或无效，原数据未被更改",
+        )),
+    }
+}
+fn check_headers(value: &Value) -> Result<()> {
+    required_version(value, "reviewFormatVersion")?;
+    let baseline = &value["reviewBaseline"];
+    required_version(baseline, "version")?;
+    if !value["decision"].is_null() {
+        required_version(&value["decision"]["binding"], "version")?;
+    }
+    let check_findings = |findings: &Value| -> Result<()> {
+        let findings = findings
+            .as_array()
+            .ok_or_else(|| operation_error("REVIEWS_CORRUPT", "问题记录格式损坏"))?;
+        for finding in findings {
+            required_version(&finding["identity"], "version")?;
+        }
+        Ok(())
+    };
+    check_findings(&value["findings"])?;
+    for checks in [&value["checks"], &baseline["assessments"]] {
+        let checks = checks
+            .as_array()
+            .ok_or_else(|| operation_error("REVIEWS_CORRUPT", "检查记录格式损坏"))?;
+        for check in checks {
+            required_version(&check["basis"], "version")?;
+            check_findings(&check["findings"])?;
+        }
+    }
+    Ok(())
 }

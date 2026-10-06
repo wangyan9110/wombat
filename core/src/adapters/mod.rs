@@ -33,7 +33,27 @@ pub fn collect_with(
         let discovered = adapter.discover(request);
         result.issues.extend(discovered.issues);
         for source in discovered.sources {
+            let before = (
+                result.watermarks.len(),
+                result.title_observations.len(),
+                result.threads.len(),
+                result.turns.len(),
+                result.measurements.len(),
+                result.events.len(),
+                result.operations.len(),
+            );
             let report = adapter.collect(&source, &ReadPlan, context, &mut result);
+            // Streaming sinks can already have received a prefix when cancellation
+            // arrives. A cancelled source does not publish that prefix as new facts.
+            if report.status == "cancelled" {
+                result.watermarks.truncate(before.0);
+                result.title_observations.truncate(before.1);
+                result.threads.truncate(before.2);
+                result.turns.truncate(before.3);
+                result.measurements.truncate(before.4);
+                result.events.truncate(before.5);
+                result.operations.truncate(before.6);
+            }
             result.issues.extend(report.issues.iter().cloned());
             result.sources.push(report);
         }
@@ -44,6 +64,39 @@ pub fn collect_with(
 #[cfg(test)]
 mod tests {
     use super::*;
+    struct Cancelling;
+    impl AgentAdapter for Cancelling {
+        fn descriptor(&self) -> AdapterDescriptor {
+            DailyOnly.descriptor()
+        }
+        fn discover(&self, r: &DiscoveryRequest) -> DiscoveryReport {
+            DailyOnly.discover(r)
+        }
+        fn collect(
+            &self,
+            source: &SourceInstance,
+            plan: &ReadPlan,
+            context: &RunContext,
+            sink: &mut dyn FactSink,
+        ) -> SourceReport {
+            let mut report = DailyOnly.collect(source, plan, context, sink);
+            report.status = "cancelled".into();
+            report
+        }
+    }
+    #[test]
+    fn cancelled_source_prefix_is_retracted_without_erasing_prior_source_facts() {
+        let result = collect_with(
+            &[Box::new(DailyOnly), Box::new(Cancelling)],
+            &DiscoveryRequest { roots: vec![] },
+            &RunContext::default(),
+        );
+        assert_eq!(result.sources.len(), 2);
+        assert_eq!(result.sources[0].status, "complete");
+        assert_eq!(result.sources[1].status, "cancelled");
+        assert_eq!(result.measurements.len(), 1);
+        assert_eq!(result.measurements[0].tokens.total, Some(110));
+    }
     struct DailyOnly;
     impl AgentAdapter for DailyOnly {
         fn descriptor(&self) -> AdapterDescriptor {
@@ -101,6 +154,11 @@ mod tests {
                         total: Some(110),
                         raw_input: Some(100),
                     },
+                    token_unavailable_reasons: TokenFields {
+                        reasoning: Some(TokenUnavailableReason::Missing),
+                        ..TokenFields::default()
+                    },
+                    pricing_context_conflict: false,
                     request_scoped: false,
                     reported_cost: Some("1.234".into()),
                     service_tier: None,

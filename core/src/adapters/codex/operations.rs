@@ -1,8 +1,11 @@
 //! Source operation identities, safe metadata and native MCP evidence.
 use super::*;
+mod matching;
 mod mcp;
 mod merge;
+mod outcome;
 mod replay;
+mod work;
 pub(super) use merge::merge_metadata;
 pub(super) fn operation_id(thread: &str, turn: Option<&str>, identity: &str) -> String {
     stable_id(&[thread, "operation", turn.unwrap_or(""), identity])
@@ -32,8 +35,11 @@ pub(super) fn empty_operation(
         time_precision: precision(raw_time).into(),
         status: "unknown".into(),
         exit_code: None,
+        outcome_conflict: false,
         duration_ms: None,
         path: None,
+        work: None,
+        matching: None,
         server: None,
         tool: None,
         evidence: vec![evidence.clone()],
@@ -43,6 +49,7 @@ pub(super) fn empty_operation(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn operation(
     p: &Payload<'_>,
+    item: &Payload<'_>,
     event: &str,
     thread: &str,
     turn: Option<String>,
@@ -50,29 +57,10 @@ pub(super) fn operation(
     raw_time: Option<&str>,
     evidence: EvidenceRef,
     _fingerprint: &str,
+    raw_item: &serde_json::value::RawValue,
     facts: &mut Facts,
     report: &mut SourceReport,
 ) {
-    let parsed;
-    let item = if let Some(raw) = p.item {
-        match serde_json::from_str::<Payload>(raw.get()) {
-            Ok(value) => {
-                parsed = value;
-                &parsed
-            }
-            Err(_) => {
-                issue(
-                    report,
-                    "invalidOperation",
-                    "操作记录格式无效",
-                    Some(evidence),
-                );
-                return;
-            }
-        }
-    } else {
-        p
-    };
     let kind = item.kind.as_deref().unwrap_or("");
     let (operation_kind, name, completed) = match kind {
         "function_call" | "custom_tool_call" => {
@@ -87,6 +75,7 @@ pub(super) fn operation(
         "FileChange" | "fileChange" | "file_change" => {
             ("file", "apply_patch", event == "item_completed")
         }
+        "patch_apply_end" => ("file", "apply_patch", true),
         "McpToolCall" | "mcpToolCall" | "mcp_tool_call" => (
             "mcp",
             item.tool.as_deref().unwrap_or("MCP"),
@@ -138,18 +127,34 @@ pub(super) fn operation(
     op.status = match item.status.as_deref() {
         Some("failed" | "error") => "failed",
         Some("interrupted" | "cancelled") => "interrupted",
+        Some("declined") => "declined",
         Some("completed" | "success") => "completed",
         _ if completed && operation_kind != "tool" && operation_kind != "mcp" => "completed",
         _ if completed => "unknown",
         _ => "running",
     }
     .into();
-    op.exit_code = item.exit_code;
-    op.duration_ms = item.duration_ms.filter(|n| *n <= MAX_SAFE_INTEGER);
-    if op.exit_code.is_some_and(|code| code != 0) {
-        op.status = "failed".into();
-    }
+    op.duration_ms = item
+        .duration_ms
+        .and_then(timing::safe_integer)
+        .or_else(|| item.duration.and_then(mcp::duration));
     op.path = item.path.as_deref().map(safe_text);
+    if operation_kind == "file" {
+        op.work = Some(work::file_changes(item, completed, report, &evidence));
+        // Legacy success is outcome evidence, not permission to erase a declined status.
+        if item.success.is_some_and(|r| r.get() == "false") && op.status.as_ref() != "declined" {
+            outcome::result_status(&mut op, "failed");
+        }
+    } else if operation_kind == "command" {
+        let receiver = facts
+            .event_context
+            .as_ref()
+            .filter(|context| context.locally_owned())
+            .map(|_| op.thread_id.as_ref());
+        let (work, matching) = work::command(item, p.item, receiver, completed, report, &evidence);
+        op.work = Some(work);
+        op.matching = Some(matching);
+    }
     op.server = item.server.as_deref().map(|s| safe_text(s).into());
     op.tool = item.tool.as_deref().map(|s| safe_text(s).into());
     #[derive(Deserialize)]
@@ -200,45 +205,32 @@ pub(super) fn operation(
             );
             return;
         }
-        if op.status.as_ref() != "failed"
-            && let Some(status) = item.result.and_then(mcp::result_status)
-        {
-            op.status = status.into();
+        let receiver = facts
+            .event_context
+            .as_ref()
+            .filter(|c| c.locally_owned())
+            .map(|_| op.thread_id.as_ref());
+        op.matching = Some(matching::mcp(item, p.item, receiver, false));
+        if let Some(status) = item.result.and_then(mcp::result_status) {
+            outcome::result_status(&mut op, status);
         }
     } else {
         mcp::resource_request(item, &mut op);
     }
-    #[derive(Deserialize)]
-    struct ResultMetadata {
-        #[serde(alias = "isError")]
-        is_error: Option<bool>,
-        exit_code: Option<i64>,
-        duration_ms: Option<u64>,
-    }
-    if let Some(metadata) = item
-        .result
-        .or(item.output)
-        .filter(|r| r.get().starts_with('{'))
-        .and_then(|r| serde_json::from_str::<ResultMetadata>(r.get()).ok())
-    {
-        if metadata.is_error == Some(true) {
-            op.status = "failed".into();
-        } else if metadata.is_error == Some(false)
-            && completed
-            && op.status.as_ref() != "failed"
-            && operation_kind != "mcp"
-        {
-            op.status = "completed".into();
-        }
-        op.exit_code = metadata.exit_code.or(op.exit_code);
-        op.duration_ms = metadata
-            .duration_ms
-            .filter(|n| *n <= MAX_SAFE_INTEGER)
-            .or(op.duration_ms);
-        if op.exit_code.is_some_and(|code| code != 0) {
-            op.status = "failed".into();
+    if item.kind.as_deref() == Some("function_call") {
+        let receiver = facts
+            .event_context
+            .as_ref()
+            .filter(|c| c.locally_owned())
+            .map(|_| op.thread_id.as_ref());
+        if let Some(matching) = matching::mcp_function(item, Some(raw_item), receiver) {
+            if op.kind.as_ref() == "tool" {
+                op.kind = "mcp".into();
+            }
+            op.matching = Some(matching);
         }
     }
+    outcome::apply(&mut op, item, completed, operation_kind == "mcp", report);
     facts.operation(op, report);
 }
 
@@ -281,6 +273,12 @@ pub(super) fn mcp_event(
         );
         return;
     }
+    let receiver = facts
+        .event_context
+        .as_ref()
+        .filter(|c| c.locally_owned())
+        .map(|_| op.thread_id.as_ref());
+    op.matching = Some(matching::mcp(&invocation, p.invocation, receiver, true));
     op.call_id = Some(call.into());
     op.duration_ms = p.duration.and_then(mcp::duration);
     op.status = if event == "mcp_tool_call_begin" {

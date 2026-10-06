@@ -11,50 +11,116 @@ pub(super) fn source_key(roots: &[String]) -> String {
     crate::hash(ids.join(":"))
 }
 pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Option<Collected>> {
+    validate_message_mapping(db, key)?;
     let mut value = Collected::default();
     let mut paths = EvidencePaths::default();
+    let mut watermark_version = None;
     let mut strings = adapters::shared_strings::FactStrings::default();
-    let found =
-        crate::live_index::each(db, &format!("projection:{key}"), |field, _id, payload| {
-            macro_rules! rows {
-                ($name:ident) => {
-                    value.$name.push(serde_json::from_str(payload)?);
-                };
+    let found = crate::live_index::each(db, &format!("projection:{key}"), |field, id, payload| {
+        macro_rules! rows {
+            ($name:ident) => {
+                value.$name.push(serde_json::from_str(payload)?);
+            };
+        }
+        match field {
+            field
+                if crate::observation_versions::ObservationHeaderSet::Projection
+                    .kinds()
+                    .iter()
+                    .any(|kind| kind.field() == field) => {}
+            "watermarkVersion" => {
+                watermark_version = Some(serde_json::from_str::<u32>(payload)?);
             }
-            match field {
-                "sources" => {
-                    rows!(sources);
-                }
-                "threads" => {
-                    rows!(threads);
-                }
-                "turns" => {
-                    rows!(turns);
-                }
-                "measurements" => {
-                    rows!(measurements);
-                    if let Some(row) = value.measurements.last_mut() {
-                        let row = Arc::make_mut(row);
-                        paths.compact(&mut row.evidence);
-                        strings.measurement(row);
-                    }
-                }
-                "operations" => {
-                    rows!(operations);
-                    if let Some(row) = value.operations.last_mut() {
-                        let row = Arc::make_mut(row);
-                        paths.compact(&mut row.evidence);
-                        strings.operation(row);
-                    }
-                }
-                "issues" => {
-                    value.issues = serde_json::from_str(payload)?;
-                }
-                _ => anyhow::bail!("unsupported projection field: {field}"),
+            "watermarks" => {
+                rows!(watermarks);
+                let row = value.watermarks.last().expect("just appended watermark");
+                anyhow::ensure!(
+                    row.file_id == id && row.source_instance_id == key,
+                    "projection watermark identity mismatch"
+                );
             }
-            Ok(())
-        })?;
+            "sources" => {
+                rows!(sources);
+            }
+            "threads" => {
+                rows!(threads);
+            }
+            "turns" => {
+                rows!(turns);
+            }
+            "measurements" => {
+                rows!(measurements);
+                if let Some(row) = value.measurements.last_mut() {
+                    let row = Arc::make_mut(row);
+                    paths.compact(&mut row.evidence);
+                    strings.measurement(row);
+                }
+            }
+            "operations" => {
+                rows!(operations);
+                if let Some(row) = value.operations.last_mut() {
+                    let row = Arc::make_mut(row);
+                    paths.compact(&mut row.evidence);
+                    strings.operation(row);
+                }
+            }
+            "title_observations" => {
+                rows!(title_observations);
+                let observation = value
+                    .title_observations
+                    .last()
+                    .expect("just appended observation");
+                observation.validate()?;
+                anyhow::ensure!(
+                    observation.thread_id == id && observation.source_instance_id == key,
+                    "projection title scope mismatch"
+                );
+            }
+            "events" => {
+                rows!(events);
+            }
+            "issues" => {
+                value.issues = serde_json::from_str(payload)?;
+            }
+            _ => anyhow::bail!("unsupported projection field: {field}"),
+        }
+        Ok(())
+    })?;
+    if found {
+        if watermark_version != Some(WATERMARK_FORMAT_VERSION) {
+            return Err(operation_error(
+                "UNSUPPORTED_VERSION",
+                "不支持此投影水位格式",
+            ));
+        }
+        validate_watermarks(&value.watermarks)?;
+        let targets: BTreeMap<_, _> = value.threads.iter().map(|t| (t.id.as_str(), t)).collect();
+        let mut seen = std::collections::BTreeSet::new();
+        for observation in &value.title_observations {
+            let thread = targets
+                .get(observation.thread_id.as_str())
+                .ok_or_else(|| anyhow::anyhow!("projection title target missing"))?;
+            anyhow::ensure!(
+                seen.insert(&observation.thread_id)
+                    && thread.source_instance_id == observation.source_instance_id
+                    && thread.title.as_deref() == Some(observation.title.as_str()),
+                "projection title scope mismatch"
+            );
+        }
+    }
     Ok(found.then_some(value))
+}
+
+/// Guard before reading facts and before sync's unchanged/cached fast path.
+fn validate_message_mapping(db: &rusqlite::Connection, key: &str) -> Result<()> {
+    let scope = format!("projection:{key}");
+    if crate::live_index::has_scope(db, &scope)? {
+        crate::observation_versions::ObservationHeaderSet::Projection.validate_index(
+            |field| crate::live_index::scalar(db, &scope, field),
+            |_| "不支持此投影来源观察映射",
+        )?;
+    }
+    Ok(())
 }
 
 pub(super) fn sync(
@@ -79,9 +145,13 @@ pub(super) fn sync(
     }
     let mut tx = db.transaction()?;
     let mut failures = BTreeMap::<String, SourceReport>::new();
+    let mut failure_watermarks = BTreeMap::<String, Vec<SourceWatermark>>::new();
     let mut changed = false;
     let mut epochs = BTreeMap::new();
     let mut updated = BTreeMap::new();
+    for source in &discovered.sources {
+        validate_message_mapping(&tx, &source.id)?;
+    }
     for source in &discovered.sources {
         let cache = caches.entry(source.id.clone()).or_default();
         if cache.needs_seed()
@@ -104,6 +174,15 @@ pub(super) fn sync(
                 source_tx.rollback()?;
                 drop(source_tx);
                 caches.remove(&source.id);
+                if error
+                    .downcast_ref::<crate::dto::OperationError>()
+                    .is_some_and(|error| error.code == "UNSUPPORTED_VERSION")
+                {
+                    // Earlier sources may have updated in-memory facts inside this
+                    // transaction; discard them along with the durable rollback.
+                    caches.clear();
+                    return Err(error);
+                }
                 let mut report = prior_view
                     .and_then(|v| v.manifest.sources.iter().find(|s| s.source.id == source.id))
                     .cloned()
@@ -127,6 +206,32 @@ pub(super) fn sync(
                     source_instance_id: Some(source.id.clone()),
                     evidence: None,
                 });
+                // Source savepoint was rolled back: only previous committed file
+                // positions may be retained. This attempt has no captured length.
+                let at = chrono::Utc::now().to_rfc3339();
+                let watermarks = load_collected(&tx, &source.id)?
+                    .map(|v| v.watermarks)
+                    .or_else(|| {
+                        prior_view.map(|v| {
+                            v.manifest
+                                .watermarks
+                                .iter()
+                                .filter(|w| w.source_instance_id == source.id)
+                                .cloned()
+                                .collect()
+                        })
+                    })
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|w| {
+                        w.unavailable(
+                            WatermarkState::Failed,
+                            WatermarkIssue::SourceSyncFailed,
+                            &at,
+                        )
+                    })
+                    .collect();
+                failure_watermarks.insert(source.id.clone(), watermarks);
                 failures.insert(source.id.clone(), report);
                 None
             }
@@ -142,6 +247,23 @@ pub(super) fn sync(
                 "sources",
                 value.sources.iter().map(|s| (s.source.id.as_str(), s)),
             )?;
+            crate::live_index::put(
+                &tx,
+                &scope,
+                "watermarkVersion",
+                "",
+                &WATERMARK_FORMAT_VERSION,
+            )?;
+            for &kind in crate::observation_versions::ObservationHeaderSet::Projection.kinds() {
+                let version = kind.current();
+                crate::live_index::put(&tx, &scope, kind.field(), "", &version)?;
+            }
+            crate::live_index::replace_field(
+                &tx,
+                &scope,
+                "watermarks",
+                value.watermarks.iter().map(|w| (w.file_id.as_str(), w)),
+            )?;
             macro_rules! save {
                 ($field:ident) => {
                     crate::live_index::replace_field(
@@ -152,6 +274,15 @@ pub(super) fn sync(
                     )?;
                 };
             }
+            crate::live_index::replace_field(
+                &tx,
+                &scope,
+                "title_observations",
+                value
+                    .title_observations
+                    .iter()
+                    .map(|v| (v.thread_id.as_str(), v)),
+            )?;
             save!(threads);
             save!(turns);
             if let Some(delta) = synced.measurements {
@@ -190,6 +321,15 @@ pub(super) fn sync(
                     value.operations.iter().map(|r| r.id.as_str()),
                 )?;
             }
+            for event in &value.events {
+                projection.event(event)?;
+            }
+            crate::live_index::retain_field(
+                &tx,
+                &scope,
+                "events",
+                value.events.iter().map(|e| e.id()),
+            )?;
             updated.insert(source.id.clone(), value);
             crate::live_index::save_map(
                 &tx,
@@ -232,13 +372,22 @@ pub(super) fn sync(
         if let Some(failure) = failures.get(&source.id) {
             value.sources = vec![failure.clone()];
             value.issues = failure.issues.clone();
+            value.watermarks = failure_watermarks
+                .get(&source.id)
+                .cloned()
+                .unwrap_or_default();
         }
+        collected.watermarks.extend(value.watermarks);
         collected.sources.extend(value.sources);
         collected.issues.extend(value.issues);
         collected.threads.extend(value.threads);
         collected.turns.extend(value.turns);
         collected.measurements.extend(value.measurements);
         collected.operations.extend(value.operations);
+        collected.events.extend(value.events);
+        collected
+            .title_observations
+            .extend(value.title_observations);
     }
     if collected.sources.iter().any(|s| s.status == "failed")
         && !collected
@@ -266,7 +415,7 @@ pub(super) fn sync(
     crate::live_index::save_map(
         &tx,
         &format!("view:{key}"),
-        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"failures":failures,"createdAt":snapshot.manifest.snapshot_ref.created_at})
+        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"failures":failures,"failureWatermarks":failure_watermarks,"createdAt":snapshot.manifest.snapshot_ref.created_at})
             .as_object()
             .unwrap(),
     )?;
@@ -309,13 +458,24 @@ pub(super) fn restore(
         if let Some(failure) = failure {
             v.issues = failure.issues.clone();
             v.sources = vec![failure];
+            v.watermarks = serde_json::from_value(
+                prior
+                    .get("failureWatermarks")
+                    .and_then(|v| v.get(&source.id))
+                    .ok_or_else(|| anyhow::anyhow!("missing failure watermark observations"))?
+                    .clone(),
+            )?;
+            validate_watermarks(&v.watermarks)?;
         }
+        collected.watermarks.extend(v.watermarks);
         collected.sources.extend(v.sources);
         collected.issues.extend(v.issues);
         collected.threads.extend(v.threads);
         collected.turns.extend(v.turns);
         collected.measurements.extend(v.measurements);
         collected.operations.extend(v.operations);
+        collected.events.extend(v.events);
+        collected.title_observations.extend(v.title_observations);
     }
     let mut snapshot = crate::usage_store::memory(collected, id.into(), prices, None)?;
     if let Some(at) = prior.get("createdAt").and_then(Value::as_str) {
@@ -323,3 +483,8 @@ pub(super) fn restore(
     }
     Ok(Some(Arc::new(snapshot)))
 }
+
+#[cfg(test)]
+mod observation_tests;
+#[cfg(test)]
+mod watermark_tests;

@@ -240,10 +240,26 @@ mod tests {
             mode: Mode::Auto,
             verify: false,
         };
+        let selector = selection::ReadViewSelector::new(
+            roots.clone(),
+            None,
+            request.mode.clone(),
+            request.verify,
+            false,
+        )
+        .unwrap();
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
         // More readers than the queue capacity, with the worker deliberately paused.
         std::thread::scope(|scope| {
             let readers: Vec<_> = (0..40)
-                .map(|_| scope.spawn(|| select_view(&request, &shared, &tx).unwrap().1.status))
+                .map(|_| {
+                    scope.spawn(|| {
+                        select_view(&selector, &shared, &tx, &cancelled)
+                            .unwrap()
+                            .1
+                            .status
+                    })
+                })
                 .collect();
             for reader in readers {
                 assert_eq!(reader.join().unwrap(), "syncing");
@@ -259,7 +275,18 @@ mod tests {
                     mode: Mode::Fresh,
                     ..request.clone()
                 };
-                select_view(&request, &shared, &tx).unwrap().1.status
+                let selector = selection::ReadViewSelector::new(
+                    request.query.roots.unwrap_or_default(),
+                    None,
+                    request.mode,
+                    request.verify,
+                    false,
+                )
+                .unwrap();
+                select_view(&selector, &shared, &tx, &cancelled)
+                    .unwrap()
+                    .1
+                    .status
             });
             // Observe the reader releasing the state lock into its completion wait.
             let deadline = Instant::now() + Duration::from_secs(2);

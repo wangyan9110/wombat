@@ -4,6 +4,7 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { CoreError, createUsageClient, type QueryOptions, type UsageClient, type UsageRequest } from '@wombat/client';
 import { backgroundPrices } from './automatic-prices.js';
+import { timingAccess, publishTiming, activityAccess } from './timing.js';
 
 const BODY_LIMIT = 64 * 1024;
 const OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -94,20 +95,26 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
     if (request.roots != null || (request.snapshotId != null && !snapshots.has(request.snapshotId))) throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
     return { ...request, roots: request.snapshotId && !request.snapshotId.startsWith('live:') ? undefined : options.roots };
   };
-  const client = createUsageClient(
-    async (r, q) => {
+  const revalidateFixed = async (query:import('@wombat/client').QueryOptions) => {
+    if (options.client.directories) updateGrants(await options.client.directories({ action: 'list' }, query));
+  };
+  const timing = timingAccess(options.client,snapshots,()=>options.roots,revalidateFixed);
+  const activity = activityAccess(options.client,snapshots,()=>options.roots,revalidateFixed);
+  const client = createUsageClient({
+    timing,
+    query: async (r, q) => {
       const result = await options.client.query(scope(r), q);
       observeProjects(result);
       return result;
     },
-    (r, q) => r.action==='auto_update' ? prices.update() : options.client.prices(r, q),
-    async (r, q) => {
+    prices: (r, q) => r.action==='auto_update' ? prices.update() : options.client.prices(r, q),
+    live: async (r, q) => {
       if (!options.client.live) throw new CoreError('LIVE_UNAVAILABLE', 'Live queries unavailable');
       const result = prices.observe(r, await options.client.live({ ...r, query: scope(r.query) }, q));
       observeProjects(result.result);
       return result;
     },
-    async (r, q) => {
+    config: async (r, q) => {
       if (!options.client.config) throw new CoreError('CONFIG_UNAVAILABLE', 'Configuration queries unavailable');
       if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView)) || (r.snapshotId != null && !snapshots.has(r.snapshotId)))
         throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
@@ -116,24 +123,25 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       const result=await options.client.config({ ...r, roots: options.roots, projectRoots: projects }, q);
       return {...result,authorizedSourceRoots:options.roots??result.authorizedSourceRoots,authorizedProjects:projects,hostRestartCommand:options.restartCommand??null};
     },
-    async (r, q) => {
+    optimize: async (r, q) => {
+      if(r.action==='activity')return activity(r,q);
       if (!options.client.optimize) throw new CoreError('OPTIMIZE_UNAVAILABLE', 'Optimization queries unavailable');
       if (r.roots != null || r.projectRoots != null || (r.readView != null && !configViews.has(r.readView))) throw new CoreError('INVALID_ARGUMENT', 'Web scope is fixed at startup');
       await discoverProject(r.project, q);
       return options.client.optimize({ ...r, roots: options.roots, projectRoots: projectRoots(r.project) }, q);
     },
-    (r,q)=> {
+    preferences: (r,q)=> {
       if (!options.client.preferences) throw new CoreError('PREFERENCES_UNAVAILABLE','Preferences unavailable');
       return options.client.preferences(r,q);
     },
-    async(r,q)=>{
+    directories: async(r,q)=>{
       if(!options.client.directories)throw new CoreError('DIRECTORY_PICKER_UNAVAILABLE','Directory authorization unavailable');
       if(r.path!=null||r.action==='authorize')throw new CoreError('INVALID_ARGUMENT','Use the host directory selector');
       const result=await options.client.directories(r,q);
       if(r.action==='list'||r.action==='confirm'||r.action==='revoke')updateGrants(result);
       return result;
     },
-    {
+    ...{
       account:(r,q)=>{
         if(!options.client.account)throw new CoreError('ACCOUNT_UNAVAILABLE','Account unavailable');
         return options.client.account(r,q);
@@ -144,8 +152,8 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         await discoverProject(r.project,q);
         return options.client.handoff({...r,roots:options.roots,projectRoots:projectRoots(r.project)},q);
       },
-    },
-  );
+    }
+  });
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
@@ -157,7 +165,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       const supplied = Buffer.from(req.headers.authorization ?? '');
       if (supplied.length !== authorization.length || !timingSafeEqual(supplied, authorization) || req.headers.origin !== origin) return reject(403);
       if (req.method !== 'POST') return reject(405);
-      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences','/api/directories','/api/account','/api/handoff'].includes(req.url)) return reject(404);
+      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences','/api/directories','/api/account','/api/handoff','/api/timing'].includes(req.url)) return reject(404);
       if (req.headers['content-type'] !== 'application/json') return reject(415);
       if (Number(req.headers['content-length'] ?? 0) > BODY_LIMIT) return reject(413);
       if (active.size >= 8) return reject(429);
@@ -185,9 +193,10 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
         const query = { signal: controller.signal, onProgress: (stage: string) => send({ type: 'progress', stage }) };
         // Revocation from another CLI/window is authoritative at the next request.
-        if(req.url!=='/api/directories'&&req.url!=='/api/account'&&options.client.directories)updateGrants(await options.client.directories({action:'list'},query));
+        if(req.url!=='/api/directories'&&req.url!=='/api/account'&&req.url!=='/api/timing'&&options.client.directories)updateGrants(await options.client.directories({action:'list'},query));
         // createUsageClient validates each unknown payload before the typed transport runs.
-        const value = req.url === '/api/query' ? await client.query(request as Parameters<UsageClient['query']>[0], query)
+        const value = req.url === '/api/timing' ? await client.timing!(request as Parameters<NonNullable<UsageClient['timing']>>[0], query)
+          : req.url === '/api/query' ? await client.query(request as Parameters<UsageClient['query']>[0], query)
           : req.url === '/api/account' ? await client.account!(request as Parameters<NonNullable<UsageClient['account']>>[0],query)
           : req.url === '/api/handoff' ? await client.handoff!(request as Parameters<NonNullable<UsageClient['handoff']>>[0],query)
           : req.url === '/api/prices' ? await client.prices(request as Parameters<UsageClient['prices']>[0], query)
@@ -198,12 +207,16 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
           : await client.live!(request as Parameters<NonNullable<UsageClient['live']>>[0], query);
         const result = 'result' in value ? value.result : 'snapshotRef' in value ? value : undefined;
         if ('readView' in value) {
-          if (value.readView) configViews.add(value.readView);
+          if (typeof value.readView === 'string') configViews.add(value.readView);
           if (configViews.size > 128) configViews.delete(configViews.values().next().value!);
           if ('usageRevision' in value && value.usageRevision) snapshots.add(value.usageRevision);
         }
         if (result) {
           snapshots.add(result.snapshotRef.snapshotId);
+        }
+        if (req.url === '/api/timing') {
+          // Narrow the independently validated timing result; never publish share aliases.
+          publishTiming(value as import('@wombat/client').TimingResult, snapshots);
         }
         if (snapshots.size > 128) snapshots.delete(snapshots.values().next().value!);
         send({ type: 'result', value });

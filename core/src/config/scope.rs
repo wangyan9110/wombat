@@ -19,24 +19,46 @@ pub(crate) fn validate(r: &Request) -> Result<()> {
     if r.read_view.is_some() && r.snapshot_id.is_some() {
         return Err(operation_error("INVALID_ARGUMENT", "读取版本不能混用"));
     }
-    normalize(&r.scope)?;
+    validate_scope(&r.scope)?;
     Ok(())
 }
-pub(super) fn normalize(scope: &Scope) -> Result<(Scope, Tz)> {
+fn validate_scope(scope: &Scope) -> Result<Tz> {
     let tz: Tz = scope
         .timezone
         .as_deref()
         .unwrap_or("UTC")
         .parse()
         .map_err(|_| operation_error("INVALID_ARGUMENT", "时区无效"))?;
-    let today = Utc::now().with_timezone(&tz).date_naive();
+    if scope.all_time == Some(true) && (scope.since.is_some() || scope.until.is_some()) {
+        return Err(operation_error(
+            "INVALID_ARGUMENT",
+            "全部日期不能与日期范围混用",
+        ));
+    }
+    let date = |value: &Option<String>| -> Result<Option<NaiveDate>> {
+        value
+            .as_deref()
+            .map(|value| {
+                NaiveDate::parse_from_str(value, "%Y-%m-%d")
+                    .map_err(|_| operation_error("INVALID_ARGUMENT", "日期无效"))
+            })
+            .transpose()
+    };
+    if let (Some(since), Some(until)) = (date(&scope.since)?, date(&scope.until)?)
+        && since >= until
+    {
+        return Err(operation_error("INVALID_ARGUMENT", "日期范围无效"));
+    }
+    Ok(tz)
+}
+/// Defaults belong to the selected view, including requests specifying only one date.
+/// Validate the captured clock even for all-time reads; malformed views fail closed.
+pub(super) fn normalize_at(scope: &Scope, checked: &str) -> Result<(Scope, Tz)> {
+    let cutoff = DateTime::parse_from_rfc3339(checked)
+        .map_err(|_| operation_error("INVALID_FACTS", "配置观察截止时间无效"))?;
+    let tz = validate_scope(scope)?;
+    let today = cutoff.with_timezone(&tz).date_naive();
     if scope.all_time == Some(true) {
-        if scope.since.is_some() || scope.until.is_some() {
-            return Err(operation_error(
-                "INVALID_ARGUMENT",
-                "全部日期不能与日期范围混用",
-            ));
-        }
         let mut out = scope.clone();
         out.timezone = Some(tz.to_string());
         return Ok((out, tz));
@@ -48,8 +70,14 @@ pub(super) fn normalize(scope: &Scope) -> Result<(Scope, Tz)> {
             None => Ok(fallback),
         }
     };
-    let since = parse(&scope.since, today - chrono::Duration::days(29))?;
-    let until = parse(&scope.until, today + chrono::Duration::days(1))?;
+    let since_default = today
+        .checked_sub_signed(chrono::Duration::days(29))
+        .ok_or_else(|| operation_error("INVALID_FACTS", "配置观察日期超出范围"))?;
+    let until_default = today
+        .checked_add_signed(chrono::Duration::days(1))
+        .ok_or_else(|| operation_error("INVALID_FACTS", "配置观察日期超出范围"))?;
+    let since = parse(&scope.since, since_default)?;
+    let until = parse(&scope.until, until_default)?;
     if since >= until {
         return Err(operation_error("INVALID_ARGUMENT", "日期范围无效"));
     }
@@ -58,6 +86,10 @@ pub(super) fn normalize(scope: &Scope) -> Result<(Scope, Tz)> {
     out.since = Some(since.to_string());
     out.until = Some(until.to_string());
     Ok((out, tz))
+}
+#[cfg(test)]
+pub(super) fn normalize(scope: &Scope) -> Result<(Scope, Tz)> {
+    normalize_at(scope, "2000-01-01T00:00:00Z")
 }
 pub(super) fn in_time(at: Option<&str>, scope: &Scope, tz: Tz) -> bool {
     if scope.all_time == Some(true) {

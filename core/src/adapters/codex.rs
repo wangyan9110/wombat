@@ -1,17 +1,23 @@
 //! Independent Codex rollout adapter. Only explicit identities merge facts.
 mod ancestry;
+mod context;
+mod event_projection;
 pub(crate) mod incremental;
 mod instructions;
+#[cfg(test)]
+mod observation_tests;
 mod operations;
 pub(crate) mod preview;
 mod skills;
 #[cfg(test)]
 mod tests;
+mod timing;
+#[cfg(test)]
+mod watermark_tests;
 mod wire;
 use operations::{empty_operation, operation};
 
 use super::{contract::*, stable_id};
-use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -24,7 +30,7 @@ use std::{
 };
 use wire::*;
 
-pub const VERSION: &str = "codex-rollout-5";
+pub const VERSION: &str = "codex-rollout-9";
 pub struct CodexAdapter;
 
 #[cfg(test)]
@@ -166,7 +172,7 @@ impl AgentAdapter for CodexAdapter {
             attempted += 1;
             read_file(&file, source, context, &mut facts, &mut report);
         }
-        finish_facts(facts, root, &mut report, sink);
+        finish_facts(facts, root, &mut report, sink, &context.cancelled);
         if report.status != "cancelled" && !report.issues.is_empty() {
             report.status = if report.files_read == 0
                 && (attempted > 0 || report.issues.iter().any(|i| i.code == "sourceUnreadable"))
@@ -184,9 +190,54 @@ impl AgentAdapter for CodexAdapter {
     }
 }
 
-fn finish_facts(mut facts: Facts, root: &Path, report: &mut SourceReport, sink: &mut dyn FactSink) {
+fn finish_facts(
+    mut facts: Facts,
+    root: &Path,
+    report: &mut SourceReport,
+    sink: &mut dyn FactSink,
+    cancelled: &std::sync::atomic::AtomicBool,
+) {
+    if crate::operation_association::check(cancelled).is_err() {
+        report.status = "cancelled".into();
+        return;
+    }
+    read_titles(root, &mut facts, report);
+    let mut facts = match finish_projection(facts, report, cancelled) {
+        Ok(facts) => facts,
+        Err(_) => {
+            if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                report.status = "cancelled".into();
+                return;
+            }
+            issue(
+                report,
+                "operationAssociationFailed",
+                "操作关联失败，未发布新事实",
+                None,
+            );
+            report.status = "failed".into();
+            return;
+        }
+    };
+    titles::apply_titles(&mut facts);
+    if crate::operation_association::check(cancelled).is_err() {
+        report.status = "cancelled".into();
+        return;
+    }
+    if emit_facts(facts, sink, cancelled).is_err() {
+        report.status = "cancelled".into();
+    }
+}
+
+fn finish_projection(
+    mut facts: Facts,
+    report: &mut SourceReport,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> anyhow::Result<Facts> {
+    crate::operation_association::check(cancelled)?;
+    facts.resolve_operations(report, cancelled)?;
     let parents = std::mem::take(&mut facts.parents);
-    let forest = ancestry::ForkForest::new(&parents);
+    let forest = ancestry::ForkForest::new_cancellable(&parents, cancelled)?;
     if forest.unresolved > 0 {
         issue(
             report,
@@ -195,10 +246,12 @@ fn finish_facts(mut facts: Facts, root: &Path, report: &mut SourceReport, sink: 
             None,
         );
     }
-    facts.remove_inherited(&forest);
-    facts.remove_inherited_operations(&forest, report);
-    facts.reconcile_direct(report);
+    facts.remove_inherited(&forest, cancelled)?;
+    facts.remove_inherited_operations(&forest, report, cancelled)?;
+    crate::operation_association::check(cancelled)?;
+    facts.reconcile_direct(report, cancelled)?;
     for (thread, projects) in &facts.projects {
+        crate::operation_association::check(cancelled)?;
         if projects.len() > 1 {
             if let Some(value) = facts.threads.get_mut(thread) {
                 value.project = None;
@@ -211,27 +264,60 @@ fn finish_facts(mut facts: Facts, root: &Path, report: &mut SourceReport, sink: 
             );
         }
     }
-    read_titles(root, &mut facts, report);
+    crate::operation_association::check(cancelled)?;
+    Ok(facts)
+}
+
+fn emit_facts(
+    facts: Facts,
+    sink: &mut dyn FactSink,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> anyhow::Result<()> {
+    crate::operation_association::check(cancelled)?;
+    for observation in facts.title_observations.into_values() {
+        crate::operation_association::check(cancelled)?;
+        sink.push(Fact::TitleObservation(observation));
+    }
+    for watermark in facts.watermarks.into_values() {
+        crate::operation_association::check(cancelled)?;
+        sink.push(Fact::Watermark(watermark));
+    }
     for thread in facts.threads.into_values() {
+        crate::operation_association::check(cancelled)?;
         sink.push(Fact::Thread(thread));
     }
-    let mut turns: Vec<_> = facts.turns.into_values().collect();
+    let mut turns = Vec::new();
+    for turn in facts.turns.into_values() {
+        crate::operation_association::check(cancelled)?;
+        turns.push(turn);
+    }
+    crate::operation_association::check(cancelled)?;
     turns.sort_by(|a, b| {
         (&a.thread_id, &a.started_at, &a.id).cmp(&(&b.thread_id, &b.started_at, &b.id))
     });
+    crate::operation_association::check(cancelled)?;
     let mut ordinal = HashMap::<String, u64>::new();
     for mut turn in turns {
+        crate::operation_association::check(cancelled)?;
         let number = ordinal.entry(turn.thread_id.clone()).or_default();
         *number += 1;
         turn.ordinal = *number;
         sink.push(Fact::Turn(turn));
     }
     for (_, candidate) in facts.measurements {
+        crate::operation_association::check(cancelled)?;
         sink.push(Fact::Measurement(candidate.measurement));
     }
+    for event in facts.events.into_values() {
+        crate::operation_association::check(cancelled)?;
+        sink.push(Fact::Event(event));
+    }
     for operation in facts.operations.into_values() {
+        crate::operation_association::check(cancelled)?;
         sink.push(Fact::Operation(operation));
     }
+    crate::operation_association::check(cancelled)?;
+    Ok(())
 }
 
 fn issue(report: &mut SourceReport, code: &str, message: &str, evidence: Option<EvidenceRef>) {

@@ -1,6 +1,14 @@
 //! Static optimization rules and durable review decisions share one inventory basis.
+pub(crate) mod activity;
+mod cache;
 mod detection;
+mod evaluation;
 mod follow_up;
+#[cfg(test)]
+#[path = "optimize/follow_up_tests.rs"]
+mod follow_up_tests;
+mod identity;
+mod inputs;
 mod registry;
 mod repository;
 mod reviews;
@@ -16,7 +24,7 @@ pub(crate) use service::pending_for_handoff;
 use crate::optimize_dto::*;
 pub(crate) fn capabilities() -> Response {
     Response {
-        output_version: 1,
+        output_version: crate::optimize_dto::OUTPUT_VERSION,
         action: Action::Capabilities,
         capabilities: Capabilities::default(),
         read_view: None,
@@ -39,5 +47,6 @@ pub(crate) fn capabilities() -> Response {
         rule_catalog: registry::catalog(),
         checks: vec![],
         follow_ups: vec![],
+        activity: None,
     }
 }

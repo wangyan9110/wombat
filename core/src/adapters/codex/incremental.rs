@@ -6,17 +6,27 @@ use rusqlite::Connection;
 
 use std::time::UNIX_EPOCH;
 
+/// Required message mapping: version 2 retains boundaries for damaged nested items.
+pub(crate) const MESSAGE_OBSERVATION_VERSION: u32 = 2;
+/// Canonical operation outcome mapping, including persistent conflict evidence.
+pub(crate) const OPERATION_OBSERVATION_VERSION: u32 = 4;
+/// Measurement context conflict markers require explicit source observation headers.
+pub(crate) const MEASUREMENT_OBSERVATION_VERSION: u32 = 2;
+pub(crate) use crate::adapters::contract::WORK_OBSERVATION_VERSION;
+
 #[derive(Default, Serialize, Deserialize)]
 pub(super) struct Checkpoint {
     pub offset: u64,
     pub line: u64,
     pub state: State,
     stamp: String,
-    boundary: String,
+    physical: String,
+    prefix_sha256: String,
     issues: Vec<Issue>,
+    watermark: Option<SourceWatermark>,
 }
 
-fn stamp(meta: &fs::Metadata) -> String {
+pub(super) fn physical_identity(meta: &fs::Metadata) -> String {
     #[cfg(unix)]
     let physical = {
         use std::os::unix::fs::MetadataExt;
@@ -24,6 +34,10 @@ fn stamp(meta: &fs::Metadata) -> String {
     };
     #[cfg(not(unix))]
     let physical = format!("{:?}", meta.created().ok());
+    physical
+}
+fn stamp(meta: &fs::Metadata) -> String {
+    let physical = physical_identity(meta);
     format!(
         "{physical}:{}:{}",
         meta.len(),
@@ -33,19 +47,62 @@ fn stamp(meta: &fs::Metadata) -> String {
             .map_or(0, |d| d.as_nanos())
     )
 }
-fn boundary(path: &Path, offset: u64) -> Result<String> {
-    let mut f = File::open(path)?;
-    let mut digest = Sha256::new();
-    for (start, count) in [
-        (0, offset.min(4096)),
-        (offset.saturating_sub(4096), offset.min(4096)),
-    ] {
-        f.seek(SeekFrom::Start(start))?;
-        let mut bytes = vec![0; count as usize];
-        f.read_exact(&mut bytes)?;
-        digest.update(bytes);
+struct PrefixChecksums {
+    committed: String,
+    captured: String,
+}
+
+fn source_changed() -> anyhow::Error {
+    crate::dto::operation_error("SOURCE_CHANGED", "日志读取中发生变化，保留已提交数据并重试")
+}
+
+/// Hash the committed prefix and captured file in one bounded pass. Both checksums
+/// describe the same metadata observation; a concurrent edit requires a retry.
+fn prefix_checksums(path: &Path, offset: u64, expected: &fs::Metadata) -> Result<PrefixChecksums> {
+    let mut file = File::open(path)?;
+    if stamp(&file.metadata()?) != stamp(expected) {
+        return Err(source_changed());
     }
-    Ok(format!("{:x}", digest.finalize()))
+    let result = prefix_checksums_from(path, offset, expected, &mut file)?;
+    if stamp(&file.metadata()?) != stamp(expected) {
+        return Err(source_changed());
+    }
+    Ok(result)
+}
+
+fn prefix_checksums_from(
+    path: &Path,
+    offset: u64,
+    expected: &fs::Metadata,
+    reader: &mut impl Read,
+) -> Result<PrefixChecksums> {
+    let expected_stamp = stamp(expected);
+    if offset > expected.len() || stamp(&fs::metadata(path)?) != expected_stamp {
+        return Err(source_changed());
+    }
+    let mut digest = Sha256::new();
+    let mut committed = (offset == 0).then(|| format!("{:x}", digest.clone().finalize()));
+    let mut consumed = 0;
+    let mut bytes = [0_u8; 64 * 1024];
+    while consumed < expected.len() {
+        let mut count = (expected.len() - consumed).min(bytes.len() as u64);
+        if consumed < offset {
+            count = count.min(offset - consumed);
+        }
+        reader.read_exact(&mut bytes[..count as usize])?;
+        digest.update(&bytes[..count as usize]);
+        consumed += count;
+        if consumed == offset {
+            committed = Some(format!("{:x}", digest.clone().finalize()));
+        }
+    }
+    if stamp(&fs::metadata(path)?) != expected_stamp {
+        return Err(source_changed());
+    }
+    Ok(PrefixChecksums {
+        committed: committed.expect("validated offset lies inside the captured file"),
+        captured: format!("{:x}", digest.finalize()),
+    })
 }
 
 #[derive(Default)]
@@ -132,73 +189,124 @@ pub(crate) fn sync(
     Ok(sync_cached(db, source, verify, &mut Cache::default())?.map(|value| value.collected))
 }
 
-fn load_facts(db: &Connection, scope: &str, reuse: Option<&ReusableFacts>) -> Result<Facts> {
-    let mut facts = Facts::default();
-    let mut paths = EvidencePaths::default();
+fn load_facts(
+    db: &Connection,
+    scope: &str,
+    reuse: Option<&ReusableFacts>,
+    report: &SourceReport,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<Facts> {
+    let mut events = BTreeMap::new();
+    let mut title_observations = BTreeMap::new();
     crate::live_index::each(db, scope, |field, id, payload| {
-        match field {
-            "threads" => {
-                facts
-                    .threads
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "turns" => {
-                facts
-                    .turns
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "measurements" => {
-                let mut candidate: Candidate = serde_json::from_str(payload)?;
-                if let Some(rows) = reuse.map(|r| &r.measurements)
-                    && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
-                    && rows[index] == candidate.measurement
-                {
-                    candidate.measurement = Arc::clone(&rows[index]);
-                }
-                if Arc::strong_count(&candidate.measurement) == 1 {
-                    let row = Arc::make_mut(&mut candidate.measurement);
-                    paths.compact(&mut row.evidence);
-                    facts.strings.measurement(row);
-                }
-                facts.measurements.insert(id.into(), candidate);
-            }
-            "operations" => {
-                let mut operation: Arc<Operation> = serde_json::from_str(payload)?;
-                if let Some(rows) = reuse.map(|r| &r.operations)
-                    && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
-                    && rows[index] == operation
-                {
-                    operation = Arc::clone(&rows[index]);
-                }
-                if Arc::strong_count(&operation) == 1 {
-                    let row = Arc::make_mut(&mut operation);
-                    paths.compact(&mut row.evidence);
-                    facts.strings.operation(row);
-                }
-                facts.operations.insert(id.into(), operation);
-            }
-            "aliases" => {
-                facts
-                    .aliases
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "parents" => {
-                facts
-                    .parents
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "projects" => {
-                facts
-                    .projects
-                    .insert(id.into(), serde_json::from_str(payload)?);
-            }
-            "measurement_conflicts" => {
-                facts.measurement_conflicts = serde_json::from_str(payload)?;
-            }
-            _ => anyhow::bail!("unsupported fact field: {field}"),
+        crate::operation_association::check(cancelled)?;
+        if field == "title_observations" {
+            let observation: crate::session_events::title_observations::TitleObservation =
+                serde_json::from_str(payload)?;
+            observation.validate()?;
+            anyhow::ensure!(
+                observation.thread_id == id && observation.source_instance_id == report.source.id,
+                "stored title scope mismatch"
+            );
+            title_observations.insert(id.into(), observation);
+        } else if field == "events" {
+            let event: Arc<crate::session_events::Event> = serde_json::from_str(payload)?;
+            anyhow::ensure!(event.id() == id, "stored event identity mismatch");
+            anyhow::ensure!(
+                event.position().source_instance_id == report.source.id,
+                "stored event source identity mismatch"
+            );
+            events.insert(id.into(), event);
+        } else {
+            anyhow::ensure!(
+                matches!(
+                    field,
+                    "threads"
+                        | "turns"
+                        | "measurements"
+                        | "operations"
+                        | "aliases"
+                        | "parents"
+                        | "projects"
+                        | "measurement_conflicts"
+                ),
+                "unsupported fact field: {field}"
+            );
         }
         Ok(())
     })?;
+    let mut facts = replay_events(events, report, cancelled)?;
+    facts.title_observations = title_observations;
+    for observation in facts.title_observations.values() {
+        crate::operation_association::check(cancelled)?;
+        anyhow::ensure!(
+            facts
+                .threads
+                .get(&observation.thread_id)
+                .is_some_and(|t| t.source_instance_id == observation.source_instance_id),
+            "stored title target mismatch"
+        );
+    }
+    titles::apply_titles(&mut facts);
+    // Read projections may share allocations, but never establish parser facts.
+    let mut paths = EvidencePaths::default();
+    for (id, candidate) in &mut facts.measurements {
+        crate::operation_association::check(cancelled)?;
+        if let Some(rows) = reuse.map(|r| &r.measurements)
+            && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
+            && rows[index] == candidate.measurement
+        {
+            candidate.measurement = Arc::clone(&rows[index]);
+        }
+        if Arc::strong_count(&candidate.measurement) == 1 {
+            let row = Arc::make_mut(&mut candidate.measurement);
+            paths.compact(&mut row.evidence);
+            facts.strings.measurement(row);
+        }
+    }
+    for (id, operation) in &mut facts.operations {
+        crate::operation_association::check(cancelled)?;
+        if let Some(rows) = reuse.map(|r| &r.operations)
+            && let Ok(index) = rows.binary_search_by(|r| r.id.as_str().cmp(id))
+            && rows[index] == *operation
+        {
+            *operation = Arc::clone(&rows[index]);
+        }
+        if Arc::strong_count(operation) == 1 {
+            let row = Arc::make_mut(operation);
+            paths.compact(&mut row.evidence);
+            facts.strings.operation(row);
+        }
+    }
+    Ok(facts)
+}
+
+fn replay_events(
+    events: BTreeMap<String, Arc<crate::session_events::Event>>,
+    report: &SourceReport,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<Facts> {
+    crate::operation_association::check(cancelled)?;
+    let mut facts = Facts::default();
+    // Parse diagnostics remain owned by file checkpoints; replay only restores facts.
+    let mut replay_report = report.clone();
+    replay_report.issues.clear();
+    let mut ordered = Vec::new();
+    for event in events.values() {
+        crate::operation_association::check(cancelled)?;
+        ordered.push(event);
+    }
+    crate::operation_association::check(cancelled)?;
+    ordered.sort_by(|a, b| event_projection::order(a).cmp(&event_projection::order(b)));
+    crate::operation_association::check(cancelled)?;
+    for event in ordered {
+        crate::operation_association::check(cancelled)?;
+        event_projection::apply(&mut facts, event, &mut replay_report);
+    }
+    facts.events = events;
+    // Canonical operations must exist before allocation reuse or derived emission.
+    // The caller repeats this pass only after additional observations are collected.
+    facts.resolve_operations(&mut replay_report, cancelled)?;
     Ok(facts)
 }
 
@@ -257,6 +365,16 @@ pub(crate) fn sync_cached(
     cache: &mut Cache,
 ) -> Result<Option<Synced>> {
     let context = RunContext::default();
+    sync_cached_with_context(db, source, verify, cache, &context)
+}
+fn sync_cached_with_context(
+    db: &Connection,
+    source: &SourceInstance,
+    verify: bool,
+    cache: &mut Cache,
+    context: &RunContext,
+) -> Result<Option<Synced>> {
+    crate::operation_association::check(&context.cancelled)?;
     let mut report = SourceReport {
         source: source.clone(),
         adapter_version: VERSION.into(),
@@ -276,17 +394,61 @@ pub(crate) fn sync_cached(
             0,
             &mut files,
             &mut visited,
-            &context,
+            context,
             &mut report,
         );
     }
     let scope = format!("parser:{}:{VERSION}:1", source.id);
+    if crate::live_index::has_scope(db, &scope)? {
+        // Reject an unavailable mapping before materializing any future parser
+        // payload, whose shape may be beyond this version's JSON decoding limits.
+        crate::observation_versions::ObservationHeaderSet::Parser.validate_index(
+            |field| crate::live_index::scalar(db, &scope, field),
+            |kind| match kind {
+                crate::observation_versions::ObservationKind::Operation => {
+                    "不支持此操作结果观察映射"
+                }
+                crate::observation_versions::ObservationKind::Association => "不支持此操作关联方法",
+                crate::observation_versions::ObservationKind::Event => "不支持此事件观察格式",
+                crate::observation_versions::ObservationKind::Title => "不支持此标题观察格式",
+                crate::observation_versions::ObservationKind::Work => "不支持此来源工作观察映射",
+                crate::observation_versions::ObservationKind::Message => "不支持此来源消息观察映射",
+                crate::observation_versions::ObservationKind::Measurement => {
+                    "不支持此来源计量观察映射"
+                }
+            },
+        )?;
+        if crate::live_index::scalar(db, &scope, "watermarkVersion")?
+            .and_then(|value| value.as_u64())
+            != Some(u64::from(WATERMARK_FORMAT_VERSION))
+        {
+            return Err(crate::dto::operation_error(
+                "UNSUPPORTED_VERSION",
+                "不支持此来源水位格式",
+            ));
+        }
+    }
     let previous = crate::live_index::load_map(db, &scope)?;
     let mut checkpoints: BTreeMap<String, Checkpoint> = previous
         .get("checkpoints")
         .map(|v| serde_json::from_value(v.clone()))
         .transpose()?
         .unwrap_or_default();
+    for (path, cp) in &checkpoints {
+        let watermark = cp
+            .watermark
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("missing checkpoint watermark"))?;
+        watermark.validate()?;
+        anyhow::ensure!(
+            watermark.source_instance_id == source.id
+                && watermark.file_id == crate::hash(path.as_bytes())
+                && watermark.committed_offset == cp.offset
+                && watermark.generation == cp.state.event_generation,
+            "checkpoint watermark identity or position mismatch"
+        );
+    }
+    let observed_at = chrono::Utc::now().to_rfc3339();
     let title_stamp = fs::metadata(root.join("session_index.jsonl"))
         .ok()
         .map(|m| stamp(&m));
@@ -294,20 +456,35 @@ pub(crate) fn sync_cached(
         previous.is_empty() || previous.get("titleStamp") != Some(&serde_json::json!(title_stamp));
     let mut rebuild = verify;
     let mut dirty = BTreeSet::new();
+    let mut replaced = BTreeSet::new();
+    let mut observations = BTreeMap::new();
+    let mut unchanged = BTreeMap::new();
     for file in &files {
         let key = file.to_string_lossy().into_owned();
         let meta = fs::metadata(file)?;
-        if let Some(cp) = checkpoints.get(&key) {
-            if cp.stamp == stamp(&meta) && !verify {
-                continue;
-            }
-            if meta.len() < cp.offset
-                || boundary(file, cp.offset).ok().as_ref() != Some(&cp.boundary)
-                || (meta.len() == cp.offset && cp.stamp != stamp(&meta))
-            {
-                rebuild = true;
-            }
+        let cp = checkpoints.get(&key);
+        if let Some(cp) = cp
+            && cp.stamp == stamp(&meta)
+            && !verify
+            && cp
+                .watermark
+                .as_ref()
+                .is_some_and(|w| w.state != WatermarkState::Missing)
+        {
+            unchanged.insert(key, (cp.stamp.clone(), cp.offset, cp.prefix_sha256.clone()));
+            continue;
         }
+        let checksums =
+            prefix_checksums(file, cp.map_or(0, |cp| cp.offset.min(meta.len())), &meta)?;
+        if let Some(cp) = cp
+            && (physical_identity(&meta) != cp.physical
+                || meta.len() < cp.offset
+                || checksums.committed != cp.prefix_sha256)
+        {
+            rebuild = true;
+            replaced.insert(key.clone());
+        }
+        observations.insert(key.clone(), (stamp(&meta), checksums.captured));
         dirty.insert(key);
     }
     let missing: BTreeSet<_> = checkpoints
@@ -317,6 +494,18 @@ pub(crate) fn sync_cached(
         .collect();
     // Removing a log is not evidence that its historical consumption was zero.
     for path in &missing {
+        let cp = checkpoints
+            .get_mut(path)
+            .expect("missing checkpoint exists");
+        if let Some(w) = &cp.watermark
+            && w.state != WatermarkState::Missing
+        {
+            cp.watermark = Some(w.unavailable(
+                WatermarkState::Missing,
+                WatermarkIssue::SourceMissing,
+                &observed_at,
+            ));
+        }
         issue(
             &mut report,
             "sourceMissing",
@@ -334,47 +523,62 @@ pub(crate) fn sync_cached(
         return Ok(None);
     }
     let fact_scope = format!("{scope}:facts");
+    let restoring = cache.facts.is_none();
     let mut facts = match cache.facts.take() {
         Some(facts) => facts,
-        None => load_facts(db, &fact_scope, cache.seed.as_ref())?,
+        None => load_facts(
+            db,
+            &fact_scope,
+            cache.seed.as_ref(),
+            &report,
+            &context.cancelled,
+        )?,
     };
     cache.seed = None;
+    facts.dirty_events.clear();
     facts.dirty_operations.clear();
+    facts.retired_operations.clear();
     facts.dirty_measurements.clear();
     facts.dirty_aliases.clear();
+    let generations: BTreeMap<_, _> = checkpoints
+        .iter()
+        .filter_map(|(path, cp)| {
+            cp.state
+                .event_generation
+                .clone()
+                .map(|generation| (path.clone(), generation))
+        })
+        .collect();
+    let pending_generations: BTreeMap<_, _> = checkpoints
+        .iter()
+        .filter_map(|(path, cp)| {
+            cp.state
+                .pending_event_generation
+                .clone()
+                .map(|generation| (path.clone(), generation))
+        })
+        .collect();
     if rebuild {
         // Cross-file ownership and late direct measurements require source-wide
         // reconciliation. Retain facts evidenced solely by now-missing files.
-        facts.measurements.retain(|_, c| {
-            !c.measurement.evidence.is_empty()
-                && c.measurement
-                    .evidence
-                    .iter()
-                    .all(|e| missing.contains(e.file.as_ref()))
-        });
-        facts.operations.retain(|_, o| {
-            !o.evidence.is_empty() && o.evidence.iter().all(|e| missing.contains(e.file.as_ref()))
-        });
-        let retained_threads: BTreeSet<_> = facts
-            .measurements
-            .values()
-            .filter_map(|c| c.measurement.thread_id.clone())
-            .chain(facts.operations.values().map(|o| o.thread_id.clone()))
+        let retained_collection_times = facts
+            .events
+            .iter()
+            .map(|(id, e)| (id.clone(), e.collected_at().to_owned()))
             .collect();
+        let title_observations = std::mem::take(&mut facts.title_observations);
+        let missing_files: BTreeSet<_> =
+            missing.iter().map(|p| crate::hash(p.as_bytes())).collect();
         facts
-            .threads
-            .retain(|id, _| retained_threads.contains(id.as_str()));
-        facts
-            .turns
-            .retain(|_, t| retained_threads.contains(t.thread_id.as_str()));
-        facts
-            .projects
-            .retain(|id, _| retained_threads.contains(id.as_str()));
-        facts.aliases.clear();
-        facts.measurement_conflicts.clear();
-        facts
-            .parents
-            .retain(|id, _| retained_threads.contains(id.as_str()));
+            .events
+            .retain(|_, event| missing_files.contains(&event.position().file_id));
+        facts = replay_events(
+            std::mem::take(&mut facts.events),
+            &report,
+            &context.cancelled,
+        )?;
+        facts.retained_collection_times = retained_collection_times;
+        facts.title_observations = title_observations;
         checkpoints.retain(|p, _| missing.contains(p));
         dirty = files
             .iter()
@@ -383,20 +587,48 @@ pub(crate) fn sync_cached(
     }
     for path in dirty {
         let checkpoint = checkpoints.entry(path.clone()).or_default();
+        if checkpoint.state.event_generation.is_none() {
+            if replaced.contains(&path) {
+                checkpoint.state.pending_event_generation = Some(uuid::Uuid::new_v4().to_string());
+            } else {
+                checkpoint.state.event_generation = generations.get(&path).cloned();
+                checkpoint.state.pending_event_generation = pending_generations.get(&path).cloned();
+            }
+        }
         let before = fs::metadata(&path)?;
+        let captured = if let Some((observed_stamp, captured)) = observations.get(&path) {
+            if *observed_stamp != stamp(&before) {
+                return Err(source_changed());
+            }
+            captured.clone()
+        } else {
+            let (offset, expected_prefix) =
+                if let Some((expected_stamp, offset, prefix)) = unchanged.get(&path) {
+                    if *expected_stamp != stamp(&before) {
+                        return Err(source_changed());
+                    }
+                    (*offset, Some(prefix))
+                } else {
+                    (0, None)
+                };
+            let checksums = prefix_checksums(Path::new(&path), offset, &before)?;
+            if expected_prefix.is_some_and(|prefix| *prefix != checksums.committed) {
+                return Err(source_changed());
+            }
+            checksums.captured
+        };
         checkpoint.issues.clear();
         let first = report.issues.len();
         read_file_from(
             Path::new(&path),
             source,
-            &context,
+            context,
             &mut facts,
             &mut report,
             Some(checkpoint),
         );
         let after = fs::metadata(&path)?;
-        if file_changed(&before, &after)
-            || after.len() < before.len()
+        if stamp(&before) != stamp(&after)
             || report.issues[first..].iter().any(|i| {
                 matches!(
                     i.code.as_str(),
@@ -404,15 +636,43 @@ pub(crate) fn sync_cached(
                 )
             })
         {
-            return Err(crate::dto::operation_error(
-                "SOURCE_CHANGED",
-                "日志读取中发生变化，保留已提交数据并重试",
-            ));
+            return Err(source_changed());
+        }
+        let checksums = prefix_checksums(Path::new(&path), checkpoint.offset, &before)?;
+        if checksums.captured != captured {
+            return Err(source_changed());
         }
         checkpoint.stamp = stamp(&before);
-        checkpoint.boundary = boundary(Path::new(&path), checkpoint.offset)?;
+        checkpoint.physical = physical_identity(&before);
+        checkpoint.prefix_sha256 = checksums.committed;
         checkpoint.issues = report.issues.split_off(first);
+        let watermark = facts
+            .watermarks
+            .get(&crate::hash(path.as_bytes()))
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("missing read watermark"))?;
+        anyhow::ensure!(
+            watermark.committed_offset == checkpoint.offset,
+            "cursor and watermark differ"
+        );
+        watermark.validate()?;
+        checkpoint.watermark = Some(watermark);
     }
+    if rebuild {
+        // Missing files were retained before existing files were parsed. Restore
+        // their combined source order before publishing or saving projections.
+        // Checkpoints already own diagnostics; replay must not append them again.
+        let title_observations = std::mem::take(&mut facts.title_observations);
+        facts = replay_events(
+            std::mem::take(&mut facts.events),
+            &report,
+            &context.cancelled,
+        )?;
+        facts.title_observations = title_observations;
+    }
+    facts.resolve_operations(&mut report, &context.cancelled)?;
+    read_titles(root, &mut facts, &mut report);
+    titles::apply_titles(&mut facts);
     for cp in checkpoints.values() {
         report.issues.extend(cp.issues.iter().cloned());
     }
@@ -423,15 +683,55 @@ pub(crate) fn sync_cached(
             }
         }
     }
-    // Persist unreconciled candidates. Derived reconciliation may retract old deltas.
-    let full = rebuild || previous.is_empty();
-    let changed_operations = if full || !facts.parents.is_empty() {
+    // Events restore parser truth; refresh disposable projection rows on restart,
+    // including references whose cached payload may have been discarded.
+    let full = rebuild || previous.is_empty() || restoring;
+    let replace_operations = full || !facts.retired_operations.is_empty();
+    let changed_operations = if replace_operations || !facts.parents.is_empty() {
         None
     } else {
         Some(facts.dirty_operations.clone())
     };
+    // Complete source-derived calculations before any parser writes. Errors or
+    // cancellation then leave publication to the caller's source transaction.
+    let mut result = Collected::default();
+    for checkpoint in checkpoints.values() {
+        crate::operation_association::check(&context.cancelled)?;
+        if let Some(watermark) = &checkpoint.watermark {
+            result.watermarks.push(watermark.clone());
+        }
+    }
+    facts.watermarks.clear();
+    let mut direct_only = facts.parents.is_empty();
+    if direct_only {
+        for candidate in facts.measurements.values() {
+            crate::operation_association::check(&context.cancelled)?;
+            if !candidate.direct {
+                direct_only = false;
+                break;
+            }
+        }
+    }
+    crate::operation_association::check(&context.cancelled)?;
+    let derived = facts.fork_derived(!direct_only);
+    let mut derived = finish_projection(derived, &mut report, &context.cancelled)?;
+    titles::apply_titles(&mut derived);
+    crate::operation_association::check(&context.cancelled)?;
+    emit_facts(derived, &mut result, &context.cancelled)?;
+    if direct_only {
+        for candidate in facts.measurements.values() {
+            crate::operation_association::check(&context.cancelled)?;
+            result.measurements.push(Arc::clone(&candidate.measurement));
+        }
+        for operation in facts.operations.values() {
+            crate::operation_association::check(&context.cancelled)?;
+            result.operations.push(Arc::clone(operation));
+        }
+    }
+    crate::operation_association::check(&context.cancelled)?;
     macro_rules! save {
         ($field:ident) => {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::replace_field(
                 db,
                 &fact_scope,
@@ -440,12 +740,23 @@ pub(crate) fn sync_cached(
             )?;
         };
     }
+    if full {
+        save!(events);
+    } else {
+        for id in &facts.dirty_events {
+            crate::operation_association::check(&context.cancelled)?;
+            crate::live_index::put(db, &fact_scope, "events", id, &facts.events[id])?;
+        }
+    }
+    facts.dirty_events.clear();
+    save!(title_observations);
     save!(threads);
     save!(turns);
     if full {
         save!(measurements);
     } else {
         for id in &facts.dirty_measurements {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::put(db, &fact_scope, "measurements", id, &facts.measurements[id])?;
         }
     }
@@ -458,37 +769,34 @@ pub(crate) fn sync_cached(
         "",
         &facts.measurement_conflicts,
     )?;
-    if full {
+    if replace_operations {
         save!(operations);
         save!(aliases);
     } else {
         for id in &facts.dirty_operations {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::put(db, &fact_scope, "operations", id, &facts.operations[id])?;
         }
         for id in &facts.dirty_aliases {
+            crate::operation_association::check(&context.cancelled)?;
             crate::live_index::put(db, &fact_scope, "aliases", id, &facts.aliases[id])?;
         }
     }
-    let metadata = serde_json::json!({"checkpoints": checkpoints, "missing": missing, "titleStamp": title_stamp, "sourceVersions": report.source_versions});
+    let mut metadata = serde_json::json!({
+        "watermarkVersion": WATERMARK_FORMAT_VERSION,
+        "checkpoints": checkpoints,
+        "missing": missing,
+        "titleStamp": title_stamp,
+        "sourceVersions": report.source_versions
+    });
+    crate::observation_versions::ObservationHeaderSet::Parser
+        .write_json(metadata.as_object_mut().expect("metadata is an object"));
     crate::live_index::save_map(db, &scope, metadata.as_object().unwrap())?;
     facts.dirty_measurements.clear();
     facts.dirty_operations.clear();
+    facts.retired_operations.clear();
     facts.dirty_aliases.clear();
-    let mut result = Collected::default();
-    // Direct response records require no cumulative/fork reconciliation. Preserve
-    // the general path for cumulative source counters.
-    let direct_only = facts.parents.is_empty() && facts.measurements.values().all(|v| v.direct);
-    let derived = facts.fork_derived(!direct_only);
-    finish_facts(derived, root, &mut report, &mut result);
-    if direct_only {
-        result.measurements.extend(
-            facts
-                .measurements
-                .values()
-                .map(|v| Arc::clone(&v.measurement)),
-        );
-        result.operations.extend(facts.operations.values().cloned());
-    }
+    crate::operation_association::check(&context.cancelled)?;
     cache.facts = Some(facts);
     if !root.exists() && checkpoints.is_empty() {
         report.status = "notFound".into();
@@ -528,8 +836,110 @@ fn facts_empty_marker(result: &Collected) -> bool {
 #[cfg(test)]
 mod sharing_tests {
     use super::*;
+    use std::io::Write;
+    #[test]
+    fn cancelled_incremental_context_does_not_write_or_replace_the_cached_view() {
+        let root = tempfile::tempdir().unwrap();
+        let index = tempfile::tempdir().unwrap();
+        let dir = root.path().join("sessions");
+        fs::create_dir(&dir).unwrap();
+        let path = dir.join("a.jsonl");
+        fs::write(
+            &path,
+            "{\"type\":\"session_meta\",\"payload\":{\"id\":\"t\"}}\n",
+        )
+        .unwrap();
+        let source = CodexAdapter
+            .discover(&DiscoveryRequest {
+                roots: vec![root.path().into()],
+            })
+            .sources
+            .remove(0);
+        let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+        let mut cache = Cache::default();
+        sync_cached(&db, &source, false, &mut cache)
+            .unwrap()
+            .unwrap();
+        let scope = format!("parser:{}:{VERSION}:1", source.id);
+        let before = crate::live_index::load_map(&db, &scope).unwrap();
+        let retained = cache.facts.as_ref().unwrap().events.clone();
+        fs::OpenOptions::new()
+            .append(true)
+            .open(path)
+            .unwrap()
+            .write_all(b"{\"type\":\"turn_context\",\"payload\":{\"turn_id\":\"u\"}}\n")
+            .unwrap();
+        let context = RunContext::default();
+        context
+            .cancelled
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let error = sync_cached_with_context(&db, &source, false, &mut cache, &context)
+            .err()
+            .unwrap();
+        assert_eq!(
+            error
+                .downcast_ref::<crate::dto::OperationError>()
+                .unwrap()
+                .code,
+            "CANCELLED"
+        );
+        assert_eq!(crate::live_index::load_map(&db, &scope).unwrap(), before);
+        assert_eq!(
+            cache
+                .facts
+                .as_ref()
+                .unwrap()
+                .events
+                .keys()
+                .collect::<Vec<_>>(),
+            retained.keys().collect::<Vec<_>>()
+        );
+    }
+    #[test]
+    fn prefix_checksum_rejects_source_change_during_streaming_read() {
+        use std::io::Write;
+
+        struct ChangingReader {
+            file: File,
+            path: PathBuf,
+            changed: bool,
+        }
+        impl Read for ChangingReader {
+            fn read(&mut self, bytes: &mut [u8]) -> std::io::Result<usize> {
+                let count = self.file.read(bytes)?;
+                if !self.changed && count > 0 {
+                    fs::OpenOptions::new()
+                        .append(true)
+                        .open(&self.path)?
+                        .write_all(b"\n")?;
+                    self.changed = true;
+                }
+                Ok(count)
+            }
+        }
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("changing.jsonl");
+        let record = serde_json::json!({"type":"session_meta","payload":{"id":"synthetic","padding":"x".repeat(128 * 1024)}}).to_string() + "\n";
+        fs::write(&path, record).unwrap();
+        let expected = fs::metadata(&path).unwrap();
+        let mut reader = ChangingReader {
+            file: File::open(&path).unwrap(),
+            path: path.clone(),
+            changed: false,
+        };
+        let result = prefix_checksums_from(&path, expected.len(), &expected, &mut reader);
+        assert!(
+            reader.changed,
+            "the source changed after checksum reading began"
+        );
+        assert!(
+            result.is_err(),
+            "a changing source cannot establish a committed checksum"
+        );
+    }
+
     fn row(id: &str, total: u64) -> Arc<Measurement> {
-        Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
+        Arc::new(serde_json::from_value(serde_json::json!({"id":id,"agentKind":"synthetic","sourceInstanceId":"s","grain":"response","timePrecision":"unknown","model":{},"tokens":{"total":total},"tokenUnavailableReasons":{"input":"missing","cacheRead":"missing","cacheCreate":"missing","output":"missing","reasoning":"missing","total":null,"rawInput":"missing"},"pricingContextConflict":false,"requestScoped":true,"sequence":0,"evidence":[]})).unwrap())
     }
     #[test]
     fn ordered_sharing_preserves_corrections_missing_and_foreign_facts() {

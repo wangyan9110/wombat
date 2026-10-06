@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-timing-metrics-and-use-counts": {
+      "zh": "8d8d8a5eec168f444862e21a0e02e29ca76397b254b14eadb5f43858d5693a70",
+      "en": "e05387ea9556fdea63e1e39931435ac62bc9f294bdc147e5b8f0e4c2eefebf89"
+    },
+    "/decision-note-timing-metrics-and-use-counts/problem": {
+      "zh": "7a01ea88a0d7d0a5d767c115a39cd7cd0e1e0f05728b310f190e7a80a8e6e216",
+      "en": "60c3ab445325071d81076a018ea79936b45f64a849c6641d5fc2ecf7c7ac5589"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision": {
+      "zh": "a15add2be199820151854bcb890f25a2d1847144b4a6b49c45ae214b43af6da7",
+      "en": "59f4903de8661f3fe27548a7aba2f2b8a80c6c44b44da03e047e22e7d2d6706b"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision/2-turn-and-task-timing-definitions": {
+      "zh": "a40c0f93646621e3ad25efc4eba302e104c0ae46306da86fcf86d5cb22d68e9a",
+      "en": "8785a135e3155199f2050529bb41f958cb4cc32014cd37f94d0a038f04804869"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision/3-overlap-and-coverage-algorithm": {
+      "zh": "dc6636e9ab4a84f3709700d91c6612562ff9b156c4ed48529a716b0b635cd62b",
+      "en": "99f52a65adc2b571d358f849006470a76ba2c227e5b3d91fc781f33912d15df9"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision/4-what-response-waiting-can-explain": {
+      "zh": "63bef61ea71f685ef2b1f91f49eaeebde7371c2ef57e78e504ca109f63917dd7",
+      "en": "c46dcd729bea0b5b0cdd69075ff20862ed5fe85e8dbbbe1de8283c7ef87cb975"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision/5-context-pressure": {
+      "zh": "b73ea9c67771166d8564312c2c9281215070a4d1d5ba02f83e8804517591943b",
+      "en": "55f25a16bec7b9bbeefcc4fc17c2e2e90c3e2b464be792b0ddd37b968e53e047"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision/6-failures-validation-changes-and-rework-signals": {
+      "zh": "46bf2e8119d8711af611d30dc341668f543820e1fb320d1df7334941306745e4",
+      "en": "d0f7bd214ea2165b0b2293c839d783a7fd64cb9a9e32e05a6a649dbb36d35661"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision/6-1-operation-residuals-calls-after-failure-and-repeated-reads": {
+      "zh": "71d6b0cef3458358e30aa1987be897e8c8ab01269048f0a1d709250a88d51c03",
+      "en": "b41ab1ce2ad621357ab37c83bf46cd22f88fd3fe9d4ca839d2da7566bca95db9"
+    },
+    "/decision-note-timing-metrics-and-use-counts/decision/19-skill-mcp-use-and-use-counts": {
+      "zh": "6332087c0f42e9a0b449fc17290408d54b81f586a1f084c296e310148c2fe6fa",
+      "en": "c336f5b918a6f91b6fa7e136469c9dfa81f8d7a7d4e528465e932be080572106"
+    },
+    "/decision-note-timing-metrics-and-use-counts/alternatives-considered": {
+      "zh": "baf013d69fa37c5a2ffbe9a2527555ba14b9c7cb58bad00c10a8ac7134ee0a2a",
+      "en": "e688a84218f08c2526f8ccf1f64f4c26a8192efb2a576b4a37fe0f06f0b2ccb7"
+    },
+    "/decision-note-timing-metrics-and-use-counts/consequences-and-verification": {
+      "zh": "95b8a704695db5cf13d6a699ac696c91e7b38125a705dee66cb6040592fb9228",
+      "en": "264d926b90072821e8f98ce1b4370f9ca4bb7c49a1aa635d9d088779f229ed90"
+    }
+  }
+}

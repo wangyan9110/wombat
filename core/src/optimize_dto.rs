@@ -3,6 +3,7 @@ use crate::config_dto::{Issue, Item};
 use crate::usage_app_dto::Page;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+pub const OUTPUT_VERSION: u32 = 4;
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Action {
@@ -15,6 +16,7 @@ pub enum Action {
     Recheck,
     Capabilities,
     Checks,
+    Activity,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -43,6 +45,7 @@ pub struct Request {
     pub offset: Option<usize>,
     pub limit: Option<usize>,
     pub rule_overrides: Option<RuleOverrides>,
+    pub activity: Option<ActivitySelection>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -83,8 +86,9 @@ pub enum Category {
     Space,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Finding {
+    pub identity: FindingIdentity,
     pub rule: String,
     pub status: String,
     pub observed: Option<u64>,
@@ -155,9 +159,113 @@ pub struct RuleDefinition {
     pub basis: String,
 }
 
+/// Problem identity is independent of revisions, thresholds and check timestamps.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FindingIdentity {
+    pub version: u32,
+    pub finding_id: Option<String>,
+    pub gap: Option<String>,
+}
+impl Default for FindingIdentity {
+    fn default() -> Self {
+        Self {
+            version: 1,
+            finding_id: None,
+            gap: Some("identityNotAssessed".into()),
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MethodVersion {
+    pub method: String,
+    pub version: u32,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AssessmentScope {
+    pub source_instance_id: Option<String>,
+    pub item_project: Option<String>,
+    pub global: bool,
+    pub project: Option<String>,
+    pub source_instances: Vec<String>,
+    pub authorized_projects: Vec<String>,
+    pub roots: Vec<String>,
+    pub project_roots: Vec<String>,
+    pub source_roots: Vec<String>,
+    pub complete: bool,
+}
+/// Values consumed by the rule, including successful measurements and thresholds.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum RuleMeasurement {
+    Existence {
+        configured_state: String,
+        measurement_status: String,
+        missing: bool,
+    },
+    Numeric {
+        basis: String,
+        observed: Option<u64>,
+        threshold: u64,
+        inclusive: bool,
+        standard_max: Option<u64>,
+        suppressed_by_standard: bool,
+    },
+    SkillMetadata {
+        status: Option<String>,
+        issues: Vec<String>,
+    },
+    Static {
+        complete: Option<bool>,
+        findings: usize,
+    },
+    Unsupported {
+        reason: String,
+    },
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AssessmentBasis {
+    pub version: u32,
+    pub dependency_revision: Option<String>,
+    pub scope: AssessmentScope,
+    pub cutoff: String,
+    pub applicability: String,
+    pub measurement: RuleMeasurement,
+    /// Absent revisions never act as equality wildcards.
+    pub gaps: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ComparisonStatus {
+    NotRequested,
+    Comparable,
+    Incomparable,
+    Unknown,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AssessmentComparison {
+    pub status: ComparisonStatus,
+    pub baseline_assessment_id: Option<String>,
+    pub reason: Option<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RuleAssessment {
+    pub assessment_id: Option<String>,
+    pub identity_gap: Option<String>,
+    pub rule_semantics_version: u32,
+    pub method_versions: Vec<MethodVersion>,
+    pub basis: AssessmentBasis,
+    pub comparison: AssessmentComparison,
     pub rule: String,
     pub rule_version: String,
     pub item_id: String,
@@ -229,8 +337,9 @@ pub struct DeclaredCopy {
     pub transform: String,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Suggestion {
+    pub review_format_version: u32,
     pub scope_project: Option<String>,
     pub id: String,
     pub item: Item,
@@ -245,10 +354,41 @@ pub struct Suggestion {
     pub rule_parameters: Option<RuleParameters>,
     pub recheck_rule_parameters: Option<RuleParameters>,
     /// Exact metadata before rechecking; source bodies are never retained.
-    pub review_baseline: Option<Item>,
+    pub review_baseline: Option<ReviewBaseline>,
     pub record_id: Option<String>,
     pub recorded_at: Option<String>,
     pub record_kind: Option<RecordKind>,
+}
+/// Captured before the first persisted observation; never replaced by later checks.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReviewBaseline {
+    pub version: u32,
+    pub item: Item,
+    pub scope: AssessmentScope,
+    pub assessments: Vec<RuleAssessment>,
+}
+/// Missing problem location permits only the exact complete suggestion/content version.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DecisionIdentityBasis {
+    StableProblems,
+    ExactSuggestionVersion,
+    Unavailable,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DecisionBinding {
+    pub identity_basis: DecisionIdentityBasis,
+    pub version: u32,
+    pub suggestion_id: String,
+    pub finding_ids: Vec<String>,
+    pub assessment_ids: Vec<String>,
+    pub content_version: String,
+    pub scope: AssessmentScope,
+    /// Includes relevant dependencies, methods and parameters, but no check cutoff or log revision.
+    pub applicability_id: Option<String>,
+    pub gap: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -274,6 +414,7 @@ pub enum DecisionReason {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UserDecision {
+    pub binding: DecisionBinding,
     pub kind: DecisionKind,
     pub reason: DecisionReason,
     pub recorded_at: String,
@@ -325,8 +466,9 @@ impl Default for Capabilities {
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Response {
+    #[schemars(range(min = 4, max = 4))]
     pub output_version: u32,
     pub action: Action,
     pub capabilities: Capabilities,
@@ -346,6 +488,7 @@ pub struct Response {
     pub checks: Vec<RuleAssessment>,
     /// Derived from the selected usage view; never stored as a user decision or receipt.
     pub follow_ups: Vec<FollowUpObservation>,
+    pub activity: Option<ActivityResult>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -365,7 +508,102 @@ pub struct FollowUpObservation {
     pub after: String,
     pub observed_at: String,
     pub observed_records: Option<u64>,
+    pub use_basis: Option<crate::config_dto::UseBasis>,
     pub last_record_at: Option<String>,
     pub usage_revision: Option<String>,
     pub absence_observable: bool,
+}
+
+/// Fixed turn analysis, separate from configuration identities and durable handling decisions.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivitySelection {
+    #[schemars(length(min = 1, max = 4096))]
+    pub snapshot_id: String,
+    #[schemars(length(min = 1, max = 4096))]
+    pub thread_id: String,
+    #[schemars(length(min = 1, max = 4096))]
+    pub turn_id: String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ActivityRule {
+    InspectCallsAfterFailure,
+    InspectRepeatedReads,
+    InspectRepeatedRequests,
+    InspectFailureShare,
+    InspectInputChange,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum ActivityReason {
+    ActivityMeasureUnavailable,
+    ActivityCoverageIncomplete,
+    ActivityBasisUnsupported,
+    ActivitySampleTooSmall,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FailureSharePolicy {
+    #[schemars(range(min = 5, max = 5))]
+    pub minimum_determinate: u32,
+    #[schemars(range(min = 2, max = 2))]
+    pub minimum_failures: u32,
+    #[schemars(range(min = 0.4, max = 0.4))]
+    pub minimum_ratio: f64,
+}
+impl Default for FailureSharePolicy {
+    fn default() -> Self {
+        Self {
+            minimum_determinate: 5,
+            minimum_failures: 2,
+            minimum_ratio: 0.4,
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InputChangePolicy {
+    #[schemars(range(min = 16384, max = 16384))]
+    pub minimum_increase: u32,
+}
+impl Default for InputChangePolicy {
+    fn default() -> Self {
+        Self {
+            minimum_increase: 16384,
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityCheck {
+    pub input_change: Option<crate::timing_dto::InputChange>,
+    pub input_policy: Option<InputChangePolicy>,
+    pub outcomes: Option<crate::timing_dto::OutcomeStatistics>,
+    pub failure_policy: Option<FailureSharePolicy>,
+    pub rule: ActivityRule,
+    #[schemars(range(min = 1, max = 1))]
+    pub version: u32,
+    pub method: String,
+    pub outcome: RuleOutcome,
+    pub observed: crate::timing_dto::Count,
+    pub partial: bool,
+    pub reason: Option<ActivityReason>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityResult {
+    #[schemars(range(min = 3, max = 3))]
+    pub format_version: u32,
+    pub read_view: crate::timing_dto::ReadView,
+    pub scope: crate::timing_dto::LocalScope,
+    pub analysis_method: String,
+    pub freshness: crate::timing_dto::QueryFreshness,
+    pub source_status: String,
+    pub coverage: crate::timing_dto::RepeatCoverage,
+    #[schemars(length(min = 5, max = 5))]
+    pub checks: Vec<ActivityCheck>,
+    /// Positive inspection signals; never fault, resolution, causal waste, or savings claims.
+    #[schemars(length(max = 5))]
+    pub advice: Vec<ActivityRule>,
 }

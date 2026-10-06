@@ -10,9 +10,15 @@ The listener binds to 127.0.0.1 with an automatically assigned port by default. 
 
 Startup generates a random token in the URL fragment. The browser moves it into sessionStorage and clears the fragment. APIs require a Bearer token, exact Origin/Host, and JSON POST; CORS is disabled. The root page contains no business data, and CSP forbids remote scripts and embedding. The token grants local service access; it is not a source API key. A server restart requires a new link.
 
-HTTP exposes only generated query, synchronization, catalog, configuration, review, grant, preference, Codex handoff and account operations. Both requests and responses are validated. HTTP uses NDJSON progress/result/error envelopes without redefining business DTOs. Limits are 64 KiB input, 16 MiB output, eight concurrent requests, and a 120-second timeout. Disconnects cancel the corresponding call; CLI exit signals close the listener and cancel its own requests. The shared core service follows its existing idle lifecycle; one departing Web client does not terminate another entry's service. Closing a browser tab does not exit the CLI.
+HTTP exposes only generated query, synchronization, catalog, configuration, review, grant, preference, Codex handoff, account, and timing operations. Both requests and responses are validated. HTTP uses NDJSON progress/result/error envelopes without redefining business DTOs. Limits are 64 KiB input, 16 MiB output, eight concurrent requests, and a 120-second timeout. Disconnects cancel the corresponding call; CLI exit signals close the listener and cancel its own requests. The shared core service follows its existing idle lifecycle; one departing Web client does not terminate another entry's service. Closing a browser tab does not exit the CLI.
 
 Static files come only from the built asset directory. Startup loads allowed file types, with no directory listing or source access. Node and browser output is bounded; these limits do not verify million-record memory goals. The service does not support LAN, remote, or hosted deployment and exposes no generic file writes, shell execution, or core dispatch.
+
+## Timing reads
+
+`/api/timing` uses the generated timing protocol. Summary and evidence requests must explicitly provide a snapshot identity already published by this host; an absent or unpublished identity is rejected without selecting a new view. The host rejects browser `roots`, `projectRoots`, and snapshot paths, revalidates directory grants, and injects its authorized source roots. Rust verifies that the source, thread, and turn belong to that exact version. Expiry, revocation, or eviction fails explicitly without falling back to the latest version or restoring the old grant.
+
+Local summaries publish `readView.snapshotId` within the same 128-identity bound. Share summaries publish no read identity; share evidence is rejected. Configuration read-view identities remain separate. Capabilities do not select a snapshot or read directory grants. Timing does not load configuration, project working directories, prices, hooks, or account data. Request cancellation also prevents late results from publishing identities; other readers continue independently.
 
 ## Background prices
 
@@ -20,4 +26,4 @@ The host owns one background price task and returns basic usage first. Inject `c
 
 ## Verification
 
-After building the client, run `corepack pnpm --filter @wombat/web test`. Tests use only temporary synthetic directories and local listeners, covering authentication, scope, progress, cancellation, concurrency, and static resources. `tests/e2e/web.test.ts` verifies the real core after a full build; installation checks reuse the same black-box case.
+After building the client, run `corepack pnpm --filter @wombat/web test`. Tests use only temporary synthetic directories and local listeners, covering authentication, scope, progress, cancellation, concurrency, and static resources. `tests/timing.test.ts` uses a mock client to verify timing authorization, paging, expiry, sharing, and independent cancellation; it does not exercise the real core or browser. `tests/e2e/web.test.ts` verifies the existing real-core host path after a full build; installation checks reuse the same black-box case.

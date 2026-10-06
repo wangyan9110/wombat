@@ -6,7 +6,7 @@ import packageMetadata from '../package.json' with { type: 'json' };
 import { CoreError, type UsageRequest, type UsageResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { renderUsageResult } from './format.js';
-export function usageHelp(): string { return t("cli.usage-app-cli.help").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('cli.doctor.summary')}\n  wombat optimize`); }
+export function usageHelp(): string { return t("cli.usage-app-cli.help").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('cli.doctor.summary')}\n${t('cli.timing.summary')}\n  wombat optimize`); }
 export interface Invocation {
   request: UsageRequest;
   json: boolean;
@@ -169,6 +169,14 @@ export function parseUsageArgs(argv: string[]): Invocation {
 }
 export function resultExitCode(result: UsageResult): number { return result.quality.status === 'partial' || (result.freshness && !['current', 'fixed'].includes(result.freshness.status)) ? 2 : 0; }
 export async function runUsageCli(argv = process.argv.slice(2)): Promise<number> {
+  // Timing owns its default JSON and safe error envelope, including language errors.
+  let commandIndex = 0;
+  while (argv[commandIndex] === '--lang' || argv[commandIndex]?.startsWith('--lang=')) {
+    commandIndex += argv[commandIndex] === '--lang' ? 2 : 1;
+  }
+  if (argv[commandIndex] === 'timing') {
+    return (await import('./timing-cli.js')).runTimingCli([...argv.slice(0, commandIndex), ...argv.slice(commandIndex + 1)]);
+  }
   const json = argv.includes('--json');
   try {
     argv = configureLanguage(argv);
@@ -181,11 +189,11 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
     if (argv[0] === 'doctor') return (await import('./doctor-cli.js')).runDoctorCli(argv.slice(1));
     const invocation = parseUsageArgs(argv);
     if (invocation.version) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', version: packageMetadata.version }) + '\n' : 'Wombat ' + packageMetadata.version + '\n');
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', version: packageMetadata.version }) + '\n' : 'Wombat ' + packageMetadata.version + '\n');
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 3, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     const client = createNodeClient();

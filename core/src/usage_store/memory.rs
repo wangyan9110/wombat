@@ -6,6 +6,8 @@ pub(crate) fn memory(
     prices: crate::pricing_sync::Response,
     prior: Option<&Snapshot>,
 ) -> Result<Snapshot> {
+    validate_watermarks(&collected.watermarks)?;
+    validate_title_observations(&collected.title_observations, &collected.threads)?;
     let mut pool = super::price_pool::PricePool::new(&prices);
     let reusable = prior
         .filter(|s| s.manifest.price_catalog_hash == prices.catalog_hash)
@@ -61,7 +63,14 @@ pub(crate) fn memory(
         }
     }
     crate::usage_app::summarize(&rows.iter().map(Arc::as_ref).collect::<Vec<_>>())?;
+    let mut unassigned_uses = BTreeMap::<String, UnassignedUseRecords>::new();
     for op in collected.operations {
+        if op.turn_id.as_deref().is_none_or(|id| id.is_empty()) {
+            unassigned_uses
+                .entry(op.thread_id.to_string())
+                .or_default()
+                .observe(&op)?;
+        }
         memory_turns
             .entry((
                 op.thread_id.to_string(),
@@ -99,6 +108,7 @@ pub(crate) fn memory(
         .map(|thread| {
             let turns = by_thread.remove(&thread.id).unwrap_or_default();
             ThreadEntry {
+                unassigned_uses: unassigned_uses.remove(&thread.id).unwrap_or_default(),
                 thread,
                 turns,
                 file: file_ref("live", &[]),
@@ -108,8 +118,12 @@ pub(crate) fn memory(
     if !by_thread.is_empty() {
         return Err(operation_error("INVALID_FACTS", "存在没有对话元数据的记录"));
     }
+    let (events, live_events) = super::events::memory_events(collected.events)?;
+    let observation_versions = crate::observation_versions::SnapshotObservationVersions::current();
     let manifest = Manifest {
-        schema_version: 3,
+        schema_version: 4,
+        observation_versions,
+        title_observations: collected.title_observations,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -117,15 +131,19 @@ pub(crate) fn memory(
         price_revision: prices.catalog.revision,
         price_catalog_hash: prices.catalog_hash,
         sources: collected.sources,
+        watermarks: collected.watermarks,
         issues: collected.issues,
         ledger: file_ref("live", &[]),
+        events,
         threads,
     };
     Ok(Snapshot {
+        timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
         directory: PathBuf::new(),
         live_rows: Some(rows),
+        live_events: Some(live_events),
         memory_turns: Some(memory_turns),
     })
 }

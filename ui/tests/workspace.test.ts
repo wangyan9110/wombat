@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CoreError, type UsageClient, type UsageRequest, type UsageResult, type QueryOptions } from '@wombat/client';
@@ -11,7 +12,7 @@ function fixture() {
   let intercept: (q: UsageRequest, options: QueryOptions) => Promise<void> = async () => {};
   const result = (q: UsageRequest): UsageResult => ({
     action: q.action, snapshotRef: { snapshotId: q.snapshotId ?? revision },
-    summary: { tokens: { total: revision === 'live:one' ? 330 : 660 } },
+    summary: withTokenAnalysis({ measurementCount:1, tokens: { total: revision === 'live:one' ? 330 : 660 } }),
     items: [{ kind: 'usage', isSubtotal: true }],
     page: { offset: q.offset ?? 0, limit: q.limit ?? 1, total: 10000, nextOffset: (q.offset ?? 0) + (q.limit ?? 1) },
     freshness: { status: 'current', revision },
@@ -139,8 +140,8 @@ test('a trend page outside the peak retains the full-range peak through one boun
     calls.push(request.query);
     const response = await f.client.live!(request, options);
     const tokens = request.query.sort === 'tokens' ? 660 : 110;
-    response.result.distribution = {maxTokens:660} as UsageResult['distribution'];
-    response.result.items = [{kind:'usage',isSubtotal:true,scope:{},usage:{tokens:{total:tokens}}}] as UsageResult['items'];
+    response.result.distribution = {tokenBasis:'analyzed_totals',maxTokens:660} as UsageResult['distribution'];
+    response.result.items = [{kind:'usage',isSubtotal:true,scope:{},usage:withTokenAnalysis({measurementCount:1,tokens:{total:tokens}})}] as UsageResult['items'];
     return response;
   }} as UsageClient;
   const w=new Workspace(client); t.after(()=>w.stop());

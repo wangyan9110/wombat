@@ -1,8 +1,9 @@
 import {useEffect,useState} from 'react';
 import type {OptimizeResult,UsageClient} from '@wombat/client';
-import {t,reviewFindingLabel} from '@wombat/client/locale';
+import {t} from '@wombat/client/locale';
 import type {Route} from './state.js';
 import {QueryError} from './Feedback.js';
+import {AssessmentRows} from './optimize/Assessments.js';
 
 /** Checks are requested only when expanded, and always use the inventory's fixed view. */
 export function RuleChecks({client,route,readView,itemId}:{client:UsageClient;route:Route;readView:string;itemId:string}) {
@@ -17,13 +18,10 @@ export function RuleChecks({client,route,readView,itemId}:{client:UsageClient;ro
     return()=>controller.abort();
   },[client,key,open,retry]);
   const current=state.key===key?state:undefined;
-  const reason=(code?:string|null)=>{
-    switch(code){case 'verifiedHostAdapterUnavailable':return t('optimize.hostEvidenceMissing');case 'continuousCoverageUnavailable':return t('optimize.coverageMissing');case 'runtimeInjectionUnavailable':return t('optimize.injectionMissing');case 'copyRelationNotDeclared':return t('optimize.copyUndeclared');default:return t('optimize.evidenceIncomplete');}
-  };
   return <details className="provenance" onToggle={event=>setOpen(event.currentTarget.open)}><summary>{t('optimize.checks')}</summary>
     <p className="note">{t('optimize.checkNote')}</p>
     {open&&(!current||current.loading)&&<p role="status">{t('webui.loading')}</p>}
     {current?.error&&<QueryError error={current.error.message} retry={()=>setRetry(n=>n+1)}/>}
-    {current?.data?.checks?.map(check=><article key={check.rule}><strong>{reviewFindingLabel(check.rule)}</strong><p>{t(`optimize.check.${check.outcome}`)}</p>{check.reason&&<p>{reason(check.reason)}</p>}</article>)}
+    {current?.data&&<><AssessmentRows checks={current.data.checks} timezone={route.timezone}/>{current.data.resultStatus!=='complete'&&<p className="note">{t('optimize.assessment.partial')}</p>}{!current.data.checks.length&&<p>{t('optimize.evidenceIncomplete')}</p>}</>}
   </details>;
 }

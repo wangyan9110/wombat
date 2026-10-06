@@ -18,19 +18,143 @@ pub(super) fn checked_sum(
     }
     Ok(complete.then_some(sum))
 }
+
+fn token_analysis(rows: &[&PricedMeasurement]) -> Result<TokenAnalysis> {
+    let fields = TokenFields::from_fn(|_| ObservedTokenSubtotal {
+        observed_subtotal: None,
+        covered_records: 0,
+        missing_records: 0,
+        conflicting_records: 0,
+        invalid_records: 0,
+        indeterminate_records: 0,
+    });
+    let mut fields = fields;
+    for field in TokenField::ALL {
+        let aggregate = fields.get_mut(field);
+        let mut subtotal = 0_u64;
+        for row in rows {
+            let value = row.fact.tokens.get(field);
+            let reason = *row.fact.token_unavailable_reasons.get(field);
+            match (value, reason) {
+                (Some(value), None) => {
+                    aggregate.covered_records =
+                        checked_record_increment(aggregate.covered_records)?;
+                    subtotal = subtotal
+                        .checked_add(value)
+                        .filter(|sum| *sum <= MAX_SAFE_INTEGER)
+                        .ok_or_else(|| {
+                            operation_error("RESOURCE_LIMIT", "Token小计超出安全整数范围")
+                        })?;
+                }
+                (None, Some(TokenUnavailableReason::Missing)) => {
+                    aggregate.missing_records =
+                        checked_record_increment(aggregate.missing_records)?;
+                }
+                (None, Some(TokenUnavailableReason::Conflicting)) => {
+                    aggregate.conflicting_records =
+                        checked_record_increment(aggregate.conflicting_records)?;
+                }
+                (None, Some(TokenUnavailableReason::Invalid)) => {
+                    aggregate.invalid_records =
+                        checked_record_increment(aggregate.invalid_records)?;
+                }
+                (None, Some(TokenUnavailableReason::Indeterminate)) => {
+                    aggregate.indeterminate_records =
+                        checked_record_increment(aggregate.indeterminate_records)?;
+                }
+                _ => {
+                    return Err(operation_error(
+                        "INVALID_LEDGER",
+                        "Token值与不可用原因不一致",
+                    ));
+                }
+            }
+        }
+        aggregate.observed_subtotal = (aggregate.covered_records > 0).then_some(subtotal);
+    }
+    Ok(TokenAnalysis {
+        method_version: TokenAnalysis::METHOD_VERSION,
+        scope: TokenAnalysisScope::SelectedCanonicalMeasurements,
+        fields,
+        total_analysis: Some(analyzed_total(rows)?),
+    })
+}
+
+fn analyzed_total(rows: &[&PricedMeasurement]) -> Result<AnalyzedTokenTotal> {
+    let mut total = AnalyzedTokenTotal {
+        method_version: 1,
+        subtotal: None,
+        covered_records: 0,
+        recorded_records: 0,
+        calculated_records: 0,
+        unavailable_records: 0,
+        overflow_records: 0,
+    };
+    let mut recorded_subtotal = 0u64;
+    let mut calculated_subtotal = 0u128;
+    for row in rows {
+        let fact = &row.fact;
+        let value = if let Some(native) = fact.tokens.total {
+            total.recorded_records = checked_record_increment(total.recorded_records)?;
+            // Native per-field aggregation has already enforced the safe range.
+            recorded_subtotal += native;
+            Some(native)
+        } else if fact.request_scoped && fact.grain.as_ref() == "response" {
+            let parts = fact.tokens.raw_input.zip(fact.tokens.output);
+            let calculated = parts.and_then(|(input, output)| {
+                input.checked_add(output).filter(|n| *n <= MAX_SAFE_INTEGER)
+            });
+            if let Some(calculated_value) = calculated {
+                total.calculated_records = checked_record_increment(total.calculated_records)?;
+                calculated_subtotal += u128::from(calculated_value);
+            } else if parts.is_some() {
+                total.overflow_records = checked_record_increment(total.overflow_records)?;
+            }
+            calculated
+        } else {
+            None
+        };
+        if value.is_some() {
+            total.covered_records = checked_record_increment(total.covered_records)?;
+        } else {
+            total.unavailable_records = checked_record_increment(total.unavailable_records)?;
+        }
+    }
+    let combined = u128::from(recorded_subtotal) + calculated_subtotal;
+    if combined > u128::from(MAX_SAFE_INTEGER) {
+        // Exclude the alternative cohort together, independent of row order.
+        // Native subtotals and all category evidence remain independently usable.
+        total.overflow_records += total.calculated_records;
+        total.unavailable_records += total.calculated_records;
+        total.covered_records = total.recorded_records;
+        total.calculated_records = 0;
+        total.subtotal = (total.recorded_records > 0).then_some(recorded_subtotal);
+    } else {
+        total.subtotal = (total.covered_records > 0).then_some(combined as u64);
+    }
+    Ok(total)
+}
+
+fn checked_record_increment(value: u64) -> Result<u64> {
+    value
+        .checked_add(1)
+        .ok_or_else(|| operation_error("RESOURCE_LIMIT", "Token记录数超出安全范围"))
+}
+
 pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
-    let input_total = checked_sum(rows, |t| {
-        t.input?
-            .checked_add(t.cache_read?)?
-            .checked_add(t.cache_create?)
-    })?;
+    let token_analysis = token_analysis(rows)?;
+    let input_total = checked_sum(rows, total_input)?;
     let cache_read = checked_sum(rows, |t| t.cache_read)?;
     // Validate stored parts even for a single row; preserve its request-specific basis.
     let price = crate::pricing::sum_prices(rows.iter().map(|r| r.price.as_ref()))
         .map_err(|e| operation_error("PRICING_ERROR", e))?;
     Ok(UsageSummary {
         input_total,
-        cache_hit_rate: share(cache_read, input_total),
+        cache_hit_rate: rows
+            .iter()
+            .all(|row| input_categories_consistent(&row.fact.tokens))
+            .then(|| share(cache_read, input_total))
+            .flatten(),
         unpriced_tokens: unpriced_tokens(rows)?,
         tokens: TokenUsage {
             input: checked_sum(rows, |t| t.input)?,
@@ -41,6 +165,7 @@ pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
             total: checked_sum(rows, |t| t.total)?,
             raw_input: checked_sum(rows, |t| t.raw_input)?,
         },
+        token_analysis,
         price: if rows.len() == 1 {
             rows[0].price.as_ref().clone()
         } else {
@@ -48,6 +173,33 @@ pub fn summarize(rows: &[&PricedMeasurement]) -> Result<UsageSummary> {
         },
         measurement_count: rows.len(),
     })
+}
+
+fn total_input(tokens: &TokenUsage) -> Option<u64> {
+    // Native input already includes cache reads and writes. Missing breakdowns do
+    // not erase it. A missing native value can also be a sticky conflict, even
+    // when replay filled every category, so do not reconstruct it from parts.
+    tokens.raw_input
+}
+
+fn input_categories_consistent(tokens: &TokenUsage) -> bool {
+    let Some(total) = total_input(tokens) else {
+        return false;
+    };
+    // Validate each measurement before aggregation: another request's input must
+    // not conceal an impossible cache count. Missing writes are not assumed zero.
+    let Some(known_parts) = [tokens.input, tokens.cache_read, tokens.cache_create]
+        .into_iter()
+        .flatten()
+        .try_fold(0u64, u64::checked_add)
+    else {
+        return false;
+    };
+    known_parts <= total
+        && (![tokens.input, tokens.cache_read, tokens.cache_create]
+            .iter()
+            .all(Option::is_some)
+            || known_parts == total)
 }
 pub(super) fn share(value: Option<u64>, total: Option<u64>) -> Option<f64> {
     value
@@ -103,6 +255,23 @@ pub(super) fn consumption_order(
     if *sort == Some(Sort::Cost) {
         known_cost(b).cmp(&known_cost(a))
     } else {
-        b.tokens.total.cmp(&a.tokens.total)
+        b.available_token_subtotal()
+            .cmp(&a.available_token_subtotal())
     }
 }
+
+pub(super) fn max_available_tokens<'a>(
+    summaries: impl IntoIterator<Item = &'a UsageSummary>,
+) -> Option<u64> {
+    let mut maximum = None;
+    for summary in summaries {
+        let Some(value) = summary.available_token_subtotal() else {
+            continue;
+        };
+        maximum = Some(maximum.map_or(value, |current: u64| current.max(value)));
+    }
+    maximum
+}
+
+#[cfg(test)]
+mod tests;

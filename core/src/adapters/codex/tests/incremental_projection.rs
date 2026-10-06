@@ -55,7 +55,9 @@ fn indexed_direct_coverage_preserves_owner_and_half_open_boundaries() {
                 fingerprint: String::new(),
             },
         );
-        facts.reconcile_direct(&mut report);
+        facts
+            .reconcile_direct(&mut report, &std::sync::atomic::AtomicBool::new(false))
+            .unwrap();
         assert_eq!(!facts.measurements.contains_key("legacy"), removed);
         assert_eq!(
             report.issues.iter().any(|i| i.code == "usageOverlap"),
@@ -278,4 +280,62 @@ fn canonical_and_alternate_operation_identities_survive_restart_and_turn_reuse()
         serde_json::to_value(&after.operations).unwrap(),
         serde_json::to_value(&collect(root.path()).operations).unwrap()
     );
+}
+
+#[test]
+fn cancelled_accounting_checks_direct_fast_path_and_fork_reduction_without_mutation() {
+    use std::sync::atomic::AtomicBool;
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        "sessions/base.jsonl",
+        &[
+            meta("t"),
+            context("u", "model", "low"),
+            direct("t", "u", "r", "2026-09-29T00:00:01Z", 100, 60, 10),
+        ],
+    );
+    let collected = collect(root.path());
+    let parents = HashMap::new();
+    let forest = ancestry::ForkForest::new(&parents);
+    for direct in [false, true] {
+        for thread in [None, collected.measurements[0].thread_id.clone()] {
+            let mut row = collected.measurements[0].as_ref().clone();
+            row.thread_id = thread;
+            let mut facts = Facts::default();
+            facts.measurements.insert(
+                row.id.clone(),
+                Candidate {
+                    measurement: row.into(),
+                    direct,
+                    cumulative: Some(100),
+                    interval_start: Some(0),
+                    fingerprint: "synthetic-counter".into(),
+                },
+            );
+            let before = serde_json::to_value(&facts.measurements).unwrap();
+            let mut report = collected.sources[0].clone();
+            report.issues.clear();
+            let cancelled = AtomicBool::new(true);
+            let error = facts.reconcile_direct(&mut report, &cancelled).unwrap_err();
+            assert_eq!(
+                error
+                    .downcast_ref::<crate::dto::OperationError>()
+                    .unwrap()
+                    .code,
+                "CANCELLED"
+            );
+            assert_eq!(serde_json::to_value(&facts.measurements).unwrap(), before);
+            assert!(report.issues.is_empty());
+            let error = facts.remove_inherited(&forest, &cancelled).unwrap_err();
+            assert_eq!(
+                error
+                    .downcast_ref::<crate::dto::OperationError>()
+                    .unwrap()
+                    .code,
+                "CANCELLED"
+            );
+            assert_eq!(serde_json::to_value(&facts.measurements).unwrap(), before);
+        }
+    }
 }

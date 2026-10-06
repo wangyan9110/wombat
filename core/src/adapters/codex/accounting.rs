@@ -1,9 +1,17 @@
 //! Direct and cumulative accounting reconciliation preserves missing and conflicting facts.
 use super::*;
 impl Facts {
-    pub(super) fn measurement(&mut self, mut candidate: Candidate, report: &mut SourceReport) {
+    pub(super) fn measurement(
+        &mut self,
+        mut candidate: Candidate,
+        context_conflicts: &[crate::session_events::MeasurementContextField],
+        report: &mut SourceReport,
+    ) {
         self.strings
             .measurement(Arc::make_mut(&mut candidate.measurement));
+        timing::measurement(self, &candidate, context_conflicts, report);
+    }
+    pub(super) fn project_measurement(&mut self, candidate: Candidate, report: &mut SourceReport) {
         self.dirty_measurements
             .insert(candidate.measurement.id.clone());
         if let Some(existing) = self.measurements.get_mut(&candidate.measurement.id) {
@@ -14,35 +22,12 @@ impl Facts {
             let old = Arc::make_mut(&mut existing.measurement);
             let prefix = old.id.clone();
             let conflicts = &mut self.measurement_conflicts;
-            let mut token_conflict = false;
-            for (field, current, new) in [
-                ("input", &mut old.tokens.input, &incoming.tokens.input),
-                (
-                    "cacheRead",
-                    &mut old.tokens.cache_read,
-                    &incoming.tokens.cache_read,
-                ),
-                (
-                    "cacheCreate",
-                    &mut old.tokens.cache_create,
-                    &incoming.tokens.cache_create,
-                ),
-                ("output", &mut old.tokens.output, &incoming.tokens.output),
-                (
-                    "reasoning",
-                    &mut old.tokens.reasoning,
-                    &incoming.tokens.reasoning,
-                ),
-                ("total", &mut old.tokens.total, &incoming.tokens.total),
-                (
-                    "rawInput",
-                    &mut old.tokens.raw_input,
-                    &incoming.tokens.raw_input,
-                ),
-            ] {
-                token_conflict |=
-                    merge_optional(current, new, conflicts, &format!("{prefix}:{field}"));
-            }
+            let token_conflict = merge_token_observations(
+                &mut old.tokens,
+                &mut old.token_unavailable_reasons,
+                &incoming.tokens,
+                &incoming.token_unavailable_reasons,
+            );
             if token_conflict {
                 issue(
                     report,
@@ -82,6 +67,7 @@ impl Facts {
                 conflicts,
                 &format!("{prefix}:apiProvider"),
             );
+            old.pricing_context_conflict |= incoming.pricing_context_conflict || model_conflict;
             if model_conflict {
                 issue(
                     report,
@@ -125,34 +111,64 @@ impl Facts {
                 .insert(candidate.measurement.id.clone(), candidate);
         }
     }
-    pub(super) fn remove_inherited(&mut self, forest: &ancestry::ForkForest<'_>) {
+    pub(super) fn remove_inherited(
+        &mut self,
+        forest: &ancestry::ForkForest<'_>,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> anyhow::Result<()> {
         // Only byte-identical native counter events can be inherited. Direct response
         // records retain their explicit owner, even when their counts match an ancestor.
-        let remove: Vec<_> = forest
-            .replays(self.measurements.iter().filter_map(|(id, candidate)| {
-                Some((
-                    candidate.fingerprint.as_str(),
-                    candidate.measurement.thread_id.as_deref()?,
-                    id.as_str(),
-                ))
-            }))
-            .into_iter()
-            .filter(|(id, _)| !self.measurements[*id].direct)
-            .map(|(id, _)| id.to_owned())
-            .collect();
+        let check = crate::operation_association::check;
+        check(cancelled)?;
+        let mut entries = Vec::new();
+        for (id, candidate) in &self.measurements {
+            check(cancelled)?;
+            if let Some(thread) = candidate.measurement.thread_id.as_deref() {
+                entries.push((candidate.fingerprint.as_str(), thread, id.as_str()));
+            }
+        }
+        let mut remove = Vec::new();
+        for (id, _) in forest.replays_cancellable(entries.into_iter(), cancelled)? {
+            check(cancelled)?;
+            if !self.measurements[id].direct {
+                remove.push(id.to_owned());
+            }
+        }
         for id in remove {
+            crate::operation_association::check(cancelled)?;
             self.measurements.remove(&id);
         }
+        check(cancelled)?;
+        Ok(())
     }
-    pub(super) fn reconcile_direct(&mut self, report: &mut SourceReport) {
-        if self.measurements.values().all(|candidate| candidate.direct) {
-            return;
+    pub(super) fn reconcile_direct(
+        &mut self,
+        report: &mut SourceReport,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> anyhow::Result<()> {
+        let check = crate::operation_association::check;
+        check(cancelled)?;
+        let mut direct_only = true;
+        for candidate in self.measurements.values() {
+            check(cancelled)?;
+            if !candidate.direct {
+                direct_only = false;
+                break;
+            }
+        }
+        check(cancelled)?;
+        if direct_only {
+            return Ok(());
         }
         // Build coverage once per owner. Scanning every direct response for every
         // legacy counter is quadratic across unrelated historical conversations.
         let mut direct = BTreeMap::<Arc<str>, Vec<(u64, u64)>>::new();
         let mut unbounded = BTreeMap::<Option<Arc<str>>, BTreeSet<Option<Arc<str>>>>::new();
-        for candidate in self.measurements.values().filter(|v| v.direct) {
+        for candidate in self.measurements.values() {
+            check(cancelled)?;
+            if !candidate.direct {
+                continue;
+            }
             if let (Some(thread), Some(start), Some(end)) = (
                 &candidate.measurement.thread_id,
                 candidate.interval_start,
@@ -167,10 +183,14 @@ impl Facts {
                     .insert(candidate.measurement.turn_id.clone());
             }
         }
+        check(cancelled)?;
         for ranges in direct.values_mut() {
+            check(cancelled)?;
             ranges.sort_unstable();
+            check(cancelled)?;
             let mut merged: Vec<(u64, u64)> = Vec::new();
             for &(start, end) in ranges.iter() {
+                check(cancelled)?;
                 if let Some(last) = merged.last_mut()
                     && start <= last.1
                 {
@@ -183,6 +203,7 @@ impl Facts {
         }
         let mut remove = Vec::new();
         for (id, candidate) in &self.measurements {
+            check(cancelled)?;
             if candidate.direct {
                 continue;
             }
@@ -226,7 +247,10 @@ impl Facts {
             }
         }
         for id in remove {
+            check(cancelled)?;
             self.measurements.remove(&id);
         }
+        check(cancelled)?;
+        Ok(())
     }
 }

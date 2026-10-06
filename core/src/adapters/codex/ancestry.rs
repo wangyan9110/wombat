@@ -1,5 +1,7 @@
 //! Index explicit fork trees once; cycles and their descendants have no trusted ancestry.
 use super::*;
+use crate::operation_association::check;
+use std::sync::atomic::AtomicBool;
 
 #[derive(Clone, Copy)]
 struct Interval {
@@ -13,19 +15,32 @@ pub(super) struct ForkForest<'a> {
 }
 
 impl<'a> ForkForest<'a> {
+    pub(super) fn owner_order(&self, thread: &str) -> Option<usize> {
+        self.intervals.get(thread).map(|interval| interval.start)
+    }
+    #[cfg(test)]
     pub(super) fn new(parents: &'a HashMap<String, String>) -> Self {
-        let names: BTreeSet<_> = parents
-            .iter()
-            .flat_map(|(child, parent)| [child.as_str(), parent.as_str()])
-            .collect();
-        let indexes: BTreeMap<_, _> = names
-            .into_iter()
-            .enumerate()
-            .map(|(n, id)| (id, n))
-            .collect();
+        Self::new_cancellable(parents, &AtomicBool::new(false)).unwrap()
+    }
+    pub(super) fn new_cancellable(
+        parents: &'a HashMap<String, String>,
+        cancelled: &AtomicBool,
+    ) -> anyhow::Result<Self> {
+        check(cancelled)?;
+        let mut names = BTreeSet::new();
+        for (child, parent) in parents {
+            check(cancelled)?;
+            names.extend([child.as_str(), parent.as_str()]);
+        }
+        let mut indexes = BTreeMap::new();
+        for (n, id) in names.into_iter().enumerate() {
+            check(cancelled)?;
+            indexes.insert(id, n);
+        }
         let mut children = vec![vec![]; indexes.len()];
         let mut roots = vec![true; indexes.len()];
         for (child, parent) in parents {
+            check(cancelled)?;
             let child = indexes[child.as_str()];
             children[indexes[parent.as_str()]].push(child);
             roots[child] = false;
@@ -34,9 +49,14 @@ impl<'a> ForkForest<'a> {
         let mut ranges: Vec<Option<Interval>> = vec![None; indexes.len()];
         let mut stack = Vec::new();
         let mut clock = 0;
-        for root in (0..indexes.len()).filter(|n| roots[*n]) {
+        for (root, is_root) in roots.iter().enumerate() {
+            check(cancelled)?;
+            if !is_root {
+                continue;
+            }
             stack.push((root, false));
             while let Some((node, leaving)) = stack.pop() {
+                check(cancelled)?;
                 if leaving {
                     ranges[node].as_mut().unwrap().end = clock;
                 } else {
@@ -46,37 +66,66 @@ impl<'a> ForkForest<'a> {
                     });
                     clock += 1;
                     stack.push((node, true));
-                    stack.extend(children[node].iter().rev().map(|child| (*child, false)));
+                    for child in children[node].iter().rev() {
+                        check(cancelled)?;
+                        stack.push((*child, false));
+                    }
                 }
             }
         }
-        let unresolved = ranges.iter().filter(|range| range.is_none()).count();
-        let intervals = indexes
-            .into_iter()
-            .filter_map(|(id, n)| Some((id, ranges[n]?)))
-            .collect();
-        Self {
+        let mut unresolved = 0;
+        let mut intervals = BTreeMap::new();
+        for (id, n) in indexes {
+            check(cancelled)?;
+            if let Some(range) = ranges[n] {
+                intervals.insert(id, range);
+            } else {
+                unresolved += 1;
+            }
+        }
+        check(cancelled)?;
+        Ok(Self {
             intervals,
             unresolved,
-        }
+        })
     }
 
     /// Return replay -> oldest recorded ancestor within each exact evidence identity.
     /// Sorting borrowed identities costs O(E log E); no per-event ancestor walks or text copies.
+    #[cfg(test)]
     pub(super) fn replays<'b, K: Ord>(
         &self,
         entries: impl Iterator<Item = (K, &'b str, &'b str)>,
     ) -> Vec<(&'b str, &'b str)> {
+        self.replays_cancellable(entries, &AtomicBool::new(false))
+            .unwrap()
+    }
+    /// Sorting remains cooperative: cancellation is checked before and after
+    /// the sort, and throughout collection and traversal, not inside comparisons.
+    pub(super) fn replays_cancellable<'b, K: Ord>(
+        &self,
+        entries: impl Iterator<Item = (K, &'b str, &'b str)>,
+        cancelled: &AtomicBool,
+    ) -> anyhow::Result<Vec<(&'b str, &'b str)>> {
+        check(cancelled)?;
         if self.intervals.is_empty() {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        let mut entries: Vec<_> = entries
-            .filter_map(|(key, thread, id)| Some((key, *self.intervals.get(thread)?, id)))
-            .collect();
+        let mut retained = Vec::new();
+        for (key, thread, id) in entries {
+            check(cancelled)?;
+            if let Some(range) = self.intervals.get(thread) {
+                retained.push((key, *range, id));
+            }
+        }
+        let mut entries = retained;
+        check(cancelled)?;
         entries.sort_unstable_by(|a, b| (&a.0, a.1.start, a.2).cmp(&(&b.0, b.1.start, b.2)));
+        check(cancelled)?;
         let mut owner: Option<usize> = None;
         let mut replay = Vec::new();
         for (n, (key, range, id)) in entries.iter().enumerate() {
+            check(cancelled)?;
             if let Some(index) = owner {
                 let (prior_key, prior_range, prior_id) = &entries[index];
                 if key == prior_key
@@ -89,6 +138,7 @@ impl<'a> ForkForest<'a> {
             }
             owner = Some(n);
         }
-        replay
+        check(cancelled)?;
+        Ok(replay)
     }
 }

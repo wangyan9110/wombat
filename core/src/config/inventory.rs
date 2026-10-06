@@ -11,20 +11,34 @@ pub(crate) fn prepare_observed(
     static REFRESH: Mutex<()> = Mutex::new(());
     let _refresh = REFRESH.lock().unwrap_or_else(|e| e.into_inner());
     let roots = r.roots.clone().unwrap_or_default();
-    let sources = crate::adapters::codex::CodexAdapter
-        .discover(&DiscoveryRequest {
-            roots: roots.iter().map(PathBuf::from).collect(),
-        })
-        .sources;
+    let discovery = crate::adapters::codex::CodexAdapter.discover(&DiscoveryRequest {
+        roots: roots.iter().map(PathBuf::from).collect(),
+    });
+    let sources = discovery.sources;
     let projects = scope::projects(r)?;
     let checked = Utc::now().to_rfc3339();
     let mut inventory = scan::scan(&sources, &projects, &checked);
+    inventory
+        .issues
+        .extend(discovery.issues.into_iter().map(|issue| {
+            Issue {
+                code: issue.code,
+                path: sources
+                    .iter()
+                    .find(|source| Some(&source.id) == issue.source_instance_id.as_ref())
+                    .map(|source| source.root.clone()),
+            }
+        }));
     scan::append_native_hooks(&mut inventory, native, &sources, &projects, &checked);
     let hook_registry = hooks::bind(native, &inventory.items, &projects);
     inventory.issues.retain(|issue| {
         issue.code != "hookEffectiveRegistryUnavailable"
             || !matches!(hook_registry.status, HookRegistryStatus::Observed)
     });
+    let config_collection = ConfigCollection::capture(
+        &inventory.issues,
+        sources.iter().map(|source| source.root.clone()).collect(),
+    );
     let mut analysis = analysis::analyze_authorized(
         &inventory.items,
         &projects,
@@ -131,48 +145,21 @@ pub(crate) fn prepare_observed(
             }
         }
     }
-    let revision = crate::hash(serde_json::to_vec(
-        &inventory
-            .items
-            .iter()
-            .map(|i| {
-                (
-                    &i.id,
-                    &i.content_hash,
-                    &i.project,
-                    &i.authorized_projects,
-                    &i.source_contexts,
-                    i.current,
-                    i.stale,
-                    &i.measurement_status,
-                    &i.estimate,
-                    i.bytes,
-                )
-            })
-            .collect::<Vec<_>>(),
-    )?);
-    let revision = crate::hash(serde_json::to_vec(&(
-        &revision,
-        &analysis.findings,
-        &analysis.issues,
-        &analysis.hook_checks.iter().collect::<Vec<_>>(),
-        (
-            &hook_registry.native_version,
-            &hook_registry.status,
-            &hook_registry.contexts,
-        ),
-    ))?);
-    Ok(View {
+    let mut view = View {
         snapshot,
         items: inventory.items,
         issues: inventory.issues,
         projects,
         roots,
         project_roots: r.project_roots.clone().unwrap_or_default(),
-        revision,
+        revision: String::new(),
         checked,
         history_status,
         analysis,
         hook_registry,
-    })
+        config_collection,
+        observation_versions: OnceLock::new(),
+    };
+    view.revision = view.observation_versions()?.combined_revision()?;
+    Ok(view)
 }

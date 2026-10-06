@@ -280,6 +280,9 @@
         "tokens": {
           "$ref": "#/definitions/TokenUsage"
         },
+        "tokenAnalysis": {
+          "$ref": "#/definitions/TokenAnalysis"
+        },
         "price": {
           "$ref": "#/definitions/PriceResult"
         },
@@ -291,6 +294,7 @@
       },
       "required": [
         "tokens",
+        "tokenAnalysis",
         "price",
         "measurementCount"
       ]
@@ -357,6 +361,183 @@
           "maximum": 9007199254740991
         }
       }
+    },
+    "TokenAnalysis": {
+      "description": "Token subtotals are scoped to the canonical measurements selected by this query.\nExisting `tokens` fields remain complete totals; partial observations live here.",
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/TokenAnalysisScope"
+        },
+        "fields": {
+          "$ref": "#/definitions/TokenFields"
+        },
+        "totalAnalysis": {
+          "description": "Independent analysis; immutable historical review items may contain only\nthe native observations captured when the user made the decision.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AnalyzedTokenTotal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "scope",
+        "fields"
+      ]
+    },
+    "TokenAnalysisScope": {
+      "type": "string",
+      "enum": [
+        "selected_canonical_measurements"
+      ]
+    },
+    "TokenFields": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "cacheRead": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "cacheCreate": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "output": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "reasoning": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "total": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        },
+        "rawInput": {
+          "$ref": "#/definitions/ObservedTokenSubtotal"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "cacheRead",
+        "cacheCreate",
+        "output",
+        "reasoning",
+        "total",
+        "rawInput"
+      ]
+    },
+    "ObservedTokenSubtotal": {
+      "description": "An observed subtotal never implies that unavailable records contributed zero.",
+      "type": "object",
+      "properties": {
+        "observedSubtotal": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "coveredRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "missingRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "conflictingRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "invalidRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "indeterminateRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "coveredRecords",
+        "missingRecords",
+        "conflictingRecords",
+        "invalidRecords",
+        "indeterminateRecords"
+      ]
+    },
+    "AnalyzedTokenTotal": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "subtotal": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "coveredRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "recordedRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "calculatedRecords": {
+          "description": "Unavailable native totals use recorded input (including caches) plus output\nonly for an identified response grain. Reasoning is already in output.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unavailableRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "overflowRecords": {
+          "description": "Alternative records excluded by individual or combined safe-integer limits.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "coveredRecords",
+        "recordedRecords",
+        "calculatedRecords",
+        "unavailableRecords",
+        "overflowRecords"
+      ]
     },
     "PriceResult": {
       "type": "object",
@@ -651,6 +832,16 @@
           "minimum": 0,
           "maximum": 9007199254740991
         },
+        "useBasis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UseBasis"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "lastRecordAt": {
           "type": [
             "string",
@@ -915,6 +1106,246 @@
       },
       "required": [
         "code"
+      ]
+    },
+    "UseBasis": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "status": {
+          "$ref": "#/definitions/UseBasisStatus"
+        },
+        "unit": {
+          "$ref": "#/definitions/UseUnit"
+        },
+        "capturedAt": {
+          "description": "Observer cutoff, distinct from individual event times and source dispatch.",
+          "type": "string"
+        },
+        "snapshotId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "$ref": "#/definitions/UseScope"
+        },
+        "timeBasis": {
+          "$ref": "#/definitions/UseTimeBasis"
+        },
+        "coverage": {
+          "$ref": "#/definitions/UseCoverage"
+        },
+        "sourceCompleteness": {
+          "description": "Completeness of selected source reports, not proof of all native use mechanisms.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/UseSourceCompleteness"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "status",
+        "unit",
+        "capturedAt",
+        "scope",
+        "timeBasis",
+        "coverage",
+        "sourceCompleteness"
+      ]
+    },
+    "UseBasisStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "observed",
+            "unavailable"
+          ]
+        },
+        {
+          "description": "Canonical observed counts remain usable; gaps prevent a complete count.",
+          "type": "string",
+          "const": "partial"
+        }
+      ]
+    },
+    "UseUnit": {
+      "type": "string",
+      "enum": [
+        "object_use",
+        "rule_read",
+        "rule_load_or_read"
+      ]
+    },
+    "UseScope": {
+      "type": "object",
+      "properties": {
+        "sourceInstanceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "threadId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agentKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "window": {
+          "$ref": "#/definitions/UseWindow"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sourceInstanceIds",
+        "window"
+      ]
+    },
+    "UseWindow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all_history"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "Inclusive local date since, exclusive local date until, in the recorded timezone.",
+          "type": "object",
+          "properties": {
+            "since": {
+              "type": "string"
+            },
+            "until": {
+              "type": "string"
+            },
+            "timezone": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "date_window"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "since",
+            "until",
+            "timezone"
+          ]
+        },
+        {
+          "description": "Exclusive source-operation time after, inclusive captured observer time through.",
+          "type": "object",
+          "properties": {
+            "after": {
+              "type": "string"
+            },
+            "through": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "follow_up"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "after",
+            "through"
+          ]
+        }
+      ]
+    },
+    "UseTimeBasis": {
+      "type": "string",
+      "enum": [
+        "source_operation_time"
+      ]
+    },
+    "UseCoverage": {
+      "type": "object",
+      "properties": {
+        "dispatchGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "identityGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "targetGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "turnGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    },
+    "UseSourceCompleteness": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "unknown"
       ]
     },
     "Evidence": {

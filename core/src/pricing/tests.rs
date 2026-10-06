@@ -105,6 +105,7 @@ fn unscoped_cumulative_difference_does_not_invent_long_context_tier() {
         &tokens(300_000, 0, 0, 100_000),
         &PricingContext {
             request_scoped: false,
+            model_conflicted: false,
         },
     );
     assert_eq!(result.status.as_ref(), "unknown");
@@ -121,9 +122,265 @@ fn unscoped_cumulative_difference_does_not_invent_long_context_tier() {
         &tokens(300_000, 0, 0, 100_000),
         &PricingContext {
             request_scoped: false,
+            model_conflicted: false,
         },
     );
     assert_eq!(result.cost.as_deref(), Some("1.925"));
+}
+
+#[test]
+fn parts_only_requests_do_not_establish_a_tier_but_constant_rates_remain_available() {
+    for input in [272_000, 272_001] {
+        let mut usage = tokens(input, 0, 0, 10);
+        usage.raw_input = None;
+        let tiered = price(&model("gpt-5.4"), &usage);
+        assert_eq!(tiered.basis[0].request_input_tokens, None);
+        assert_eq!(tiered.basis[0].condition.as_ref(), "conditionUnknown");
+        assert_eq!(tiered.status.as_ref(), "unknown");
+        assert_eq!(tiered.cost, None);
+        assert_eq!(tiered.known_cost, "0");
+        assert_eq!(tiered.components[1].cost.as_deref(), Some("0"));
+        assert_eq!(tiered.components[2].cost.as_deref(), Some("0"));
+        assert!(
+            tiered
+                .issues
+                .iter()
+                .any(|i| i.as_ref() == "requestContextUnknown")
+        );
+        assert!(
+            !tiered
+                .issues
+                .iter()
+                .any(|i| i.as_ref() == "catalogPriceMissing")
+        );
+        let constant = price(&model("gpt-5.3-codex"), &usage);
+        assert_eq!(constant.status.as_ref(), "priced");
+        assert_eq!(
+            constant.cost.as_deref(),
+            Some(if input == 272_000 {
+                "0.47614"
+            } else {
+                "0.47614175"
+            })
+        );
+    }
+}
+
+#[test]
+fn zero_categories_remain_zero_without_tier_evidence_and_missing_is_not_zero() {
+    let mut zero = tokens(0, 0, 0, 0);
+    zero.raw_input = None;
+    let priced = price(&model("gpt-5.4"), &zero);
+    assert_eq!(priced.status.as_ref(), "priced");
+    assert_eq!(priced.cost.as_deref(), Some("0"));
+    assert_eq!(priced.basis[0].condition.as_ref(), "conditionUnknown");
+    zero.output = None;
+    zero.total = None;
+    let missing = price(&model("gpt-5.4"), &zero);
+    assert_eq!(missing.cost, None);
+    assert_eq!(missing.components[0].cost.as_deref(), Some("0"));
+    assert_eq!(missing.components[3].tokens, None);
+    assert_eq!(missing.components[3].cost, None);
+    let native_zero = price(&model("gpt-5.4"), &tokens(0, 0, 0, 0));
+    assert_eq!(native_zero.cost.as_deref(), Some("0"));
+    assert_eq!(native_zero.basis[0].condition.as_ref(), "standard");
+    assert_eq!(native_zero.basis[0].request_input_tokens, Some(0));
+    let mut contradictory = tokens(100, 0, 0, 10);
+    contradictory.raw_input = Some(0);
+    let invalid = price(&model("gpt-5.4"), &contradictory);
+    assert_eq!(invalid.status.as_ref(), "unknown");
+    assert_eq!(invalid.cost, None);
+    assert!(
+        invalid
+            .issues
+            .iter()
+            .any(|i| i.as_ref() == "inconsistentTokenCounts")
+    );
+    assert!(
+        invalid
+            .components
+            .iter()
+            .all(|component| component.cost.is_none())
+    );
+}
+
+#[test]
+fn reliable_native_input_prices_known_categories_despite_missing_breakdown() {
+    let usage = TokenUsage {
+        raw_input: Some(272_001),
+        cache_read: Some(50_000),
+        output: Some(10_000),
+        total: Some(282_001),
+        ..Default::default()
+    };
+    let result = price(&model("gpt-5.4"), &usage);
+    assert_eq!(result.basis[0].condition.as_ref(), "longContext");
+    assert_eq!(result.basis[0].request_input_tokens, Some(272_001));
+    assert_eq!(result.status.as_ref(), "partial");
+    assert_eq!(result.cost, None);
+    assert_eq!(result.known_cost, "0.25");
+    assert_eq!(result.components[0].tokens, None);
+    assert_eq!(result.components[0].cost, None);
+    assert_eq!(result.components[1].cost.as_deref(), Some("0.025"));
+    assert_eq!(result.components[2].tokens, None);
+    assert_eq!(result.components[2].cost, None);
+    assert_eq!(result.components[3].cost.as_deref(), Some("0.225"));
+}
+
+#[test]
+fn replay_completed_parts_cannot_reconstruct_conflicting_request_length() {
+    use crate::adapters::{
+        collect,
+        contract::{DiscoveryRequest, RunContext},
+    };
+    use serde_json::json;
+    let first = json!({"type":"event_msg","payload":{
+        "type":"token_usage_record","thread_id":"synthetic-thread",
+        "response_id":"synthetic-response","usage":{
+            "input_tokens":272001,"cache_write_input_tokens":0,
+            "output_tokens":10,"total_tokens":272011
+        }
+    }});
+    let second = json!({"type":"event_msg","payload":{
+        "type":"token_usage_record","thread_id":"synthetic-thread",
+        "response_id":"synthetic-response","usage":{
+            "input_tokens":272000,"cached_input_tokens":50000,
+            "cache_write_input_tokens":0,"output_tokens":10,"total_tokens":272010
+        }
+    }});
+    for records in [[&first, &second], [&second, &first]] {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("sessions")).unwrap();
+        let metadata = json!({"type":"session_meta","payload":{"id":"synthetic-thread"}});
+        std::fs::write(
+            root.path().join("sessions/synthetic.jsonl"),
+            [&metadata, records[0], records[1]]
+                .iter()
+                .map(|record| format!("{record}\n"))
+                .collect::<String>(),
+        )
+        .unwrap();
+        let collected = collect(
+            &DiscoveryRequest {
+                roots: vec![root.path().into()],
+            },
+            &RunContext::default(),
+        );
+        assert_eq!(collected.measurements.len(), 1);
+        assert!(
+            collected
+                .issues
+                .iter()
+                .any(|i| i.code == "measurementConflict")
+        );
+        let fact = &collected.measurements[0];
+        assert_eq!(fact.tokens.raw_input, None);
+        assert_eq!(fact.tokens.total, None);
+        assert_eq!(fact.tokens.input, Some(222_000));
+        assert_eq!(fact.tokens.cache_read, Some(50_000));
+        assert_eq!(fact.tokens.cache_create, Some(0));
+        assert!(fact.request_scoped);
+        let result = price_with_context(
+            &model("gpt-5.4"),
+            &fact.tokens,
+            &PricingContext {
+                request_scoped: fact.request_scoped,
+                model_conflicted: fact.pricing_context_conflict,
+            },
+        );
+        assert_eq!(result.basis[0].condition.as_ref(), "conditionUnknown");
+        assert_eq!(result.basis[0].request_input_tokens, None);
+        assert_eq!(result.status.as_ref(), "unknown");
+        assert_eq!(result.cost, None);
+        assert!(
+            result
+                .components
+                .iter()
+                .all(|component| component.rate_per_million.is_none())
+        );
+        assert_eq!(result.components[2].cost.as_deref(), Some("0"));
+    }
+}
+
+#[test]
+fn conflicting_model_context_preserves_counts_but_cannot_select_or_fetch_rates() {
+    let usage = tokens(100, 20, 0, 10);
+    for name in ["gpt-5.4", "gpt-5.3-codex", "synthetic-new-model"] {
+        // A cleared conflicting provider looks absent; the independent conflict
+        // observation must prevent treating that absence as permission to price.
+        let original = model(name);
+        let result = price_with_context(
+            &original,
+            &usage,
+            &PricingContext {
+                request_scoped: true,
+                model_conflicted: true,
+            },
+        );
+        assert_eq!(original.raw.as_deref(), Some(name));
+        assert_eq!(original.provider, None);
+        assert_eq!(result.status.as_ref(), "unknown");
+        assert_eq!(result.cost, None);
+        assert_eq!(result.known_cost, "0");
+        assert!(result.basis.is_empty());
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|i| i.as_ref() == "modelContextConflict")
+        );
+        assert!(
+            !result
+                .issues
+                .iter()
+                .any(|i| matches!(i.as_ref(), "unverifiedModel" | "catalogPriceMissing"))
+        );
+        assert_eq!(
+            result
+                .components
+                .iter()
+                .map(|component| component.tokens)
+                .collect::<Vec<_>>(),
+            [Some(100), Some(20), Some(0), Some(10)]
+        );
+        assert!(
+            result
+                .components
+                .iter()
+                .all(|component| component.rate_per_million.is_none())
+        );
+        assert_eq!(result.components[2].cost.as_deref(), Some("0"));
+    }
+    assert_eq!(
+        price(&model("gpt-5.4"), &usage).cost.as_deref(),
+        Some("0.000405")
+    );
+}
+
+#[test]
+fn conflicting_model_context_does_not_turn_missing_categories_into_free_usage() {
+    let zero = tokens(0, 0, 0, 0);
+    let context = PricingContext {
+        request_scoped: true,
+        model_conflicted: true,
+    };
+    let known_zero = price_with_context(&model("gpt-5.4"), &zero, &context);
+    assert_eq!(known_zero.cost.as_deref(), Some("0"));
+    assert_eq!(known_zero.status.as_ref(), "priced");
+    assert!(
+        known_zero
+            .issues
+            .iter()
+            .any(|i| i.as_ref() == "modelContextConflict")
+    );
+    let mut missing = zero.clone();
+    missing.output = None;
+    missing.total = None;
+    let result = price_with_context(&model("gpt-5.4"), &missing, &context);
+    assert_eq!(result.cost, None);
+    assert_eq!(result.components[0].cost.as_deref(), Some("0"));
+    assert_eq!(result.components[3].tokens, None);
+    assert_eq!(result.components[3].cost, None);
 }
 
 #[test]
@@ -455,6 +712,7 @@ fn automatic_price_detection_requires_repairable_missing_rates() {
         &tokens,
         &PricingContext {
             request_scoped: false,
+            model_conflicted: false,
         },
     );
     assert!(

@@ -134,7 +134,7 @@ test('real CLI refresh, usage, threads, turns and steps conserve independent Tok
     assert.equal(steps.value.items.filter((item: any) => item.kind === 'measurement').length, 1);
     const plain = f.run(['usage', ...dates], false);
     assert.match(plain.stdout, /\$1\.74\*/);
-    assert.match(plain.stdout, /费用未知/);
+    assert.match(plain.stdout, /未计价/);
     assert.doesNotMatch(plain.stdout, /模型未知/);
     assert.equal(createHash('sha256').update(await readFile(f.active)).digest('hex'), digest);
   } finally { await f.cleanup(); }
@@ -219,7 +219,7 @@ test('real CLI partial sources, failed refresh and corrupted snapshot have expli
     const retained = f.run(['threads', '--snapshot', partial.value.snapshotRef.snapshotId]);
     assert.equal(retained.code, 2);
     assert.equal(retained.value.snapshotRef.snapshotId, partial.value.snapshotRef.snapshotId);
-    const ledger = path.join(f.data, 'usage-v3', 'generations', retained.value.snapshotRef.snapshotId, 'committed', 'ledger.json');
+    const ledger = path.join(f.data, 'usage-v4', 'generations', retained.value.snapshotRef.snapshotId, 'committed', 'ledger.json');
     await writeFile(ledger, '[]');
     const corrupt = f.run(['usage', ...dates, '--snapshot', retained.value.snapshotRef.snapshotId]);
     assert.equal(corrupt.code, 1);
@@ -245,7 +245,7 @@ test('language changes presentation while real core data and source titles stay 
     assert.equal(en.value.items[0].title, zh.value.items[0].title);
     const plain = f.run(['usage', ...dates, '--lang=en'], false);
     assert.match(plain.stdout, /Wombat · Usage/);
-    assert.match(plain.stdout, /API cost unknown/);
+    assert.match(plain.stdout, /Not priced/);
     const help = f.run(['--help', '--lang=en'], false);
     assert.match(help.stdout, /Usage/); assert.match(help.stdout, /wombat threads/);
     const invalid = f.run(['usage', '--lang=en', '--unknown']);

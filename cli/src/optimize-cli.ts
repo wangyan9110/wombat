@@ -1,26 +1,30 @@
 import path from 'node:path';
-import { CoreError, type OptimizeRequest } from '@wombat/client';
+import { CoreError, type OptimizeRequest, type OptimizeResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText } from '@wombat/client/locale';
+import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText, useBasisPresentation, assessmentReason, reviewStatusLabel, activityRuleTitle, activityCheckText, activityAdviceText } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 export function parseOptimizeArgs(argv: string[]) {
   const request: OptimizeRequest={action:'list'}, roots:string[]=[], projects:string[]=[], seen=new Set<string>();
   let json=false,help=false;
+  const activity:{snapshotId?:string;threadId?:string;turnId?:string}={};
   const fail=(value:string):never=>{throw new CoreError('INVALID_ARGUMENT',t('cli.config.invalid',{value}));};
   if(argv[0]&&!argv[0].startsWith('-')) {
     const command=argv.shift()!;
     if(command==='history')request.group='history';
-    else if(['list','detail','keep','not-applicable','redisplay','recheck','capabilities','checks'].includes(command))request.action=command.replace('-','_') as OptimizeRequest['action'];
+    else if(['list','detail','keep','not-applicable','redisplay','recheck','capabilities','checks','activity'].includes(command))request.action=command.replace('-','_') as OptimizeRequest['action'];
     else fail(command);
   }
   for(let i=0;i<argv.length;i++) {
     const [name,inline]=argv[i].split(/=(.*)/s);
     if(['--help','-h'].includes(name)){help=true;continue;}
     if(name==='--json'){if(json||inline!==undefined)fail(name);json=true;continue;}
-    if(!['--root','--project-root','--project','--source','--suggestion','--item','--reason','--read-view','--decision-revision','--category','--offset','--limit','--agents-bytes','--description-characters'].includes(name))fail(name);
+    if(!['--root','--project-root','--project','--source','--suggestion','--item','--reason','--read-view','--decision-revision','--category','--offset','--limit','--agents-bytes','--description-characters','--snapshot','--thread','--turn'].includes(name))fail(name);
     if(seen.has(name)&&!['--root','--project-root'].includes(name))fail(name);seen.add(name);
     const value=inline??argv[++i];if(!value||value.startsWith('--'))fail(name);
     switch(name){
+      case '--snapshot':activity.snapshotId=value;break;
+      case '--thread':activity.threadId=value;break;
+      case '--turn':activity.turnId=value;break;
       case '--root':roots.push(path.resolve(value));break;
       case '--project-root':projects.push(path.resolve(value));break;
       case '--project':request.project=path.resolve(value);break;
@@ -37,7 +41,15 @@ export function parseOptimizeArgs(argv: string[]) {
   }
   if(!help&&['detail','keep','not_applicable','redisplay'].includes(request.action!)&&!request.suggestionId)fail('--suggestion');
   if(!help&&['keep','not_applicable'].includes(request.action!)&&!request.decisionReason)fail('--reason');
-  if(roots.length)request.roots=roots;request.projectRoots=projects.length?projects:[process.cwd()];
+  if(roots.length)request.roots=roots;
+  if(request.action==='activity'){
+    if(!help&&(!activity.snapshotId||!activity.threadId||!activity.turnId))fail('--snapshot/--thread/--turn');
+    if([...seen].some(name=>!['--root','--source','--snapshot','--thread','--turn'].includes(name)))fail('activity');
+    if(activity.snapshotId&&activity.threadId&&activity.turnId)request.activity={snapshotId:activity.snapshotId,threadId:activity.threadId,turnId:activity.turnId};
+  }else{
+    if(Object.keys(activity).length)fail('activity');
+    request.projectRoots=projects.length?projects:[process.cwd()];
+  }
   return {request,json,help};
 }
 export async function runOptimizeCli(argv:string[]):Promise<number>{
@@ -47,21 +59,64 @@ export async function runOptimizeCli(argv:string[]):Promise<number>{
   try{
     const result=await createNodeClient().optimize!(request,{signal:controller.signal});
     if(json)process.stdout.write(JSON.stringify(result)+'\n');
-    else{
-      process.stdout.write(t('optimize.summaryCount',{pending:result.pending,history:result.history})+'\n');
-      for(const s of result.suggestions){
-        const presentation=reviewPresentation(s);
-        process.stdout.write(`${s.id}\t${terminalText(presentation.title)}\t${t(`optimize.${s.category}`)}\t${terminalText(s.status)}\t${terminalText(s.item.path)}\n`);
-        process.stdout.write(`  ${presentation.value}\n  ${presentation.metricText??`${presentation.metric??'—'} ${presentation.label}`}\n`);
-        for(const f of s.findings)process.stdout.write(`  ${reviewFindingCount(f)??`${reviewFindingLabel(f.rule)}${f.observed==null?'':` ${f.observed}${f.threshold==null?'':` / ${f.threshold}`}`}`}\n  ${reviewFindingNote(f.rule,s.item.project??undefined)}\n`);
-        const followUp=result.followUps.find(o=>o.recordId===s.recordId&&o.suggestionId===s.id);
-        if(followUp)process.stdout.write(`  ${t('optimize.awaitingFollowUp')}\n  ${followUpText(followUp)}\n  ${t('optimize.followUp.note')}\n`);
-      }
-      for(const check of result.checks??[])process.stdout.write(`${reviewFindingLabel(check.rule)}\t${t(`optimize.check.${check.outcome}`)}\n`);
-      process.stdout.write(`${result.ruleParameters.version}\n`);
-      process.stdout.write(t('config.readVersion',{version:result.readView??'—'})+`\n${result.decisionRevision}\n`);
-      process.stdout.write(t('optimize.coverageNote')+'\n');
-    }
+    else process.stdout.write(formatOptimizeText(result));
     return result.resultStatus==='partial'?2:0;
   }finally{process.off('SIGINT',stop);process.off('SIGTERM',stop);}
+}
+
+/** Render recorded decisions and check facts separately; never infer resolution from a decision or item. */
+export function formatOptimizeText(result: OptimizeResult): string {
+  if(result.action==='activity'&&result.activity){
+    const activity=result.activity;
+    return [t('activity.title'),...activity.checks.flatMap(check=>[`${activityRuleTitle(check.rule)}: ${activityCheckText(check)}`,
+      ...(activity.advice.some(rule=>rule===check.rule)?[activityAdviceText(check.rule)]:[])]),
+      t('activity.note'),`${activity.readView.snapshotId} · ${activity.scope.threadId} · ${activity.scope.turnId}`,
+      activity.analysisMethod].map(terminalText).join('\n')+'\n';
+  }
+  const lines: string[] = [t('optimize.summaryCount', {pending: result.pending, history: result.history})];
+  const add = (...values: string[]) => lines.push(...values);
+  const checks = (rows: OptimizeResult['checks']) => {
+    if (!rows.length) add(`  ${t('optimize.evidenceIncomplete')}`);
+    for (const check of rows) {
+      add(`  ${reviewFindingLabel(check.rule)}\t${t(`optimize.check.${check.outcome}`)}\t${check.checkedAt}`,
+        `  ${t(`optimize.assessment.comparison.${check.comparison.status}`)}`);
+      for (const reason of new Set([check.reason, check.comparison.reason, ...check.basis.gaps].filter((value): value is string => !!value))) {
+        add(`  ${t('optimize.assessment.reason')}: ${assessmentReason(reason)}`);
+      }
+      if (check.identityGap || check.findings.some(f => f.identity.gap)) add(`  ${t('optimize.assessment.identityGap')}`);
+    }
+  };
+  for (const s of result.suggestions) {
+    const presentation = reviewPresentation(s);
+    add(`${s.id}\t${presentation.title}\t${t(`optimize.${s.category}`)}\t${reviewStatusLabel(s.status)}\t${s.item.path}`,
+      `  ${presentation.value}`);
+    if (presentation.metricText != null || presentation.metric != null) add(`  ${presentation.metricText ?? `${presentation.metric} ${presentation.label}`}`);
+    for (const f of s.findings) add(`  ${reviewFindingCount(f) ?? `${reviewFindingLabel(f.rule)}${f.observed == null ? '' : ` ${f.observed}${f.threshold == null ? '' : ` / ${f.threshold}`}`}`}`,
+      `  ${reviewFindingNote(f.rule, s.item.project ?? undefined)}`);
+    if (s.decision) {
+      const decision = s.decision;
+      const reason = decision.reason === 'necessary' ? t('optimize.assessment.necessary')
+        : decision.reason === 'object_changed' ? t('optimize.reason.objectChanged') : t('optimize.reason.incorrectEvidence');
+      add(`  ${t('optimize.assessment.decision')}: ${t(decision.kind === 'keep' ? 'optimize.kept' : 'optimize.inapplicable')} · ${decision.recordedAt}`,
+        `  ${t('optimize.decisionReason')}: ${reason}`, `  ${t('optimize.assessment.decisionNote')}`);
+      if (decision.binding.gap) add(`  ${t('optimize.assessment.identityGap')}`);
+    }
+    add(`  ${t('optimize.assessment.latest')}`);
+    checks(s.checks);
+    add(`  ${t('optimize.assessment.original')}`);
+    if (s.reviewBaseline) checks(s.reviewBaseline.assessments);
+    else add(`  ${t('optimize.assessment.baselineMissing')}`);
+    const followUp = result.followUps.find(o => o.recordId === s.recordId && o.suggestionId === s.id);
+    if (followUp) {
+      const basis = useBasisPresentation(followUp.useBasis);
+      add(...[basis.summary, ...basis.notes, ...basis.details].map(line => `  ${line}`),
+        `  ${t('optimize.awaitingFollowUp')}`, `  ${followUpText(followUp)}`, `  ${t('optimize.followUp.note')}`);
+    }
+  }
+  if (result.checks.length) {
+    add(t('optimize.checks'));
+    checks(result.checks);
+  }
+  add(result.ruleParameters.version, t('config.readVersion', {version: result.readView ?? '—'}), result.decisionRevision, t('optimize.coverageNote'));
+  return lines.map(line => terminalText(line)).join('\n') + '\n';
 }

@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-unified-events-and-persistence": {
+      "zh": "e32c1c3c0e65497d9ee3701fbb0e5a1dbebdc18acb54d95dc12904cab631f3b4",
+      "en": "044d33e598e03c5011f3ac446bfd96f01f4fb35e7529681437e943ded158725d"
+    },
+    "/decision-note-unified-events-and-persistence/problem": {
+      "zh": "cd5ddd219eb273efe1b7782f3f0af01cd30984b2d045a7fe096ef88188a8d144",
+      "en": "3c83af218cf27f87171aa73b04756334411a03b5b47149ce413fd5ac2c3a876e"
+    },
+    "/decision-note-unified-events-and-persistence/decision": {
+      "zh": "a15add2be199820151854bcb890f25a2d1847144b4a6b49c45ae214b43af6da7",
+      "en": "59f4903de8661f3fe27548a7aba2f2b8a80c6c44b44da03e047e22e7d2d6706b"
+    },
+    "/decision-note-unified-events-and-persistence/decision/1-data-availability-and-collection-decisions": {
+      "zh": "07a4c9cca32a68c21d5d66b2869b9cf59a02043999c46834fd7303b7c97bd19a",
+      "en": "c8f4428b916c7c25e0a34233c4cfc1b5f411b25d5ac70059cf1a1959e8e9a1da"
+    },
+    "/decision-note-unified-events-and-persistence/decision/10-implementation-impact-and-versions": {
+      "zh": "ef30db38c315409d744236685a20e47964746a471e8e1179390ff87fbd8a99bf",
+      "en": "f5f780ddfc49d44b9cf6538dafca411978b5b36e5222de914c2b62da531a99e8"
+    },
+    "/decision-note-unified-events-and-persistence/decision/12-technical-architecture-and-call-chain": {
+      "zh": "62f3ce82f9f0df9b3e346dff18720617885b1c4d11c3476a7fe91165a4e2fb7d",
+      "en": "ac681a36f358b908f1ad67d6479223b50a03a4c9a2a13d6f2f68702a4d20fb3b"
+    },
+    "/decision-note-unified-events-and-persistence/decision/13-internal-safe-facts-and-identities": {
+      "zh": "382205ff32bde0c21f4afaa58de4f95ce5753f15dc25d3cc1bcf2ea5c110a628",
+      "en": "5b9883ae3d06875ea6c4643d408173698d30efc369ae9b51090cb178c13f22ea"
+    },
+    "/decision-note-unified-events-and-persistence/decision/14-current-format-index-and-snapshots": {
+      "zh": "0c8e3bbae814addcdbb1f35554612338649e29ec171f9c2e0ad88d7dcf8acf51",
+      "en": "81403c751a6a52d553107fcfce413b877515ed0666c2adfdf832573733a06daf"
+    },
+    "/decision-note-unified-events-and-persistence/decision/18-unified-session-event-facts-and-multiple-projections": {
+      "zh": "a9f8c87cdc54ba2385037ae5844192e1115db406ba3e01e0d4a66e7c2bc40c59",
+      "en": "db71e116314fdf3b2ca6bcb6e515b87f5d8a9476a6c95c9d505a0d8ce7f228eb"
+    },
+    "/decision-note-unified-events-and-persistence/alternatives-considered": {
+      "zh": "faf84c29c3e8719d8dce406542bffe1995a07058053da36bb13963cadf0577e7",
+      "en": "00a8b7a3901e474226e4ee8eb2967f0e9e5795f03fb554fe5aa8d30944a2e59f"
+    },
+    "/decision-note-unified-events-and-persistence/consequences-and-verification": {
+      "zh": "c5609af9b0bf8e54b4f9dab85184bac20ee60f98d7d6c098a44c1effc1ac6f4e",
+      "en": "edd69d2f10cc8e61882b99eb0bd2b84f86a06e4987906158a2bdb87b864e4417"
+    }
+  }
+}

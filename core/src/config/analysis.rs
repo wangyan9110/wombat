@@ -2,6 +2,9 @@
 mod blocks;
 #[cfg(test)]
 mod boundary_tests;
+mod dependencies;
+#[cfg(test)]
+mod dependency_tests;
 mod relations;
 #[cfg(test)]
 mod tests;
@@ -31,11 +34,35 @@ pub(crate) struct Analysis {
     pub hook_checks: BTreeMap<(String, String), bool>,
     pub reference_checks: BTreeMap<String, super::references::Assessment>,
 }
+#[derive(serde::Serialize)]
 enum RelationAssessment {
     Complete(BTreeSet<String>),
     Unknown,
 }
 impl Analysis {
+    /// Safe collection output, including successful empty analyses and uncertain relations.
+    pub(crate) fn observation_revision(&self) -> anyhow::Result<String> {
+        super::observations::hash_safe(&(
+            super::observations::FORMAT_VERSION,
+            "static-analysis-v1",
+            &self.findings,
+            &self.issues,
+            &self.assessed,
+            self.relations.iter().collect::<Vec<_>>(),
+            self.hook_checks.iter().collect::<Vec<_>>(),
+            self.reference_checks
+                .iter()
+                .map(|(id, assessment)| {
+                    (
+                        id,
+                        assessment.complete,
+                        &assessment.findings,
+                        &assessment.reasons,
+                    )
+                })
+                .collect::<Vec<_>>(),
+        ))
+    }
     pub fn complete_finding(&self, item: &str, finding: &Finding) -> bool {
         if finding.rule == "hookTarget" {
             return finding
@@ -242,4 +269,69 @@ pub(super) fn analyze_authorized(
     }
     relations::evaluate(&mut out, items, projects, &groups, &texts);
     out
+}
+
+#[cfg(test)]
+mod observation_tests {
+    use super::*;
+    #[test]
+    fn safe_revision_includes_empty_completion_and_relation_identity_state() {
+        let mut analysis = Analysis::default();
+        let empty = analysis.observation_revision().unwrap();
+        analysis.assessed.insert("synthetic-item".into());
+        let assessed = analysis.observation_revision().unwrap();
+        assert_ne!(empty, assessed);
+        let key = RelationIdentity {
+            source_instance_id: "synthetic-source".into(),
+            project: "/synthetic/project".into(),
+            declaration_path: "/synthetic/project/.wombat/analysis.json".into(),
+            declaration_hash: "synthetic-declaration".into(),
+            relation_id: "synthetic-relation".into(),
+            kind: RelationKind::Copy,
+        };
+        analysis
+            .relations
+            .insert(key.clone(), RelationAssessment::Unknown);
+        let unknown = analysis.observation_revision().unwrap();
+        assert_ne!(assessed, unknown);
+        analysis.relations.insert(
+            key.clone(),
+            RelationAssessment::Complete(BTreeSet::from(["synthetic-item".into()])),
+        );
+        let complete = analysis.observation_revision().unwrap();
+        assert_ne!(unknown, complete);
+        analysis.relations.remove(&key);
+        let mut changed = key;
+        changed.declaration_hash = "changed-declaration".into();
+        analysis.relations.insert(
+            changed,
+            RelationAssessment::Complete(BTreeSet::from(["synthetic-item".into()])),
+        );
+        assert_ne!(complete, analysis.observation_revision().unwrap());
+    }
+    #[test]
+    fn reference_and_hook_completion_are_part_of_analysis_identity() {
+        let mut analysis = Analysis::default();
+        analysis.reference_checks.insert(
+            "synthetic-item".into(),
+            super::super::references::Assessment::default(),
+        );
+        let incomplete = analysis.observation_revision().unwrap();
+        analysis
+            .reference_checks
+            .get_mut("synthetic-item")
+            .unwrap()
+            .complete = true;
+        let complete = analysis.observation_revision().unwrap();
+        assert_ne!(incomplete, complete);
+        analysis.hook_checks.insert(
+            ("synthetic-item".into(), "/synthetic/project".into()),
+            false,
+        );
+        let unchecked = analysis.observation_revision().unwrap();
+        analysis
+            .hook_checks
+            .insert(("synthetic-item".into(), "/synthetic/project".into()), true);
+        assert_ne!(unchecked, analysis.observation_revision().unwrap());
+    }
 }

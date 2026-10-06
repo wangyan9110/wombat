@@ -1,5 +1,5 @@
 //! User decisions and rule rechecks update independent facts in one transaction.
-use super::{registry, store};
+use super::{evaluation, store};
 use crate::{config::View, dto::operation_error, optimize_dto::*};
 use anyhow::Result;
 use rusqlite::Transaction;
@@ -25,8 +25,15 @@ pub(super) fn decide(
         current.iter().find(|s| s.id == *target).cloned()
     }
     .ok_or_else(|| operation_error("NOT_FOUND", "建议已变化或不存在"))?;
-    if let Some(previous) = &old {
+    if request.action == Action::Redisplay
+        && let Some(previous) = &old
+    {
         suggestion = previous.clone();
+    }
+    // The first persisted observation owns the baseline, even if this decision
+    // uses a later captured check with the same group/content identity.
+    if let Some(previous) = &old {
+        suggestion.review_baseline = previous.review_baseline.clone();
     }
     let decision = if request.action == Action::Redisplay {
         None
@@ -49,14 +56,19 @@ pub(super) fn decide(
             }
             DecisionKind::NotApplicable
         };
-        if suggestion
-            .decision
+        if old
             .as_ref()
-            .is_some_and(|d| d.kind == kind && d.reason == reason)
+            .and_then(|s| s.decision.as_ref())
+            .is_some_and(|d| {
+                d.kind == kind
+                    && d.reason == reason
+                    && super::identity::decision_applies(d, &suggestion)
+            })
         {
             return Ok(());
         }
         Some(UserDecision {
+            binding: super::identity::binding(&suggestion),
             kind,
             reason,
             recorded_at: chrono::Utc::now().to_rfc3339(),
@@ -104,95 +116,36 @@ pub(super) fn recheck(
                 .is_none_or(|target| target == id)
         });
     let items: BTreeMap<_, _> = view.items.iter().map(|i| (i.id.as_str(), i)).collect();
-    let findings: BTreeMap<_, _> = current
-        .iter()
-        .map(|s| (s.item.id.as_str(), s.findings.as_slice()))
-        .collect();
     for (id, seq) in targets {
         let mut suggestion = match seq {
             Some(seq) => store::get(tx, seq)?,
             None => current_by_id[id].clone(),
         };
         let previous = serde_json::to_value(&suggestion)?;
-        let original_rules: BTreeSet<_> =
-            suggestion.findings.iter().map(|f| f.rule.clone()).collect();
         let item = items.get(suggestion.item.id.as_str()).copied();
-        if suggestion.review_baseline.is_none() {
-            suggestion.review_baseline = Some(suggestion.item.clone());
-        }
-        let mut checks = registry::checks_for(
+        super::identity::capture(&mut suggestion);
+        let baseline = suggestion.review_baseline.as_ref().ok_or_else(|| {
+            operation_error("REVIEWS_UNAVAILABLE", "原始检查依据缺失，原数据未被更改")
+        })?;
+        let checks = evaluation::evaluate(&evaluation::Input {
             view,
-            rules,
-            item.unwrap_or(&suggestion.item),
-            findings
-                .get(suggestion.item.id.as_str())
-                .copied()
-                .unwrap_or_default(),
-            request.project.as_deref(),
-        );
-        checks.retain(|c| original_rules.contains(&c.rule));
-        for check in &mut checks {
-            if check.rule == "hookTarget" {
-                let original_projects: BTreeSet<_> = suggestion
-                    .findings
-                    .iter()
-                    .filter_map(|f| {
-                        f.evidence
-                            .as_ref()?
-                            .hook
-                            .as_ref()
-                            .map(|h| h.project.as_str())
-                    })
-                    .collect();
-                check.findings.retain(|f| {
-                    f.evidence
-                        .as_ref()
-                        .and_then(|e| e.hook.as_ref())
-                        .is_some_and(|h| original_projects.contains(h.project.as_str()))
-                });
-                check.outcome = if !check.findings.is_empty() {
-                    RuleOutcome::Hit
-                } else if !original_projects.is_empty()
-                    && original_projects.iter().all(|p| {
-                        view.analysis
-                            .hook_checks
-                            .get(&(suggestion.item.id.clone(), (*p).into()))
-                            == Some(&true)
-                    })
-                {
-                    RuleOutcome::Miss
-                } else {
-                    RuleOutcome::Insufficient
-                };
-                check.reason = (check.outcome == RuleOutcome::Insufficient)
-                    .then(|| "checkEvidenceIncomplete".into());
-            }
-            if check.outcome == RuleOutcome::Miss
-                && suggestion
-                    .findings
-                    .iter()
-                    .filter(|f| f.rule == check.rule)
-                    .any(|f| !view.analysis.complete_finding(&suggestion.item.id, f))
-            {
-                check.outcome = RuleOutcome::Insufficient;
-                check.reason = Some("checkEvidenceIncomplete".into());
-            }
-        }
-        if item.is_none_or(|i| !i.current || i.stale || i.measurement_status == "missing") {
-            for check in &mut checks {
-                check.outcome = RuleOutcome::Insufficient;
-                check.reason = Some("currentVersionUnavailable".into());
-                check.findings.clear();
-            }
-        }
-        suggestion.status = if checks.iter().any(|c| c.outcome == RuleOutcome::Hit) {
-            "stillNeedsReview"
-        } else if !checks.is_empty() && checks.iter().all(|c| c.outcome == RuleOutcome::Miss) {
-            "verified"
-        } else {
-            "recheckUnavailable"
-        }
-        .into();
+            parameters: rules,
+            item: item.unwrap_or(&suggestion.item),
+            project: request.project.as_deref(),
+            source: request.source_instance_id.as_deref(),
+            current_available: item.is_some(),
+            baseline: Some(evaluation::Baseline {
+                findings: &suggestion.findings,
+                assessments: &baseline.assessments,
+                scope: &baseline.scope,
+            }),
+        });
+        let original_rules: BTreeSet<_> = suggestion
+            .findings
+            .iter()
+            .map(|f| f.rule.as_str())
+            .collect();
+        suggestion.status = status(&checks, original_rules.len()).into();
         suggestion.checks = checks;
         suggestion.checked_at = view.checked.clone();
         suggestion.recheck_rule_parameters = Some(rules.clone());
@@ -204,4 +157,19 @@ pub(super) fn recheck(
         }
     }
     Ok(())
+}
+
+pub(super) fn status(checks: &[RuleAssessment], original_rules: usize) -> &'static str {
+    if checks.iter().any(|c| c.outcome == RuleOutcome::Hit) {
+        "stillNeedsReview"
+    } else if !checks.is_empty()
+        && checks.len() == original_rules
+        && checks.iter().all(|c| {
+            c.outcome == RuleOutcome::Miss && c.comparison.status == ComparisonStatus::Comparable
+        })
+    {
+        "verified"
+    } else {
+        "recheckUnavailable"
+    }
 }

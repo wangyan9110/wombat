@@ -6,19 +6,21 @@ Rust 的 `core/src/usage_app_dto.rs` 定义请求与响应，`adapters/contract.
 
 生成文件：
 
-- [实时请求 Schema](../schemas/live-request-v1.schema.json)和[实时响应 Schema](../schemas/live-response-v1.schema.json)，源头为`core/src/live.rs`；`live`封装v3结果与独立新鲜度。
+- [实时请求 Schema](../schemas/live-request-v1.schema.json)和[实时响应 Schema](../schemas/live-response-v1.schema.json)，源头为`core/src/live.rs`；`live`封装当前用量结果与独立新鲜度。
 - [请求 Schema](../schemas/usage-request-v3.schema.json)
-- [响应 Schema](../schemas/usage-app-v3.schema.json)
+- [响应 Schema](../schemas/usage-app-v5.schema.json)
 - [价表请求 Schema](../schemas/pricing-request-v1.schema.json)和[价表响应 Schema](../schemas/pricing-response-v1.schema.json)，源头为 `core/src/pricing_sync.rs`
 - `client/src/generated/usage-request.ts`、`usage-app.ts` 和校验器
 
 运行 `corepack pnpm contracts:generate` 重生，`contracts:check` 拒绝漂移。通用客户端校验请求与响应，不提供通用 shell、任意文件写入或任意操作分派。
 
-`outputVersion=3` 是公共结果版本，`schemaVersion=3` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
+`outputVersion=6` 是公共结果版本，`schemaVersion=4` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
 
 公开操作、枚举、分页和错误详见[CLI](../guides/cli.md)。计量整数不能超过 JavaScript 安全整数；金额始终为十进制字符串。新字段及规则必须同时检查生成类型、Web、JSON 和当前快照。
 
-用量请求增加可选 `presentation`，默认明细，分布只保留时段小计；显式指定任一种 presentation 时 offset/limit/page.total 按时段计数，明细一页包含所选时段的全部模型行，不拆日期组；省略 presentation 维持原有逐行分页。`sort: cost` 与 Token 排序均由内核完成。响应 `distribution` 给出完整范围的最大值、并列峰值日期及准确筛选 Scope、未计价 Token 数；用量、轮次和计量的 `costShare` 以完整范围已计价金额为分母，未知或零分母返回缺失。对话按 matchedUsage 或最近匹配计量排序，threadUsage 保留全量。轮次默认完整；仅 turns 接受 matchedOnly 与 locateTurnId，先筛选排序再定位分页。匹配轮次只改变 items/page，不改变全对话汇总和份额分母；步骤仍完整。
+用量汇总同时保留完整值与逐字段已记录小计，并给出筛选后规范计量记录的覆盖数和缺口原因；分页不改变范围。字段没有可用记录时小计为空，有效零值仍为零。完整用量份额不使用部分小计补分母。独立总量分析优先采用原生总量，仅对请求范围明确的响应，在原生总量不可用且原始输入与输出可靠时相加计算。原始输入已含缓存，输出已含推理；计算记录数和覆盖明确标注，原字段缺口保留，不还原累计区间。图表、排序和峰值使用该分析小计，份额要求同范围分析覆盖完整。计价仍采用原始测量。独立版本的可选分析保留不可变的原生观察审阅记录。公共类型、字段与枚举以 Rust 生成契约为准。
+
+用量请求增加可选 `presentation`，默认明细，分布只保留时段小计；显式指定任一种 presentation 时 offset/limit/page.total 按时段计数，明细一页包含所选时段的全部模型行，不拆日期组；省略 presentation 维持原有逐行分页。`sort: cost` 与按分析小计的 Token 排序均由内核完成。响应 `distribution` 给出筛选范围内按分析小计计算的 Token 最大值、并列峰值日期及准确筛选 Scope、金额最大值和未计价 Token 数；用量、轮次和计量的 `costShare` 以完整范围已计价金额为分母，未知或零分母返回缺失。对话按 matchedUsage 或最近匹配计量排序，threadUsage 保留全量。轮次默认完整；仅 turns 接受 matchedOnly 与 locateTurnId，先筛选排序再定位分页。匹配轮次只改变 items/page，不改变全对话汇总和份额分母；步骤仍完整。
 
 实时新鲜度initialScan表示仅包含首次扫描的临时任务元数据，来源partial且用量未知。预览不落盘，不属于无指定版本的cached结果；fresh/refresh仍等待完整同步。Web解除临时版本固定后保留任务和筛选，普通固定版本不变；边界见[首次任务视图决策](../decisions/implemented/architecture/2026-10-04-initial-task-preview.md)。
 
@@ -29,6 +31,12 @@ Rust 的 `core/src/usage_app_dto.rs` 定义请求与响应，`adapters/contract.
 `@wombat/client/node` 提供 `createNodeClient({ binaryPath, timeoutMs, maxResponseBytes })`，负责本机子进程生命周期。调用方无需接触任意内核操作字符串。其他宿主可实现同一窄传输接口，并复用生成契约与校验器。
 
 Node价表传输只下载固定官方HTTPS文档；内核`prices`操作的宿主请求在update时携带document，status不接受document。原始文档不出现在公共请求或响应类型中；Rust解析及发布，其他宿主需实现同一固定来源获取流程。
+
+## 整轮耗时契约 v6
+
+`core/src/timing_dto.rs` 定义类型化 `timing` 操作。生成契约包括[请求](../schemas/timing-request-v1.schema.json)、[响应联合](../schemas/timing-response-v6.schema.json)、[本地](../schemas/timing-local-response-v6.schema.json)与[分享](../schemas/timing-share-response-v6.schema.json)投影，以及[安全错误](../schemas/timing-error-output-v1.schema.json)。客户端导出 `TimingRequest` 和 `TimingResult`；字段以 Rust DTO 和生成 Schema 为准，不在此重复维护字段清单。
+
+请求操作为 `summary`、`evidence` 和 `capabilities`。摘要要求完整任务与轮次身份，可选固定快照、来源范围、`auto`/`fresh`/`cached` 模式及 `local`/`share-v1` 隐私配置。证据页要求相同目标和固定快照；`turn_events`、`use_objects` 与 `use_records` 使用绑定视图和范围的不透明游标。capabilities 不扫描来源。摘要使用 `outputVersion=6` 和分析方法 `safe_event_turn_v7`；操作起止归并方法单独版本化，旧响应版本明确拒绝。本地结果可含本地身份与路径，`share-v1` 是单独的白名单投影，不包含这些信息。耗时查询不触发价表下载、配置扫描、Hook 或账户观察。命令及错误处理见 [CLI 指南](../guides/cli.md)。
 
 ## 只读配置契约 v1
 
@@ -62,7 +70,7 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 ## 优化与偏好契约 v1
 
-`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v1.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
+`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v4.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities/activity；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
 
 建议身份绑定来源、对象、内容指纹、问题与项目范围。readView固定事实，decisionRevision固定记录，冲突返回VIEW_EXPIRED。keep需原因necessary；not_applicable需object_changed或incorrect_evidence。用户决定保存真实时间，与规则结果独立；已确认重试不重复追加。redisplay只清除最新展示决定。recheck重采集当前范围，不撤销决定，返回stillNeedsReview、verified或recheckUnavailable及独立检查事实。verified只证明原问题对应规则的可观察检查通过，不证明采用或节省；历史事件保留不可变recordId与recordedAt。
 
@@ -74,9 +82,11 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 `core/src/preferences.rs` 生成[偏好请求](../schemas/preferences-request-v1.schema.json)与[响应](../schemas/preferences-response-v1.schema.json)，`UsageClient.preferences` 仅 get/set zh/en；私有原子文件为 `user-v1/language.json`，不接受任意路径或内容。Web 的语言优先级见[语言契约](../i18n/product.md)。
 
+`optimize` 响应版本 2 增加固定轮次的活动检查；请求版本 1 和持久复查格式保持原版本。`action: activity` 必须选择一个快照、任务和轮次，不接受配置视图或处理记录参数。它消费共用轮次分析，不采集配置、宿主钩子或价格，也不写复查历史。行为见[内核说明](../../core/README.md)，操作见[CLI 指南](../guides/cli.md)。无法识别的响应版本或字段会被拒绝。
+
 当前规则使用static-config-v7。bodyTokenEstimate独立分词精确正文，payload=skillBody，含tokenizerVersion、method/contentHash及referenceEncodingOnly，所在configRevision/readView固定快照。bodyEstimateStatus公开未知/解析/资源缺口，旧缓存默认unknown；解析失败不写零。全文/正文各≤1MiB，两者输入都计入单轮8MiB预算。AGENTS.md>16,384B为产品提醒，Skill正文≥5,000为参考提醒，description501—1,024为产品提醒，>1,024为规范问题且不重复500提醒。ruleOverrides只允许agentsBytes正安全整数及descriptionCharacters 0..1024，ruleParameters返回默认/覆盖/固定线及授权当前配置适用边界；记录保留原规则，recheckRuleParameters保存复查规则。规范约束不可覆盖，正文未知不能复查通过。加载预算诊断/闲置/空间能力仍关闭，边界见[优化闭环提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)。
 
-首次显式复查保存reviewBaseline：原始安全测量元数据，不含正文；后续复查保留基线并更新item。recheckRuleParameters记录实际复查参数。字节/码点需两端完整且当前；正文Token比较另须两端估算可用、方法/编码/载荷/分词器版本一致。仅展示文本变化，不将阈值差额或关联用量解释为节省。Web关联用量复用config evidence及usageRevision，日期不改变规则身份；CLI/Agent通过inventory evidence和turns读取同口径。
+首次观察保存reviewBaseline：原始安全测量元数据，不含正文；后续复查保留基线并更新item。recheckRuleParameters记录实际复查参数。字节/码点需两端完整且当前；正文Token比较另须两端估算可用、方法/编码/载荷/分词器版本一致。仅展示文本变化，不将阈值差额或关联用量解释为节省。Web关联用量复用config evidence及usageRevision，日期不改变规则身份；CLI/Agent通过inventory evidence和turns读取同口径。
 
 完整块与显式副本证据，公开文件版本、原文字节/行位置、声明哈希、方向和变换，不返回正文。config capabilities可返回启动授权根与宿主复制用重启命令；不是扫描成功事实，也不提供执行接口。live freshness.errorCode公开存储错误；facets.discoveredThreadCount只表示快照内已发现任务元数据，不是日期筛选后的计量数。
 
@@ -84,7 +94,7 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 当前配置按本机规范路径、种类和原生键聚合物理对象，共享项目仅采集一次。authorizedProjects保留重叠根成员，project仅为展示归属；sourceContexts保留逐来源盘点身份、来源/版本及观察，sourceInstanceId仅为展示归属。来源筛选只计匹配事件；关联Token和金额仍用原账本并集。同一当前对象只产生一条建议，处理在所有匹配来源中一致，声明依据仍逐来源独立。操作只接受当前物理对象身份，不合并账本身份；文件在采集间改变版本时公开configContentChangedDuringScan并保留分项。
 
-reviews.sqlite3仅使用user_version=3：review_events保存独立决定与检查状态，review_parts共享不可变依据、item、baseline及检查事实，内部采用SQLite JSONB。按授权对象/项目/类别COUNT及LIMIT/OFFSET后解码页面；状态只读轻量元数据，全局复查逐个解码历史对象。仅初始化空数据库，未知布局或版本拒绝，不迁移或删除。4MiB页缓存、512页检查点及8MiB WAL保留目标不是硬上限。共享依据与分页理由见[决定](../decisions/implemented/architecture/2026-10-02-rule-review-integrity.md)。
+reviews.sqlite3仅使用user_version=4：review_events保存独立决定与检查状态，review_parts共享不可变依据、item、baseline及检查事实，内部采用SQLite JSONB。按授权对象/项目/类别COUNT及LIMIT/OFFSET后解码页面；状态只读轻量元数据，全局复查逐个解码历史对象。仅初始化空数据库，未知布局或版本拒绝，不迁移或删除。4MiB页缓存、512页检查点及8MiB WAL保留目标不是硬上限。共享依据与分页理由见[决定](../decisions/implemented/architecture/2026-10-02-rule-review-integrity.md)。
 
 
 跨文件检查读取授权项目已有的 `.wombat/analysis.json`，格式见[生成 Schema](../schemas/analysis-declaration-v1.schema.json)。不创建声明或读取清单外文件；路径仅允许授权根内相对普通分量，双方须在完整当前清单内。chains仅用于Rule，identity-v1比较完整原文字节（含行尾），不证明原件正确或实际加载。单文件1MiB、单轮8MiB、32,768块、每组4,096位置、每对象256分支、输出证据2MiB；声明64KiB、256关系、每链2—64路径。超限公开缺口，不能完整复查通过；正文仅本轮有界驻留。

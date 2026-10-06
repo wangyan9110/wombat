@@ -4,10 +4,10 @@ import { spawn } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { CoreError } from '../errors.js';
-import type { ConfigRequest, OptimizeRequest, LiveRequest, QueryOptions,HandoffRequest } from '../client.js';
+import type { ConfigRequest, OptimizeRequest, LiveRequest, QueryOptions,HandoffRequest,TimingRequest } from '../client.js';
 import { binaryPath, decode, invokeOperation, type CoreProcessOptions } from './core.js';
 
-type ProductRequest = LiveRequest | { config: ConfigRequest } | { optimize: OptimizeRequest } | {handoff:HandoffRequest};
+type ProductRequest = { timing: TimingRequest } | LiveRequest | { config: ConfigRequest } | { optimize: OptimizeRequest } | {handoff:HandoffRequest};
 type NativeRequest = ProductRequest & { nativeHooks?: Awaited<ReturnType<typeof captureHooks>> };
 function exchange(socket: string, request: NativeRequest, options: QueryOptions, config: CoreProcessOptions): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -18,7 +18,10 @@ function exchange(socket: string, request: NativeRequest, options: QueryOptions,
       if (error) reject(error); else resolve(result);
     };
     const abort = () => finish(new CoreError('CANCELLED', '已取消'));
-    const timer = setTimeout(() => finish(new CoreError('TIMEOUT', '实时用量查询超时')), config.timeoutMs ?? 12_000);
+    // Explicit refresh also writes and syncs an immutable generation. Keep the
+    // short read deadline separate from that bounded publication operation.
+    const timeoutMs = config.timeoutMs ?? ('query' in request && request.query.action === 'refresh' ? 120_000 : 12_000);
+    const timer = setTimeout(() => finish(new CoreError('TIMEOUT', '实时用量查询超时')), timeoutMs);
     options.signal?.addEventListener('abort', abort, { once: true });
     if (options.signal?.aborted) { abort(); return; }
     client.on('connect', () => client.write(JSON.stringify(request) + '\n'));
@@ -41,14 +44,14 @@ export async function queryLive(request: ProductRequest, options: QueryOptions, 
   if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
   let observed: NativeRequest = request;
   const product = 'config' in request ? request.config : 'optimize' in request ? request.optimize : 'handoff' in request ? request.handoff : undefined;
-  const fresh = product && product.action !== 'capabilities' && (!product.readView || product.action === 'recheck' || product.action === 'send');
+  const fresh = product && product.action !== 'capabilities' && product.action !== 'activity' && (!product.readView || product.action === 'recheck' || product.action === 'send');
   if (fresh) {
     const {captureHooks} = await import('./codex/hooks.js');
     observed = {...request, nativeHooks: await captureHooks({roots:product.roots,projectRoots:product.projectRoots}, options, config)};
   }
   if ('query' in request && request.query.action === 'refresh') options.onProgress?.('同步本机日志并保存用量');
   const endpoint = await invokeOperation('live_endpoint', {}, options, config) as { protocolVersion?: number; socket?: string };
-  if (endpoint.protocolVersion !== 1 || typeof endpoint.socket !== 'string') throw new CoreError('PROTOCOL_ERROR', '实时用量接口版本不兼容');
+  if (endpoint.protocolVersion !== 2 || typeof endpoint.socket !== 'string') throw new CoreError('PROTOCOL_ERROR', '实时用量接口版本不兼容');
   let started = false;
   const deadline = Date.now() + 5_000;
   for (;;) {

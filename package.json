@@ -17,6 +17,8 @@
     "test:unit": "pnpm -r test",
     "test:integration": "node --import tsx --test tests/integration/*.test.ts",
     "test:e2e": "node --import tsx --test tests/e2e/*.test.ts",
+    "verify:e2e": "node --import tsx scripts/verify-e2e.ts",
+    "verify:event-upgrade:browser": "node --import tsx scripts/verify-event-upgrade-browser.ts",
     "contracts:generate": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs",
     "contracts:check": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs --check",
     "skills:check": "node scripts/check-skills.mjs",
@@ -40,14 +42,15 @@
     "github:pack": "node scripts/prepare-github-release.ts",
     "github:verify": "node scripts/verify-github-release.ts",
     "native:export": "node scripts/export-native.ts",
-    "i18n:check": "node scripts/check-ui-i18n.mjs",
+    "i18n:check": "node scripts/check-ui-i18n.ts",
     "test:repo": "node --import tsx --test scripts/*.test.mjs scripts/*.test.ts",
     "benchmark:usage": "node --import tsx scripts/benchmark-usage-v1.ts",
     "benchmark:live": "node --import tsx scripts/benchmark-live.ts",
     "docs:structure": "node scripts/check-doc-structure.ts",
     "skills:scope": "node .agents/skills/wombat-review/scripts/scope.ts",
     "skills:verify": "node .agents/skills/wombat-verify/scripts/verify.ts",
-    "release:source-check": "node scripts/check-release-source.ts"
+    "release:source-check": "node scripts/check-release-source.ts",
+    "preview:retire": "node --import tsx scripts/retire-prototype.ts"
   },
   "devDependencies": {
     "@types/node": "26.0.0",

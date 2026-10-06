@@ -131,6 +131,7 @@ pub(super) fn duplicate_finding(
         versions.insert(&o.item.id, version(o.item));
     }
     Finding {
+        identity: Default::default(),
         rule: "exactInstructionBlocks".into(),
         status: "needsReview".into(),
         observed: Some(occurrences.len() as u64),

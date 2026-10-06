@@ -4,7 +4,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value};
 use std::{collections::HashSet, path::Path};
 
-const VERSION: i64 = 3;
+const VERSION: i64 = 4;
 const UPSERT: &str = "INSERT INTO entries(bucket,id,payload) VALUES(?1,?2,jsonb(?3)) ON CONFLICT(bucket,id) DO UPDATE SET payload=excluded.payload,source_bucket=NULL,member=NULL WHERE payload IS NOT excluded.payload OR source_bucket IS NOT NULL";
 
 pub(crate) fn failure_code(error: &anyhow::Error) -> &'static str {
@@ -178,6 +178,21 @@ pub(crate) fn load_map(db: &Connection, scope: &str) -> Result<Map<String, Value
         Ok(())
     })?;
     Ok(result)
+}
+
+/// Metadata-only presence probe; does not deserialize or traverse fact payloads.
+pub(crate) fn has_scope(db: &Connection, scope: &str) -> Result<bool> {
+    Ok(db.prepare_cached("SELECT EXISTS(SELECT 1 FROM buckets b JOIN entries e ON e.bucket=b.id WHERE b.scope=?1)")?
+        .query_row([scope], |row| row.get(0))?)
+}
+
+/// Read one directly stored scalar header; references are not a supported header shape.
+pub(crate) fn scalar(db: &Connection, scope: &str, field: &str) -> Result<Option<Value>> {
+    let payload: Option<String> = db.prepare_cached("SELECT json(e.payload) FROM buckets b JOIN entries e ON e.bucket=b.id WHERE b.scope=?1 AND b.field=?2 AND e.id='' AND e.source_bucket IS NULL")?
+        .query_row(rusqlite::params![scope, field], |row| row.get(0)).optional()?;
+    payload
+        .map(|payload| serde_json::from_str(&payload).map_err(Into::into))
+        .transpose()
 }
 
 pub(crate) fn put<T: serde::Serialize>(
@@ -448,7 +463,7 @@ mod tests {
     }
     #[test]
     fn unsupported_schema_is_rejected_without_mutating_records() {
-        for version in [0, 1, 2, 99] {
+        for version in [0, 1, 2, 3, 99] {
             let root = tempfile::tempdir().unwrap();
             let path = root.path().join("index.sqlite");
             let db = Connection::open(&path).unwrap();
@@ -582,5 +597,40 @@ mod fault_tests {
                 .unwrap(),
             0
         );
+    }
+}
+
+#[cfg(test)]
+mod scalar_tests {
+    use super::*;
+    use serde_json::json;
+    #[test]
+    fn direct_scalar_headers_skip_unrelated_fact_payloads_and_reject_references() {
+        let root = tempfile::tempdir().unwrap();
+        let db = open(&root.path().join("index.sqlite")).unwrap();
+        assert!(!has_scope(&db, "projection").unwrap());
+        assert_eq!(scalar(&db, "projection", "mapping").unwrap(), None);
+        put(&db, "projection", "mapping", "", &1_u32).unwrap();
+        put(&db, "projection", "facts", "bad", &json!({"fact":true})).unwrap();
+        db.execute("UPDATE entries SET payload=x'ff' WHERE id='bad'", [])
+            .unwrap();
+        assert!(has_scope(&db, "projection").unwrap());
+        assert_eq!(
+            scalar(&db, "projection", "mapping").unwrap(),
+            Some(json!(1))
+        );
+        assert!(load_map(&db, "projection").is_err());
+        put(&db, "source", "mapping", "", &json!({"measurement":2})).unwrap();
+        reference(
+            &db,
+            "reference",
+            "mapping",
+            "",
+            "source",
+            Member::Measurement,
+        )
+        .unwrap();
+        assert!(has_scope(&db, "reference").unwrap());
+        assert_eq!(scalar(&db, "reference", "mapping").unwrap(), None);
     }
 }

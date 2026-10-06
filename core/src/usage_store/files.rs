@@ -4,7 +4,7 @@ pub(super) fn corrupt(message: impl Into<String>) -> anyhow::Error {
     operation_error("SNAPSHOT_CORRUPT", message)
 }
 pub(super) fn product_home() -> Result<PathBuf> {
-    Ok(crate::storage::data_home()?.join("usage-v3"))
+    Ok(crate::storage::data_home()?.join("usage-v4"))
 }
 pub(super) fn private_dir(path: &Path) -> Result<()> {
     let mut builder = fs::DirBuilder::new();
@@ -45,12 +45,21 @@ pub(super) fn file_ref(file: &str, bytes: &[u8]) -> FileRef {
         sha256: crate::hash(bytes),
     }
 }
+#[cfg(test)]
 pub(super) fn save_json<T: Serialize>(directory: &Path, name: &str, value: &T) -> Result<FileRef> {
     let bytes = serde_json::to_vec(value)?;
     if bytes.len() as u64 > MAX_FILE_BYTES {
         return Err(operation_error("RESOURCE_LIMIT", "快照分片超过512 MiB"));
     }
     crate::storage::atomic_write(&directory.join(name), &bytes)?;
+    Ok(file_ref(name, &bytes))
+}
+fn save_pending_json<T: Serialize>(directory: &Path, name: &str, value: &T) -> Result<FileRef> {
+    let bytes = serde_json::to_vec(value)?;
+    if bytes.len() as u64 > MAX_FILE_BYTES {
+        return Err(operation_error("RESOURCE_LIMIT", "快照分片超过512 MiB"));
+    }
+    crate::storage::write_unpublished(&directory.join(name), &bytes)?;
     Ok(file_ref(name, &bytes))
 }
 pub fn save(collected: Collected) -> Result<Snapshot> {
@@ -69,6 +78,8 @@ pub(super) fn save_with_prices(
     collected: Collected,
     prices: crate::pricing_sync::Response,
 ) -> Result<Snapshot> {
+    validate_watermarks(&collected.watermarks)?;
+    validate_title_observations(&collected.title_observations, &collected.threads)?;
     private_dir(root)?;
     let id = uuid::Uuid::new_v4().to_string();
     let generation = root.join("generations").join(&id);
@@ -89,7 +100,8 @@ pub(super) fn save_with_prices(
     drop(pool);
     // Reject unusable totals before publishing any new latest pointer.
     crate::usage_app::summarize(&records.iter().collect::<Vec<_>>())?;
-    let ledger = save_json(directory, "ledger.json", &records)?;
+    let ledger = save_pending_json(directory, "ledger.json", &records)?;
+    let events = super::events::save_events(directory, collected.events)?;
     let mut by_thread: BTreeMap<String, BTreeMap<String, TurnData>> = BTreeMap::new();
     for row in &records {
         if let Some(thread) = &row.fact.thread_id {
@@ -108,7 +120,14 @@ pub(super) fn save_with_prices(
                 .push(row.clone());
         }
     }
+    let mut unassigned_uses = BTreeMap::<String, UnassignedUseRecords>::new();
     for op in collected.operations {
+        if op.turn_id.as_deref().is_none_or(|id| id.is_empty()) {
+            unassigned_uses
+                .entry(op.thread_id.to_string())
+                .or_default()
+                .observe(&op)?;
+        }
         by_thread
             .entry(op.thread_id.to_string())
             .or_default()
@@ -154,8 +173,9 @@ pub(super) fn save_with_prices(
                 },
             );
         }
-        crate::storage::atomic_write(&directory.join(&filename), &bytes)?;
+        crate::storage::write_unpublished(&directory.join(&filename), &bytes)?;
         threads.push(ThreadEntry {
+            unassigned_uses: unassigned_uses.remove(&thread.id).unwrap_or_default(),
             thread,
             file: file_ref(&filename, &bytes),
             turns: index,
@@ -164,8 +184,11 @@ pub(super) fn save_with_prices(
     if !by_thread.is_empty() {
         return Err(operation_error("INVALID_FACTS", "存在没有对话元数据的记录"));
     }
+    let observation_versions = crate::observation_versions::SnapshotObservationVersions::current();
     let manifest = Manifest {
-        schema_version: 3,
+        schema_version: 4,
+        observation_versions,
+        title_observations: collected.title_observations,
         snapshot_ref: SnapshotRef {
             snapshot_id: id,
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -173,13 +196,17 @@ pub(super) fn save_with_prices(
         price_revision: prices.catalog.revision,
         price_catalog_hash: prices.catalog_hash,
         sources: collected.sources,
+        watermarks: collected.watermarks,
         issues: collected.issues,
         ledger,
+        events,
         threads,
     };
-    save_json(directory, "manifest.json", &manifest)?;
-    // Moving one completed directory publishes all files together. latest is independent of v1/v2.
+    save_pending_json(directory, "manifest.json", &manifest)?;
+    // Moving one completed directory publishes all files together. latest is independent of previous formats.
     let final_dir = generation.join("committed");
+    #[cfg(unix)]
+    fs::File::open(directory)?.sync_all()?;
     fs::rename(directory, &final_dir)?;
     #[cfg(unix)]
     fs::File::open(&generation)?.sync_all()?;
@@ -188,11 +215,13 @@ pub(super) fn save_with_prices(
         &serde_json::to_vec(&manifest.snapshot_ref)?,
     )?;
     Ok(Snapshot {
+        timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
         directory: final_dir,
         memory_turns: None,
         live_rows: None,
+        live_events: None,
     })
 }
 pub(super) fn bounded_read(path: &Path) -> Result<Vec<u8>> {
@@ -239,24 +268,76 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
     }
     let directory = root.join("generations").join(&id).join("committed");
     if !directory.join("manifest.json").is_file() {
+        if root.file_name().is_some_and(|name| name == "usage-v4")
+            && let Some(home) = root.parent()
+            && ["usage-v1", "usage-v2", "usage-v3"].iter().any(|version| {
+                home.join(version)
+                    .join("generations")
+                    .join(&id)
+                    .join("committed/manifest.json")
+                    .is_file()
+            })
+        {
+            return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
+        }
         return Err(operation_error("NO_SNAPSHOT", "未找到已提交快照"));
     }
     let raw: serde_json::Value =
         serde_json::from_slice(&bounded_read(&directory.join("manifest.json"))?)
             .map_err(|_| corrupt("快照索引损坏"))?;
-    if raw["schemaVersion"] != 3 {
+    if raw["schemaVersion"] != 4 {
         return Err(operation_error("UNSUPPORTED_VERSION", "不支持此快照版本"));
+    }
+    crate::observation_versions::ObservationHeaderSet::Snapshot.validate_json(&raw, |kind| {
+        use crate::observation_versions::ObservationKind;
+        match kind {
+            ObservationKind::Event | ObservationKind::Title => "不支持此快照来源观察格式",
+            ObservationKind::Message => "不支持此消息观察映射",
+            ObservationKind::Operation => "不支持此操作结果观察映射",
+            ObservationKind::Association => "不支持此操作关联方法",
+            ObservationKind::Measurement => "不支持此计量观察映射",
+            ObservationKind::Work => "不支持此快照来源观察格式",
+        }
+    })?;
+    crate::session_events::title_observations::check_rows(&raw)?;
+    super::events::check_index_version(raw["events"]["version"].as_u64())?;
+    super::native_boundary::check_versions(&raw["events"])?;
+    super::use_metadata::check_headers(&raw)?;
+    if raw
+        .get("watermarks")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|rows| {
+            rows.iter().any(|row| {
+                row.get("formatVersion")
+                    .and_then(serde_json::Value::as_u64)
+                    .is_some_and(|v| v != u64::from(WATERMARK_FORMAT_VERSION))
+            })
+        })
+    {
+        return Err(operation_error(
+            "UNSUPPORTED_VERSION",
+            "不支持此来源水位版本",
+        ));
     }
     let manifest: Manifest =
         serde_json::from_value(raw).map_err(|e| corrupt(format!("快照索引无效：{e}")))?;
+    validate_watermarks(&manifest.watermarks).map_err(|e| corrupt(format!("快照水位无效：{e}")))?;
+    validate_title_observations(
+        &manifest.title_observations,
+        manifest.threads.iter().map(|t| &t.thread),
+    )
+    .map_err(|e| corrupt(format!("标题观察无效：{e}")))?;
+    super::events::validate_index(&manifest.events)?;
     if manifest.snapshot_ref.snapshot_id != id {
         return Err(corrupt("快照身份不匹配"));
     }
     Ok(Snapshot {
+        timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
         directory,
         memory_turns: None,
         live_rows: None,
+        live_events: None,
     })
 }

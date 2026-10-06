@@ -21,7 +21,7 @@ pub struct PricedMeasurement {
     pub price: Arc<PriceResult>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FileRef {
     pub file: String,
     pub sha256: String,
@@ -45,17 +45,23 @@ pub struct ThreadEntry {
     pub thread: Thread,
     pub file: FileRef,
     pub turns: BTreeMap<String, TurnEntry>,
+    pub unassigned_uses: UnassignedUseRecords,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub schema_version: u32,
+    #[serde(flatten)]
+    pub(crate) observation_versions: crate::observation_versions::SnapshotObservationVersions,
+    pub title_observations: Vec<crate::session_events::title_observations::TitleObservation>,
     pub snapshot_ref: SnapshotRef,
     pub price_revision: String,
     pub price_catalog_hash: String,
     pub sources: Vec<SourceReport>,
+    pub watermarks: Vec<SourceWatermark>,
     pub issues: Vec<Issue>,
     pub ledger: FileRef,
+    pub events: EventIndex,
     pub threads: Vec<ThreadEntry>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -70,21 +76,65 @@ struct MemoryTurn {
     operations: Vec<Arc<Operation>>,
 }
 pub struct Snapshot {
+    pub(crate) timing_cache: Mutex<crate::timing::cache::Cache>,
     pub(crate) query_cache: Mutex<crate::query_cache::QueryCache>,
     live_rows: Option<Vec<Arc<PricedMeasurement>>>,
+    live_events: Option<BTreeMap<EventTarget, Vec<Arc<crate::session_events::Event>>>>,
     memory_turns: Option<BTreeMap<(String, String), MemoryTurn>>,
     pub manifest: Manifest,
     directory: PathBuf,
 }
 
+fn validate_title_observations<'a>(
+    rows: &[crate::session_events::title_observations::TitleObservation],
+    threads: impl IntoIterator<Item = &'a Thread>,
+) -> Result<()> {
+    let targets: BTreeMap<_, _> = threads.into_iter().map(|t| (t.id.as_str(), t)).collect();
+    let mut seen = std::collections::BTreeSet::new();
+    for observation in rows {
+        observation.validate()?;
+        anyhow::ensure!(
+            seen.insert(&observation.thread_id),
+            "duplicate title observation"
+        );
+        let thread = targets
+            .get(observation.thread_id.as_str())
+            .ok_or_else(|| anyhow::anyhow!("title target missing"))?;
+        anyhow::ensure!(
+            thread.source_instance_id == observation.source_instance_id
+                && thread.title.as_deref() == Some(observation.title.as_str()),
+            "title observation scope mismatch"
+        );
+    }
+    Ok(())
+}
+
+mod events;
+pub use events::{
+    EventChunk, EventCursor, EventIndex, EventPage, EventPartition, EventReadBudget, EventTarget,
+    MAX_EVENT_PAGE_ROWS, MAX_TARGET_EVENTS,
+};
+#[cfg(test)]
+mod event_tests;
 mod files;
 mod memory;
+mod native_boundary;
+pub use native_boundary::NativeBoundaryIndex;
 mod price_pool;
 mod query;
 #[cfg(test)]
 mod tests;
+pub mod timing_evidence;
+mod timing_measurements;
+mod use_metadata;
+pub use use_metadata::UnassignedUseRecords;
+#[cfg(test)]
+mod watermark_tests;
 pub use files::{RefreshLock, load, save};
 use files::{bounded_read, corrupt, file_ref, product_home, safe_file, save_with_prices};
 #[cfg(test)]
 use files::{load_at, private_dir, save_at};
 pub(crate) use memory::memory;
+
+#[cfg(test)]
+mod observation_tests;

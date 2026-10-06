@@ -1,3 +1,4 @@
+import { withTokenAnalysis } from '../../tests/fixtures/token-analysis.js';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
@@ -29,7 +30,7 @@ test('separate configuration pages describe their own scope and extension column
 
 test('task titles do not fall back to hashes and fixed versions remain available behind closed disclosure',()=>{
  const saved=locale.getSnapshot().locale;
- const summary:UsageSummary={measurementCount:1,inputTotal:100,tokens:{input:100,cacheRead:0,cacheCreate:0,output:12,total:112},price:{currency:'USD',policy:'synthetic',priceRevision:'test',cost:null,knownCost:null,status:'unknown',components:[],basis:[],issues:[]}};
+ const summary:UsageSummary=withTokenAnalysis({measurementCount:1,inputTotal:100,tokens:{input:100,cacheRead:0,cacheCreate:0,output:12,total:112},price:{currency:'USD',policy:'synthetic',priceRevision:'test',cost:null,knownCost:null,status:'unknown',components:[],basis:[],issues:[]}});
  const route=parseRoute('?page=threads&timezone=UTC');
  const thread={kind:'thread',id:'internal-task-hash',upstreamId:'upstream-task-hash',sourceInstanceId:'synthetic-source',title:' ',project:'/synthetic',agentKind:'codex',matchedLastActivityAt:'2026-10-04T02:00:00Z',models:[],reasoningEfforts:[],matchedTurnCount:null,matchedUsage:summary,threadUsage:summary};
  const list={items:[thread],summary,snapshotRef:{snapshotId:'live:full-version-hash'},quality:{status:'partial'},page:{offset:0,limit:20,total:1,nextOffset:null}} as unknown as UsageResult;
@@ -41,7 +42,7 @@ test('task titles do not fall back to hashes and fixed versions remain available
   assert.doesNotMatch(html,/<details[^>]*open/);assert.match(html,/upstream-task-hash/);
   assert.match(html,/Find an Agent task|查找一次 Agent 工作/);assert.match(html,/Current task-list summary|当前任务列表汇总/);
   assert.match(html,/Source does not provide turn associations|来源未提供轮次/);assert.doesNotMatch(html,/>0 (?:turns|个轮次)</);
-  assert.match(html,/2026-10-04/);assert.match(html,/112/);assert.match(html,/API cost unknown|API 费用未知/);
+  assert.match(html,/2026-10-04/);assert.match(html,/112/);assert.match(html,/Not priced|未计价/);
   assert.match(html,/List usage follows the current filters|列表用量按当前筛选统计/);
  }}finally{locale.setLocale(saved);}
 });

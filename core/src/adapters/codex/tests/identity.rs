@@ -239,7 +239,7 @@ fn tools_merge_by_call_identity_and_never_store_arguments_or_outputs() {
         context("u", "gpt-5.4", "high"),
         json!({"type":"response_item","timestamp":"2026-09-29T00:00:01Z","payload":{"type":"function_call","name":"mcp__docs__search","call_id":"call","arguments":"{\"query\":\"SECRET_ARGUMENT\"}"}}),
         json!({"type":"response_item","timestamp":"2026-09-29T00:00:02Z","payload":{"type":"function_call_output","call_id":"call","output":{"isError":true,"content":"SECRET_OUTPUT"}}}),
-        json!({"type":"event_msg","timestamp":"2026-09-29T00:00:02Z","payload":{"type":"item_completed","thread_id":"t","turn_id":"u","item":{"type":"mcpToolCall","id":"call","server":"docs","tool":"search","result":{"isError":true,"content":"SECRET_RESULT"}}}}),
+        json!({"type":"event_msg","timestamp":"2026-09-29T00:00:02Z","payload":{"type":"item_completed","thread_id":"t","turn_id":"u","item":{"type":"mcpToolCall","id":"call","call_id":"call","server":"docs","tool":"search","result":{"isError":true,"content":"SECRET_RESULT"}}}}),
         json!({"type":"response_item","timestamp":"2026-09-29T00:00:03Z","payload":{"type":"function_call","name":"read_file","call_id":"skill","arguments":"{\"path\":\"/synthetic/skill/SKILL.md\"}"}}),
     ];
     write(dir.path(), "sessions/a.jsonl", &rows);

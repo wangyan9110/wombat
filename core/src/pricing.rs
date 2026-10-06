@@ -66,6 +66,8 @@ pub struct PriceResult {
 pub struct PricingContext {
     /// False for an aggregate cumulative difference spanning unknown requests.
     pub request_scoped: bool,
+    /// Reliable model/provider observations conflict; absent fields cannot repair it.
+    pub model_conflicted: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -136,12 +138,15 @@ pub fn catalog_info() -> PriceCatalogInfo {
 
 /// Convenience for an individual request. Cumulative differences must call
 /// price_with_context with request_scoped=false instead.
+/// Models with request-length tiers require recorded `tokens.raw_input`;
+/// category sums cannot distinguish missing input from a reconciled conflict.
 pub fn price(model: &ModelRef, tokens: &TokenUsage) -> PriceResult {
     price_with_context(
         model,
         tokens,
         &PricingContext {
             request_scoped: true,
+            model_conflicted: false,
         },
     )
 }
@@ -187,14 +192,15 @@ pub(crate) fn price_with_catalog(
     if invalid {
         result.issues.push("inconsistentTokenCounts".into());
     }
-    let matched = match_model(model, catalog);
-    if matched.is_none() {
+    let matched = (!context.model_conflicted)
+        .then(|| match_model(model, catalog))
+        .flatten();
+    if context.model_conflicted {
+        result.issues.push("modelContextConflict".into());
+    } else if matched.is_none() {
         result.issues.push("unverifiedModel".into());
     }
-    let request_input = context
-        .request_scoped
-        .then_some(tokens.raw_input.or(input_sum))
-        .flatten();
+    let request_input = context.request_scoped.then_some(tokens.raw_input).flatten();
     let mut active_rates = None;
     if let Some((entry, method)) = matched {
         let (rates, condition) = match &entry.long_context {
@@ -273,6 +279,7 @@ pub(crate) fn price_with_catalog(
     }
     // Fetching a catalog can repair missing rates, but cannot repair missing log evidence.
     if !invalid
+        && !context.model_conflicted
         && model.raw.as_deref().is_some_and(|name| !name.is_empty())
         && model.provider.as_deref().is_none_or(|p| p == "openai")
         && model.api_provider.as_deref().is_none_or(|p| p == "openai")

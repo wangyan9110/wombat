@@ -2,7 +2,7 @@
 
 [中文](cli.md) | English
 
-Wombat synchronizes local Codex logs incrementally by default and updates queries incrementally. An explicit refresh also saves a fixed snapshot. Current functionality includes usage, tasks, configuration measurements and manual review queries. Every subcommand works without a TTY; JSON and Web use the same Rust queries.
+Wombat synchronizes local Codex logs incrementally by default and updates queries incrementally. An explicit refresh also saves a fixed snapshot. Current functionality includes usage, tasks, whole-turn timing, configuration measurements and manual review queries. Every subcommand works without a TTY; JSON and Web use the same Rust queries.
 
 ```sh
 wombat prices --json
@@ -47,15 +47,34 @@ Choose presentation language with `--lang zh` or `--lang en`, or set `WOMBAT_LAN
 - `usage --watch --json` emits one JSON object per line when the revision, date range, or status changes. Ctrl+C exits with 130. Ordinary `--json` still emits one object.
 - `refresh --verify` rereads the full source before saving a snapshot, checking historical prefix edits that the append fast path cannot establish. Ordinary refresh uses incremental cursors.
 - `--snapshot ID` pins a current snapshot. Continue pagination with the same snapshotId instead of resolving latest again. Unknown formats are explicitly rejected.
-- Live queries accept `--root`. Omitting it always selects the default Codex source; another window's roots do not change this. Fixed snapshots cannot also specify source roots.
+- Live queries accept `--root`. Omitting it always selects the default Codex source; another window's roots do not change this. Fixed usage snapshots cannot also specify source roots; timing roots bind the requested source scope to the fixed version.
 
 One data directory shares an on-demand Rust service. File notifications supplement polling roughly every 2 seconds; CLI watch queries roughly every second. Without a valid configuration view, the service exits about 15 seconds after its last call; configuration views last at most 10 minutes. Live operation has been accepted on macOS; Windows and Linux have not passed local installation acceptance. Accounting uses complete log records and cannot show tokens the model has not yet logged.
+
+## Whole-turn timing
+
+```sh
+wombat timing --thread THREAD_ID --turn TURN_ID
+wombat timing summary --thread THREAD_ID --turn TURN_ID --text --lang en
+wombat timing --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --share
+wombat timing evidence --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --limit 50
+wombat timing evidence --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --limit 50 --cursor OPAQUE_TOKEN
+wombat timing capabilities
+```
+
+`timing` and `timing summary` are equivalent. Default output is one final v6 JSON object; `--text` selects localized human text and cannot accompany `--json`. Use complete Wombat thread and turn identities from the task query. Missing values remain null in JSON; text explains required records or the available scope; native duration, derived duration, native TTFT, and first-content record delay remain separate. Interval unions and sums may overlap and are not added together.
+
+Summary supports repeated `--root`, `--source`, and one of `--fresh` or `--cached`. `--snapshot` pins the result and cannot accompany `--fresh`. When roots or source are supplied with a fixed version, they must match its authorized scope. Use the returned snapshot identity for subsequent evidence pages; a missing or expired version never falls back to latest. Evidence is local only, requires that snapshot and the same target/scope, accepts `--limit 1..200` (default50) and the unchanged `nextCursor.token`, and accepts no refresh mode. Paging does not change the whole-turn summary. Capabilities accepts only output/language options and optional `--share`, reports parser support without scanning, and does not establish availability in a particular turn.
+
+`--share` asks Rust for a separate safe summary projection; CLI does not remove fields from local JSON. Timing bypasses automatic prices, configuration scans, Hook capture, and account observation. Date, Token, cost, offset, compare, and watch options are rejected. A resource-limited result can retain verified native scalars while affected derived values are omitted with calculation limits.
+
+Summary exits0 when the core marks the inspected scope complete, even if optional fields are not recorded; partial or provisional results exit2. Successful evidence navigation and capabilities exit0 without establishing whole-turn completeness. Errors exit1 and cancellation exits130. JSON errors use `{outputVersion:1,error:{code,message}}` with localized safe templates, including NOT_FOUND and VIEW_EXPIRED, without source paths or underlying error details. Status stays on stderr. Ctrl+C cancels this call and does not stop shared synchronization. Use `corepack pnpm verify:e2e` for real-core and browser acceptance; results cover only the selected platform and scope.
 
 ## Official price catalog
 
 Live queries automatically check the official catalog when repairable missing rates are found. Failures retain results and expose `priceUpdate`. Downloads are throttled for 15 minutes after failure and 24 hours after success. Set `WOMBAT_AUTO_PRICES=0` to disable automatic networking; `--cached` and `--snapshot` never trigger it. Manual `prices update` bypasses the automatic retry interval.
 
-`prices` (or `prices status`) reads the current full catalog offline. `prices update` explicitly downloads and validates a fixed official source. Its default output is a short result; `--json` returns `outputVersion:1`, action, origin, updated, source, sourceHash, catalogHash, and the complete catalog. Price responses and errors are versioned separately from usage v3. Errors use `{outputVersion:1,error:{code,message}}`, with exit code 1 or cancellation code 130. Common failures include PRICE_FETCH_FAILED, PRICE_SOURCE_CHANGED, PRICE_CACHE_INVALID, OUTPUT_LIMIT, TIMEOUT, and UPDATE_BUSY.
+`prices` (or `prices status`) reads the current full catalog offline. `prices update` explicitly downloads and validates a fixed official source. Its default output is a short result; `--json` returns `outputVersion:1`, action, origin, updated, source, sourceHash, catalogHash, and the complete catalog. Price responses and errors are versioned separately from usage v5. Errors use `{outputVersion:1,error:{code,message}}`, with exit code 1 or cancellation code 130. Common failures include PRICE_FETCH_FAILED, PRICE_SOURCE_CHANGED, PRICE_CACHE_INVALID, OUTPUT_LIMIT, TIMEOUT, and UPDATE_BUSY.
 
 After a successful update, the next live synchronization creates a complete read revision using the new catalog. `refresh` can save another snapshot; old snapshots retain their amounts. Updates reject custom URLs, import paths, and usage filters. See [pricing](../reference/pricing.en.md#联网更新价表) for network scope, proxies, supported tables, and persistence.
 
@@ -71,17 +90,17 @@ After a successful update, the next live synchronization creates a complete read
 
 ## JSON
 
-`outputVersion: 3`. Success includes action, snapshotRef, scope, availableRange, summary, items, page, and quality. Generated schemas validate runtime data; unknown arguments are rejected. Ordinary queries emit exactly one final JSON object on stdout, while watch emits NDJSON. Status goes to stderr. Live results also contain freshness; status distinguishes current, syncing, stale, failed, and fixed, and checkedAt is the last successful check. Current only means the observed log range has been processed.
+Usage uses `outputVersion: 5`. Success includes action, snapshotRef, scope, availableRange, summary, items, page, and quality. Generated schemas validate runtime data; unknown arguments are rejected. Ordinary queries emit exactly one final JSON object on stdout, while watch emits NDJSON. Status goes to stderr. Live results also contain freshness; status distinguishes current, syncing, stale, failed, and fixed, and checkedAt is the last successful check. Current only means the observed log range has been processed.
 
 Amounts are decimal strings; tokens are safe integers or null. `price.cost=null` means an incomplete amount; `knownCost` is the known subtotal, with priced, partial, and unknown statuses. Missing is not zero, and reportedCost is not added to the standard equivalent. Never sum amounts already rounded to two display decimals.
 
 Tasks return matchedUsage and threadUsage. Turns cover the whole task by default while matchedUsage preserves incoming filters. Add --matched-only to turns to return only turns with matching measurements; --locate-turn ID locates its page, taking precedence over offset when found and otherwise using offset. Filtering turns does not change the full-task summary. Turn shares use the full task denominator; step shares use the full turn. Operations without exclusive accounting do not display a cost. `unassigned` holds records without a turn within the task.
 
-Exit codes: 0 for success or an empty range; 2 for usable but incomplete reads or unconfirmed synchronization; 1 for errors; 130 for cancellation. Errors use `{outputVersion:3,error:{code,message}}`. Common codes include INVALID_ARGUMENT, NO_SNAPSHOT, SOURCE_UNREADABLE, SNAPSHOT_CORRUPT, UNSUPPORTED_VERSION, UPDATE_BUSY, CANCELLED, RESOURCE_LIMIT, and DETAIL_UNAVAILABLE. Partial results can still be queried using the returned fixed snapshot.
+Exit codes: 0 for success or an empty range; 2 for usable but incomplete reads or unconfirmed synchronization; 1 for errors; 130 for cancellation. Errors use `{outputVersion:5,error:{code,message}}`. Common codes include INVALID_ARGUMENT, NO_SNAPSHOT, SOURCE_UNREADABLE, SNAPSHOT_CORRUPT, UNSUPPORTED_VERSION, UPDATE_BUSY, CANCELLED, RESOURCE_LIMIT, and DETAIL_UNAVAILABLE. Partial results can still be queried using the returned fixed snapshot.
 
 ## Current formats
 
-Only current v3 snapshots are readable. Unknown versions are rejected while existing files and user records remain intact. No migration or old-command/output compatibility is provided. Retired scan/report/checkup/quota/codex/observe/compare commands have no placeholder entries.
+Only current usage-v4 snapshots (schema4) are readable. Usage JSON v5 and timing JSON v6 are independent output formats. Unknown versions are rejected while existing files and user records remain intact. No migration or old-command/output compatibility is provided. Retired scan/report/checkup/quota/codex/observe/compare commands have no placeholder entries.
 
 ## Local Web
 
@@ -102,6 +121,8 @@ Details and evidence use `--action detail|evidence|related_scopes --item ID --re
 Responses use configuration v1 JSON. Incomplete historical coverage currently returns exit code2 with usable results; argument/service errors return1 and cancellation130. File reads are not Skill calls; associated tokens are not exclusive configuration costs. Full-content tokens use a fixed reference method; static suggestions and manual rechecks are connected, while source changes remain closed. See the [configuration contract](../development/contracts.en.md) for scope and data semantics.
 
 ## Static suggestions and manual rechecks
+
+To inspect one turn, first obtain its snapshot/thread/turn IDs from the task list or timing summary. Run `wombat optimize activity --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --json`, retaining the same `--root` and optional `--source` as the selected view. Text output shows three check results and applicable inspection advice. This read collects no configuration and saves no handling decisions. Use timing evidence with the same selection to inspect records. If the view expires, reopen the list and select a new view; do not combine results from different snapshots.
 
 Run `wombat optimize list --json` with the same `--root` / `--project-root` as configuration. Suggestions merge by object in repair/trim/organize/space categories; the latter two explicitly remain unavailable without adapters. Checks accept no usage dates/models, and static reminders do not establish configuration health.
 

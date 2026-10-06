@@ -37,6 +37,7 @@ fn observed_problems_support_direct_manual_rechecks_and_recurrence() {
             .review_baseline
             .as_ref()
             .unwrap()
+            .item
             .content_hash,
         "original"
     );
@@ -375,10 +376,10 @@ fn manual_review_requires_observable_recheck_and_retains_history() {
     assert_eq!(unchanged.suggestions[0].status, "stillNeedsReview");
     let baseline = unchanged.suggestions[0].review_baseline.as_ref().unwrap();
     assert_eq!(
-        baseline.content_hash,
+        baseline.item.content_hash,
         first.suggestions[0].item.content_hash
     );
-    assert_eq!(baseline.bytes, first.suggestions[0].item.bytes);
+    assert_eq!(baseline.item.bytes, first.suggestions[0].item.bytes);
     // Removed files can retain complete historical metadata in the inventory.
     v.items[0].current = false;
     let removed = query(
@@ -396,6 +397,7 @@ fn manual_review_requires_observable_recheck_and_retains_history() {
             .review_baseline
             .as_ref()
             .unwrap()
+            .item
             .content_hash,
         first.suggestions[0].item.content_hash
     );

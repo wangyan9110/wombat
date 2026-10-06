@@ -18,3 +18,5 @@
 .task-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0 5px}.task-shortcuts button{padding:7px 10px;font-size:11px}.task-turns{scroll-margin-top:20px}
 @media(max-width:760px){.finding-measurements{grid-template-columns:1fr}.task-list-summary{gap:8px;padding:14px 17px}.task-list-summary strong{font-size:14px}.task-row-stats{gap:5px 10px}.task-shortcuts button{flex:1 1 auto}}
 @media(min-width:1440px){body.detail-reserved .app{padding-right:480px}body.detail-reserved .usage-drawer{position:fixed;width:480px;z-index:40;border-left:1px solid var(--line);box-shadow:none}}
+
+.cost-composition{min-width:0!important;width:100%;table-layout:fixed}.cost-composition th,.cost-composition td{overflow-wrap:anywhere;white-space:normal}

@@ -1,3 +1,5 @@
+import {operationOutcomeText} from './outcome-statistics.js';
+import {timingMissingValueText} from './timing-basis.js';
 /** Shared presentation-only locale service. Never localize protocol values or source content. */
 import { zh } from './zh.js';
 import { en } from './en.js';
@@ -144,6 +146,7 @@ export function eventStatusLabel(status: string): string {
   switch(status){case 'completed':case 'succeeded':return t('event.completed');case 'observed':return t('config.skillUsed');case 'failed':return t('event.failed');case 'cancelled':case 'canceled':return t('event.cancelled');case 'running':return t('common.running');case 'interrupted':return t('common.interrupted');case 'unknown':return t('webui.unknown');default:return status;}
 }
 export function followUpText(observation: import('../client.js').OptimizeResult['followUps'][number]): string {
+  if(observation.useBasis?.status==='partial'&&observation.observedRecords!=null)return t('optimize.followUp.partialRecords',{count:observation.observedRecords});
   switch(observation.status){
     case 'no_observed_records':return t('optimize.followUp.noRecords');
     case 'version_unknown':return observation.observedRecords!=null&&observation.observedRecords>0?t('optimize.followUp.versionUnknown',{count:observation.observedRecords}):t('optimize.followUp.unavailable');
@@ -160,4 +163,90 @@ export { observedCount, inventoryRecordState, sourceReadLabel } from "./observat
 
 export function configEvidenceLabel(type: string): string {
   switch(type){case 'instruction_load':return t('config.instruction_load');case 'skill_available':return t('config.skill_available');case 'skill_use':return t('config.skill_use');case 'file_read':return t('config.file_read');case 'tool_call':return t('config.tool_call');case 'resource_read':return t('config.resource_read');default:return t('webui.unknown');}
+}
+
+export { useBasisCount, useBasisPresentation, type PublicUseBasis } from "./use-basis.js";
+
+/** Explain core assessment reason codes without interpreting unknown source details. */
+export function assessmentReason(code: string): string {
+  switch (code) {
+    case 'verifiedHostAdapterUnavailable': return t('optimize.hostEvidenceMissing');
+    case 'continuousCoverageUnavailable': return t('optimize.coverageMissing');
+    case 'runtimeInjectionUnavailable': return t('optimize.injectionMissing');
+    case 'copyRelationNotDeclared': return t('optimize.copyUndeclared');
+    case 'ruleParametersOrMethodChanged': return t('optimize.assessment.reason.methodChanged');
+    case 'assessmentScopeChanged': return t('optimize.assessment.reason.scopeChanged');
+    case 'baselineAssessmentUnavailable': return t('optimize.assessment.reason.baselineMissing');
+    case 'assessmentIdentityUnavailable': case 'problemIdentityUnavailable':
+    case 'objectIdentityUnavailable': case 'problemLocationContextUnavailable':
+    case 'reliableProblemIdentityUnavailable': case 'decisionApplicabilityUnavailable': return t('optimize.assessment.reason.identityMissing');
+    case 'dependencyIdentityBudgetExceeded': case 'scopeIdentityBudgetExceeded':
+    case 'assessmentIdentityBudgetExceeded': return t('optimize.assessment.reason.resourceLimit');
+    case 'checkScopeUnavailable': return t('optimize.assessment.reason.scopeMissing');
+    case 'currentVersionUnavailable': return t('optimize.assessment.reason.versionMissing');
+    case 'analysisUnavailable': return t('optimize.assessment.reason.analysisMissing');
+    case 'invalidAnalysisEvidence': return t('optimize.assessment.reason.analysisInvalid');
+    default: return t('optimize.assessment.reason.evidenceMissing');
+  }
+}
+
+export { timingBasisText, timingMissingValueText, timingSourceStatusText } from './timing-basis.js';
+export { pricingIssueText } from './pricing.js';
+
+/** Display the recorded review state without deriving it from decisions or measurements. */
+export function reviewStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending': return t('optimize.pending');
+    case 'verified': return t('optimize.verified');
+    case 'stillNeedsReview': return t('optimize.stillNeedsReview');
+    case 'recheckUnavailable': return t('optimize.recheckUnavailable');
+    default: return t('optimize.statusUnavailable');
+  }
+}
+
+export { timingCategories, timingCategoryText, timingIntersectionText } from './timing-categories.js';
+
+export { tokenSummaryPresentation, tokenSummaryText, analyzedTokenSubtotal, type SummaryTokenField } from './token-summary.js';
+
+export {operationCoverageReasonText} from './operation-coverage.js';
+
+export {repeatedBehaviorReasonText} from './repeated-behavior.js';
+
+type ActivityCheck=NonNullable<import('../generated/optimize-response.js').Response['activity']>['checks'][number];
+type ActivityRule=ActivityCheck['rule'];
+export function activityRuleTitle(rule:ActivityRule):string {
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failure');case 'inspect_repeated_reads':return t('activity.read');case 'inspect_repeated_requests':return t('activity.request');case 'inspect_failure_share':return t('activity.failureShare');case 'inspect_input_change':return t('inputChange.title');}
+}
+export function activityAdviceText(rule:ActivityRule):string {
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failureAdvice');case 'inspect_repeated_reads':return t('activity.readAdvice');case 'inspect_repeated_requests':return t('activity.requestAdvice');case 'inspect_failure_share':return t('activity.failureShareAdvice');case 'inspect_input_change':return t('activity.inputChangeAdvice');}
+}
+export function activityCheckText(check:ActivityCheck):string {
+  if(check.rule==='inspect_input_change'&&check.inputChange&&check.inputPolicy){
+    const text=inputChangeText(check.inputChange);
+    return [text.headline,t('activity.inputChangePolicy',{tokens:check.inputPolicy.minimumIncrease}),
+      check.outcome==='miss'?t('activity.belowThreshold'):'',check.partial?t('activity.partial'):''].filter(Boolean).join(' ');
+  }
+  if(check.rule==='inspect_failure_share'&&check.outcomes&&check.failurePolicy){
+    const policy=check.failurePolicy;
+    return [operationOutcomeText(check.outcomes).headline,t('activity.failureSharePolicy',{minimum:policy.minimumDeterminate,failures:policy.minimumFailures,ratio:new Intl.NumberFormat(locale.getSnapshot().locale,{style:'percent',maximumFractionDigits:1}).format(policy.minimumRatio)}),
+      check.reason==='activitySampleTooSmall'?t('activity.sampleSmall'):check.reason==='activityMeasureUnavailable'?timingMissingValueText(check.observed.basis):check.outcome==='miss'?t('activity.belowThreshold'):'',check.partial?t('execution.outcomes.partial'):''].filter(Boolean).join(' ');
+  }
+  if(check.outcome==='hit'&&check.observed.value!=null)return t('activity.observed',{count:check.observed.value})+(check.partial?` · ${t('activity.partial')}`:'');
+  if(check.outcome==='miss')return t('activity.miss');
+  if(check.reason==='activityCoverageIncomplete')return t('activity.coverage');
+  if(check.reason==='activityBasisUnsupported')return t('activity.unsupported');
+  return timingMissingValueText(check.observed.basis);
+}
+
+export {operationOutcomeText} from './outcome-statistics.js';
+
+export function inputChangeText(change: import('../generated/timing-local-response.js').Context['inputChange']): {headline:string;details:string[];note:string} {
+  const s=change.statistics;
+  if(!s)return {headline:timingMissingValueText(change.availability.reason),details:[],note:t('inputChange.note')};
+  const headline=s.maximumIncrease.value==null?t('inputChange.insufficient'):t('inputChange.maximum',{tokens:s.maximumIncrease.value});
+  const details=[t('inputChange.coverage',{stages:s.comparableStages,increasing:s.increasingStages,decreasing:s.decreasingStages,unchanged:s.unchangedStages})];
+  if(s.largestIncrease)details.push(t('inputChange.endpoints',{samples:s.largestIncrease.samples,first:s.largestIncrease.firstInput,last:s.largestIncrease.lastInput}));
+  if(s.nonRequestScoped+s.missingInput+s.unassociated+s.numericRange>0)details.push(t('inputChange.exclusions',{interval:s.nonRequestScoped,missing:s.missingInput,unassociated:s.unassociated,numeric:s.numericRange}));
+  if(s.detailsOmitted)details.push(t('inputChange.detailsOmitted'));
+  return {headline,details,note:t('inputChange.note')};
 }

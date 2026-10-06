@@ -83,7 +83,7 @@ export function collectDoctor(options: {entryFile?: string; env?: NodeJS.Process
     });
     const result = run(core), expected = `wombat-core ${packageMetadata.version}`;
     if (result.status !== 0 || result.stdout.trim() !== expected) throw new Error(result.stderr || result.stdout || t('cli.doctor.coreFailed'));
-    checks.push({id: 'core', status: 'pass', message: expected});
+    checks.push({id: 'core', status: 'pass', message: t('cli.doctor.coreReady', {version: packageMetadata.version})});
   } catch (error) { checks.push({id: 'core', status: 'fail', message: error instanceof Error ? error.message : String(error), repair: t('cli.doctor.reinstall')}); }
 
   const codexHome = path.resolve(env.CODEX_HOME ?? path.join(os.homedir(), '.codex'));

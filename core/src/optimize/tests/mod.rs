@@ -7,6 +7,7 @@ use crate::{
 };
 use std::path::Path;
 mod decisions;
+mod evaluation;
 mod follow_up;
 mod history;
 mod rules;
@@ -23,6 +24,8 @@ fn body_estimate(tokens: u64) -> crate::config_dto::ContentEstimate {
 }
 fn view() -> View {
     View {
+        observation_versions: Default::default(),
+        config_collection: Default::default(),
         hook_registry: Default::default(),
         snapshot: None,
         items: vec![Item {
@@ -56,6 +59,7 @@ fn view() -> View {
                 diagnostics: vec![],
             }),
             usage_count: None,
+            use_basis: None,
             last_record_at: None,
             observation: Observation::Unknown,
             counts: Counts::default(),

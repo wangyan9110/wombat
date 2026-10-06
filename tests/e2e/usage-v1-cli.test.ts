@@ -23,7 +23,7 @@ async function mockCore(body: string): Promise<{
   await chmod(binary, 0o700);
   return { dir, binary };
 }
-const body = `let input='';process.stdin.on('data',chunk=>input+=chunk);process.stdin.on('end',()=>{const request=JSON.parse(input);if(process.env.WOMBAT_TEST_ERROR){console.log(JSON.stringify({ok:false,code:'NO_SNAPSHOT',error:'请先更新记录'}));return;}const tokens={input:100,rawInput:100,cacheRead:0,cacheCreate:0,output:20,reasoning:0,total:120};const price={cost:'0.00055',knownCost:'0.00055',status:'priced',currency:'USD',policy:'official-standard-api-equivalent-v1',priceRevision:'synthetic',components:[],basis:[],issues:[]};console.error(JSON.stringify({stage:'保存记录'}));console.log(JSON.stringify({ok:true,value:{outputVersion:3,action:request.args.action,snapshotRef:{snapshotId:'synthetic',createdAt:'2026-09-30T00:00:00Z'},scope:request.args.scope||{},availableRange:{since:'2026-09-29',until:'2026-09-30'},summary:{tokens,price,measurementCount:1},items:[],page:{offset:0,limit:50,total:0,nextOffset:null},quality:{status:process.env.WOMBAT_TEST_PARTIAL?'partial':'complete',issues:[],sources:[]}}}));});`;
+const body = `let input='';process.stdin.on('data',chunk=>input+=chunk);process.stdin.on('end',()=>{const request=JSON.parse(input);if(process.env.WOMBAT_TEST_ERROR){console.log(JSON.stringify({ok:false,code:'NO_SNAPSHOT',error:'请先更新记录'}));return;}const tokens={input:100,rawInput:100,cacheRead:0,cacheCreate:0,output:20,reasoning:0,total:120};const field=value=>({observedSubtotal:value,coveredRecords:1,missingRecords:0,conflictingRecords:0,invalidRecords:0,indeterminateRecords:0});const tokenAnalysis={methodVersion:1,scope:'selected_canonical_measurements',fields:Object.fromEntries(Object.entries(tokens).map(([key,value])=>[key,field(value)]))};const price={cost:'0.00055',knownCost:'0.00055',status:'priced',currency:'USD',policy:'official-standard-api-equivalent-v1',priceRevision:'synthetic',components:[],basis:[],issues:[]};console.error(JSON.stringify({stage:'保存记录'}));console.log(JSON.stringify({ok:true,value:{outputVersion:5,action:request.args.action,snapshotRef:{snapshotId:'synthetic',createdAt:'2026-09-30T00:00:00Z'},scope:request.args.scope||{},availableRange:{since:'2026-09-29',until:'2026-09-30'},summary:{tokens,tokenAnalysis,price,measurementCount:1},items:[],page:{offset:0,limit:50,total:0,nextOffset:null},quality:{status:process.env.WOMBAT_TEST_PARTIAL?'partial':'complete',issues:[],sources:[]}}}));});`;
 test('fixed-snapshot CLI has one JSON object and partial exit 2', async () => {
   const core = await mockCore(body);
   try {
@@ -31,7 +31,7 @@ test('fixed-snapshot CLI has one JSON object and partial exit 2', async () => {
     assert.equal(success.code, 0);
     assert.equal(success.stdout.trim().split('\n').length, 1);
     const value = JSON.parse(success.stdout);
-    assert.equal(value.outputVersion, 3);
+    assert.equal(value.outputVersion, 5);
     assert.equal(value.action, 'usage');
     assert.equal(success.stderr, '');
     const partial = await run(['usage', '--snapshot', 'synthetic', '--json'], { WOMBAT_CORE_BIN: core.binary, WOMBAT_TEST_PARTIAL: '1' });
@@ -87,7 +87,7 @@ test('v1 version works without a core or local package paths at runtime', async 
   const result = await run(['--version', '--json'], { WOMBAT_CORE_BIN: '/synthetic/missing-core' });
   const expectedVersion = JSON.parse(await readFile('package.json', 'utf8')).version;
   assert.equal(result.code, 0);
-  assert.deepEqual(JSON.parse(result.stdout), { outputVersion: 3, name: 'Wombat', version: expectedVersion });
+  assert.deepEqual(JSON.parse(result.stdout), { outputVersion: 5, name: 'Wombat', version: expectedVersion });
 });
 test('built CLI SIGINT returns CANCELLED and reaps an uncooperative core', { skip: process.platform === 'win32' }, async () => {
   const core = await mockCore("process.on('SIGTERM',()=>{});process.stdin.resume();setInterval(()=>{},1000);console.error(JSON.stringify({stage:'ready-'+process.pid}));");

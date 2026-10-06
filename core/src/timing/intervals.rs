@@ -1,0 +1,322 @@
+//! Pure, identity-bound interval coverage; response proxies never cover unknown time.
+use super::analysis::check;
+use std::collections::BTreeMap;
+use std::sync::atomic::AtomicBool;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Window {
+    pub start_ms: i64,
+    pub end_ms: i64,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Identity {
+    pub source: String,
+    pub task: String,
+    pub turn: String,
+    pub item: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Category {
+    Command,
+    Compaction,
+    Reasoning,
+    Mcp,
+}
+impl Category {
+    fn index(self) -> usize {
+        match self {
+            Self::Command => 0,
+            Self::Compaction => 1,
+            Self::Reasoning => 2,
+            Self::Mcp => 3,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LifecycleInterval {
+    pub identity: Identity,
+    pub category: Category,
+    pub start_ms: Option<i64>,
+    pub end_ms: Option<i64>,
+    /// Endpoint and terminal records selected by the identity-bound mapper.
+    pub evidence_ids: Vec<String>,
+}
+
+pub(super) const CATEGORY_COUNT: usize = 4;
+pub(super) const MASK_COUNT: usize = 1 << CATEGORY_COUNT;
+pub const DETAIL_LIMIT: usize = 200;
+
+#[derive(Debug, PartialEq)]
+pub struct Track {
+    pub alias: String,
+    pub category: Category,
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub clipped: bool,
+    pub evidence_ids: Vec<String>,
+}
+#[derive(Debug, Default, PartialEq)]
+pub struct Timeline {
+    pub track_count: usize,
+    pub gap_count: usize,
+    pub unlocated_count: usize,
+    pub outside_count: usize,
+    pub limited: bool,
+    pub tracks: Vec<Track>,
+    pub gaps: Vec<(u64, u64)>,
+}
+impl Timeline {
+    fn reserve_detail(&mut self) -> bool {
+        if self.limited {
+            return false;
+        }
+        if self.tracks.len() + self.gaps.len() == DETAIL_LIMIT {
+            self.limited = true;
+            self.tracks.clear();
+            self.gaps.clear();
+            return false;
+        }
+        true
+    }
+    fn gap(&mut self, gap: Window, window: Window) {
+        self.gap_count += 1;
+        if self.reserve_detail() {
+            self.gaps
+                .push((offset(gap.start_ms, window), offset(gap.end_ms, window)));
+        }
+    }
+}
+fn offset(time: i64, window: Window) -> u64 {
+    (i128::from(time) - i128::from(window.start_ms)) as u64
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Issue {
+    InvalidWindow,
+    ResourceLimit,
+    Conflict(Identity),
+    Open(Identity),
+    Reversed(Identity),
+    Clipped(Identity),
+    InvalidGap,
+}
+
+/// Coverage arrays represent durations only when `observed_window_ms` is `Some` and `partial` is false.
+#[derive(Debug, PartialEq)]
+pub struct IntervalMetrics {
+    pub observed_window_ms: Option<u64>,
+    pub category_union_ms: [u64; CATEGORY_COUNT],
+    pub category_sum_ms: [u128; CATEGORY_COUNT],
+    /// Bits 0..3 are command, compaction, reasoning, and MCP; 0 is unknown.
+    pub mask_ms: [u64; MASK_COUNT],
+    pub covered_ms: Option<u64>,
+    pub unclassified_ms: Option<u64>,
+    pub coverage_ratio: Option<f64>,
+    pub gap_union_ms: u64,
+    pub gap_intersection_mask_ms: [u64; MASK_COUNT],
+    pub candidates: [usize; CATEGORY_COUNT],
+    pub complete_intervals: [usize; CATEGORY_COUNT],
+    pub partial: bool,
+    pub issues: Vec<Issue>,
+    pub timeline: Timeline,
+}
+
+fn length(window: Window) -> u64 {
+    (i128::from(window.end_ms) - i128::from(window.start_ms)) as u64
+}
+fn clip(interval: Window, window: Window) -> Option<Window> {
+    let clipped = Window {
+        start_ms: interval.start_ms.max(window.start_ms),
+        end_ms: interval.end_ms.min(window.end_ms),
+    };
+    (clipped.start_ms < clipped.end_ms).then_some(clipped)
+}
+
+/// Budget counts all supplied lifecycle records and gap records, including duplicates.
+/// An exceeded budget returns no coverage instead of selecting an order-dependent subset.
+/// Inputs must already belong to the requested explicit target; identities are not guessed.
+pub fn analyze(
+    window: Option<Window>,
+    intervals: &[LifecycleInterval],
+    gaps: &[Window],
+    budget: usize,
+) -> IntervalMetrics {
+    analyze_cancellable(window, intervals, gaps, budget, &AtomicBool::new(false))
+        .expect("uncancelled intervals")
+}
+pub(super) fn analyze_cancellable(
+    window: Option<Window>,
+    intervals: &[LifecycleInterval],
+    gaps: &[Window],
+    budget: usize,
+    cancelled: &AtomicBool,
+) -> anyhow::Result<IntervalMetrics> {
+    check(cancelled)?;
+    let mut result = IntervalMetrics {
+        observed_window_ms: None,
+        category_union_ms: [0; CATEGORY_COUNT],
+        category_sum_ms: [0; CATEGORY_COUNT],
+        mask_ms: [0; MASK_COUNT],
+        covered_ms: None,
+        unclassified_ms: None,
+        coverage_ratio: None,
+        gap_union_ms: 0,
+        gap_intersection_mask_ms: [0; MASK_COUNT],
+        candidates: [0; CATEGORY_COUNT],
+        complete_intervals: [0; CATEGORY_COUNT],
+        partial: false,
+        issues: Vec::new(),
+        timeline: Timeline::default(),
+    };
+    let usable_window = window.filter(|window| window.end_ms >= window.start_ms);
+    if window.is_some() && usable_window.is_none() {
+        result.issues.push(Issue::InvalidWindow);
+    }
+    result.observed_window_ms = usable_window.map(length);
+    if intervals
+        .len()
+        .checked_add(gaps.len())
+        .is_none_or(|n| n > budget)
+    {
+        result.partial = true;
+        result.issues.push(Issue::ResourceLimit);
+        return Ok(result);
+    }
+    let mut unique: BTreeMap<&Identity, Option<&LifecycleInterval>> = BTreeMap::new();
+    for interval in intervals {
+        check(cancelled)?;
+        result.candidates[interval.category.index()] += 1;
+        unique
+            .entry(&interval.identity)
+            .and_modify(|previous| {
+                if previous.is_some_and(|value| {
+                    value.category != interval.category
+                        || value.start_ms != interval.start_ms
+                        || value.end_ms != interval.end_ms
+                }) {
+                    *previous = None;
+                }
+            })
+            .or_insert(Some(interval));
+    }
+    let mut endpoints: BTreeMap<i64, [i64; CATEGORY_COUNT + 1]> = BTreeMap::new();
+    if let Some(window) = usable_window {
+        endpoints.entry(window.start_ms).or_default();
+        endpoints.entry(window.end_ms).or_default();
+    }
+    for (ordinal, (identity, interval)) in unique.into_iter().enumerate() {
+        check(cancelled)?;
+        let Some(interval) = interval else {
+            result.issues.push(Issue::Conflict(identity.clone()));
+            result.timeline.unlocated_count += 1;
+            continue;
+        };
+        let (Some(start_ms), Some(end_ms)) = (interval.start_ms, interval.end_ms) else {
+            result.issues.push(Issue::Open(identity.clone()));
+            result.timeline.unlocated_count += 1;
+            continue;
+        };
+        if end_ms < start_ms {
+            result.issues.push(Issue::Reversed(identity.clone()));
+            result.timeline.unlocated_count += 1;
+            continue;
+        }
+        let category = interval.category.index();
+        result.complete_intervals[category] += 1;
+        let Some(window) = usable_window else {
+            result.timeline.unlocated_count += 1;
+            continue;
+        };
+        let raw = Window { start_ms, end_ms };
+        if end_ms < window.start_ms || start_ms > window.end_ms {
+            result.timeline.outside_count += 1;
+        } else {
+            result.timeline.track_count += 1;
+            if result.timeline.reserve_detail() {
+                result.timeline.tracks.push(Track {
+                    alias: format!("interval:{}", ordinal + 1),
+                    category: interval.category,
+                    start_ms: offset(start_ms.max(window.start_ms), window),
+                    end_ms: offset(end_ms.min(window.end_ms), window),
+                    clipped: start_ms < window.start_ms || end_ms > window.end_ms,
+                    evidence_ids: interval.evidence_ids.iter().take(3).cloned().collect(),
+                });
+            }
+        }
+        if start_ms < window.start_ms || end_ms > window.end_ms {
+            result.issues.push(Issue::Clipped(identity.clone()));
+        }
+        if let Some(value) = clip(raw, window) {
+            result.category_sum_ms[category] += u128::from(length(value));
+            endpoints.entry(value.start_ms).or_default()[category] += 1;
+            endpoints.entry(value.end_ms).or_default()[category] -= 1;
+        }
+    }
+    for gap in gaps {
+        check(cancelled)?;
+        if gap.end_ms < gap.start_ms {
+            result.issues.push(Issue::InvalidGap);
+        } else if let Some(value) = usable_window.and_then(|window| clip(*gap, window)) {
+            endpoints.entry(value.start_ms).or_default()[CATEGORY_COUNT] += 1;
+            endpoints.entry(value.end_ms).or_default()[CATEGORY_COUNT] -= 1;
+        }
+    }
+    let Some(window) = usable_window else {
+        return Ok(result);
+    };
+    let mut active = [0_i64; CATEGORY_COUNT + 1];
+    let mut previous = window.start_ms;
+    let mut pending_gap: Option<Window> = None;
+    for (time, changes) in endpoints {
+        check(cancelled)?;
+        let duration = length(Window {
+            start_ms: previous,
+            end_ms: time,
+        });
+        let mut mask = 0;
+        for (index, count) in active[..CATEGORY_COUNT].iter().enumerate() {
+            if *count > 0 {
+                mask |= 1 << index;
+                result.category_union_ms[index] += duration;
+            }
+        }
+        if duration > 0 {
+            if mask == 0 {
+                if let Some(gap) = pending_gap.as_mut() {
+                    gap.end_ms = time;
+                } else {
+                    pending_gap = Some(Window {
+                        start_ms: previous,
+                        end_ms: time,
+                    });
+                }
+            } else if let Some(gap) = pending_gap.take() {
+                result.timeline.gap(gap, window);
+            }
+        }
+        result.mask_ms[mask] += duration;
+        if active[CATEGORY_COUNT] > 0 {
+            result.gap_union_ms += duration;
+            result.gap_intersection_mask_ms[mask] += duration;
+        }
+        for (count, change) in active.iter_mut().zip(changes) {
+            *count += change;
+        }
+        previous = time;
+    }
+    if let Some(gap) = pending_gap {
+        result.timeline.gap(gap, window);
+    }
+    let observed = length(window);
+    let covered = observed - result.mask_ms[0];
+    result.covered_ms = Some(covered);
+    result.unclassified_ms = Some(result.mask_ms[0]);
+    result.coverage_ratio = (observed != 0).then(|| covered as f64 / observed as f64);
+    Ok(result)
+}
+
+#[cfg(test)]
+mod tests;

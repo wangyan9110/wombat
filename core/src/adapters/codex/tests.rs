@@ -50,8 +50,23 @@ mod boundaries;
 mod identity;
 mod incremental_projection;
 mod incremental_storage;
+mod prefix_integrity;
+mod token_observations;
 
 mod mcp;
 
+mod command_work;
 mod fork_graph;
+mod operation_association;
 mod operations;
+mod work;
+
+mod timing;
+
+mod timing_items;
+
+mod event_projection;
+
+mod messages;
+
+mod context;

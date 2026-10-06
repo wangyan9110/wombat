@@ -229,6 +229,41 @@
       "zh": "docs/decisions/proposed/product/2026-10-02-progressive-initialization.md",
       "en": "docs/decisions/proposed/product/2026-10-02-progressive-initialization.en.md",
       "record": "docs/decisions/proposed/product/2026-10-02-progressive-initialization.i18n.json"
+    },
+    {
+      "zh": "docs/project/event-upgrade.md",
+      "en": "docs/project/event-upgrade.en.md",
+      "record": "docs/project/event-upgrade.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-codex-task-timing.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-codex-task-timing.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-codex-task-timing.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-event-foundation.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-event-foundation.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-event-foundation.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-event-metrics.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-event-metrics.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-event-metrics.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-event-rules.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-event-rules.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-event-rules.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-04-event-delivery.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-04-event-delivery.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-04-event-delivery.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/implemented/architecture/2026-10-05-analysis-first-events.md",
+      "en": "docs/decisions/implemented/architecture/2026-10-05-analysis-first-events.en.md",
+      "record": "docs/decisions/implemented/architecture/2026-10-05-analysis-first-events.i18n.json"
     }
   ],
   "legacyUnpaired": [],

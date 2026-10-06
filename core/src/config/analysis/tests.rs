@@ -81,6 +81,7 @@ fn no_directory_inference_declared_chains_remain_distinct_from_actual_injection(
 fn review(result: &Analysis, items: &[Item]) -> Suggestion {
     let (id, findings) = result.findings.iter().next().unwrap();
     Suggestion {
+        review_format_version: 1,
         decision: None,
         record_kind: None,
         checks: vec![],

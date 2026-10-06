@@ -5,14 +5,17 @@ import { queryPrices } from '../dist/node/prices.js';
 
 test('price requests are narrow, portable, cancellable and response validated', async () => {
   let called = false;
-  const client = createUsageClient(async () => null, async () => { called = true; return null; });
+  const client = createUsageClient({
+    query: async () => null,
+    prices: async () => { called = true; return null; },
+  });
   await assert.rejects(client.prices({ action: 'shell' } as unknown as PricingRequest), /价表参数/);
   await assert.rejects(client.prices({ action: 'update', url: 'https://example.com' } as PricingRequest), /价表参数/);
   assert.equal(called, false);
   await assert.rejects(client.prices({ action: 'status' }), /价表数据/);
   const controller = new AbortController(); controller.abort();
   await assert.rejects(client.prices({ action: 'update' }, { signal: controller.signal }), (e: unknown) => e instanceof CoreError && e.code === 'CANCELLED');
-  await assert.rejects(createUsageClient(async () => null).prices({ action: 'status' }), /宿主未提供/);
+  await assert.rejects(createUsageClient({ query: async () => null }).prices({ action: 'status' }), /宿主未提供/);
 });
 
 test('official price fetch restricts URL, redirects and bounded bodies, and handles failures', async () => {

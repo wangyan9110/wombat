@@ -1,6 +1,6 @@
-import { CoreError, type ConfigRequest } from '@wombat/client';
+import { CoreError, type ConfigRequest, type ConfigItem } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { t, configEvidenceLabel, eventStatusLabel } from '@wombat/client/locale';
+import { t, useBasisCount, useBasisPresentation, configEvidenceLabel, eventStatusLabel } from '@wombat/client/locale';
 import path from 'node:path';
 import { terminalText } from './display-text.js';
 
@@ -63,7 +63,12 @@ export async function runConfigCli(argv: string[]): Promise<number> {
     if (json) process.stdout.write(JSON.stringify(result) + '\n');
     else {
       process.stdout.write(t('config.scopeNote') + '\n');
-      for (const item of result.items) process.stdout.write(`${item.kind}\t${terminalText(item.name)}\t${t(`config.${item.observation}`)}\t${terminalText(item.path)}\n`);
+      for (const item of result.items) {
+        process.stdout.write(`${item.kind}\t${terminalText(item.name)}\t${t(`config.${item.observation}`)}\t${terminalText(item.path)}\n`);
+        if (item.kind !== 'hook') {
+          for (const line of configUseBasisLines(item)) process.stdout.write(`  ${line}\n`);
+        }
+      }
       for (const context of result.hookRegistry.contexts) for (const hook of context.registrations.filter(h => result.items.some(i => i.id === h.itemId))) {
         const plugin = hook.pluginId ? '\t' + t('config.hookPlugin', { name: terminalText(hook.pluginId) }) : '';
         process.stdout.write(`${terminalText(context.project)}\t${terminalText(hook.itemId)}\t${t(hook.enabled ? 'config.hookEnabled' : 'config.hookDisabled')}\t${t(`config.hookTrust.${hook.trust}`)}${plugin}\n`);
@@ -75,4 +80,10 @@ export async function runConfigCli(argv: string[]): Promise<number> {
     }
     return result.coverage.status === 'partial' ? 2 : 0;
   } finally { process.off('SIGINT', stop); process.off('SIGTERM', stop); }
+}
+
+export function configUseBasisLines(item: ConfigItem): string[] {
+  const basis = useBasisPresentation(item.useBasis);
+  const count = useBasisCount(item.kind === 'rule' ? item.counts.fileReads : item.usageCount, item.useBasis);
+  return [...(count == null ? [] : [`${t(item.kind === 'rule' ? 'useBasis.ruleLoadOrRead' : 'useBasis.objectUse')}: ${count}`]), basis.summary, ...basis.notes, ...basis.details].map(terminalText);
 }

@@ -1,7 +1,9 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
+export type TokenBasis = "analyzed_totals";
 export type AutomaticStatus = "checking" | "updated" | "unchanged" | "failed";
 export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
+export type TokenAnalysisScope = "selected_canonical_measurements";
 export type Item =
   | {
       date?: string | null;
@@ -127,6 +129,13 @@ export interface Facets {
 }
 export interface Distribution {
   unpricedTokens?: number | null;
+  /**
+   * Basis for maxTokens and peak token scopes/dates.
+   */
+  tokenBasis: TokenBasis;
+  /**
+   * Maximum of bucket analyzed subtotals; not necessarily a complete total.
+   */
   maxTokens?: number | null;
   maxCost?: string | null;
   peakTokenDates: (string | null)[];
@@ -187,6 +196,7 @@ export interface UsageSummary {
   cacheHitRate?: number | null;
   unpricedTokens?: number | null;
   tokens: TokenUsage;
+  tokenAnalysis: TokenAnalysis;
   price: PriceResult;
   measurementCount: number;
 }
@@ -204,6 +214,56 @@ export interface TokenUsage {
    * Source input including caches; retained for request-level price conditions.
    */
   rawInput?: number | null;
+}
+/**
+ * Token subtotals are scoped to the canonical measurements selected by this query.
+ * Existing `tokens` fields remain complete totals; partial observations live here.
+ */
+export interface TokenAnalysis {
+  methodVersion: number;
+  scope: TokenAnalysisScope;
+  fields: TokenFields;
+  /**
+   * Independent analysis; immutable historical review items may contain only
+   * the native observations captured when the user made the decision.
+   */
+  totalAnalysis?: AnalyzedTokenTotal | null;
+}
+export interface TokenFields {
+  input: ObservedTokenSubtotal;
+  cacheRead: ObservedTokenSubtotal;
+  cacheCreate: ObservedTokenSubtotal;
+  output: ObservedTokenSubtotal;
+  reasoning: ObservedTokenSubtotal;
+  total: ObservedTokenSubtotal;
+  rawInput: ObservedTokenSubtotal;
+}
+/**
+ * An observed subtotal never implies that unavailable records contributed zero.
+ */
+export interface ObservedTokenSubtotal {
+  observedSubtotal?: number | null;
+  coveredRecords: number;
+  missingRecords: number;
+  conflictingRecords: number;
+  invalidRecords: number;
+  indeterminateRecords: number;
+}
+export interface AnalyzedTokenTotal {
+  methodVersion: number;
+  subtotal?: number | null;
+  coveredRecords: number;
+  recordedRecords: number;
+  /**
+   * Unavailable native totals use recorded input (including caches) plus output
+   * only for an identified response grain. Reasoning is already in output.
+   */
+  calculatedRecords: number;
+  unavailableRecords: number;
+  /**
+   * Alternative records excluded by individual or combined safe-integer limits.
+   */
+  overflowRecords: number;
 }
 export interface PriceResult {
   currency: string;

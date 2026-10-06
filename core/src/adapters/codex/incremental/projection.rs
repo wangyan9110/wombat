@@ -4,6 +4,7 @@ use crate::live_index::{Member, ReferenceField};
 pub(crate) struct Projection<'a> {
     cache: &'a Cache,
     measurements: ReferenceField<'a>,
+    events: ReferenceField<'a>,
     operations: ReferenceField<'a>,
 }
 impl<'a> Projection<'a> {
@@ -23,8 +24,12 @@ impl<'a> Projection<'a> {
                 &origin,
                 Member::Measurement,
             )?,
+            events: ReferenceField::new(db, scope, "events", &origin, Member::Whole)?,
             operations: ReferenceField::new(db, scope, "operations", &origin, Member::Whole)?,
         })
+    }
+    pub(crate) fn event(&self, row: &Arc<crate::session_events::Event>) -> Result<()> {
+        self.events.reference(row.id())
     }
     pub(crate) fn measurement(&self, row: &Arc<Measurement>) -> Result<()> {
         if self
@@ -66,7 +71,7 @@ mod tests {
             agent_kind: "codex".into(),
             root: "/synthetic".into(),
         };
-        let original: Arc<Measurement> = Arc::new(serde_json::from_value(serde_json::json!({"id":"m","agentKind":"codex","sourceInstanceId":"s","grain":"interval","timePrecision":"unknown","model":{},"tokens":{"total":100},"requestScoped":false,"sequence":1,"evidence":[]})).unwrap());
+        let original: Arc<Measurement> = Arc::new(serde_json::from_value(serde_json::json!({"id":"m","agentKind":"codex","sourceInstanceId":"s","grain":"interval","timePrecision":"unknown","model":{},"tokens":{"total":100},"tokenUnavailableReasons":{"input":"missing","cacheRead":"missing","cacheCreate":"missing","output":"missing","reasoning":"missing","total":null,"rawInput":"missing"},"pricingContextConflict":false,"requestScoped":false,"sequence":1,"evidence":[]})).unwrap());
         let candidate = Candidate {
             measurement: original.clone(),
             direct: false,

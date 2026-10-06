@@ -9,6 +9,26 @@ use std::{
     },
 };
 
+mod tokens;
+pub use tokens::{
+    TokenField, TokenFields, TokenUnavailableReason, merge_token_observations,
+    validate_token_observations,
+};
+mod operation_match;
+pub use operation_match::{
+    MATCH_STRING_BYTES, MATCH_TARGET_LIMIT, MatchGap, OPERATION_MATCH_VERSION,
+    OperationMatchObservation, ReadMatchTarget, SourcePathPlatform,
+};
+mod watermarks;
+mod work;
+pub(crate) use watermarks::validate_watermarks;
+pub use watermarks::{SourceWatermark, WATERMARK_FORMAT_VERSION, WatermarkIssue, WatermarkState};
+pub(crate) use work::valid_work_path;
+pub use work::{
+    ChangeKind, CommandSource, FilePathChange, ParsedCommand, WORK_OBSERVATION_VERSION,
+    WORK_PATH_BYTES, WORK_PATH_LIMIT, WorkData, WorkGap, WorkObservation, WorkStage,
+};
+
 pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash)]
@@ -137,6 +157,10 @@ pub struct Measurement {
     pub model: ModelRef,
     pub reasoning_effort: Option<Arc<str>>,
     pub tokens: TokenUsage,
+    /// One explicit reason for each unavailable token field; known values have none.
+    pub token_unavailable_reasons: TokenFields<Option<TokenUnavailableReason>>,
+    /// Explicit model/provider contradictions cannot be treated as absent price context.
+    pub pricing_context_conflict: bool,
     pub request_scoped: bool,
     pub reported_cost: Option<String>,
     pub service_tier: Option<String>,
@@ -160,21 +184,32 @@ pub struct Operation {
     pub time_precision: Arc<str>,
     pub status: Arc<str>,
     pub exit_code: Option<i64>,
+    /// Sticky disagreement among reliable native results; no single exit code is asserted.
+    pub outcome_conflict: bool,
     pub duration_ms: Option<u64>,
     pub path: Option<String>,
+    /// Safe source metadata; absent observations cannot establish zero work.
+    pub work: Option<WorkObservation>,
+    /// Shared safe request/read observations; raw arguments never persist.
+    #[serde(default)]
+    pub matching: Option<OperationMatchObservation>,
     pub server: Option<Arc<str>>,
     pub tool: Option<Arc<str>>,
     pub evidence: Vec<EvidenceRef>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+// Internal collection, not a public query DTO or generated transport schema.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Collected {
+    pub watermarks: Vec<SourceWatermark>,
     pub sources: Vec<SourceReport>,
     pub threads: Vec<Thread>,
     pub turns: Vec<Turn>,
     pub measurements: Vec<Arc<Measurement>>,
     pub operations: Vec<Arc<Operation>>,
+    pub events: Vec<Arc<crate::session_events::Event>>,
+    pub title_observations: Vec<crate::session_events::title_observations::TitleObservation>,
     pub issues: Vec<Issue>,
 }
 
@@ -213,10 +248,13 @@ impl RunContext {
 }
 
 pub enum Fact {
+    Watermark(SourceWatermark),
     Thread(Thread),
     Turn(Turn),
     Measurement(Arc<Measurement>),
     Operation(Arc<Operation>),
+    Event(Arc<crate::session_events::Event>),
+    TitleObservation(crate::session_events::title_observations::TitleObservation),
 }
 pub trait FactSink {
     fn push(&mut self, fact: Fact);
@@ -224,10 +262,13 @@ pub trait FactSink {
 impl FactSink for Collected {
     fn push(&mut self, fact: Fact) {
         match fact {
+            Fact::Watermark(value) => self.watermarks.push(value),
             Fact::Thread(value) => self.threads.push(value),
             Fact::Turn(value) => self.turns.push(value),
             Fact::Measurement(value) => self.measurements.push(value),
             Fact::Operation(value) => self.operations.push(value),
+            Fact::Event(value) => self.events.push(value),
+            Fact::TitleObservation(value) => self.title_observations.push(value),
         }
     }
 }

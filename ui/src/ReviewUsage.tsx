@@ -1,7 +1,8 @@
+import { UseBasis } from './UseBasis.js';
 import { useState } from 'react';
-import type { ConfigItem, ConfigResult, OptimizeSuggestion, UsageClient } from '@wombat/client';
-import { t, relatedActivityText, eventStatusLabel } from '@wombat/client/locale';
-import { Pagination, Token, amount, timestamp } from './components.js';
+import type { ConfigResult, OptimizeSuggestion, UsageClient } from '@wombat/client';
+import { t, useBasisCount, relatedActivityText, eventStatusLabel, reviewFindingLabel } from '@wombat/client/locale';
+import { Pagination, SummaryToken, Token, amount, timestamp } from './components.js';
 import { QueryError } from './Feedback.js';
 import { configRequest, useConfig } from './useConfig.js';
 import { relatedTurnRoute, type Route } from './state.js';
@@ -17,31 +18,33 @@ export function ReviewUsage({client,suggestion,readView,route,navigate,refresh}:
 }
 export function RelatedUsageContent({result,route,navigate,onPage}:{result:ConfigResult;route:Route;navigate:(r:Partial<Route>)=>void;onPage:(n:number)=>void}) {
  const item=result.items[0],historyAvailable=['current','fixed','partial'].includes(result.coverage.historyStatus);
- const records=item?.kind==='mcp'?item.usageCount:item?.counts.fileReads;
- const seen=new Set<string>(),rows=result.evidence.filter(e=>{const key=e.turnId?`${e.threadId}:${e.turnId}`:e.id;if(seen.has(key))return false;seen.add(key);return true;});
- return <><dl className="review-metrics"><div><dt>{t(item?.kind==='mcp'?'config.activity':'config.reads')}</dt><dd>{historyAvailable?!records?'—':t(item?.kind==='mcp'?'config.usesCount':'config.fileReadsCount',{count:records}):'—'}</dd></div><div><dt>{t('optimize.relatedTokens')}</dt><dd><Token value={item?.usage?.tokens.total}/></dd></div><div><dt>{t(item?.usage?.price.status==='unknown'?'webui.amountUnknown':'optimize.relatedCost')}</dt><dd>{item?.usage&&item.usage.price.status!=='unknown'?amount(item.usage):'—'}</dd></div></dl><p className="note">{t('optimize.relatedSummary')}</p>
- {!historyAvailable?<p className="read-notice">{t('optimize.historyUnavailable')}</p>:!records?<p>{t('optimize.noAssociation')}</p>:null}
+ const uses=item?.kind==='mcp'||item?.kind==='skill';
+ const records=useBasisCount(uses?item?.usageCount:item?.counts.fileReads,item?.useBasis);
+ const rows=result.evidence;
+ return <><dl className="review-metrics"><div><dt>{t(uses?'config.activity':'config.reads')}</dt><dd>{historyAvailable&&records!=null?t(uses?'config.usesCount':'config.fileReadsCount',{count:records}):'—'}</dd></div><div><dt>{t('optimize.relatedTokens')}</dt><dd>{item?.usage?<SummaryToken summary={item.usage}/>:<Token value={null}/>}</dd></div><div><dt>{t(item?.usage?.price.status==='unknown'?'webui.amountUnknown':'optimize.relatedCost')}</dt><dd>{item?.usage&&item.usage.price.status!=='unknown'?amount(item.usage):'—'}</dd></div></dl><p className="note">{t('optimize.relatedSummary')}</p>
+ {item&&item.kind!=='hook'&&<UseBasis basis={item.useBasis}/>}
+ {!historyAvailable?<p className="read-notice">{t('optimize.historyUnavailable')}</p>:records===0&&item?.useBasis?.status==='observed'?<p>{t('optimize.noAssociation')}</p>:null}
+ {historyAvailable&&records==null&&<p className="note">{t('config.coverageNote')}</p>}
  {result.coverage.status==='partial'&&<p className="note">{t('optimize.historyIncomplete')}</p>}
  <details className="provenance"><summary>{relatedActivityText(historyAvailable?item?.relatedTurns??'—':'—',historyAvailable?result.page.total:'—')}</summary>{item&&historyAvailable&&<p className="note">{t('config.outcomes',{success:item.counts.succeeded,failed:item.counts.failed,unknown:item.counts.outcomeUnknown})}</p>}{rows.map(e=><article className="config-evidence" key={e.id}><strong>{e.title?.trim()||t('common.untitled_thread')}</strong><p>{timestamp(e.timestamp,route.timezone)} · {eventStatusLabel(e.outcome)}</p><details className="provenance"><summary>{t('webui.provenance')}</summary><p>{t('webui.threadId')}: <code>{e.threadId}</code></p>{e.turnId&&<p>{t('webui.turnId')}: <code>{e.turnId}</code></p>}</details>{e.turnId&&result.usageRevision?<button className="link" onClick={()=>navigate(relatedTurnRoute(route,result.usageRevision!,e.threadId,e.turnId!))}>{t('optimize.exactTurn')}</button>:<p className="note">{t('optimize.turnUnknown')}</p>}</article>)}<Pagination page={result.page} onPage={onPage}/></details>
  <details className="provenance"><summary>{t('optimize.relatedDetails')}</summary><p>{t('optimize.relatedNote')}</p>{item?.usage&&<p>{t('webui.costNote')}</p>}<p>{t('config.versionNote')}</p></details></>;
 }
-function comparableTokens(before:ConfigItem,after:ConfigItem,body:boolean) {
- const a=body?before.bodyTokenEstimate:before.estimate,b=body?after.bodyTokenEstimate:after.estimate;
- if(before.measurementStatus!=='complete'||after.measurementStatus!=='complete'||(body&&(before.bodyEstimateStatus!=='estimated'||after.bodyEstimateStatus!=='estimated'))||!a||!b||a.method!==b.method||a.encoding!==b.encoding||a.payload!==b.payload||a.applicability!==b.applicability||a.tokenizerVersion!==b.tokenizerVersion||!a.contentHash||!b.contentHash) return;
- return [a.tokens,b.tokens] as const;
-}
+/** The core comparison identifies the original assessment; current item fields never establish comparability. */
 export function textChanges(s:OptimizeSuggestion) {
- const a=s.reviewBaseline,b=s.item;
- if(!s.recheckRuleParameters||s.status==='recheckUnavailable'||!a||a.id!==b.id||a.stale||b.stale||!b.current||a.measurementStatus!=='complete'||b.measurementStatus!=='complete'||!a.contentHash||!b.contentHash)return [];
  const rows:{label:string;before:number;after:number}[]=[];
- if(a.bytes!=null&&b.bytes!=null)rows.push({label:t('config.size')+' · B',before:a.bytes,after:b.bytes});
- if(a.characters!=null&&b.characters!=null)rows.push({label:t('config.characters'),before:a.characters,after:b.characters});
- if(a.skillMetadata?.descriptionCharacters!=null&&b.skillMetadata?.descriptionCharacters!=null)rows.push({label:t('config.descriptionCharacters'),before:a.skillMetadata.descriptionCharacters,after:b.skillMetadata.descriptionCharacters});
- const tokens=comparableTokens(a,b,b.kind==='skill');if(tokens)rows.push({label:t(b.kind==='skill'?'config.bodyTokens':'config.content_tokens'),before:tokens[0],after:tokens[1]});
+ for(const check of s.checks) {
+  if(check.comparison.status!=='comparable'||!check.comparison.baselineAssessmentId)continue;
+  const original=s.reviewBaseline?.assessments.find(a=>a.assessmentId===check.comparison.baselineAssessmentId);
+  const before=original?.basis.measurement,after=check.basis.measurement;
+  if(before?.kind==='numeric'&&after.kind==='numeric'&&before.observed!=null&&after.observed!=null)
+   rows.push({label:reviewFindingLabel(check.rule),before:before.observed,after:after.observed});
+ }
  return rows;
 }
 export function TextChanges({suggestion}:{suggestion:OptimizeSuggestion}) {
- if(!suggestion.recheckRuleParameters)return null;
+ if(!suggestion.recheckRuleParameters&&suggestion.checks.every(c=>c.comparison.status==='not_requested'))return null;
  const rows=textChanges(suggestion);
- return <section className="review-related"><h3>{t('optimize.comparison')}</h3>{rows.length?<div className="report-table-wrap"><table className="project-table text-change-table"><thead><tr><th>{t('webui.type')}</th><th>{t('optimize.before')}</th><th>{t('optimize.after')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.label}><td>{r.label}</td><td>{r.before.toLocaleString()}</td><td>{r.after.toLocaleString()}</td></tr>)}</tbody></table></div>:<p>{t('optimize.comparisonUnknown')}</p>}<p className="note">{t('optimize.comparisonNote')}</p></section>;
+ // Per-rule comparisons and reasons remain in ReviewFacts; this table is numerical only.
+ if(!rows.length)return null;
+ return <section className="review-related"><h3>{t('optimize.comparison')}</h3><div className="report-table-wrap"><table className="project-table text-change-table"><thead><tr><th>{t('webui.type')}</th><th>{t('optimize.before')}</th><th>{t('optimize.after')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.label}><td>{r.label}</td><td>{r.before.toLocaleString()}</td><td>{r.after.toLocaleString()}</td></tr>)}</tbody></table></div><p className="note">{t('optimize.comparisonNote')}</p></section>;
 }
