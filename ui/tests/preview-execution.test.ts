@@ -135,3 +135,19 @@ test('MCP preview uses the public validator for local and share; sharing has rel
   assert.doesNotMatch(JSON.stringify(share),/server|tool|preview-task|preview-turn|preview:1|collection:turn|event:start|event:end/);
  }
 });
+
+test('event evidence displays native duration and first Token delay without inventing timestamps',async()=>{
+ const {TimingEvidenceRecord}=await import('../src/tasks/TurnExecution.js');
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);
+  for(const durationMs of [0,25]){
+   const row={reference:'event:native',recordKind:'turn',phase:'completed',timestampMs:null,durationMs,firstTokenMs:0,gapCodes:['missing_time']};
+   const html=renderToStaticMarkup(createElement(TimingEvidenceRecord,{row,selected:false,timezone:'UTC'}));
+   assert.ok(html.includes(`${t('execution.nativeDuration')} · ${durationMs} ms`));
+   assert.ok(html.includes(`${t('execution.nativeTtft')} · 0 ms`));
+   assert.doesNotMatch(html,/NaN|Invalid Date/);
+   const absent=renderToStaticMarkup(createElement(TimingEvidenceRecord,{row:{...row,durationMs:null,firstTokenMs:null},selected:false,timezone:'UTC'}));
+   assert.ok(!absent.includes(t('execution.nativeDuration')));assert.ok(!absent.includes(t('execution.nativeTtft')));
+  }
+ }}finally{locale.setLocale(saved);}
+});

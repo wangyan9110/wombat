@@ -112,7 +112,7 @@ test('object and record pages preserve missing counts, use outcomes and safe dis
     recordCount: { ...zero, value: 1, evidenceRefs: [] }, unassignedTurnRecords: { ...zero, evidenceRefs: [] }, coverage: local.uses.totals.coverage,
   }] };
   const text = renderTimingResult(objects);
-  assert.match(text, /object-1\tskill\tused/); assert.match(text, /The source did not record this measure/); assert.match(text, /1 · Source record/); assert.doesNotMatch(text, /\u001b/);
+  assert.match(text, /object-1\tSkill\tConfirmed use/); assert.match(text, /The source did not record this measure/); assert.match(text, /1 · Source record/); assert.doesNotMatch(text, /\u001b/);
   const records: TimingResult = { ...base, collection: 'use_records', objectRef: 'object-1', rows: [{
     reference: 'use-1', objectRef: 'object-1', kind: 'skill_read', state: 'used', outcome: 'failed', timestampMs: null,
     timeBasis: 'unknown', nativeDurationMs: null, tool: 'read', exitCode: 1, identityKnown: true,
@@ -127,8 +127,8 @@ test('object and record pages preserve missing counts, use outcomes and safe dis
     replayOf: null, targetConflict: false, gapCodes: [],
   }] };
   const recordText = renderTimingResult(records);
-  assert.match(recordText, /use-1\tobject-1\tTargeted Skill read\tused\tFailed\t\t\tread/);
-  assert.match(recordText, /use-2\tobject-1\tUse record\tcandidate\t\t\t\tread/);
+  assert.match(recordText, /use-1\tobject-1\tTargeted Skill read\tConfirmed use\tFailed\t\t\tread/);
+  assert.match(recordText, /use-2\tobject-1\tUse record\tCandidate, dispatch unconfirmed\t\t\t\tread/);
   assert.match(recordText, /Result records conflict/);
   assert.match(recordText, /Declined/);
   assert.doesNotMatch(recordText, /Outcome not established|Turn state not established/);
@@ -167,4 +167,25 @@ test('MCP timing and four-way overlap use core measurements without summing cate
   assert.match(text,language==='zh'?/已覆盖区间: 8000 ms/:/Covered intervals: 8000 ms/);
   assert.doesNotMatch(text,/12000 ms/);
  }}finally{locale.setLocale(previous);}
+});
+
+
+test('timing evidence retains native scalars without timestamps and preserves explicit zero',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['zh','en'] as const){locale.setLocale(language);
+  for(const duration of [0,25]){
+   const base={outputVersion:1 as const,action:'evidence' as const,methodVersion:local.methodVersion,profile:'local' as const,snapshotId:local.readView.snapshotId,scope:local.scope,total:{value:1,status:'observed' as const,basis:'safe_event_count' as const,evidenceRefs:[]},nextCursor:null};
+   const events:TimingResult={...base,collection:'turn_events',rows:[{reference:'event-1',recordKind:'turn',phase:'completed',timestampMs:null,durationMs:duration,firstTokenMs:0,gapCodes:['missing_time']}]};
+   const eventText=renderTimingResult(events);
+   assert.ok(eventText.includes(`${language==='zh'?'原生耗时':'Native duration'}: ${duration} ms`));
+   assert.ok(eventText.includes(`${language==='zh'?'原生首 Token 延迟':'Native time to first Token'}: 0 ms`));
+   const records:TimingResult={...base,collection:'use_records',objectRef:null,totals:local.uses.totals,rows:[{reference:'use-1',objectRef:null,kind:'mcp_tool',state:'used',outcome:'unknown',timestampMs:null,timeBasis:'unknown',nativeDurationMs:duration,tool:'lookup',exitCode:0,identityKnown:true,replayOf:null,targetConflict:false,gapCodes:['missing_time']}]};
+   const text=renderTimingResult(records);
+   assert.ok(text.includes(`${language==='zh'?'原生操作耗时':'Native operation duration'}: ${duration} ms`));
+   assert.ok(text.includes(`${language==='zh'?'退出码':'Exit code'}: 0`));
+   assert.ok(text.includes(language==='zh'?'已确认使用':'Confirmed use'));
+   const absent={...records,rows:[{...records.rows[0],nativeDurationMs:null,exitCode:null}]};
+   const unavailable=renderTimingResult(absent);assert.doesNotMatch(unavailable,/Native operation duration|原生操作耗时|Exit code|退出码/);
+  }
+ }}finally{locale.setLocale(saved);}
 });

@@ -57,14 +57,18 @@ export function renderTimingResult(result: TimingResult): string {
     lines.push(`${t('cli.timing.snapshot')}: ${terminalText(result.snapshotId)}`, `${t('cli.timing.total')}: ${measured(result.total)}`);
     if (result.collection === 'turn_events') for (const row of result.rows) {
       lines.push(`${terminalText(row.reference)}\t${terminalText(row.recordKind)}\t${row.timestampMs ?? ''}\t${terminalText(row.phase ?? '')}`);
+      if (row.durationMs != null) lines.push(`  ${t('execution.nativeDuration')}: ${row.durationMs} ms`);
+      if (row.firstTokenMs != null) lines.push(`  ${t('cli.timing.nativeTtft')}: ${row.firstTokenMs} ms`);
       if (row.gapCodes.length) lines.push(`  ${row.gapCodes.map(terminalText).join(', ')}`);
     }
     else if (result.collection === 'use_objects') for (const row of result.rows) {
-      lines.push([row.objectRef, row.kind, row.state, row.path ?? row.server ?? '', row.project ?? '', `${t('execution.associatedUseCount')}: ${measured(row.associatedUseCount)}`, ...(row.useCount.value == null ? [t('execution.useWholeCountUnavailable', { reason: timingMissingValueText(row.useCount.basis) }), t('execution.usePartialCount')] : [`${t('execution.useCount')}: ${measured(row.useCount)}`])].map(terminalText).join('\t'));
+      lines.push([row.objectRef, t(`execution.useKind.${row.kind}`), t(`execution.useState.${row.state}`), row.path ?? row.server ?? '', row.project ?? '', `${t('execution.associatedUseCount')}: ${measured(row.associatedUseCount)}`, ...(row.useCount.value == null ? [t('execution.useWholeCountUnavailable', { reason: timingMissingValueText(row.useCount.basis) }), t('execution.usePartialCount')] : [`${t('execution.useCount')}: ${measured(row.useCount)}`])].map(terminalText).join('\t'));
     }
     else for (const row of result.rows) {
       const outcome = row.outcome === 'unknown' ? '' : t(`execution.useOutcome.${row.outcome}`);
-      lines.push([row.reference, row.objectRef ?? '', row.kind ? t(`execution.useOperation.${row.kind}`) : t('execution.useRecord'), row.state, outcome, String(row.timestampMs ?? ''), row.timestampMs == null ? '' : row.timeBasis, row.tool ?? ''].map(terminalText).join('\t'));
+      lines.push([row.reference, row.objectRef ?? '', row.kind ? t(`execution.useOperation.${row.kind}`) : t('execution.useRecord'), t(`execution.useState.${row.state}`), outcome, String(row.timestampMs ?? ''), row.timestampMs == null ? '' : row.timeBasis, row.tool ?? ''].map(terminalText).join('\t'));
+      if (row.nativeDurationMs != null) lines.push(`  ${t('execution.useNativeDuration')}: ${row.nativeDurationMs} ms`);
+      if (row.exitCode != null) lines.push(`  ${t('execution.useExitCode')}: ${row.exitCode}`);
       if (row.gapCodes.includes('operation_result_conflict')) lines.push(`  ${t('execution.useOutcomeConflict')}`);
       if (row.gapCodes.length) lines.push(`  ${row.gapCodes.map(terminalText).join(', ')}`);
     }
