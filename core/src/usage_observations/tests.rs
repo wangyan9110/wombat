@@ -206,6 +206,7 @@ fn native_read(paths: &[Option<&str>]) -> Operation {
         data: crate::adapters::contract::WorkData::Command {
             cwd: Some("/synthetic/native-cwd".into()),
             source: Some(crate::adapters::contract::CommandSource::Agent),
+            matching: None,
             parsed_commands: Some(
                 paths
                     .iter()

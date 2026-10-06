@@ -14,6 +14,11 @@ pub use tokens::{
     TokenField, TokenFields, TokenUnavailableReason, merge_token_observations,
     validate_token_observations,
 };
+mod operation_match;
+pub use operation_match::{
+    MATCH_STRING_BYTES, MATCH_TARGET_LIMIT, MatchGap, OPERATION_MATCH_VERSION,
+    OperationMatchObservation, ReadMatchTarget, SourcePathPlatform,
+};
 mod watermarks;
 mod work;
 pub(crate) use watermarks::validate_watermarks;

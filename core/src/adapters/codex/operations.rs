@@ -143,7 +143,14 @@ pub(super) fn operation(
             outcome::result_status(&mut op, "failed");
         }
     } else if operation_kind == "command" {
-        op.work = Some(work::command(item, completed, report, &evidence));
+        let receiver = facts
+            .event_context
+            .as_ref()
+            .filter(|context| context.locally_owned())
+            .map(|_| op.thread_id.as_ref());
+        op.work = Some(work::command(
+            item, p.item, receiver, completed, report, &evidence,
+        ));
     }
     op.server = item.server.as_deref().map(|s| safe_text(s).into());
     op.tool = item.tool.as_deref().map(|s| safe_text(s).into());

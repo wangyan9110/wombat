@@ -54,6 +54,7 @@ pub(crate) fn read_targets(operation: &Operation) -> Option<ReadTargets<'_>> {
             cwd,
             source,
             parsed_commands,
+            ..
         } = &work.data
     {
         if *source == Some(CommandSource::UserShell) {

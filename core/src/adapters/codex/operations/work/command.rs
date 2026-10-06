@@ -97,6 +97,8 @@ impl<'de> Deserialize<'de> for ParsedItems {
 }
 pub(in crate::adapters::codex::operations) fn observe(
     item: &Payload<'_>,
+    raw_item: Option<&RawValue>,
+    receiver: Option<&str>,
     terminal: bool,
     report: &mut SourceReport,
     evidence: &EvidenceRef,
@@ -173,6 +175,20 @@ pub(in crate::adapters::codex::operations) fn observe(
             Some(evidence.clone()),
         );
     }
+    let supported = super::matching::command_shape(raw_item);
+    let mut matching = super::matching::observe(
+        if supported { item.command } else { None },
+        receiver,
+        source.as_ref(),
+        cwd.as_deref(),
+        parsed_commands.as_deref(),
+    );
+    if !supported && item.command.is_some() {
+        matching
+            .gaps
+            .retain(|gap| *gap != MatchGap::MissingParameters);
+        matching.gaps.push(MatchGap::UnsupportedParameters);
+    }
     WorkObservation {
         format_version: WORK_OBSERVATION_VERSION,
         stage: if terminal {
@@ -184,6 +200,7 @@ pub(in crate::adapters::codex::operations) fn observe(
             cwd,
             source,
             parsed_commands,
+            matching: Some(matching),
         },
         gaps,
     }
@@ -197,16 +214,19 @@ pub(super) fn merge(previous: &mut WorkObservation, next: &WorkObservation) -> b
             cwd,
             source,
             parsed_commands,
+            matching,
         },
         WorkData::Command {
             cwd: new_cwd,
             source: new_source,
             parsed_commands: new_parsed,
+            matching: new_matching,
         },
     ) = (&mut previous.data, &next.data)
     else {
         return false;
     };
+    super::matching::merge(matching, new_matching);
     if next.stage == WorkStage::Terminal {
         previous.stage = WorkStage::Terminal;
     }
@@ -219,6 +239,7 @@ pub(super) fn merge(previous: &mut WorkObservation, next: &WorkObservation) -> b
         *cwd = None;
         *source = None;
         *parsed_commands = None;
+        super::matching::invalidate(matching);
         gap(&mut previous.gaps, WorkGap::ConflictingObservation);
         return true;
     }

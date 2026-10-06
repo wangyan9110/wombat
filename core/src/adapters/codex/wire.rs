@@ -77,6 +77,8 @@ pub(super) struct Payload<'a> {
     #[serde(borrow)]
     pub changes: Option<&'a RawValue>,
     #[serde(borrow)]
+    pub command: Option<&'a RawValue>,
+    #[serde(borrow)]
     pub parsed_cmd: Option<&'a RawValue>,
     #[serde(borrow)]
     pub source: Option<&'a RawValue>,

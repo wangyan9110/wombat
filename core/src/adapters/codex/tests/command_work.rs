@@ -317,3 +317,121 @@ fn command_metadata_survives_incremental_restart_and_explicit_fork_replay() {
         .unwrap();
     assert!(!saved.contains("PRIVATE_"));
 }
+
+fn matching(op: &Operation) -> &OperationMatchObservation {
+    let WorkData::Command {
+        matching: Some(value),
+        ..
+    } = &work(op).data
+    else {
+        panic!("matching observation expected")
+    };
+    value
+}
+#[test]
+fn native_command_matching_is_retained_in_safe_events_and_excludes_inherited_receivers() {
+    let root = tempfile::tempdir().unwrap();
+    let mut start = cmd(
+        "read",
+        "item_started",
+        json!([{ "type":"read","path":"a"}]),
+        json!("agent"),
+    );
+    start["payload"]["item"]
+        .as_object_mut()
+        .unwrap()
+        .remove("interaction_input");
+    start["payload"]["item"]["command"] = json!(["/bin/zsh", "-lc", "cat a"]);
+    let mut end = start.clone();
+    end["payload"]["type"] = json!("item_completed");
+    end["payload"]["item"]["status"] = json!("completed");
+    let mut inherited = start.clone();
+    inherited["payload"]["item"]["id"] = json!("inherited");
+    inherited["metadata"] = json!({"inherited_user_message":true});
+    write(
+        root.path(),
+        "sessions/matching.jsonl",
+        &[
+            meta("t"),
+            context("turn", "model", "high"),
+            start,
+            end,
+            inherited,
+        ],
+    );
+    let out = collect(root.path());
+    let op = out
+        .operations
+        .iter()
+        .find(|op| op.item_id.as_deref() == Some("read"))
+        .unwrap();
+    let copy = out
+        .operations
+        .iter()
+        .find(|op| op.item_id.as_deref() == Some("inherited"))
+        .unwrap();
+    assert!(matching(copy).receiver_owner.is_none());
+    assert!(matching(op).request_fingerprint.is_some());
+    assert_eq!(
+        matching(op).receiver_owner.as_deref(),
+        Some(op.thread_id.as_ref())
+    );
+    assert_eq!(
+        matching(op).read_targets[0].path,
+        "/synthetic/command-cwd/a"
+    );
+    let mut observed = 0;
+    for event in &out.events {
+        if let crate::session_events::Payload::Operation { value, .. } = event.payload() {
+            assert_eq!(
+                matching(value).receiver_owner.as_deref(),
+                if value.item_id.as_deref() == Some("inherited") {
+                    None
+                } else {
+                    Some(value.thread_id.as_ref())
+                }
+            );
+            assert!(matching(value).request_fingerprint.is_some());
+            observed += 1;
+            let encoded = serde_json::to_string(event).unwrap();
+            assert!(!encoded.contains("cat a"));
+            assert!(!encoded.contains("PRIVATE_OUTPUT"));
+            let restored: crate::session_events::Event = serde_json::from_str(&encoded).unwrap();
+            assert_eq!(restored.id(), event.id());
+            let mut forged = serde_json::to_value(&restored).unwrap();
+            forged["payload"]["value"]["work"]["data"]["matching"]["receiverOwner"] =
+                json!("foreign-owner");
+            assert!(serde_json::from_value::<crate::session_events::Event>(forged).is_err());
+            if value.item_id.as_deref() != Some("inherited") {
+                let mut forged = serde_json::to_value(&restored).unwrap();
+                forged["payload"]["value"]["work"]["data"]["source"] = json!("user_shell");
+                assert!(serde_json::from_value::<crate::session_events::Event>(forged).is_err());
+            }
+        }
+    }
+    assert_eq!(observed, 3);
+}
+#[test]
+fn command_parameter_disagreement_clears_matching_without_erasing_independent_work_paths() {
+    let root = tempfile::tempdir().unwrap();
+    let mut a = cmd(
+        "same",
+        "item_started",
+        json!([{ "type":"read","path":"a"}]),
+        json!("agent"),
+    );
+    a["payload"]["item"]
+        .as_object_mut()
+        .unwrap()
+        .remove("interaction_input");
+    a["payload"]["item"]["command"] = json!(["cat", "a"]);
+    let mut b = a.clone();
+    b["payload"]["type"] = json!("item_completed");
+    b["payload"]["item"]["command"] = json!(["cat", "-n", "a"]);
+    write(root.path(), "sessions/conflict.jsonl", &[meta("t"), a, b]);
+    let out = collect(root.path());
+    let value = matching(&out.operations[0]);
+    assert!(value.request_fingerprint.is_none());
+    assert!(value.gaps.contains(&MatchGap::ConflictingObservation));
+    assert!(commands(&out.operations[0]).is_some());
+}

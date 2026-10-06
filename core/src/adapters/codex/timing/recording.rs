@@ -11,6 +11,10 @@ pub(in crate::adapters::codex) struct Context {
     pub(super) history_origin: Option<crate::session_events::MessageOrigin>,
 }
 impl Context {
+    pub(in crate::adapters::codex) fn locally_owned(&self) -> bool {
+        self.history_origin.is_none()
+            || self.history_origin == Some(crate::session_events::MessageOrigin::AssistantVisible)
+    }
     pub(in crate::adapters::codex) fn new(
         position: Position,
         timestamp: Option<&str>,

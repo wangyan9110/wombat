@@ -302,6 +302,7 @@ fn native_command_read_candidates_remain_one_dispatched_work_operation() {
         data: WorkData::Command {
             cwd: Some("file:///synthetic".into()),
             source: Some(CommandSource::Agent),
+            matching: None,
             parsed_commands: Some(vec![
                 ParsedCommand::Read {
                     path: Some("/synthetic/one/SKILL.md".into()),

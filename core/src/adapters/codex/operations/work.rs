@@ -6,6 +6,7 @@ use super::*;
 use serde::de::{MapAccess, Visitor};
 use serde_json::value::RawValue;
 mod command;
+mod matching;
 pub(super) use command::observe as command;
 
 #[derive(Default)]
@@ -185,6 +186,7 @@ pub(super) fn merge(old: &mut Operation, incoming: &mut Operation, report: &mut 
                 cwd: None,
                 source: None,
                 parsed_commands: None,
+                matching: None,
             },
         };
         previous.gaps.push(WorkGap::ConflictingObservation);
