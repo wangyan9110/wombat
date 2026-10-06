@@ -17,3 +17,13 @@ test('production activity preview retains positive advice, fixed scope and parti
   for(const language of ['en','zh'] as const){locale.setLocale(language);const html=renderToStaticMarkup(createElement(ActivityFacts,{activity:result.activity,onEvidence(){}}));assert.doesNotMatch(html,/activity\.|undefined|NaN|未知/);assert.match(html,language==='en'?/inspection signals/:/供检查的线索/);if(scenario==='complete')assert.match(html,language==='en'?/same path does not establish identical content/:/同路径不证明内容/);if(scenario==='missing')assert.match(html,language==='en'?/Source order alone cannot establish execution order/:/来源记录顺序不能单独确认执行先后/);}
  }}finally{locale.setLocale(previous);}
 });
+
+
+test('production failed-turn preview shows scoped failure-share advice and explicit minimum samples in both languages',async()=>{
+ const previous=locale.getSnapshot().locale;
+ try{
+  const client=createExecutionPreviewClient('failed');const result=await client.optimize!({action:'activity',activity:{snapshotId:'preview:fixed',threadId:'preview-task',turnId:'preview-turn'},sourceInstanceId:'preview'});
+  assert.ok(result.activity);assert.ok(result.activity.advice.includes('inspect_failure_share'));
+  for(const language of ['zh','en'] as const){locale.setLocale(language);const html=renderToStaticMarkup(createElement(ActivityFacts,{activity:result.activity,onEvidence(){}}));assert.match(html,/60%/);assert.match(html,/40%/);assert.match(html,language==='zh'?/5 次结果可判定/:/at least 5 operations/);assert.doesNotMatch(html,/activity\.|undefined|NaN|未知/);}
+ }finally{locale.setLocale(previous);}
+});

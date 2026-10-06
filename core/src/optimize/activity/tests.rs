@@ -148,3 +148,69 @@ fn activity_selection_requires_fixed_scope_and_cannot_enter_configuration_or_han
     empty.activity.as_mut().unwrap().snapshot_id.clear();
     assert!(validate(&empty).is_err());
 }
+
+fn outcomes(success: u64, failed: u64, partial: bool) -> t::OutcomeStatistics {
+    let mut value =
+        serde_json::json!({"method":"terminal_success_failure_subset_v1","partial":partial});
+    for (key, count) in [
+        ("determinateOperations", success + failed),
+        ("succeeded", success),
+        ("failed", failed),
+        ("interrupted", 0),
+        ("rejected", 0),
+        ("nonterminal", 0),
+        ("indeterminate", 0),
+        ("conflicting", 0),
+        ("identityGapRecords", 0),
+        ("unclassified", 0),
+    ] {
+        value[key] =
+            serde_json::to_value(metric(Some(count), t::Basis::DeterminateTerminalOutcomes))
+                .unwrap();
+    }
+    value["failureRatio"] = serde_json::json!({"value":if success+failed>0 {Some(failed as f64/(success+failed) as f64)} else {None},"status":if success+failed>0 {"derived"} else {"unavailable"},"basis":if success+failed>0 {"determinate_terminal_outcomes"} else {"no_candidates"},"evidenceRefs":["collection:turn"]});
+    serde_json::from_value(value).unwrap()
+}
+#[test]
+fn failure_share_inspection_uses_explicit_sample_and_ratio_policy_including_partial_hits() {
+    let hit = failure_share(&outcomes(3, 2, true));
+    assert_eq!(hit.outcome, RuleOutcome::Hit);
+    assert!(hit.partial);
+    assert_eq!(hit.observed.value, Some(2));
+    assert_eq!(hit.failure_policy.unwrap().minimum_determinate, 5);
+    assert_eq!(hit.outcomes.unwrap().failure_ratio.value, Some(0.4));
+    assert_eq!(
+        failure_share(&outcomes(7, 3, false)).outcome,
+        RuleOutcome::Miss
+    );
+    assert_eq!(
+        failure_share(&outcomes(7, 3, true)).outcome,
+        RuleOutcome::Miss
+    );
+    for value in [
+        outcomes(0, 0, false),
+        outcomes(0, 1, false),
+        outcomes(0, 4, true),
+    ] {
+        let small = failure_share(&value);
+        assert_eq!(small.outcome, RuleOutcome::Insufficient);
+        assert!(matches!(
+            small.reason,
+            Some(ActivityReason::ActivitySampleTooSmall)
+        ));
+    }
+}
+#[test]
+fn failure_share_missing_or_unsupported_measures_do_not_create_advice_or_faults() {
+    let mut value = outcomes(3, 2, true);
+    value.determinate_operations = metric(None, t::Basis::ResourceLimit);
+    let missing = failure_share(&value);
+    assert_eq!(missing.outcome, RuleOutcome::Insufficient);
+    assert!(matches!(
+        missing.reason,
+        Some(ActivityReason::ActivityMeasureUnavailable)
+    ));
+    let mut value = outcomes(3, 2, false);
+    value.failed.basis = t::Basis::NativeRecord;
+    assert_eq!(failure_share(&value).outcome, RuleOutcome::Unsupported);
+}

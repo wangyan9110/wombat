@@ -1,6 +1,11 @@
 // Product copy. Keep keys stable; add complete messages with parameters.
 export const zh = {
   "activity.title": "可检查的行为",
+  "activity.failureShare": "失败占比",
+  "activity.failureShareAdvice": "查看失败记录及操作类型，确认是否属于预期退出，再决定是否调整工具请求或处理错误。",
+  "activity.failureSharePolicy": "检查条件：至少 {minimum} 次结果可判定的操作、{failures} 次失败，且失败占比不低于 {ratio}。",
+  "activity.sampleSmall": "当前样本较少，先保留统计，不生成此项建议。",
+  "activity.belowThreshold": "当前记录未达到此项检查条件。",
   "activity.failure": "失败后再次调用",
   "activity.read": "再次读取同一路径",
   "activity.request": "相同请求再次出现",
@@ -1305,7 +1310,7 @@ export const zh = {
   "preview.cancelled": "已取消轮次",
   "preview.interrupted": "已中断轮次",
   "preview.failed": "失败轮次",
-  "timing.basis.determinateTerminalOutcomes": "结果可判定的规范操作",
+  "timing.basis.determinateTerminalOutcomes": "操作结果与缺口分类",
   "execution.outcomes.title": "操作结果统计",
   "execution.outcomes.ratio": "结果可判定的 {total} 次操作中，失败 {failed} 次（{ratio}）。",
   "execution.outcomes.empty": "当前范围未记录可判定成功或失败的操作，不计算比例。",

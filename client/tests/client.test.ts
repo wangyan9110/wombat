@@ -40,7 +40,7 @@ test('portable client keeps generated results and forwards cancellation and prog
 });
 
 test('portable client rejects wrong version, malformed result and mismatched operation', async () => {
-  for (const invalid of [{ ...response, outputVersion: 2 }, { ...response, outputVersion: 3 }, { ...response, outputVersion: 4 }, { ...response, action: 'refresh' }, { ...response, summary: {} }, null]) {
+  for (const invalid of [{ ...response, outputVersion: 3 }, { ...response, outputVersion: 3 }, { ...response, outputVersion: 4 }, { ...response, action: 'refresh' }, { ...response, summary: {} }, null]) {
     await assert.rejects(createUsageClient({ query: async () => invalid }).query({ action: 'usage' }), (error: unknown) => error instanceof CoreError && error.code === 'PROTOCOL_ERROR');
   }
 });

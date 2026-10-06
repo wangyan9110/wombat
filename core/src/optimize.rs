@@ -24,7 +24,7 @@ pub(crate) use service::pending_for_handoff;
 use crate::optimize_dto::*;
 pub(crate) fn capabilities() -> Response {
     Response {
-        output_version: 2,
+        output_version: crate::optimize_dto::OUTPUT_VERSION,
         action: Action::Capabilities,
         capabilities: Capabilities::default(),
         read_view: None,

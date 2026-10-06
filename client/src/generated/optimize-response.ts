@@ -138,8 +138,11 @@ export type RepeatCoverageReason =
   | "source_partial"
   | "resource_limit"
   | "numeric_range";
-export type ActivityRule = "inspect_calls_after_failure" | "inspect_repeated_reads" | "inspect_repeated_requests";
-export type ActivityReason = "activityMeasureUnavailable" | "activityCoverageIncomplete" | "activityBasisUnsupported";
+export type OutcomeMethod = "terminal_success_failure_subset_v1";
+export type ActivityRule =
+  "inspect_calls_after_failure" | "inspect_repeated_reads" | "inspect_repeated_requests" | "inspect_failure_share";
+export type ActivityReason =
+  "activityMeasureUnavailable" | "activityCoverageIncomplete" | "activityBasisUnsupported" | "activitySampleTooSmall";
 
 export interface Response {
   outputVersion: number;
@@ -647,16 +650,21 @@ export interface ActivityResult {
   sourceStatus: string;
   coverage: RepeatCoverage;
   /**
-   * @minItems 3
-   * @maxItems 3
+   * @minItems 4
+   * @maxItems 4
    */
-  checks: [ActivityCheck, ActivityCheck, ActivityCheck];
+  checks: [ActivityCheck, ActivityCheck, ActivityCheck, ActivityCheck];
   /**
    * Positive inspection signals; never fault, resolution, causal waste, or savings claims.
    *
-   * @maxItems 3
+   * @maxItems 4
    */
-  advice: [] | [ActivityRule] | [ActivityRule, ActivityRule] | [ActivityRule, ActivityRule, ActivityRule];
+  advice:
+    | []
+    | [ActivityRule]
+    | [ActivityRule, ActivityRule]
+    | [ActivityRule, ActivityRule, ActivityRule]
+    | [ActivityRule, ActivityRule, ActivityRule, ActivityRule];
 }
 export interface ReadView {
   snapshotId: string;
@@ -706,6 +714,8 @@ export interface TimingMetricUint64 {
   evidenceRefs: string[];
 }
 export interface ActivityCheck {
+  outcomes?: OutcomeStatistics | null;
+  failurePolicy?: FailureSharePolicy | null;
   rule: ActivityRule;
   version: number;
   method: string;
@@ -713,4 +723,36 @@ export interface ActivityCheck {
   observed: TimingMetricUint64;
   partial: boolean;
   reason?: ActivityReason | null;
+}
+/**
+ * Counts in the captured subset, rather than inferred complete-turn totals.
+ */
+export interface OutcomeStatistics {
+  method: OutcomeMethod;
+  determinateOperations: TimingMetricUint64;
+  succeeded: TimingMetricUint64;
+  failed: TimingMetricUint64;
+  interrupted: TimingMetricUint64;
+  rejected: TimingMetricUint64;
+  nonterminal: TimingMetricUint64;
+  indeterminate: TimingMetricUint64;
+  conflicting: TimingMetricUint64;
+  /**
+   * Missing-identity observations use physical-record units, unlike canonical group counts.
+   */
+  identityGapRecords: TimingMetricUint64;
+  unclassified: TimingMetricUint64;
+  failureRatio: TimingMetricDouble;
+  partial: boolean;
+}
+export interface TimingMetricDouble {
+  value: number | null;
+  status: MetricStatus;
+  basis: Basis;
+  evidenceRefs: string[];
+}
+export interface FailureSharePolicy {
+  minimumDeterminate: number;
+  minimumFailures: number;
+  minimumRatio: number;
 }

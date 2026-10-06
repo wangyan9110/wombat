@@ -144,7 +144,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if (!validateOptimizeRequest(request) || !validActivityRequest(request)) throw new CoreError('INVALID_ARGUMENT', '优化参数不符合数据协议');
       const result = await optimizeTransport(request, options);
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
-      if (!validateOptimizeResult(result) || result.outputVersion !== 2 || result.action !== (request.action ?? 'list') || !matchesActivity(request,result)) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
+      if (!validateOptimizeResult(result) || result.outputVersion !== 3 || result.action !== (request.action ?? 'list') || !matchesActivity(request,result)) throw new CoreError('PROTOCOL_ERROR', '优化数据格式不正确');
       return result;
     } } : {}),
     ...(configTransport ? { async config(request: ConfigRequest, options: QueryOptions ={} ): Promise<ConfigResult> {
@@ -300,8 +300,10 @@ function validActivityRequest(request: OptimizeRequest): boolean {
 }
 /** Validate Rust's published subset relationships; do not choose or reconstruct a denominator. */
 function matchesOutcomeStatistics(result: TimingLocalResult | TimingShareResult): boolean {
-  const o=result.work.outcomes;
-  if(o.method!=='terminal_success_failure_subset_v1'||result.coverage.sourceStatus!=='complete'&&!o.partial)return false;
+  return validOutcomeStatistics(result.work.outcomes,result.coverage.sourceStatus);
+}
+function validOutcomeStatistics(o:TimingLocalResult['work']['outcomes'],sourceStatus:string):boolean{
+  if(o.method!=='terminal_success_failure_subset_v1'||sourceStatus!=='complete'&&!o.partial)return false;
   const counts=[o.determinateOperations,o.succeeded,o.failed,o.interrupted,o.rejected,o.nonterminal,o.indeterminate,o.conflicting,o.identityGapRecords,o.unclassified];
   if(counts.every(metric=>metric.value==null))return counts.every(metric=>metric.status==='unavailable')&&o.failureRatio.value==null&&o.failureRatio.status==='unavailable'&&o.partial;
   if(counts.some(metric=>metric.value==null||metric.status!=='derived'||metric.basis!=='determinate_terminal_outcomes'))return false;
@@ -314,16 +316,29 @@ function matchesOutcomeStatistics(result: TimingLocalResult | TimingShareResult)
 function matchesActivity(request: OptimizeRequest, result: OptimizeResult): boolean {
   if(request.action!=='activity')return result.activity==null;
   const activity=result.activity,selected=request.activity;
-  if(!activity||!selected||activity.formatVersion!==1||activity.analysisMethod!=='safe_event_turn_v6'
+  if(!activity||!selected||activity.formatVersion!==2||activity.analysisMethod!=='safe_event_turn_v6'
     || activity.scope.agentKind!=='codex'||!activity.scope.wholeTurn||activity.readView.snapshotId!==selected.snapshotId || activity.scope.threadId!==selected.threadId
     || activity.scope.turnId!==selected.turnId || request.sourceInstanceId!=null&&activity.scope.sourceInstanceId!==request.sourceInstanceId
     || result.usageRevision!==selected.snapshotId||result.readView!=null||result.suggestions.length||result.checks.length||result.followUps.length) return false;
   const definitions=[['inspect_calls_after_failure','same_operation_after_failure_v1','repeat_after_failure'],
     ['inspect_repeated_reads','same_target_read_v1','successful_read_repeat'],
-    ['inspect_repeated_requests','same_request_observation_v1','same_request_observation']] as const;
+    ['inspect_repeated_requests','same_request_observation_v1','same_request_observation'],
+    ['inspect_failure_share','terminal_failure_inspection_v1','determinate_terminal_outcomes']] as const;
   for(const [index,check] of activity.checks.entries()){
     const expected=definitions[index];
     if(!expected||check.rule!==expected[0]||check.method!==expected[1]||check.version!==1) return false;
+    if(index===3){
+      const o=check.outcomes,policy=check.failurePolicy;
+      if(!o||!policy||!validOutcomeStatistics(o,activity.sourceStatus)||check.partial!==o.partial
+        ||check.observed.value!==o.failed.value||check.observed.status!==o.failed.status||check.observed.basis!==o.failed.basis
+        ||check.observed.evidenceRefs.length!==o.failed.evidenceRefs.length||check.observed.evidenceRefs.some((ref,i)=>ref!==o.failed.evidenceRefs[i]))return false;
+      const n=o.determinateOperations.value;
+      const outcome=n==null||n<policy.minimumDeterminate?'insufficient':o.failed.value!>=policy.minimumFailures&&o.failureRatio.value!>=policy.minimumRatio?'hit':'miss';
+      const reason=n==null?'activityMeasureUnavailable':n<policy.minimumDeterminate?'activitySampleTooSmall':null;
+      if(check.outcome!==outcome||check.reason!==reason)return false;
+      continue;
+    }
+    if(check.outcomes!=null||check.failurePolicy!=null)return false;
     if(check.outcome==='hit'&&(check.observed.value==null||check.observed.value<=0||check.observed.basis!==expected[2]||check.observed.status!=='derived' || check.reason!=null))return false;
     if(check.outcome==='miss'&&(check.observed.value!==0||check.partial||check.reason!=null||check.observed.basis!==expected[2]||check.observed.status!=='derived'))return false;
   }

@@ -468,13 +468,15 @@ fn activity_checks_consume_fixed_analysis_without_relabeling_request_order() {
             );
             let mut partial = summary;
             partial.coverage.source_status = "partial".into();
+            partial.work.outcomes.partial = true;
             let partial = crate::optimize::activity::evaluate(&partial);
             assert!(
-                partial
-                    .checks
+                partial.checks[..3]
                     .iter()
                     .all(|check| check.partial && check.outcome == RuleOutcome::Hit)
             );
+            assert!(partial.checks[3].partial);
+            assert_eq!(partial.checks[3].outcome, RuleOutcome::Insufficient);
         } else {
             assert_eq!(inspection.checks[0].outcome, RuleOutcome::Insufficient);
             assert_eq!(inspection.checks[1].outcome, RuleOutcome::Insufficient);
@@ -538,4 +540,61 @@ fn callable_matching_reaches_shared_inspection_and_safe_aggregates_without_raw_d
             assert!(!encoded.contains(private));
         }
     }
+}
+
+#[test]
+fn failure_share_advice_uses_the_fixed_shared_outcome_subset() {
+    use crate::optimize_dto::{ActivityRule, RuleOutcome};
+    let mut events = commands(true);
+    events.pop();
+    events.extend(command(
+        7,
+        "later-failure-one",
+        Some(85),
+        Some(90),
+        "failed",
+        None,
+    ));
+    events.extend(command(
+        9,
+        "later-failure-two",
+        Some(95),
+        Some(100),
+        "failed",
+        None,
+    ));
+    events.push(boundary(11, Some(200), Phase::Completed, None, None));
+    let canonical = events
+        .iter()
+        .filter_map(|event| match event.payload() {
+            Payload::Operation {
+                value,
+                phase: Phase::Completed | Phase::Failed,
+            } => Some(value.clone()),
+            _ => None,
+        })
+        .collect();
+    let snapshot = work_snapshot(canonical, events, false);
+    let summary = local(query(&snapshot, &request(PrivacyProfile::Local)));
+    let inspected = crate::optimize::activity::evaluate(&summary);
+    let check = &inspected.checks[3];
+    assert_eq!(check.rule, ActivityRule::InspectFailureShare);
+    assert_eq!(check.outcome, RuleOutcome::Hit);
+    let facts = check.outcomes.as_ref().unwrap();
+    assert_eq!(facts.determinate_operations.value, Some(5));
+    assert_eq!(facts.failed.value, Some(3));
+    assert_eq!(facts.failure_ratio.value, Some(0.6));
+    assert_eq!(
+        facts.failure_ratio.value,
+        summary.work.outcomes.failure_ratio.value
+    );
+    assert_eq!(
+        inspected.read_view.snapshot_id,
+        summary.read_view.snapshot_id
+    );
+    assert!(
+        inspected
+            .advice
+            .contains(&ActivityRule::InspectFailureShare)
+    );
 }

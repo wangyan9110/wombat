@@ -58,6 +58,7 @@ fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -
         ActivityRule::InspectCallsAfterFailure => t::Basis::RepeatAfterFailure,
         ActivityRule::InspectRepeatedReads => t::Basis::SuccessfulReadRepeat,
         ActivityRule::InspectRepeatedRequests => t::Basis::SameRequestObservation,
+        ActivityRule::InspectFailureShare => t::Basis::DeterminateTerminalOutcomes,
     };
     let supported_basis =
         observed.basis == expected_basis && matches!(observed.status, t::MetricStatus::Derived);
@@ -81,6 +82,8 @@ fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -
         )
     };
     ActivityCheck {
+        outcomes: None,
+        failure_policy: None,
         rule,
         version: 1,
         method: method.into(),
@@ -88,6 +91,63 @@ fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -
         observed: observed.clone(),
         partial,
         reason,
+    }
+}
+/// A deterministic inspection threshold over the captured determinate subset, not a fault detector.
+fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
+    let policy = FailureSharePolicy::default();
+    let (outcome, reason) = match observed.determinate_operations.value {
+        None => (
+            RuleOutcome::Insufficient,
+            Some(ActivityReason::ActivityMeasureUnavailable),
+        ),
+        Some(_)
+            if observed.determinate_operations.status != t::MetricStatus::Derived
+                || observed.determinate_operations.basis
+                    != t::Basis::DeterminateTerminalOutcomes
+                || observed.failed.status != t::MetricStatus::Derived
+                || observed.failed.basis != t::Basis::DeterminateTerminalOutcomes =>
+        {
+            (
+                RuleOutcome::Unsupported,
+                Some(ActivityReason::ActivityBasisUnsupported),
+            )
+        }
+        Some(n) if n < u64::from(policy.minimum_determinate) => (
+            RuleOutcome::Insufficient,
+            Some(ActivityReason::ActivitySampleTooSmall),
+        ),
+        Some(_) => match (observed.failed.value, observed.failure_ratio.value) {
+            (Some(failed), Some(ratio))
+                if observed.failure_ratio.status == t::MetricStatus::Derived
+                    && observed.failure_ratio.basis == t::Basis::DeterminateTerminalOutcomes =>
+            {
+                (
+                    if failed >= u64::from(policy.minimum_failures) && ratio >= policy.minimum_ratio
+                    {
+                        RuleOutcome::Hit
+                    } else {
+                        RuleOutcome::Miss
+                    },
+                    None,
+                )
+            }
+            _ => (
+                RuleOutcome::Insufficient,
+                Some(ActivityReason::ActivityMeasureUnavailable),
+            ),
+        },
+    };
+    ActivityCheck {
+        rule: ActivityRule::InspectFailureShare,
+        version: 1,
+        method: "terminal_failure_inspection_v1".into(),
+        outcome,
+        observed: observed.failed.clone(),
+        partial: observed.partial,
+        reason,
+        outcomes: Some(observed.clone()),
+        failure_policy: Some(policy),
     }
 }
 fn count_gap(reasons: &[t::RepeatCoverageReason], source_status: &str, rule: ActivityRule) -> bool {
@@ -140,6 +200,7 @@ pub(crate) fn evaluate(summary: &t::LocalResponse) -> ActivityResult {
                 ActivityRule::InspectRepeatedRequests,
             ),
         ),
+        failure_share(&summary.work.outcomes),
     ];
     // Keep check facts independent. The broader request hint adds no advice when a confirmed link is available.
     let confirmed = checks[..2].iter().any(|c| c.outcome == RuleOutcome::Hit);
@@ -152,7 +213,7 @@ pub(crate) fn evaluate(summary: &t::LocalResponse) -> ActivityResult {
         .map(|c| c.rule)
         .collect();
     ActivityResult {
-        format_version: 1,
+        format_version: 2,
         read_view: summary.read_view.clone(),
         scope: summary.scope.clone(),
         analysis_method: summary.method_version.clone(),

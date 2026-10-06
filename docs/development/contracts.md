@@ -70,7 +70,7 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 ## 优化与偏好契约 v1
 
-`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v2.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities/activity；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
+`core/src/optimize_dto.rs`生成[请求](../schemas/optimize-request-v1.schema.json)与[响应](../schemas/optimize-response-v3.schema.json)。Node/HTTP的UsageClient.optimize支持list/detail/history（group）、keep/not_applicable/redisplay/recheck/checks/capabilities/activity；CLI操作见[指南](../guides/cli.md)。对象级规则以本页阈值修订为准。日期及模型不影响检查，检查时刻独立返回。支持项目/来源/类别、pending/history、最多200项分页，默认50。
 
 建议身份绑定来源、对象、内容指纹、问题与项目范围。readView固定事实，decisionRevision固定记录，冲突返回VIEW_EXPIRED。keep需原因necessary；not_applicable需object_changed或incorrect_evidence。用户决定保存真实时间，与规则结果独立；已确认重试不重复追加。redisplay只清除最新展示决定。recheck重采集当前范围，不撤销决定，返回stillNeedsReview、verified或recheckUnavailable及独立检查事实。verified只证明原问题对应规则的可观察检查通过，不证明采用或节省；历史事件保留不可变recordId与recordedAt。
 

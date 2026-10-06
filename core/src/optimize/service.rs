@@ -234,7 +234,7 @@ fn execute_at_inner(
         }),
     );
     Ok(Response {
-        output_version: 2,
+        output_version: crate::optimize_dto::OUTPUT_VERSION,
         action: r.action,
         capabilities,
         read_view: Some(id),

@@ -1,6 +1,11 @@
 import type { zh } from './zh.js';
 export const en = {
   "activity.title": "Behavior to inspect",
+  "activity.failureShare": "Failure share",
+  "activity.failureShareAdvice": "Inspect failed records and operation types to distinguish expected exits before adjusting tool requests or handling errors.",
+  "activity.failureSharePolicy": "Inspection criteria: at least {minimum} operations with determinate results, {failures} failures, and a failure share of at least {ratio}.",
+  "activity.sampleSmall": "The current sample is small; retain the statistics without generating this advice.",
+  "activity.belowThreshold": "The captured records do not meet these inspection criteria.",
   "activity.failure": "Calls after failure",
   "activity.read": "Same-path reads again",
   "activity.request": "Repeated request observations",
@@ -1305,7 +1310,7 @@ export const en = {
   "preview.cancelled": "Cancelled turn",
   "preview.interrupted": "Interrupted turn",
   "preview.failed": "Failed turn",
-  "timing.basis.determinateTerminalOutcomes": "Canonical operations with determinate recorded results",
+  "timing.basis.determinateTerminalOutcomes": "Operation result and gap classification",
   "execution.outcomes.title": "Recorded operation results",
   "execution.outcomes.ratio": "Failed {failed} of {total} operations with determinate results ({ratio}).",
   "execution.outcomes.empty": "No operations with determinate success or failure results are recorded in this scope.",

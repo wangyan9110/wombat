@@ -21,6 +21,6 @@ export function ActivityInspection({client,summary,onEvidence,blocked,onExpired}
   return()=>{current=false;controller.abort();};
  },[client,snapshotId,threadId,turnId,sourceInstanceId,blocked,retry,onExpired]);
  if(!client.optimize)return null;
- return <>{activity&&<ActivityFacts activity={activity} onEvidence={onEvidence} blocked={blocked}/>}
+ return <>{activity&&<ActivityFacts activity={activity} onEvidence={onEvidence} blocked={blocked||!summary.evidence.available}/>}
   {error&&<p role="alert">{t('activity.unavailable')} <button className="link" disabled={blocked} onClick={()=>setRetry(value=>value+1)}>{t('activity.retry')}</button></p>}</>;
 }

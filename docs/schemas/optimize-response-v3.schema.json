@@ -5,8 +5,8 @@
   "properties": {
     "outputVersion": {
       "type": "integer",
-      "minimum": 2,
-      "maximum": 2
+      "minimum": 3,
+      "maximum": 3
     },
     "action": {
       "$ref": "#/definitions/Action"
@@ -2565,8 +2565,8 @@
       "properties": {
         "formatVersion": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 1
+          "minimum": 2,
+          "maximum": 2
         },
         "readView": {
           "$ref": "#/definitions/ReadView"
@@ -2591,8 +2591,8 @@
           "items": {
             "$ref": "#/definitions/ActivityCheck"
           },
-          "minItems": 3,
-          "maxItems": 3
+          "minItems": 4,
+          "maxItems": 4
         },
         "advice": {
           "description": "Positive inspection signals; never fault, resolution, causal waste, or savings claims.",
@@ -2600,7 +2600,7 @@
           "items": {
             "$ref": "#/definitions/ActivityRule"
           },
-          "maxItems": 3
+          "maxItems": 4
         }
       },
       "additionalProperties": false,
@@ -2905,6 +2905,26 @@
     "ActivityCheck": {
       "type": "object",
       "properties": {
+        "outcomes": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OutcomeStatistics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failurePolicy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FailureSharePolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "rule": {
           "$ref": "#/definitions/ActivityRule"
         },
@@ -2946,12 +2966,141 @@
         "partial"
       ]
     },
+    "OutcomeStatistics": {
+      "description": "Counts in the captured subset, rather than inferred complete-turn totals.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "$ref": "#/definitions/OutcomeMethod"
+        },
+        "determinateOperations": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "succeeded": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "failed": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "interrupted": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "rejected": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "nonterminal": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "indeterminate": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "conflicting": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "identityGapRecords": {
+          "description": "Missing-identity observations use physical-record units, unlike canonical group counts.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TimingMetric_uint64"
+            }
+          ]
+        },
+        "unclassified": {
+          "$ref": "#/definitions/TimingMetric_uint64"
+        },
+        "failureRatio": {
+          "$ref": "#/definitions/TimingMetric_double"
+        },
+        "partial": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "determinateOperations",
+        "succeeded",
+        "failed",
+        "interrupted",
+        "rejected",
+        "nonterminal",
+        "indeterminate",
+        "conflicting",
+        "identityGapRecords",
+        "unclassified",
+        "failureRatio",
+        "partial"
+      ]
+    },
+    "OutcomeMethod": {
+      "type": "string",
+      "enum": [
+        "terminal_success_failure_subset_v1"
+      ]
+    },
+    "TimingMetric_double": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/MetricStatus"
+        },
+        "basis": {
+          "$ref": "#/definitions/Basis"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "status",
+        "basis",
+        "evidenceRefs"
+      ]
+    },
+    "FailureSharePolicy": {
+      "type": "object",
+      "properties": {
+        "minimumDeterminate": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 5
+        },
+        "minimumFailures": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 2
+        },
+        "minimumRatio": {
+          "type": "number",
+          "minimum": 0.4,
+          "maximum": 0.4
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "minimumDeterminate",
+        "minimumFailures",
+        "minimumRatio"
+      ]
+    },
     "ActivityRule": {
       "type": "string",
       "enum": [
         "inspect_calls_after_failure",
         "inspect_repeated_reads",
-        "inspect_repeated_requests"
+        "inspect_repeated_requests",
+        "inspect_failure_share"
       ]
     },
     "ActivityReason": {
@@ -2959,7 +3108,8 @@
       "enum": [
         "activityMeasureUnavailable",
         "activityCoverageIncomplete",
-        "activityBasisUnsupported"
+        "activityBasisUnsupported",
+        "activitySampleTooSmall"
       ]
     }
   }

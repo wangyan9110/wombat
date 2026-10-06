@@ -1,3 +1,4 @@
+import {operationOutcomeText} from './outcome-statistics.js';
 import {timingMissingValueText} from './timing-basis.js';
 /** Shared presentation-only locale service. Never localize protocol values or source content. */
 import { zh } from './zh.js';
@@ -214,12 +215,17 @@ export {repeatedBehaviorReasonText} from './repeated-behavior.js';
 type ActivityCheck=NonNullable<import('../generated/optimize-response.js').Response['activity']>['checks'][number];
 type ActivityRule=ActivityCheck['rule'];
 export function activityRuleTitle(rule:ActivityRule):string {
-  switch(rule){case 'inspect_calls_after_failure':return t('activity.failure');case 'inspect_repeated_reads':return t('activity.read');case 'inspect_repeated_requests':return t('activity.request');}
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failure');case 'inspect_repeated_reads':return t('activity.read');case 'inspect_repeated_requests':return t('activity.request');case 'inspect_failure_share':return t('activity.failureShare');}
 }
 export function activityAdviceText(rule:ActivityRule):string {
-  switch(rule){case 'inspect_calls_after_failure':return t('activity.failureAdvice');case 'inspect_repeated_reads':return t('activity.readAdvice');case 'inspect_repeated_requests':return t('activity.requestAdvice');}
+  switch(rule){case 'inspect_calls_after_failure':return t('activity.failureAdvice');case 'inspect_repeated_reads':return t('activity.readAdvice');case 'inspect_repeated_requests':return t('activity.requestAdvice');case 'inspect_failure_share':return t('activity.failureShareAdvice');}
 }
 export function activityCheckText(check:ActivityCheck):string {
+  if(check.rule==='inspect_failure_share'&&check.outcomes&&check.failurePolicy){
+    const policy=check.failurePolicy;
+    return [operationOutcomeText(check.outcomes).headline,t('activity.failureSharePolicy',{minimum:policy.minimumDeterminate,failures:policy.minimumFailures,ratio:new Intl.NumberFormat(locale.getSnapshot().locale,{style:'percent',maximumFractionDigits:1}).format(policy.minimumRatio)}),
+      check.reason==='activitySampleTooSmall'?t('activity.sampleSmall'):check.reason==='activityMeasureUnavailable'?timingMissingValueText(check.observed.basis):check.outcome==='miss'?t('activity.belowThreshold'):'',check.partial?t('execution.outcomes.partial'):''].filter(Boolean).join(' ');
+  }
   if(check.outcome==='hit'&&check.observed.value!=null)return t('activity.observed',{count:check.observed.value})+(check.partial?` · ${t('activity.partial')}`:'');
   if(check.outcome==='miss')return t('activity.miss');
   if(check.reason==='activityCoverageIncomplete')return t('activity.coverage');
