@@ -36,6 +36,31 @@ pub(crate) fn prepare_event_reader(db: &Connection, scope: &str) -> Result<Event
 }
 
 impl EventReader {
+    fn sql(&self, origin: i64, missing: bool) -> String {
+        let target = if missing {
+            "json_extract(t.payload,'$.threadId') IS NULL"
+        } else {
+            "json_extract(t.payload,'$.threadId') IN (SELECT value FROM json_each(?1))"
+        };
+        let payload = if origin == self.projection {
+            "json(t.payload)"
+        } else {
+            "json_extract(t.payload,e.member)"
+        };
+        let membership = if origin == self.projection {
+            String::new()
+        } else {
+            // Pin the small indexed thread selection before membership lookup. An ordinary
+            // JOIN lets SQLite scan the entire projection again for every project.
+            format!(
+                " CROSS JOIN entries e ON e.bucket={} AND e.id=t.id AND e.source_bucket={origin}",
+                self.projection
+            )
+        };
+        format!(
+            "SELECT t.id,{payload} FROM entries t INDEXED BY event_threads_{origin}{membership} WHERE t.bucket={origin} AND t.payload IS NOT NULL AND {target}"
+        )
+    }
     /// O(T log E + matching events), using exact recorded thread ownership.
     /// None includes only source facts with no thread, never a guessed project.
     pub(crate) fn each(
@@ -54,27 +79,7 @@ impl EventReader {
                 if !missing && threads.is_empty() {
                     continue;
                 }
-                let target = if missing {
-                    "json_extract(t.payload,'$.threadId') IS NULL"
-                } else {
-                    "json_extract(t.payload,'$.threadId') IN (SELECT value FROM json_each(?1))"
-                };
-                let payload = if *origin == self.projection {
-                    "json(t.payload)"
-                } else {
-                    "json_extract(t.payload,e.member)"
-                };
-                let membership = if *origin == self.projection {
-                    String::new()
-                } else {
-                    format!(
-                        " JOIN entries e ON e.bucket={} AND e.id=t.id AND e.source_bucket={origin}",
-                        self.projection
-                    )
-                };
-                let sql = format!(
-                    "SELECT t.id,{payload} FROM entries t INDEXED BY event_threads_{origin}{membership} WHERE t.bucket={origin} AND t.payload IS NOT NULL AND {target}"
-                );
+                let sql = self.sql(*origin, missing);
                 let mut statement = db.prepare_cached(&sql)?;
                 let mut rows = if missing {
                     statement.query([])?
@@ -91,5 +96,67 @@ impl EventReader {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn project_seeks_precede_projection_membership_lookup() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = open(&temp.path().join("index.sqlite")).unwrap();
+        let origin = bucket(&db, "parser", "events").unwrap();
+        let projection = bucket(&db, "projection", "events").unwrap();
+        write(&db, origin, "event", r#"{"threadId":"selected"}"#).unwrap();
+        db.execute(
+            "INSERT INTO entries(bucket,id,source_bucket,member) VALUES(?1,'event',?2,'$')",
+            params![projection, origin],
+        )
+        .unwrap();
+        let reader = prepare_event_reader(&db, "projection").unwrap();
+        let mut found = vec![];
+        reader
+            .each(&db, &["selected"], false, |id, _| {
+                found.push(id.to_owned());
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(found, ["event"]);
+        for missing in [false, true] {
+            let mut statement = db
+                .prepare(&format!(
+                    "EXPLAIN QUERY PLAN {}",
+                    reader.sql(origin, missing)
+                ))
+                .unwrap();
+            let read = |row: &rusqlite::Row<'_>| row.get::<_, String>(3);
+            let plan = if missing {
+                statement
+                    .query_map([], read)
+                    .unwrap()
+                    .collect::<rusqlite::Result<Vec<_>>>()
+            } else {
+                statement
+                    .query_map([r#"["selected"]"#], read)
+                    .unwrap()
+                    .collect::<rusqlite::Result<Vec<_>>>()
+            }
+            .unwrap();
+            let seek = plan
+                .iter()
+                .position(|step| step.contains("SEARCH t USING INDEX event_threads_"))
+                .unwrap();
+            let membership = plan
+                .iter()
+                .position(|step| {
+                    step.contains("SEARCH e USING PRIMARY KEY") && step.contains("id=?")
+                })
+                .unwrap();
+            assert!(
+                seek < membership,
+                "projection must not scan all event IDs before the project seek: {plan:?}"
+            );
+        }
     }
 }
