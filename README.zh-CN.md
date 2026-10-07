@@ -17,7 +17,7 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。
 
 ## 开始使用
 
-**正式版：[`v0.1.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.1)。**
+**正式版：[`v0.2.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.2.0)。**
 
 Wombat 支持 macOS、Linux 和 Windows，无需开发工具或 API Key。
 
@@ -108,6 +108,8 @@ wombat optimize list --project-root /path/to/project --json
 ## 兼容平台
 
 发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。
+
+本版本无法打开部分旧版本保存的数据。请保留原数据目录；启用独立的数据目录前，先查看[格式与恢复限制](cli/README.md)。
 
 ## 一起完善 Wombat
 

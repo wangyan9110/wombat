@@ -1,16 +1,18 @@
 {
-  "summary": "The first stable Wombat release helps Codex users review local usage and configuration, act on evidence-backed findings, and verify the result.",
+  "summary": "This stable release adds whole-turn timing and event analysis for Codex tasks, with progressive project loading and more reliable updates while tasks are running.",
   "highlights": [
-    "Review token usage, API cost estimates, tasks, turns, and timing from local Codex records.",
-    "Inspect AGENTS.md, Skills, MCP entries, and Hooks, then send selected findings to a compatible local Codex and recheck them.",
-    "Run wombat doctor for a read-only, offline check of the installation, PATH, bundled runtime, local core, and Codex data directory.",
-    "Install and open self-contained archives with one command, then use atomic, checksum-verified updates without a system Node.js, npm, Rust, pnpm, or compiler installation."
+    "Inspect whole-turn durations, operation outcomes, repeated behavior, and changes in recorded request input through the Web interface and the timing CLI.",
+    "Open evidence pages tied to the same task, turn, and read version. Missing records remain explicit rather than becoming zero values or claims about the cause of slow work.",
+    "View committed project results progressively during large initial reads, with less event allocation and more targeted project event queries.",
+    "Keep reading Codex records while files are appended, and refresh active Web data every five minutes.",
+    "Create a separate timing summary for sharing with direct identifiers removed. Local evidence and the sharing summary remain separate."
   ],
   "knownLimitations": [
     "Codex is the only production data source in this release; support for other agents is planned.",
     "API costs are estimates. Unpriced or partial data stays explicit and is separate from subscription allowance.",
-    "Large first reads can take time. Project-level progress and per-project retry remain planned.",
-    "Optimization findings can remain unknown when runtime or history evidence is incomplete. A passed file check does not prove lower token usage.",
-    "Native handoff requires a compatible local Codex installation. Wombat currently provides local Web and CLI interfaces."
+    "Older snapshot or index formats can be rejected without migration. Preserve the original data directory and its user decisions. A different WOMBAT_DATA_HOME creates an isolated store; it does not repair the old store or transfer its decisions.",
+    "Timing describes recorded activity and can be partial or provisional. It does not establish why work was slow, code quality, token savings, or model performance.",
+    "A sharing summary removes direct identifiers but does not guarantee anonymity. Preview it before sharing.",
+    "Large first reads can still take time. Native handoff requires a compatible local Codex installation; Wombat currently provides local Web and CLI interfaces."
   ]
 }

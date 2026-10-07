@@ -17,7 +17,7 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 ## Get started
 
-**Stable: [`v0.1.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.1).**
+**Stable: [`v0.2.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.2.0).**
 
 Wombat supports macOS, Linux, and Windows. No development tools or API key are required.
 
@@ -112,6 +112,8 @@ Local inspection needs no API key and makes no model calls. Sending work to Code
 ## Compatibility
 
 Release packages support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64.
+
+Some data saved by earlier versions cannot be opened by this release. Keep the original data directory; see the [format and recovery limits](cli/README.en.md) before starting a separate data store.
 
 ## Help shape Wombat
 
