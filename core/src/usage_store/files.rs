@@ -215,6 +215,8 @@ pub(super) fn save_with_prices(
         &serde_json::to_vec(&manifest.snapshot_ref)?,
     )?;
     Ok(Snapshot {
+        project_loads: vec![],
+        project_rows: None,
         timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
@@ -332,6 +334,8 @@ pub(super) fn load_at(root: &Path, id: Option<&str>) -> Result<Snapshot> {
         return Err(corrupt("快照身份不匹配"));
     }
     Ok(Snapshot {
+        project_loads: vec![],
+        project_rows: None,
         timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,

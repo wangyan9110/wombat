@@ -98,6 +98,20 @@ pub fn execute(request: Request) -> Result<Response> {
 }
 
 pub(crate) fn execute_snapshot(request: Request, snapshot: &Snapshot) -> Result<Response> {
+    if snapshot.project_loads.iter().any(|p| {
+        p.state != crate::live::ProjectLoadState::Ready
+            && (request
+                .scope
+                .project
+                .as_ref()
+                .is_some_and(|project| p.project.as_ref() == Some(project))
+                || request.scope.project_unknown == Some(true) && p.project.is_none())
+    }) {
+        return Err(operation_error(
+            "SYNC_PENDING",
+            "所选项目正在加载，已加载的项目可以查看",
+        ));
+    }
     let key = if snapshot.is_live() {
         // Default ranges roll over at midnight in the request timezone.
         Some(format!(
@@ -140,7 +154,7 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
     }
     // Detail queries read only the requested thread/turn shard.
     let live_rows = if matches!(request.action, Action::Usage | Action::Threads) {
-        snapshot.live_ledger()
+        snapshot.live_scope_ledger(&request.scope)
     } else if matches!(request.action, Action::Turns | Action::Steps) {
         snapshot.live_detail_rows(
             request.thread_id.as_deref().unwrap(),

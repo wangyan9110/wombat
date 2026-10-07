@@ -212,7 +212,7 @@ pub(super) fn locate(
         check(cancelled)?;
         if event.thread_id() != Some(target.thread)
             || event.turn_id() != Some(target.turn)
-            || event.position().source_instance_id != target.source
+            || event.position().source_instance_id.as_ref() != target.source
         {
             return Err(corrupt());
         }

@@ -76,10 +76,12 @@ struct MemoryTurn {
     operations: Vec<Arc<Operation>>,
 }
 pub struct Snapshot {
+    pub(crate) project_loads: Vec<crate::live::ProjectLoad>,
     pub(crate) timing_cache: Mutex<crate::timing::cache::Cache>,
     pub(crate) query_cache: Mutex<crate::query_cache::QueryCache>,
     live_rows: Option<Vec<Arc<PricedMeasurement>>>,
-    live_events: Option<BTreeMap<EventTarget, Vec<Arc<crate::session_events::Event>>>>,
+    project_rows: Option<BTreeMap<Option<String>, Vec<usize>>>,
+    live_events: Option<events::EventBuckets>,
     memory_turns: Option<BTreeMap<(String, String), MemoryTurn>>,
     pub manifest: Manifest,
     directory: PathBuf,
@@ -135,6 +137,7 @@ use files::{bounded_read, corrupt, file_ref, product_home, safe_file, save_with_
 #[cfg(test)]
 use files::{load_at, private_dir, save_at};
 pub(crate) use memory::memory;
+pub(crate) use memory::memory_project_batch;
 
 #[cfg(test)]
 mod observation_tests;

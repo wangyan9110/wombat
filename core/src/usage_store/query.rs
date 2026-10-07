@@ -62,6 +62,24 @@ impl Snapshot {
             .as_ref()
             .map(|rows| rows.iter().map(Arc::as_ref).collect())
     }
+    pub(crate) fn live_scope_ledger(
+        &self,
+        scope: &crate::usage_app_dto::Scope,
+    ) -> Option<Vec<&PricedMeasurement>> {
+        if scope.project.is_none() && scope.project_unknown != Some(true) {
+            return self.live_ledger();
+        }
+        let rows = self.live_rows.as_ref()?;
+        let projects = self.project_rows.as_ref()?;
+        Some(
+            projects
+                .get(&scope.project)
+                .into_iter()
+                .flatten()
+                .map(|index| rows[*index].as_ref())
+                .collect(),
+        )
+    }
     pub(crate) fn live_detail_rows(
         &self,
         thread_id: &str,

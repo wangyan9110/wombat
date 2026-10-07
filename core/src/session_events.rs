@@ -14,9 +14,9 @@ pub mod title_observations;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Position {
-    pub source_instance_id: String,
-    pub file_id: String,
-    pub generation: String,
+    pub source_instance_id: Arc<str>,
+    pub file_id: Arc<str>,
+    pub generation: Arc<str>,
     pub byte_offset: u64,
     pub ordinal: u32,
 }
@@ -203,14 +203,14 @@ pub enum ItemKind {
     Compaction,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct NativeDuration {
     pub secs: u64,
     pub nanos: u32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Payload {
     Ancestry {
@@ -218,12 +218,12 @@ pub enum Payload {
         evidence: EvidenceRef,
     },
     Thread {
-        value: Thread,
+        value: Box<Thread>,
         project_path: Option<String>,
         evidence: EvidenceRef,
     },
     Turn {
-        value: Turn,
+        value: Box<Turn>,
         evidence: EvidenceRef,
     },
     /// Preserve source accounting inputs before cross-file deduplication and reconciliation.
@@ -273,24 +273,53 @@ pub enum Payload {
     },
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct StoredEvent {
     version: u32,
     id: String,
     position: Position,
-    thread_id: Option<String>,
-    turn_id: Option<String>,
+    thread_id: Option<Arc<str>>,
+    turn_id: Option<Arc<str>>,
     time: Time,
-    collected_at: String,
+    collected_at: Arc<str>,
     gaps: Vec<Gap>,
     payload: Payload,
 }
 
 /// Constructors and deserialization both enforce the same current-format envelope.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(try_from = "StoredEvent", into = "StoredEvent")]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(try_from = "StoredEvent")]
 pub struct Event(StoredEvent);
+#[derive(Default)]
+pub(crate) struct EventStrings {
+    domains: crate::shared_text::SharedText,
+    scopes: crate::shared_text::SharedText,
+    times: crate::shared_text::SharedText,
+}
+impl EventStrings {
+    pub(crate) fn share(&mut self, event: &mut Event) {
+        for value in [
+            &mut event.0.position.source_instance_id,
+            &mut event.0.position.file_id,
+            &mut event.0.position.generation,
+        ] {
+            self.domains.share(value);
+        }
+        for value in [&mut event.0.thread_id, &mut event.0.turn_id]
+            .into_iter()
+            .flatten()
+        {
+            self.scopes.share(value);
+        }
+        self.times.share(&mut event.0.collected_at);
+    }
+}
+impl Serialize for Event {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.0.serialize(serializer)
+    }
+}
 impl Event {
     pub fn new(
         position: Position,
@@ -325,10 +354,10 @@ impl Event {
             version: EVENT_VERSION,
             id,
             position,
-            thread_id,
-            turn_id,
+            thread_id: thread_id.map(Into::into),
+            turn_id: turn_id.map(Into::into),
             time,
-            collected_at,
+            collected_at: collected_at.into(),
             gaps,
             payload,
         })
@@ -389,7 +418,8 @@ impl TryFrom<StoredEvent> for Event {
             Payload::Thread { value: fact, .. } => ensure!(
                 thread == Some(fact.id.as_str())
                     && turn.is_none()
-                    && fact.source_instance_id == value.position.source_instance_id,
+                    && fact.source_instance_id.as_str()
+                        == value.position.source_instance_id.as_ref(),
                 "thread event scope mismatch"
             ),
             Payload::Turn { value: fact, .. } => ensure!(
@@ -408,7 +438,8 @@ impl TryFrom<StoredEvent> for Event {
                 ensure!(
                     thread == fact.thread_id.as_deref()
                         && turn == fact.turn_id.as_deref()
-                        && fact.source_instance_id.as_ref() == value.position.source_instance_id,
+                        && fact.source_instance_id.as_ref()
+                            == value.position.source_instance_id.as_ref(),
                     "measurement event scope mismatch"
                 );
                 ensure!(

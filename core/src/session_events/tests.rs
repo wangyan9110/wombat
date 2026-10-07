@@ -152,7 +152,7 @@ fn payload_scope_cannot_be_rebound_to_another_turn() {
         Time::from_source(None).0,
         vec![],
         Payload::Turn {
-            value: fact,
+            value: Box::new(fact),
             evidence: EvidenceRef {
                 file: "synthetic".into(),
                 line: 1,

@@ -291,7 +291,7 @@ pub(super) fn summarize_events_cancellable(
                 previous_model = Some(model);
                 let ordered_scope = scope.3.is_some()
                     && scope.4.is_some()
-                    && scope.0.as_str() == value.source_instance_id.as_ref()
+                    && scope.0.as_ref() == value.source_instance_id.as_ref()
                     && scope.3 == value.thread_id.as_deref()
                     && scope.4 == value.turn_id.as_deref()
                     && !change_invalid
@@ -316,7 +316,7 @@ pub(super) fn summarize_events_cancellable(
                 };
                 let valid_scope = scope.3.is_some()
                     && scope.4.is_some()
-                    && scope.0.as_str() == value.source_instance_id.as_ref()
+                    && scope.0.as_ref() == value.source_instance_id.as_ref()
                     && scope.3 == value.thread_id.as_deref()
                     && scope.4 == value.turn_id.as_deref()
                     && event.time().timestamp.is_some()

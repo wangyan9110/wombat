@@ -2,6 +2,7 @@
 
 export type TokenBasis = "analyzed_totals";
 export type AutomaticStatus = "checking" | "updated" | "unchanged" | "failed";
+export type ProjectLoadState = "pending" | "loading" | "ready";
 export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
 export type TokenAnalysisScope = "selected_canonical_measurements";
 export type Item =
@@ -162,6 +163,10 @@ export interface Automatic {
   errorCode?: string | null;
 }
 export interface Freshness {
+  /**
+   * Projects restored from committed facts; pending projects are not zero usage.
+   */
+  projectLoads?: ProjectLoad[];
   status: string;
   /**
    * Ephemeral task headers; no completed ledger or coverage is available yet.
@@ -171,6 +176,10 @@ export interface Freshness {
   revision: string;
   error?: string | null;
   errorCode?: string | null;
+}
+export interface ProjectLoad {
+  project?: string | null;
+  state: ProjectLoadState;
 }
 export interface SnapshotRef {
   snapshotId: string;

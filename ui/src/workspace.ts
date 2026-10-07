@@ -92,7 +92,7 @@ export class Workspace {
       const priceUpdate=!observe&&sameScope?this.state.data!.priceUpdate:metadata.priceUpdate;
       this.publish({pending:false});
       const snapshotId = metadata.snapshotRef.snapshotId;
-      if (background && !this.state.data?.freshness?.initialScan && !this.state.error && snapshotId !== this.state.data?.overview.snapshotRef.snapshotId && (this.reading || route.page === 'threads')) {
+      if (background && !this.state.data?.freshness?.initialScan && !this.state.data?.freshness?.projectLoads?.length && !this.state.error && snapshotId !== this.state.data?.overview.snapshotRef.snapshotId && (this.reading || route.page === 'threads')) {
         this.publish({ updatesAvailable: true }); return;
       }
       if (snapshotId !== this.version) { this.cache.clear(); this.version = snapshotId; }

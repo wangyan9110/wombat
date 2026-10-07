@@ -6,6 +6,8 @@ pub(super) struct Facts {
     pub(super) watermarks: BTreeMap<String, SourceWatermark>,
     #[serde(skip)]
     pub(super) strings: super::super::shared_strings::FactStrings,
+    #[serde(skip)]
+    pub(super) event_strings: crate::session_events::EventStrings,
     pub(super) threads: BTreeMap<String, Thread>,
     pub(super) turns: BTreeMap<String, Turn>,
     pub(super) measurements: BTreeMap<String, Candidate>,

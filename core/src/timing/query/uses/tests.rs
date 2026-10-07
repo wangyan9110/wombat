@@ -691,7 +691,7 @@ fn full_projection_budget_failure_preserves_other_verified_facts_without_prefix_
         .into_iter()
         .map(|event| {
             let mut position = event.position().clone();
-            position.source_instance_id = source.clone();
+            position.source_instance_id = source.clone().into();
             Arc::new(
                 crate::session_events::Event::new(
                     position,

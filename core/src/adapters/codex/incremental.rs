@@ -119,6 +119,7 @@ pub(crate) struct Cache {
 }
 
 struct ReusableFacts {
+    events: Vec<Arc<crate::session_events::Event>>,
     measurements: Vec<Arc<Measurement>>,
     operations: Vec<Arc<Operation>>,
 }
@@ -142,9 +143,16 @@ impl Cache {
     ) {
         operations.sort_unstable_by(|a, b| a.id.cmp(&b.id));
         self.seed = Some(ReusableFacts {
+            events: vec![],
             measurements,
             operations,
         });
+    }
+    pub(crate) fn seed_events(&mut self, mut events: Vec<Arc<crate::session_events::Event>>) {
+        if let Some(seed) = &mut self.seed {
+            events.sort_unstable_by(|a, b| a.id().cmp(b.id()));
+            seed.events = events;
+        }
     }
     pub(crate) fn share_measurements<'a>(
         &mut self,
@@ -203,6 +211,7 @@ fn load_facts(
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<Facts> {
     let mut events = BTreeMap::new();
+    let mut event_strings = crate::session_events::EventStrings::default();
     let mut title_observations = BTreeMap::new();
     crate::live_index::each(db, scope, |field, id, payload| {
         crate::operation_association::check(cancelled)?;
@@ -216,10 +225,19 @@ fn load_facts(
             );
             title_observations.insert(id.into(), observation);
         } else if field == "events" {
-            let event: Arc<crate::session_events::Event> = serde_json::from_str(payload)?;
+            let mut event: crate::session_events::Event = serde_json::from_str(payload)?;
+            event_strings.share(&mut event);
+            let event = if let Some(rows) = reuse.map(|r| &r.events)
+                && let Ok(index) = rows.binary_search_by(|r| r.id().cmp(id))
+                && rows[index].as_ref() == &event
+            {
+                Arc::clone(&rows[index])
+            } else {
+                Arc::new(event)
+            };
             anyhow::ensure!(event.id() == id, "stored event identity mismatch");
             anyhow::ensure!(
-                event.position().source_instance_id == report.source.id,
+                event.position().source_instance_id.as_ref() == report.source.id,
                 "stored event source identity mismatch"
             );
             events.insert(id.into(), event);
@@ -577,7 +595,7 @@ fn sync_cached_with_context(
             missing.iter().map(|p| crate::hash(p.as_bytes())).collect();
         facts
             .events
-            .retain(|_, event| missing_files.contains(&event.position().file_id));
+            .retain(|_, event| missing_files.contains(event.position().file_id.as_ref()));
         facts = replay_events(
             std::mem::take(&mut facts.events),
             &report,

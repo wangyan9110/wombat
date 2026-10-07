@@ -113,7 +113,7 @@ pub struct SourceReport {
     pub issues: Vec<Issue>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Thread {
     pub id: String,
@@ -126,7 +126,7 @@ pub struct Thread {
     pub last_activity_at: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Turn {
     pub id: String,

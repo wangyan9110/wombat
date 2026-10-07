@@ -504,9 +504,9 @@ fn overlapping_physical_selections_charge_each_block_once_per_bucket() {
         assert!(
             out.controls
                 .iter()
-                .all(|e| e.position().generation == "generation"
-                    && e.position().source_instance_id == "source"
-                    && e.position().file_id != "b")
+                .all(|e| e.position().generation.as_ref() == "generation"
+                    && e.position().source_instance_id.as_ref() == "source"
+                    && e.position().file_id.as_ref() != "b")
         );
     }
 }

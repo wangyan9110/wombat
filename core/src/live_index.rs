@@ -223,12 +223,39 @@ pub(crate) fn each(
     })
 }
 
-fn each_row(
+/// Stream lightweight projection facts without expanding the event ledger.
+pub(crate) fn each_without_events(
     db: &Connection,
     scope: &str,
     mut consume: impl FnMut(&str, &str, &str) -> Result<()>,
 ) -> Result<bool> {
-    let mut statement = db.prepare_cached("SELECT b.field,e.id,CASE WHEN e.source_bucket IS NULL THEN json(e.payload) ELSE json_extract(t.payload,e.member) END FROM buckets b JOIN entries e ON e.bucket=b.id LEFT JOIN entries t ON t.bucket=e.source_bucket AND t.id=e.id WHERE b.scope=?1")?;
+    each_row_filtered(db, scope, true, |field, id, payload| {
+        if !(id.is_empty() && payload == "{}") {
+            consume(field, id, payload)?;
+        }
+        Ok(())
+    })
+}
+
+fn each_row(
+    db: &Connection,
+    scope: &str,
+    consume: impl FnMut(&str, &str, &str) -> Result<()>,
+) -> Result<bool> {
+    each_row_filtered(db, scope, false, consume)
+}
+fn each_row_filtered(
+    db: &Connection,
+    scope: &str,
+    skip_events: bool,
+    mut consume: impl FnMut(&str, &str, &str) -> Result<()>,
+) -> Result<bool> {
+    let sql = if skip_events {
+        "SELECT b.field,e.id,CASE WHEN e.source_bucket IS NULL THEN json(e.payload) ELSE json_extract(t.payload,e.member) END FROM buckets b JOIN entries e ON e.bucket=b.id LEFT JOIN entries t ON t.bucket=e.source_bucket AND t.id=e.id WHERE b.scope=?1 AND b.field!='events'"
+    } else {
+        "SELECT b.field,e.id,CASE WHEN e.source_bucket IS NULL THEN json(e.payload) ELSE json_extract(t.payload,e.member) END FROM buckets b JOIN entries e ON e.bucket=b.id LEFT JOIN entries t ON t.bucket=e.source_bucket AND t.id=e.id WHERE b.scope=?1"
+    };
+    let mut statement = db.prepare_cached(sql)?;
     let mut rows = statement.query([scope])?;
     let mut found = false;
     while let Some(row) = rows.next()? {
@@ -240,6 +267,9 @@ fn each_row(
     }
     Ok(found)
 }
+
+mod project_events;
+pub(crate) use project_events::prepare_event_reader;
 
 /// One-hop references; the target must own a payload at creation.
 pub(crate) enum Member {

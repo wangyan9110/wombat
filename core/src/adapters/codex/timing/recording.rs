@@ -134,7 +134,8 @@ pub(super) fn record(
         payload,
         collected_at,
     ) {
-        Ok(event) => {
+        Ok(mut event) => {
+            facts.event_strings.share(&mut event);
             crate::adapters::codex::event_projection::apply(facts, &event, report);
             let id = event.id().to_owned();
             facts.dirty_events.insert(id.clone());

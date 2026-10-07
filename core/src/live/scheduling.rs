@@ -62,15 +62,18 @@ pub(super) fn request(
         return Ok(work.ticket);
     }
     let ticket = entry.requested + 1;
-    jobs.try_send(Job { key: key.into() })
-        .map_err(|error| match error {
-            mpsc::TrySendError::Full(_) => {
-                operation_error("UPDATE_BUSY", "同步请求队列已满，请稍后重试")
-            }
-            mpsc::TrySendError::Disconnected(_) => {
-                operation_error("CORE_UNAVAILABLE", "后台同步服务已停止，请重新启动 Wombat")
-            }
-        })?;
+    jobs.try_send(Job {
+        key: key.into(),
+        restore_only: false,
+    })
+    .map_err(|error| match error {
+        mpsc::TrySendError::Full(_) => {
+            operation_error("UPDATE_BUSY", "同步请求队列已满，请稍后重试")
+        }
+        mpsc::TrySendError::Disconnected(_) => {
+            operation_error("CORE_UNAVAILABLE", "后台同步服务已停止，请重新启动 Wombat")
+        }
+    })?;
     entry.requested = ticket;
     entry.pending = Some(SyncWork { ticket, verify });
     entry.syncing = true;

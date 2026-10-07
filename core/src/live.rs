@@ -37,6 +37,9 @@ pub enum Mode {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Freshness {
+    /// Projects restored from committed facts; pending projects are not zero usage.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub project_loads: Vec<ProjectLoad>,
     pub status: String,
     /// Ephemeral task headers; no completed ledger or coverage is available yet.
     #[serde(default)]
@@ -48,6 +51,19 @@ pub struct Freshness {
     pub error_code: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ProjectLoad {
+    pub project: Option<String>,
+    pub state: ProjectLoadState,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectLoadState {
+    Pending,
+    Loading,
+    Ready,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
     pub output_version: u32,
@@ -55,6 +71,8 @@ pub struct Response {
     pub freshness: Freshness,
 }
 struct Entry {
+    restoring: bool,
+    preferred_project: Option<String>,
     roots: Vec<String>,
     views: VecDeque<(Instant, Arc<Snapshot>)>,
     attempt: u64,
@@ -73,6 +91,8 @@ struct Entry {
 impl Entry {
     fn new(roots: Vec<String>) -> Self {
         Self {
+            restoring: false,
+            preferred_project: None,
             roots,
             views: VecDeque::new(),
             attempt: 0,
@@ -92,6 +112,7 @@ impl Entry {
 }
 type Shared = Arc<(Mutex<BTreeMap<String, Entry>>, Condvar)>;
 struct Job {
+    restore_only: bool,
     key: String,
 }
 #[derive(Clone, Copy)]
@@ -161,7 +182,7 @@ mod query;
 mod scheduling;
 mod selection;
 mod transport;
-use collection::{restore, source_key, sources, sync};
+use collection::{restore_projects, source_key, sources, sync};
 use query::{config_query, query, timing_query};
 use selection::select_view;
 pub use transport::serve;

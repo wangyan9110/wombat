@@ -1,5 +1,70 @@
 use super::*;
 
+#[test]
+fn concurrent_cached_readers_share_one_restore_job_and_published_view() {
+    let root = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let state: Shared = Arc::new((Mutex::new(BTreeMap::new()), Condvar::new()));
+    let (jobs, receiver) = mpsc::sync_channel(4);
+    std::thread::scope(|scope| {
+        let read = || {
+            let request =
+                ReadViewSelector::new(roots.clone(), None, Mode::Cached, false, false).unwrap();
+            select_view(&request, &state, &jobs, &AtomicBool::new(false))
+                .unwrap()
+                .0
+        };
+        let first = scope.spawn(read);
+        let job = receiver.recv_timeout(Duration::from_secs(1)).unwrap();
+        assert!(job.restore_only);
+        let second = scope.spawn(read);
+        let snapshot = fixture(&key, "restored");
+        {
+            let mut entries = state.0.lock().unwrap();
+            let entry = entries.get_mut(&key).unwrap();
+            assert!(entry.restoring);
+            entry
+                .views
+                .push_back((Instant::now(), Arc::clone(&snapshot)));
+            entry.restoring = false;
+        }
+        state.1.notify_all();
+        assert!(Arc::ptr_eq(&first.join().unwrap(), &snapshot));
+        assert!(Arc::ptr_eq(&second.join().unwrap(), &snapshot));
+        assert!(receiver.try_recv().is_err());
+    });
+}
+
+#[test]
+fn cached_restore_failure_retains_its_storage_error() {
+    let root = tempfile::tempdir().unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let state: Shared = Arc::new((Mutex::new(BTreeMap::new()), Condvar::new()));
+    let (jobs, receiver) = mpsc::sync_channel(1);
+    let request = ReadViewSelector::new(roots, None, Mode::Cached, false, false).unwrap();
+    std::thread::scope(|scope| {
+        let reader = scope.spawn(|| select_view(&request, &state, &jobs, &AtomicBool::new(false)));
+        assert!(
+            receiver
+                .recv_timeout(Duration::from_secs(1))
+                .unwrap()
+                .restore_only
+        );
+        {
+            let mut entries = state.0.lock().unwrap();
+            let entry = entries.get_mut(&key).unwrap();
+            entry.restoring = false;
+            entry.error = Some("unsupported index format".into());
+            entry.error_code = Some("INDEX_VERSION_UNSUPPORTED");
+        }
+        state.1.notify_all();
+        let error = reader.join().unwrap().err().unwrap();
+        assert_eq!(code(error), "INDEX_VERSION_UNSUPPORTED");
+    });
+}
+
 fn fixture(key: &str, revision: &str) -> Arc<Snapshot> {
     let root = tempfile::tempdir().unwrap();
     Arc::new(

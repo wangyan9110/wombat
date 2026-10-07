@@ -32,7 +32,7 @@ function diagnosticText(value: unknown, maximum: number): string | undefined {
 }
 
 /** Keep the CLI error envelope when failing; never dump successful rows or arbitrary details. */
-export function parseBenchmarkCliResponse(operation: string, response: BenchmarkCliResponse): Record<string, unknown> {
+export function parseBenchmarkCliResponse(operation: string, response: BenchmarkCliResponse, allowRestorePending = false): Record<string, unknown> {
   const stdout = typeof response.stdout === 'string' ? response.stdout : '';
   let value: unknown;
   let parseFailure = false;
@@ -42,6 +42,17 @@ export function parseBenchmarkCliResponse(operation: string, response: Benchmark
   const structuredError = typeof error === 'object' && error !== null ? error as Record<string, unknown> : undefined;
   const expectedTimeout = !response.error && !response.signal && isExpectedSyncTimeout(response.status, value);
   if (expectedTimeout && object) return object;
+  if (allowRestorePending && !response.error && !response.signal && response.status === 1
+    && structuredError?.code === 'SYNC_PENDING' && object) return object;
+  // Exit 2 is a successful partial view only for the documented project restore state.
+  const freshness = object?.freshness;
+  const quality = object?.quality;
+  if (!response.error && !response.signal && response.status === 2 && object && error === undefined
+    && typeof freshness === 'object' && freshness !== null && 'status' in freshness && freshness.status === 'syncing'
+    && 'projectLoads' in freshness && Array.isArray(freshness.projectLoads) && freshness.projectLoads.length > 0
+    && freshness.projectLoads.every(p => typeof p === 'object' && p !== null && (p.project === null || typeof p.project === 'string') && ['ready','loading','pending'].includes(p.state))
+    && freshness.projectLoads.some(p => p.state !== 'ready')
+    && typeof quality === 'object' && quality !== null && 'status' in quality && quality.status === 'partial') return object;
   if (response.error || response.signal || response.status !== 0 || !object || error !== undefined) {
     const diagnostic = {
       status: response.status,

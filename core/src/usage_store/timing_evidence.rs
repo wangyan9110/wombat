@@ -237,11 +237,11 @@ impl Snapshot {
         for event in &events {
             meter.work(1)?;
             let p = event.position();
-            if p.source_instance_id != target.source {
+            if p.source_instance_id.as_ref() != target.source {
                 return Err(corrupt("轮次事件来源身份不匹配"));
             }
             let span = spans
-                .entry((p.file_id.clone(), p.generation.clone()))
+                .entry((p.file_id.to_string(), p.generation.to_string()))
                 .or_insert((p.byte_offset, p.byte_offset));
             span.0 = span.0.min(p.byte_offset);
             span.1 = span.1.max(p.byte_offset);
@@ -267,8 +267,8 @@ impl Snapshot {
                 meter.work(1)?;
                 let low = Position {
                     source_instance_id: target.source.into(),
-                    file_id: file_id.clone(),
-                    generation: generation.clone(),
+                    file_id: file_id.clone().into(),
+                    generation: generation.clone().into(),
                     byte_offset: *first,
                     ordinal: 0,
                 };
@@ -291,10 +291,10 @@ impl Snapshot {
                 for event in meter.block(self, partition, index)? {
                     meter.work(1)?;
                     let p = event.position();
-                    if p.source_instance_id == target.source
+                    if p.source_instance_id.as_ref() == target.source
                         && !event.gaps().is_empty()
                         && spans
-                            .get(&(p.file_id.clone(), p.generation.clone()))
+                            .get(&(p.file_id.to_string(), p.generation.to_string()))
                             .is_some_and(|(first, last)| {
                                 *first <= p.byte_offset && p.byte_offset <= *last
                             })

@@ -13,7 +13,7 @@ pub(super) fn order(event: &Event) -> (&str, u64, u32) {
         _ => None,
     };
     (
-        evidence.map_or(event.position().file_id.as_str(), |e| e.file.as_ref()),
+        evidence.map_or(event.position().file_id.as_ref(), |e| e.file.as_ref()),
         event.position().byte_offset,
         event.position().ordinal,
     )

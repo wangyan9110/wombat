@@ -47,10 +47,10 @@ fn bounded(index: &NativeBoundaryIndex) -> Result<()> {
 pub(super) fn build(target: &EventTarget, events: &[Arc<Event>]) -> Result<NativeBoundaryIndex> {
     let first_source = events
         .first()
-        .map(|event| event.position().source_instance_id.as_str());
+        .map(|event| event.position().source_instance_id.as_ref());
     let same_source = events
         .iter()
-        .all(|event| Some(event.position().source_instance_id.as_str()) == first_source);
+        .all(|event| Some(event.position().source_instance_id.as_ref()) == first_source);
     let mut reducer = BoundaryReducer::default();
     if target.turn_id.is_some() && same_source {
         for event in events {
@@ -112,7 +112,8 @@ pub(super) fn validate(partition: &EventPartition) -> Result<()> {
     }
     if let Some(source) = &index.source_instance_id
         && partition.chunks.iter().any(|chunk| {
-            &chunk.first.source_instance_id != source || &chunk.last.source_instance_id != source
+            chunk.first.source_instance_id.as_ref() != source.as_str()
+                || chunk.last.source_instance_id.as_ref() != source.as_str()
         })
     {
         return Err(corrupt("原生轮次边界来源身份无效"));

@@ -19,7 +19,8 @@ pub(super) fn query(
         request.mode.clone(),
         request.verify,
         refresh,
-    )?;
+    )?
+    .project(request.query.scope.project.clone());
     let cancelled = std::sync::atomic::AtomicBool::new(false);
     let (snapshot, freshness) = select_with_retained(&selector, shared, jobs, configs, &cancelled)?;
     let mut query = request.query;
@@ -61,8 +62,9 @@ fn select_with_retained(
         {
             let initial_scan = preview::is_initial(&snapshot);
             return Ok((
-                snapshot,
+                Arc::clone(&snapshot),
                 Freshness {
+                    project_loads: snapshot.project_loads.clone(),
                     initial_scan,
                     status: "fixed".into(),
                     checked_at: Some(checked_at),

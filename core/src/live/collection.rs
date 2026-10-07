@@ -11,12 +11,19 @@ pub(super) fn source_key(roots: &[String]) -> String {
     crate::hash(ids.join(":"))
 }
 pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Option<Collected>> {
+    load_collected_inner(db, key, false)
+}
+fn load_collected_inner(
+    db: &rusqlite::Connection,
+    key: &str,
+    skip_events: bool,
+) -> Result<Option<Collected>> {
     validate_message_mapping(db, key)?;
     let mut value = Collected::default();
     let mut paths = EvidencePaths::default();
     let mut watermark_version = None;
     let mut strings = adapters::shared_strings::FactStrings::default();
-    let found = crate::live_index::each(db, &format!("projection:{key}"), |field, id, payload| {
+    let consume = |field: &str, id: &str, payload: &str| {
         macro_rules! rows {
             ($name:ident) => {
                 value.$name.push(serde_json::from_str(payload)?);
@@ -85,7 +92,13 @@ pub(super) fn load_collected(db: &rusqlite::Connection, key: &str) -> Result<Opt
             _ => anyhow::bail!("unsupported projection field: {field}"),
         }
         Ok(())
-    })?;
+    };
+    let scope = format!("projection:{key}");
+    let found = if skip_events {
+        crate::live_index::each_without_events(db, &scope, consume)?
+    } else {
+        crate::live_index::each(db, &scope, consume)?
+    };
     if found {
         if watermark_version != Some(WATERMARK_FORMAT_VERSION) {
             return Err(operation_error(
@@ -161,6 +174,7 @@ pub(super) fn sync(
                 prior.measurement_facts().cloned().collect(),
                 prior.operation_facts().cloned().collect(),
             );
+            cache.seed_events(prior.events()?);
         }
 
         let mut source_tx = tx.savepoint()?;
@@ -428,67 +442,17 @@ pub(super) fn sync(
     tx.commit()?;
     Ok(Some(snapshot))
 }
+#[cfg(test)]
 pub(super) fn restore(
     db: &rusqlite::Connection,
     key: &str,
     roots: &[String],
 ) -> Result<Option<Arc<Snapshot>>> {
-    // Pin all projection/epoch reads to one committed SQLite view.
-    let read_tx = db.unchecked_transaction()?;
-    let db = &read_tx;
-    let prior = crate::live_index::load_map(db, &format!("view:{key}"))?;
-    let Some(id) = prior.get("id").and_then(Value::as_str) else {
-        return Ok(None);
-    };
-    let prices = crate::pricing_sync::current()?;
-    // A changed catalog is committed by sync before it is advertised as this revision.
-    if prior.get("prices").and_then(Value::as_str) != Some(&prices.catalog_hash) {
-        return Ok(None);
-    }
-    let mut collected = Collected::default();
-    for source in sources(roots).sources {
-        let epoch = crate::live_index::load_map(db, &format!("epoch:{}", source.id))?;
-        if prior.get("epochs").and_then(|v| v.get(&source.id)) != Some(&Value::Object(epoch)) {
-            return Ok(None);
-        }
-        let failure = prior
-            .get("failures")
-            .and_then(|v| v.get(&source.id))
-            .map(|v| serde_json::from_value::<SourceReport>(v.clone()))
-            .transpose()?;
-        let mut v = match load_collected(db, &source.id)? {
-            Some(v) => v,
-            None if failure.is_some() => Collected::default(),
-            None => return Ok(None),
-        };
-        if let Some(failure) = failure {
-            v.issues = failure.issues.clone();
-            v.sources = vec![failure];
-            v.watermarks = serde_json::from_value(
-                prior
-                    .get("failureWatermarks")
-                    .and_then(|v| v.get(&source.id))
-                    .ok_or_else(|| anyhow::anyhow!("missing failure watermark observations"))?
-                    .clone(),
-            )?;
-            validate_watermarks(&v.watermarks)?;
-        }
-        collected.watermarks.extend(v.watermarks);
-        collected.sources.extend(v.sources);
-        collected.issues.extend(v.issues);
-        collected.threads.extend(v.threads);
-        collected.turns.extend(v.turns);
-        collected.measurements.extend(v.measurements);
-        collected.operations.extend(v.operations);
-        collected.events.extend(v.events);
-        collected.title_observations.extend(v.title_observations);
-    }
-    let mut snapshot = crate::usage_store::memory(collected, id.into(), prices, None)?;
-    if let Some(at) = prior.get("createdAt").and_then(Value::as_str) {
-        snapshot.manifest.snapshot_ref.created_at = at.into();
-    }
-    Ok(Some(Arc::new(snapshot)))
+    restore_projects::restore_projects(db, key, roots, || None, |_| {})
 }
+mod restore_projects;
+pub(super) use restore_projects::incomplete as restoring_projects;
+pub(super) use restore_projects::restore_projects;
 
 #[cfg(test)]
 mod observation_tests;

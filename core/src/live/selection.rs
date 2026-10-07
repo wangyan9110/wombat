@@ -13,6 +13,7 @@ pub(super) struct ReadViewSelector {
     capture_now: bool,
     wait: WaitPolicy,
     key: String,
+    project: Option<String>,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum WaitPolicy {
@@ -30,6 +31,10 @@ impl WaitPolicy {
     }
 }
 impl ReadViewSelector {
+    pub(super) fn project(mut self, project: Option<String>) -> Self {
+        self.project = project;
+        self
+    }
     pub(super) fn capture_now(mut self) -> Self {
         self.capture_now = true;
         self
@@ -93,6 +98,7 @@ impl ReadViewSelector {
             capture_now: false,
             wait,
             key,
+            project: None,
         })
     }
 }
@@ -128,6 +134,7 @@ pub(super) fn select_view(
         .entry(key.clone())
         .or_insert_with(|| Entry::new(roots));
     entry.touched = Instant::now();
+    entry.preferred_project = request.project.clone();
     let mut ticket = entry.completed;
     if request.wait != WaitPolicy::None
         && (request.mode == Mode::Fresh
@@ -143,10 +150,9 @@ pub(super) fn select_view(
         while entries[key].completed < ticket && Instant::now() < deadline {
             check_cancel(cancelled)?;
             let initial_available = request.wait == WaitPolicy::Auto
-                && entries[key]
-                    .views
-                    .back()
-                    .is_some_and(|(_, v)| preview::is_initial(v));
+                && entries[key].views.back().is_some_and(|(_, v)| {
+                    preview::is_initial(v) || collection::restoring_projects(v)
+                });
             if initial_available && Instant::now() >= preview_at {
                 break;
             }
@@ -163,22 +169,31 @@ pub(super) fn select_view(
                 .0;
         }
     } else if selector.is_none() && entry.views.is_empty() {
-        // Cached restoration must not block unrelated ready views.
-        let restore_roots = entry.roots.clone();
-        drop(entries);
-        let db = crate::live_index::open(&directory()?.join("index.sqlite"))?;
-        let restored = restore(&db, key, &restore_roots)?;
-        entries = lock.lock().unwrap();
-        let entry = entries.get_mut(key).unwrap();
-        if entry.views.is_empty()
-            && let Some(view) = restored
+        // Restoration has one worker owner. Readers never independently load the same index.
+        if !entry.restoring && !entry.syncing {
+            jobs.try_send(Job {
+                key: key.clone(),
+                restore_only: true,
+            })
+            .map_err(|_| operation_error("UPDATE_BUSY", "读取请求队列已满，请稍后重试"))?;
+            entry.restoring = true;
+        }
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while entries[key].views.is_empty()
+            && (entries[key].restoring || entries[key].syncing)
+            && Instant::now() < deadline
         {
-            entry.views.push_back((Instant::now(), view));
+            check_cancel(cancelled)?;
+            entries = wake
+                .wait_timeout(entries, Duration::from_millis(50))
+                .unwrap()
+                .0;
         }
     }
     check_cancel(cancelled)?;
     let entry = entries.get_mut(key).unwrap();
-    let current = entry.completed >= ticket && entry.error.is_none() && !entry.syncing;
+    let current =
+        entry.completed >= ticket && entry.error.is_none() && !entry.syncing && !entry.restoring;
     if (request.mode == Mode::Fresh || request.refresh) && !current && selector.is_none() {
         return Err(operation_error(
             if entry.error.is_some() {
@@ -207,14 +222,18 @@ pub(super) fn select_view(
             .map(|(_, v)| Arc::clone(v))
             .ok_or_else(|| {
                 operation_error(
-                    if request.mode == Mode::Cached {
-                        "NO_SNAPSHOT"
-                    } else if entry.error.is_some() {
+                    if entry.error.is_some() {
                         entry.error_code.unwrap_or("SOURCE_UNREADABLE")
+                    } else if request.mode == Mode::Cached && !entry.restoring {
+                        "NO_SNAPSHOT"
                     } else {
                         "SYNC_PENDING"
                     },
-                    if request.mode == Mode::Cached {
+                    if let Some(error) = &entry.error {
+                        error.clone()
+                    } else if entry.restoring {
+                        "正在加载已保存的项目，请稍后重试".into()
+                    } else if request.mode == Mode::Cached {
                         "尚无可读取的已提交索引，请先同步".into()
                     } else {
                         entry
@@ -226,6 +245,7 @@ pub(super) fn select_view(
             })?
     };
     let freshness = Freshness {
+        project_loads: snapshot.project_loads.clone(),
         initial_scan: preview::is_initial(&snapshot),
         status: if selector.is_some() {
             "fixed"
@@ -233,7 +253,7 @@ pub(super) fn select_view(
             "current"
         } else if entry.error.is_some() {
             "failed"
-        } else if entry.syncing {
+        } else if entry.syncing || entry.restoring {
             "syncing"
         } else {
             "stale"

@@ -9,7 +9,7 @@ use crate::session_events::{Event, Position};
 use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
-    collections::BTreeSet,
+    collections::{BTreeSet, HashSet},
     sync::atomic::{AtomicBool, Ordering as AtomicOrdering},
 };
 
@@ -110,7 +110,7 @@ pub struct EventPage {
     pub total: usize,
     pub next_cursor: Option<EventCursor>,
 }
-type EventBuckets = BTreeMap<EventTarget, Vec<Arc<Event>>>;
+pub(super) type EventBuckets = BTreeMap<EventTarget, Arc<Vec<Arc<Event>>>>;
 
 pub(super) fn position_order(a: &Position, b: &Position) -> Ordering {
     (
@@ -129,7 +129,7 @@ pub(super) fn position_order(a: &Position, b: &Position) -> Ordering {
         ))
 }
 pub(super) fn validate(events: &[Arc<Event>]) -> Result<()> {
-    let mut ids = BTreeSet::new();
+    let mut ids = HashSet::with_capacity(events.len());
     for event in events {
         if !ids.insert(event.id()) {
             return Err(operation_error("INVALID_FACTS", "事件身份重复"));
@@ -139,7 +139,7 @@ pub(super) fn validate(events: &[Arc<Event>]) -> Result<()> {
 }
 fn group(events: Vec<Arc<Event>>) -> Result<EventBuckets> {
     validate(&events)?;
-    let mut buckets: EventBuckets = BTreeMap::new();
+    let mut buckets: BTreeMap<EventTarget, Vec<Arc<Event>>> = BTreeMap::new();
     for event in events {
         buckets
             .entry(EventTarget::of(&event))
@@ -147,15 +147,66 @@ fn group(events: Vec<Arc<Event>>) -> Result<EventBuckets> {
             .push(event);
     }
     for events in buckets.values_mut() {
-        events.sort_unstable_by(|a, b| position_order(a.position(), b.position()));
+        if !events.is_sorted_by(|a, b| position_order(a.position(), b.position()).is_le()) {
+            events.sort_unstable_by(|a, b| position_order(a.position(), b.position()));
+        }
     }
-    Ok(buckets)
+    Ok(buckets
+        .into_iter()
+        .map(|(target, events)| (target, Arc::new(events)))
+        .collect())
 }
-pub(super) fn memory_events(events: Vec<Arc<Event>>) -> Result<(EventIndex, EventBuckets)> {
-    build_events(events, None)
+pub(super) fn merge_memory_events(
+    events: Vec<Arc<Event>>,
+    prior: Option<&Snapshot>,
+) -> Result<(EventIndex, EventBuckets)> {
+    let (new_index, new_buckets) = build_events(events, None, None)?;
+    let Some(prior) = prior else {
+        return Ok((new_index, new_buckets));
+    };
+    let mut buckets = prior
+        .live_events
+        .as_ref()
+        .ok_or_else(|| corrupt("实时事件分区缺失"))?
+        .clone();
+    for (target, events) in new_buckets {
+        if buckets.insert(target, events).is_some() {
+            return Err(corrupt("项目批次事件归属重叠"));
+        }
+    }
+    let mut partitions = prior.manifest.events.partitions.clone();
+    partitions.extend(new_index.partitions);
+    partitions.sort_unstable_by(|a, b| a.target.cmp(&b.target));
+    for (number, partition) in partitions.iter_mut().enumerate() {
+        rename_partition(partition, number)?;
+    }
+    let index = EventIndex {
+        version: EVENT_INDEX_VERSION,
+        partitions,
+    };
+    validate_index(&index)?;
+    Ok((index, buckets))
+}
+fn rename_partition(partition: &mut EventPartition, number: usize) -> Result<()> {
+    let mut renamed = false;
+    for (chunk_number, chunk) in partition.chunks.iter_mut().enumerate() {
+        let name = format!("events-{number}-{chunk_number}.json");
+        renamed |= chunk.file.file != name;
+        chunk.file.file = name;
+    }
+    if renamed {
+        partition.sha256 = partition_hash(partition)?;
+    }
+    Ok(())
+}
+pub(super) fn reuse_memory_events(
+    events: Vec<Arc<Event>>,
+    prior: Option<&Snapshot>,
+) -> Result<(EventIndex, EventBuckets)> {
+    build_events(events, None, prior)
 }
 pub(super) fn save_events(directory: &Path, events: Vec<Arc<Event>>) -> Result<EventIndex> {
-    Ok(build_events(events, Some(directory))?.0)
+    Ok(build_events(events, Some(directory), None)?.0)
 }
 fn block_size<T: Serialize>(value: &T, cancelled: &AtomicBool) -> Result<u64> {
     let mut writer = BudgetWriter {
@@ -172,11 +223,27 @@ fn block_size<T: Serialize>(value: &T, cancelled: &AtomicBool) -> Result<u64> {
 fn build_events(
     events: Vec<Arc<Event>>,
     directory: Option<&Path>,
+    prior: Option<&Snapshot>,
 ) -> Result<(EventIndex, EventBuckets)> {
-    let buckets = group(events)?;
+    let mut buckets = group(events)?;
     let mut partitions = Vec::new();
     let cancelled = AtomicBool::new(false);
-    for (number, (target, events)) in buckets.iter().enumerate() {
+    for (number, (target, events)) in buckets.iter_mut().enumerate() {
+        if let Some(prior) = prior
+            && let Some(previous) = prior.live_events.as_ref().and_then(|b| b.get(target))
+            && previous.len() == events.len()
+            && previous
+                .iter()
+                .zip(events.iter())
+                .all(|(a, b)| Arc::ptr_eq(a, b))
+            && let Some(partition) = prior.event_partition(target)?
+        {
+            let mut partition = partition.clone();
+            rename_partition(&mut partition, number)?;
+            *events = Arc::clone(previous);
+            partitions.push(partition);
+            continue;
+        }
         let overhead = block_size(
             &EventBlock {
                 version: EVENT_INDEX_VERSION,
@@ -225,8 +292,15 @@ fn build_events(
                 output: directory.map(|_| Vec::new()),
                 hash: Some(Sha256::new()),
             };
-            serde_json::to_writer(&mut writer, &block)
-                .map_err(|_| operation_error("RESOURCE_LIMIT", "事件块超过4 MiB"))?;
+            {
+                use std::io::Write;
+                let mut buffered = std::io::BufWriter::with_capacity(64 * 1024, &mut writer);
+                serde_json::to_writer(&mut buffered, &block)
+                    .map_err(|_| operation_error("RESOURCE_LIMIT", "事件块超过4 MiB"))?;
+                buffered
+                    .flush()
+                    .map_err(|_| operation_error("RESOURCE_LIMIT", "事件块超过4 MiB"))?;
+            }
             let name = format!("events-{number}-{}.json", chunks.len());
             let sha256 = format!("{:x}", writer.hash.unwrap().finalize());
             if let (Some(directory), Some(bytes)) = (directory, writer.output) {
@@ -699,7 +773,11 @@ impl Snapshot {
     /// including unattributed facts; target queries must use the bounded methods above.
     pub(crate) fn events(&self) -> Result<Vec<Arc<Event>>> {
         if let Some(buckets) = &self.live_events {
-            return Ok(buckets.values().flatten().cloned().collect());
+            return Ok(buckets
+                .values()
+                .flat_map(|events| events.iter())
+                .cloned()
+                .collect());
         }
         let mut events = Vec::new();
         let cancelled = AtomicBool::new(false);

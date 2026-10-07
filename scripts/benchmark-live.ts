@@ -20,6 +20,8 @@ const measurements = positiveInteger('--measurements', 100_000);
 const threads = positiveInteger('--threads', 500);
 const appends = positiveInteger('--appends', 12);
 const priceGroups = positiveInteger('--price-groups', 1);
+const projects = positiveInteger('--projects', 1);
+assert(projects <= threads, 'Projects cannot exceed thread count');
 assert(priceGroups <= measurements, 'Price groups cannot exceed measurement count');
 assert(threads <= measurements && existsSync(core) && existsSync(cli), 'Build the release core and CLI before benchmarking');
 
@@ -65,10 +67,10 @@ async function startService(dataHome: string): Promise<MeasuredService> {
   return service;
 }
 
-function invokeCli(environment: NodeJS.ProcessEnv, args: string[], timeout = 120_000): { elapsedMs: number; status: number | null; value: any; stderr: string } {
+function invokeCli(environment: NodeJS.ProcessEnv, args: string[], timeout = 120_000, allowRestorePending = false): { elapsedMs: number; status: number | null; value: any; stderr: string } {
   const start = performance.now();
   const response = spawnSync(process.execPath, [cli, ...args], { env: environment, encoding: 'utf8', timeout, maxBuffer: 64 * 1024 * 1024 });
-  const value = parseBenchmarkCliResponse(args.join(' '), response);
+  const value = parseBenchmarkCliResponse(args.join(' '), response, allowRestorePending);
   return { elapsedMs: performance.now() - start, status: response.status, value, stderr: response.stderr };
 }
 
@@ -184,7 +186,7 @@ async function writeCorpus(): Promise<void> {
     const thread = `thread-${index}`;
     const file = path.join(source, 'sessions', `${index}.jsonl`);
     const stream = createWriteStream(file);
-    for (const value of [{ type: 'session_meta', payload: { id: thread } }, { type: 'turn_context', payload: { turn_id: 'u', model: 'gpt-5.4', effort: 'high' } }]) stream.write(line(value));
+    for (const value of [{ type: 'session_meta', payload: { id: thread, ...(projects > 1 ? {cwd:`/synthetic/project-${index % projects}`} : {}) } }, { type: 'turn_context', payload: { turn_id: 'u', model: 'gpt-5.4', effort: 'high' } }]) stream.write(line(value));
     for (let j = index; j < measurements; j += threads) {
       for (const value of [record(thread, j), { type: 'response_item', payload: { type: 'function_call', name: 'read_file', call_id: String(j), arguments: 'SYNTHETIC_PRIVATE_ARGUMENT' } }]) stream.write(line(value));
     }
@@ -253,6 +255,39 @@ try {
   const firstExit = await finishService(firstService, liveIdleStart);
   const initialDataBytesAfterIdleExit = directoryBytes(initialDataHome);
 
+  // Restart against the same committed index. No fresh scan is requested.
+  const restoredService = await startService(initialDataHome);
+  const restoreStart = performance.now();
+  const preferredProject = projects > 1 ? '/synthetic/project-0' : undefined;
+  const restoredUsage = async (args: string[]) => {
+    while (true) {
+      const response = invokeCli(restoredService.environment, args, 15_000, true);
+      if (response.value.error?.code !== 'SYNC_PENDING') return response;
+      assert(performance.now() - restoreStart < 120_000, 'Project restoration exceeded benchmark time limit');
+      await delay(50);
+    }
+  };
+  const firstRestored = await restoredUsage(['usage', '--cached', ...(preferredProject ? ['--project',preferredProject] : []), ...dateArgs, '--json']);
+  assert([0,2].includes(firstRestored.status??-1));
+  const firstProjectMs = performance.now()-restoreStart;
+  const firstProjectRssKiB = processRssKiB(restoredService.processPid);
+  let expectedProjectTokens = 0;
+  for(let row=0;row<measurements;row++)if(!preferredProject||(row%threads)%projects===0)expectedProjectTokens+=110+2*(row%priceGroups);
+  expectedProjectTokens+=appends*110;
+  assert.equal(firstRestored.value.summary.tokens.total,expectedProjectTokens,'First loaded project must conserve all its recorded tokens');
+  let allRestored = await restoredUsage(['usage','--cached',...dateArgs,'--json']);
+  while(allRestored.value.freshness?.projectLoads?.length){
+    assert(performance.now()-restoreStart<120_000,'Project restoration exceeded benchmark time limit');
+    await delay(50);
+    allRestored=await restoredUsage(['usage','--cached',...dateArgs,'--json']);
+  }
+  assertUsageHierarchy(allRestored.value,totalTokens,totalCost);
+  assert.deepEqual(normalizeUsageOracle(allRestored.value),finalOracle.usage,'Restored projects differ from committed usage');
+  const fullRestoreMs = performance.now()-restoreStart;
+  const restoredFootprint = indexAndDisk(initialDataHome);
+  const restoreExit = await finishService(restoredService,performance.now());
+  const coldRestore = {firstProjectMs,fullRestoreMs,firstProjectRssKiB,peakRssBytes:restoreExit.peakRssBytes,preferredProject,firstProjectStates:firstRestored.value.freshness?.projectLoads??[],index:restoredFootprint,independentProjectTruthMatches:true,wholeSourceOracleMatches:true};
+
   // Fixed queries use separate core processes and may outlast the live daemon's
   // idle lifetime. Finish live-process measurements before those offline reads.
   const fixedUsageStart = performance.now();
@@ -296,7 +331,7 @@ try {
       afterAppend: { ...appendedCorpus },
       sourceBytesStableDuringSnapshotAndRebuild: true,
       appendedSourceReusedForColdRebuild: true,
-      measurements, operations: measurements, threads, appends, priceGroups,
+      measurements, operations: measurements, threads, appends, priceGroups, projects,
     },
     expectedTruth: { tokens: totalTokens, costUsd: formatMicros(totalCost), appendEach: { tokens: 110, costUsd: formatMicros(265n) } },
     sourceReports: {
@@ -308,6 +343,7 @@ try {
       coldRebuild: rebuiltUsage.value.quality.sources,
       interpretation: 'Raw reports preserve source identity, versions, status and issues. filesRead/bytesRead reflect work of the specific collection pass, so oracle normalization omits only those two fields while still comparing all source outcome fields.',
     },
+    coldRestore,
     coldInitial: { syncAndCliMs: Math.round(coldSyncAndCliMs * 100) / 100, warmCliMs: warmCliMs.map(value => Math.round(value * 100) / 100) },
     append: { syncAndCliMs: appendSyncAndCliMs.map(value => Math.round(value * 100) / 100), rssKiB: appendRssKiB },
     fixedSnapshot: {

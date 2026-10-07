@@ -634,8 +634,8 @@ fn source_position_order_ignores_input_order_and_wall_clock_ties() {
             .iter()
             .map(|e| {
                 (
-                    e.position().file_id.as_str(),
-                    e.position().generation.as_str(),
+                    e.position().file_id.as_ref(),
+                    e.position().generation.as_ref(),
                     e.position().byte_offset,
                     e.position().ordinal,
                 )

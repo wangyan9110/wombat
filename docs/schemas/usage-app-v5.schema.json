@@ -348,6 +348,13 @@
     "Freshness": {
       "type": "object",
       "properties": {
+        "projectLoads": {
+          "description": "Projects restored from committed facts; pending projects are not zero usage.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectLoad"
+          }
+        },
         "status": {
           "type": "string"
         },
@@ -381,6 +388,32 @@
       "required": [
         "status",
         "revision"
+      ]
+    },
+    "ProjectLoad": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/definitions/ProjectLoadState"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ]
+    },
+    "ProjectLoadState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "loading",
+        "ready"
       ]
     },
     "Action": {

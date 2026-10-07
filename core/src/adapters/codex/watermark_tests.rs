@@ -37,10 +37,10 @@ fn watermark_append_tail_missing_return_and_restart_track_same_position() {
     let first = initial.watermarks[0].clone();
     assert_eq!(first.state, WatermarkState::Complete);
     assert_eq!(first.committed_offset, fs::metadata(&path).unwrap().len());
-    assert_eq!(first.file_id, initial.events[0].position().file_id);
+    assert_eq!(first.file_id, initial.events[0].position().file_id.as_ref());
     assert_eq!(
         first.generation.as_deref(),
-        Some(initial.events[0].position().generation.as_str())
+        Some(initial.events[0].position().generation.as_ref())
     );
     assert!(sync(&mut db, &source).is_none());
     let mut file = fs::OpenOptions::new().append(true).open(&path).unwrap();

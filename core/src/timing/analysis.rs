@@ -155,7 +155,7 @@ pub struct BoundaryReducer {
     native_ids: BTreeSet<String>,
     states: BTreeSet<u8>,
     clock_domain_limit: bool,
-    clock_domains: BTreeMap<(String, String), (bool, bool)>,
+    clock_domains: BTreeMap<(std::sync::Arc<str>, std::sync::Arc<str>), (bool, bool)>,
     missing_start: bool,
     missing_end: bool,
     conflict: bool,
@@ -540,7 +540,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         .events
         .iter()
         .filter(|event| {
-            let source = event.position().source_instance_id == input.source;
+            let source = event.position().source_instance_id.as_ref() == input.source;
             let exact = source
                 && event.thread_id() == Some(input.thread)
                 && event.turn_id() == Some(input.turn);
@@ -579,7 +579,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         check(cancelled)?;
         let position = event.position();
         let span = domains
-            .entry((position.file_id.as_str(), position.generation.as_str()))
+            .entry((position.file_id.as_ref(), position.generation.as_ref()))
             .or_insert((position.byte_offset, position.byte_offset));
         span.0 = span.0.min(position.byte_offset);
         span.1 = span.1.max(position.byte_offset);
@@ -591,14 +591,14 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
         .iter()
         .filter(|event| {
             let position = event.position();
-            position.source_instance_id == input.source
+            position.source_instance_id.as_ref() == input.source
                 && event.turn_id().is_none()
                 && event
                     .thread_id()
                     .is_none_or(|thread| thread == input.thread)
                 && !event.gaps().is_empty()
                 && domains
-                    .get(&(position.file_id.as_str(), position.generation.as_str()))
+                    .get(&(position.file_id.as_ref(), position.generation.as_ref()))
                     .is_some_and(|(start, end)| {
                         *start <= position.byte_offset && position.byte_offset <= *end
                     })

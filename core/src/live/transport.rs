@@ -50,6 +50,24 @@ pub fn serve() -> Result<()> {
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(_) => None,
             };
+            if let Some(job) = &job
+                && job.restore_only
+            {
+                let roots = worker_state.0.lock().unwrap()[&job.key].roots.clone();
+                let outcome = match db.as_ref() {
+                    Some(db) => restore_into(db, &job.key, &roots, &worker_state),
+                    None => Err(operation_error("INDEX_UNAVAILABLE", "索引暂不可读取")),
+                };
+                let mut entries = worker_state.0.lock().unwrap();
+                let entry = entries.get_mut(&job.key).unwrap();
+                entry.restoring = false;
+                if let Err(error) = outcome {
+                    entry.error_code = Some(crate::live_index::failure_code(&error));
+                    entry.error = Some(error.to_string());
+                }
+                worker_state.1.notify_all();
+                continue;
+            }
             let work: Vec<_> = {
                 let entries = worker_state.0.lock().unwrap();
                 entries
@@ -100,20 +118,34 @@ pub fn serve() -> Result<()> {
                     entry.syncing = true;
                     entry.views.is_empty()
                 };
-                // Source restoration can be large; never hold the query-state lock across I/O.
-                if needs_restore && let Ok(Some(view)) = restore(db, &key, &roots) {
-                    let mut entries = worker_state.0.lock().unwrap();
-                    let entry = entries.get_mut(&key).unwrap();
-                    if entry.views.is_empty() {
-                        entry.views.push_back((Instant::now(), view));
+                if needs_restore {
+                    if let Ok(Some(view)) = preview::prepare(&key, &roots) {
+                        worker_state
+                            .0
+                            .lock()
+                            .unwrap()
+                            .get_mut(&key)
+                            .unwrap()
+                            .views
+                            .push_back((Instant::now(), view));
+                        worker_state.1.notify_all();
                     }
-                    worker_state.1.notify_all();
+                    if let Err(error) = restore_into(db, &key, &roots, &worker_state) {
+                        // Unsupported/corrupt committed facts must not silently fall back to source collection.
+                        let mut entries = worker_state.0.lock().unwrap();
+                        let entry = entries.get_mut(&key).unwrap();
+                        entry.error_code = Some(crate::live_index::failure_code(&error));
+                        entry.error = Some(error.to_string());
+                        scheduling::finish(entry, work);
+                        worker_state.1.notify_all();
+                        continue;
+                    }
                 }
                 let prior_view = worker_state.0.lock().unwrap()[&key]
                     .views
                     .iter()
                     .rev()
-                    .find(|(_, v)| !preview::is_initial(v))
+                    .find(|(_, v)| !preview::is_initial(v) && !collection::restoring_projects(v))
                     .map(|(_, v)| Arc::clone(v));
                 if prior_view.is_none()
                     && worker_state.0.lock().unwrap()[&key].views.is_empty()
@@ -356,7 +388,12 @@ pub fn serve() -> Result<()> {
                 if last_client.elapsed() > Duration::from_secs(15)
                     && active.load(std::sync::atomic::Ordering::Relaxed) == 0
                     && !configs.lock().unwrap().has_views()
-                    && !shared.0.lock().unwrap().values().any(|e| e.syncing)
+                    && !shared
+                        .0
+                        .lock()
+                        .unwrap()
+                        .values()
+                        .any(|e| e.syncing || e.restoring)
                 {
                     break;
                 }
@@ -370,6 +407,32 @@ pub fn serve() -> Result<()> {
     #[cfg(unix)]
     let _ = fs::remove_file(socket);
     Ok(())
+}
+
+fn restore_into(
+    db: &rusqlite::Connection,
+    key: &str,
+    roots: &[String],
+    shared: &Shared,
+) -> Result<Option<Arc<Snapshot>>> {
+    restore_projects(
+        db,
+        key,
+        roots,
+        || shared.0.lock().unwrap()[key].preferred_project.clone(),
+        |view| {
+            let mut entries = shared.0.lock().unwrap();
+            let entry = entries.get_mut(key).unwrap();
+            if view.project_loads.is_empty() {
+                entry.restoring = false;
+            }
+            entry.views.push_back((Instant::now(), view));
+            while entry.views.len() > 8 {
+                entry.views.pop_front();
+            }
+            shared.1.notify_all();
+        },
+    )
 }
 
 #[cfg(test)]

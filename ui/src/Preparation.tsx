@@ -10,6 +10,7 @@ export function Preparation({since,pending,progress,initial=false,cancel}:{since
 }
 export function FreshnessNotice({data}:{data:WorkspaceData}){
  const freshness=data.freshness;
+ if(freshness?.projectLoads?.length&&freshness.status!=='failed')return <p className="read-notice" role="status">{t('webui.projectsProgress',{ready:freshness.projectLoads.filter(p=>p.state==='ready').length,total:freshness.projectLoads.length})}</p>;
  if(!freshness||!freshness.initialScan&&['fixed','current'].includes(freshness.status))return null;
  return <p className="read-notice" role="status">{t(freshness.status==='failed'?'webui.syncFailed':freshness.initialScan?'webui.initialTasks':freshness.status==='syncing'?'webui.syncing':'webui.sourceStale')} {data.overview.snapshotRef.createdAt&&t('webui.resultTime',{time:timestamp(data.overview.snapshotRef.createdAt,data.route.timezone)})}{freshness.error&&<> · {storageFailureText(freshness.errorCode??undefined)??freshness.error}</>}</p>;
 }

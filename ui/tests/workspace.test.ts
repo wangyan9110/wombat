@@ -23,6 +23,25 @@ function fixture() {
   return { client, calls, revise: () => { revision = 'live:two'; }, intercept: (f: typeof intercept) => { intercept = f; } };
 }
 
+test('completed projects remain readable while successive project batches advance', async t => {
+  const f = fixture(), original = f.client.live!;
+  let restoring = true;
+  f.client.live = async (request, options) => {
+    const response = await original(request, options);
+    response.result.freshness = { ...response.result.freshness!, projectLoads: restoring ? [
+      {project:'/synthetic/a',state:'ready'}, {project:'/synthetic/b',state:'loading'},
+    ] : [] };
+    return response;
+  };
+  const w = new Workspace(f.client); t.after(() => w.stop());
+  const selected = {...route(),page:'threads' as const,project:'/synthetic/a',thread:'loaded-task'};
+  await w.navigate(selected); w.setReading(true);
+  restoring=false; f.revise(); await w.check();
+  assert.equal(w.getSnapshot().data?.list.snapshotRef.snapshotId,'live:two');
+  assert.equal(w.getSnapshot().data?.route.thread,'loaded-task');
+  assert.equal(w.getSnapshot().updatesAvailable,false);
+});
+
 test('initial task results advance to the completed ledger while preserving the opened task', async t => {
   const f = fixture();
   const live = f.client.live!;

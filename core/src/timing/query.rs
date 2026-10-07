@@ -313,7 +313,7 @@ fn query_impl(
             .iter()
             .map(|event| {
                 check(cancelled)?;
-                if event.position().source_instance_id != target.source {
+                if event.position().source_instance_id.as_ref() != target.source {
                     return Err(operation_error(
                         "SNAPSHOT_CORRUPT",
                         "Timing evidence source mismatch",

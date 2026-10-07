@@ -142,6 +142,8 @@ pub(super) fn read_file_from(
         return;
     }
     let mut reader = BufReader::new(file.take(length.saturating_sub(offset)));
+    let event_source: Arc<str> = source.id.as_str().into();
+    let event_file: Arc<str> = file_id.as_str().into();
     let mut buffer = Vec::new();
     let mut state = checkpoint
         .as_mut()
@@ -220,9 +222,9 @@ pub(super) fn read_file_from(
                     timing::discontinuity(
                         facts,
                         crate::session_events::Position {
-                            source_instance_id: source.id.clone(),
-                            file_id: file_id.clone(),
-                            generation: generation.clone(),
+                            source_instance_id: Arc::clone(&event_source),
+                            file_id: Arc::clone(&event_file),
+                            generation: generation.clone().into(),
                             byte_offset: consumed - row.bytes().len() as u64,
                             ordinal: 0,
                         },
@@ -248,9 +250,9 @@ pub(super) fn read_file_from(
                     timing::discontinuity(
                         facts,
                         crate::session_events::Position {
-                            source_instance_id: source.id.clone(),
-                            file_id: file_id.clone(),
-                            generation: generation.clone(),
+                            source_instance_id: Arc::clone(&event_source),
+                            file_id: Arc::clone(&event_file),
+                            generation: generation.clone().into(),
                             byte_offset: consumed - row.bytes().len() as u64,
                             ordinal: 0,
                         },
@@ -291,9 +293,9 @@ pub(super) fn read_file_from(
             })
             .clone();
         let position = crate::session_events::Position {
-            source_instance_id: source.id.clone(),
-            file_id: file_id.clone(),
-            generation,
+            source_instance_id: Arc::clone(&event_source),
+            file_id: Arc::clone(&event_file),
+            generation: generation.into(),
             byte_offset: consumed - row.bytes().len() as u64,
             ordinal: 0,
         };

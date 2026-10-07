@@ -184,3 +184,27 @@ test('benchmark parser accepts success and only structured sync timeouts; proces
  assert.throws(()=>parseBenchmarkCliResponse('usage',{status:2,stdout:JSON.stringify({error:'SYNC_TIMEOUT'}),stderr:''}));
  assert.throws(()=>parseBenchmarkCliResponse('usage',{status:null,signal:'SIGKILL',stdout:JSON.stringify({error:{code:'SYNC_TIMEOUT'}}),stderr:''}),/SIGKILL/);
 });
+
+test('benchmark accepts documented project batches but rejects unrelated partial failures',()=>{
+ const partial={quality:{status:'partial'},freshness:{status:'syncing',projectLoads:[{project:'/synthetic/a',state:'ready'},{project:'/synthetic/b',state:'loading'}]}};
+ const parse=(value:unknown)=>parseBenchmarkCliResponse('cached project',{status:2,stdout:JSON.stringify(value),stderr:''});
+ assert.deepEqual(parse(partial),partial);
+ for(const value of [
+  {...partial,error:{code:'INDEX_UNAVAILABLE',message:'failed'}},
+  {...partial,freshness:{...partial.freshness,status:'failed'}},
+  {...partial,freshness:{...partial.freshness,projectLoads:[]}},
+  {...partial,freshness:{...partial.freshness,projectLoads:[{project:null,state:'unexpected'}]}},
+  {...partial,quality:{status:'complete'}},
+ ])assert.throws(()=>parse(value));
+});
+
+test('only restore polling accepts bounded SYNC_PENDING responses',()=>{
+ const response={status:1,stdout:JSON.stringify({error:{code:'SYNC_PENDING',message:'loading'}}),stderr:''};
+ assert.throws(()=>parseBenchmarkCliResponse('usage',response));
+ assert.equal((parseBenchmarkCliResponse('restore',response,true).error as {code:string}).code,'SYNC_PENDING');
+ for(const failure of [
+  {...response,signal:'SIGKILL'},
+  {...response,error:{code:'ETIMEDOUT',message:'process timed out'}},
+  {...response,stdout:JSON.stringify({error:{code:'INDEX_UNAVAILABLE'}})},
+ ])assert.throws(()=>parseBenchmarkCliResponse('restore',failure,true));
+});

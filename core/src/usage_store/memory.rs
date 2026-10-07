@@ -6,6 +6,24 @@ pub(crate) fn memory(
     prices: crate::pricing_sync::Response,
     prior: Option<&Snapshot>,
 ) -> Result<Snapshot> {
+    memory_inner(collected, id, prices, prior, None)
+}
+pub(crate) fn memory_project_batch(
+    mut collected: Collected,
+    id: String,
+    prices: crate::pricing_sync::Response,
+    prior: Option<&Snapshot>,
+) -> Result<Snapshot> {
+    let events = super::events::merge_memory_events(std::mem::take(&mut collected.events), prior)?;
+    memory_inner(collected, id, prices, prior, Some(events))
+}
+fn memory_inner(
+    collected: Collected,
+    id: String,
+    prices: crate::pricing_sync::Response,
+    prior: Option<&Snapshot>,
+    prepared_events: Option<(EventIndex, super::events::EventBuckets)>,
+) -> Result<Snapshot> {
     validate_watermarks(&collected.watermarks)?;
     validate_title_observations(&collected.title_observations, &collected.threads)?;
     let mut pool = super::price_pool::PricePool::new(&prices);
@@ -39,6 +57,28 @@ pub(crate) fn memory(
         rows.push(row);
     }
     drop(pool);
+    // One membership index per immutable view; a project query touches its rows only.
+    let owners: std::collections::HashMap<_, _> = collected
+        .threads
+        .iter()
+        .map(|thread| (thread.id.as_str(), thread.project.as_deref()))
+        .collect();
+    let mut memberships = std::collections::HashMap::<Option<&str>, Vec<usize>>::new();
+    for (index, row) in rows.iter().enumerate() {
+        let project = row
+            .fact
+            .thread_id
+            .as_deref()
+            .and_then(|id| owners.get(id))
+            .copied()
+            .flatten();
+        memberships.entry(project).or_default().push(index);
+    }
+    let project_rows = memberships
+        .into_iter()
+        .map(|(project, rows)| (project.map(str::to_owned), rows))
+        .collect();
+    drop(owners);
 
     if rows
         .windows(2)
@@ -118,7 +158,10 @@ pub(crate) fn memory(
     if !by_thread.is_empty() {
         return Err(operation_error("INVALID_FACTS", "存在没有对话元数据的记录"));
     }
-    let (events, live_events) = super::events::memory_events(collected.events)?;
+    let (events, live_events) = match prepared_events {
+        Some(events) => events,
+        None => super::events::reuse_memory_events(collected.events, prior)?,
+    };
     let observation_versions = crate::observation_versions::SnapshotObservationVersions::current();
     let manifest = Manifest {
         schema_version: 4,
@@ -138,6 +181,8 @@ pub(crate) fn memory(
         threads,
     };
     Ok(Snapshot {
+        project_loads: vec![],
+        project_rows: Some(project_rows),
         timing_cache: Mutex::default(),
         query_cache: Mutex::default(),
         manifest,
