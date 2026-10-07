@@ -11,7 +11,9 @@ impl FileMetadata {
     pub(crate) fn read(path: impl AsRef<Path>) -> io::Result<Self> {
         #[cfg(windows)]
         {
-            Self::from_file(&fs::File::open(path)?)
+            // Metadata probes also observe a directory replacing a source file.
+            let handle = winapi_util::Handle::from_path_any(path)?;
+            Self::from_file(handle.as_file())
         }
         #[cfg(not(windows))]
         {
@@ -65,6 +67,20 @@ mod tests {
     use super::*;
     #[cfg(windows)]
     use std::os::windows::fs::FileTimesExt;
+
+    #[test]
+    fn path_metadata_distinguishes_missing_directory_and_regular_file() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("source");
+        assert!(FileMetadata::read(&path).is_err());
+        fs::create_dir(&path).unwrap();
+        let directory = FileMetadata::read(&path).unwrap();
+        assert!(!directory.is_file());
+        fs::remove_dir(&path).unwrap();
+        fs::write(&path, b"source").unwrap();
+        let file = FileMetadata::read(&path).unwrap();
+        assert!(file.is_file());
+    }
 
     #[test]
     fn same_bytes_and_times_do_not_hide_replacement_or_rebind_open_handles() {
