@@ -1,5 +1,6 @@
 //! Bounded, ephemeral task headers while the authoritative scan is still running.
 use super::*;
+use crate::file_metadata::FileMetadata;
 use std::io::BufRead;
 use std::time::{Duration, Instant};
 
@@ -118,7 +119,7 @@ fn header(path: &Path, source: &SourceInstance, report: &mut SourceReport, facts
     let Ok(file) = File::open(path) else {
         return;
     };
-    let Ok(before) = file.metadata() else {
+    let Ok(before) = FileMetadata::from_file(&file) else {
         return;
     };
     if !before.is_file() {
@@ -132,7 +133,7 @@ fn header(path: &Path, source: &SourceInstance, report: &mut SourceReport, facts
     report.files_read += 1;
     report.bytes_read += size as u64;
     // A skipped header is not a skipped source record: the full reader follows.
-    let Ok(after) = reader.get_ref().get_ref().metadata() else {
+    let Ok(after) = FileMetadata::from_file(reader.get_ref().get_ref()) else {
         return;
     };
     if bytes.last() != Some(&b'\n') || file_changed(&before, &after) {

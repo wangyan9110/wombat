@@ -123,11 +123,8 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                         ))
                         .or_default()
                         .push(n);
-                } else {
-                    paths
-                        .entry((source.to_owned(), item.path.clone()))
-                        .or_default()
-                        .push(n);
+                } else if let Some(path) = usage_observations::normalized_path(&item.path, None) {
+                    paths.entry((source.to_owned(), path)).or_default().push(n);
                 }
             }
         }

@@ -7,7 +7,7 @@
   "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.",
   "lockfiles": {
     "pnpm-lock.yaml": "74e7a5e7a3f614d74b447f2d6f7da4ffc6d75ea83dfa87668bf8c79f00e2824a",
-    "core/Cargo.lock": "e404adf3d4b35498d1b032bf61b28b2fb78078f4722bad521b24f4c8d3d3e785"
+    "core/Cargo.lock": "a306b8c4ac860b835ff21b0771fe5b95bf24fc776b9d65777a1a33203edc8fa6"
   },
   "node": [
     {
@@ -3440,6 +3440,20 @@
       ]
     },
     {
+      "name": "typed-path",
+      "version": "0.12.3",
+      "license": "MIT OR Apache-2.0",
+      "selectedLicense": "MIT",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "LICENSE-MIT",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+        }
+      ]
+    },
+    {
       "name": "typenum",
       "version": "1.20.1",
       "license": "MIT OR Apache-2.0",
@@ -3652,6 +3666,24 @@
         {
           "name": "LICENSE-MIT",
           "sha256": "508a77d2e7b51d98adeed32648ad124b7b30241a8e70b2e72c99f92d8e5874d1"
+        }
+      ]
+    },
+    {
+      "name": "winapi-util",
+      "version": "0.1.11",
+      "license": "Unlicense OR MIT",
+      "selectedLicense": "MIT",
+      "licenseSource": "locked crate package",
+      "enabledInBuild": true,
+      "files": [
+        {
+          "name": "COPYING",
+          "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f"
+        },
+        {
+          "name": "LICENSE-MIT",
+          "sha256": "cb3c929a05e6cbc9de9ab06a4c57eeb60ca8c724bef6c138c87d3a577e27aa14"
         }
       ]
     },

@@ -221,6 +221,7 @@ fn append_restart_verify_truncation_and_replacement_obey_event_generations() {
     let mut file = fs::OpenOptions::new().append(true).open(&path).unwrap();
     file.write_all((event("task_complete", "a").to_string() + "\n").as_bytes())
         .unwrap();
+    drop(file);
     let appended = sync(false).events;
     assert_eq!(first.len(), 5);
     assert_eq!(appended.len(), 9);

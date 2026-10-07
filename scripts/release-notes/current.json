@@ -5,6 +5,7 @@
     "Open evidence pages tied to the same task, turn, and read version. Missing records remain explicit rather than becoming zero values or claims about the cause of slow work.",
     "View committed project results progressively during large initial reads, with less event allocation and more targeted project event queries.",
     "Keep reading Codex records while files are appended, and refresh active Web data every five minutes.",
+    "Resolve recorded Windows and Unix paths consistently, and recognize replaced Windows logs without relying on their creation time.",
     "Create a separate timing summary for sharing with direct identifiers removed. Local evidence and the sharing summary remain separate."
   ],
   "knownLimitations": [

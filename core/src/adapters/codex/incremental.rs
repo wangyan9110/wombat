@@ -4,6 +4,7 @@ use anyhow::Result;
 mod projection;
 use rusqlite::Connection;
 
+use crate::file_metadata::FileMetadata;
 use std::time::UNIX_EPOCH;
 
 /// Required message mapping: version 2 retains boundaries for damaged nested items.
@@ -26,17 +27,11 @@ pub(super) struct Checkpoint {
     watermark: Option<SourceWatermark>,
 }
 
-pub(super) fn physical_identity(meta: &fs::Metadata) -> String {
-    #[cfg(unix)]
-    let physical = {
-        use std::os::unix::fs::MetadataExt;
-        format!("{}:{}", meta.dev(), meta.ino())
-    };
-    #[cfg(not(unix))]
-    let physical = format!("{:?}", meta.created().ok());
-    physical
+pub(super) fn physical_identity(meta: &FileMetadata) -> String {
+    meta.physical.clone()
 }
-fn stamp(meta: &fs::Metadata) -> String {
+
+fn stamp(meta: &FileMetadata) -> String {
     let physical = physical_identity(meta);
     format!(
         "{physical}:{}:{}",
@@ -58,20 +53,20 @@ fn source_changed() -> anyhow::Error {
 
 /// Appends beyond the captured prefix belong to the next synchronization. The
 /// captured prefix is hashed before and after parsing to detect edits within it.
-pub(super) fn contains_capture(expected: &fs::Metadata, current: &fs::Metadata) -> bool {
+pub(super) fn contains_capture(expected: &FileMetadata, current: &FileMetadata) -> bool {
     physical_identity(expected) == physical_identity(current)
         && current.len() >= expected.len()
         && (current.len() > expected.len() || stamp(expected) == stamp(current))
 }
 
 /// Hash only the captured prefix, even if the writer appends while hashing.
-fn prefix_checksums(path: &Path, offset: u64, expected: &fs::Metadata) -> Result<PrefixChecksums> {
+fn prefix_checksums(path: &Path, offset: u64, expected: &FileMetadata) -> Result<PrefixChecksums> {
     let mut file = File::open(path)?;
-    if !contains_capture(expected, &file.metadata()?) {
+    if !contains_capture(expected, &FileMetadata::from_file(&file)?) {
         return Err(source_changed());
     }
     let result = prefix_checksums_from(path, offset, expected, &mut file)?;
-    if !contains_capture(expected, &file.metadata()?) {
+    if !contains_capture(expected, &FileMetadata::from_file(&file)?) {
         return Err(source_changed());
     }
     Ok(result)
@@ -80,10 +75,10 @@ fn prefix_checksums(path: &Path, offset: u64, expected: &fs::Metadata) -> Result
 fn prefix_checksums_from(
     path: &Path,
     offset: u64,
-    expected: &fs::Metadata,
+    expected: &FileMetadata,
     reader: &mut impl Read,
 ) -> Result<PrefixChecksums> {
-    if offset > expected.len() || !contains_capture(expected, &fs::metadata(path)?) {
+    if offset > expected.len() || !contains_capture(expected, &FileMetadata::read(path)?) {
         return Err(source_changed());
     }
     let mut digest = Sha256::new();
@@ -102,7 +97,7 @@ fn prefix_checksums_from(
             committed = Some(format!("{:x}", digest.clone().finalize()));
         }
     }
-    if !contains_capture(expected, &fs::metadata(path)?) {
+    if !contains_capture(expected, &FileMetadata::read(path)?) {
         return Err(source_changed());
     }
     Ok(PrefixChecksums {
@@ -475,7 +470,7 @@ fn sync_cached_with_context(
         );
     }
     let observed_at = chrono::Utc::now().to_rfc3339();
-    let title_stamp = fs::metadata(root.join("session_index.jsonl"))
+    let title_stamp = FileMetadata::read(root.join("session_index.jsonl"))
         .ok()
         .map(|m| stamp(&m));
     let mut changed =
@@ -487,7 +482,7 @@ fn sync_cached_with_context(
     let mut unchanged = BTreeMap::new();
     for file in &files {
         let key = file.to_string_lossy().into_owned();
-        let meta = fs::metadata(file)?;
+        let meta = FileMetadata::read(file)?;
         let cp = checkpoints.get(&key);
         if let Some(cp) = cp
             && cp.stamp == stamp(&meta)
@@ -628,7 +623,7 @@ fn sync_cached_with_context(
                 if let Some((observed, offset, prefix)) = unchanged.get(&path) {
                     (observed.clone(), *offset, Some(prefix))
                 } else {
-                    (fs::metadata(&path)?, 0, None)
+                    (FileMetadata::read(&path)?, 0, None)
                 };
             let checksums = prefix_checksums(Path::new(&path), offset, &before)?;
             if expected_prefix.is_some_and(|prefix| *prefix != checksums.committed) {
@@ -647,7 +642,7 @@ fn sync_cached_with_context(
             Some(checkpoint),
             Some(&before),
         );
-        let after = fs::metadata(&path)?;
+        let after = FileMetadata::read(&path)?;
         if !contains_capture(&before, &after)
             || report.issues[first..].iter().any(|i| {
                 matches!(
@@ -949,7 +944,7 @@ mod sharing_tests {
         let path = root.path().join("changing.jsonl");
         let record = serde_json::json!({"type":"session_meta","payload":{"id":"synthetic","padding":"x".repeat(128 * 1024)}}).to_string() + "\n";
         fs::write(&path, &record).unwrap();
-        let expected = fs::metadata(&path).unwrap();
+        let expected = FileMetadata::read(&path).unwrap();
         let mut reader = ChangingReader {
             file: File::open(&path).unwrap(),
             path: path.clone(),
@@ -978,7 +973,7 @@ mod sharing_tests {
         };
         let initial = format!("{header}{}", record("one"));
         fs::write(&path, &initial).unwrap();
-        let capture = fs::metadata(&path).unwrap();
+        let capture = FileMetadata::read(&path).unwrap();
         let captured_hash = prefix_checksums(&path, 0, &capture).unwrap().captured;
         fs::OpenOptions::new()
             .append(true)
@@ -1062,7 +1057,7 @@ mod sharing_tests {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("capture.jsonl");
         fs::write(&path, b"original\n").unwrap();
-        let capture = fs::metadata(&path).unwrap();
+        let capture = FileMetadata::read(&path).unwrap();
         let hash = prefix_checksums(&path, 0, &capture).unwrap().captured;
         // Growing the file must not hide an edit to its captured prefix.
         fs::write(&path, b"modified\nappended\n").unwrap();

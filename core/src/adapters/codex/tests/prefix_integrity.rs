@@ -39,7 +39,7 @@ fn sync(db: &mut rusqlite::Connection, source: &SourceInstance, verify: bool) ->
 fn checkpoint(db: &rusqlite::Connection, source: &SourceInstance, path: &Path) -> Value {
     let stored =
         crate::live_index::load_map(db, &format!("parser:{}:{VERSION}:1", source.id)).unwrap();
-    let path = fs::canonicalize(path).unwrap();
+    let path = dunce::canonicalize(path).unwrap();
     stored["checkpoints"][path.to_str().unwrap()].clone()
 }
 
@@ -124,7 +124,9 @@ fn explicit_verify_detects_same_length_middle_edit_with_unchanged_metadata() {
     let before = fs::metadata(&path).unwrap();
     write(root.path(), "sessions/prefix.jsonl", &rows(200));
     assert_eq!(fs::metadata(&path).unwrap().len(), before.len());
-    File::open(&path)
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
         .unwrap()
         .set_times(fs::FileTimes::new().set_modified(before.modified().unwrap()))
         .unwrap();

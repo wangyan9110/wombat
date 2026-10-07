@@ -5,7 +5,8 @@
 use crate::adapters::contract::{
     CommandSource, Operation, ParsedCommand, WORK_OBSERVATION_VERSION, WorkData,
 };
-use std::{collections::BTreeSet, path::Path};
+use std::collections::BTreeSet;
+use typed_path::Utf8TypedPath;
 
 pub(crate) const METHOD_VERSION: u32 = 3;
 
@@ -38,15 +39,23 @@ pub(crate) fn normalized_path(path: &str, base: Option<&str>) -> Option<String> 
     if path.is_empty() {
         return None;
     }
-    let path = Path::new(path);
+    let path = Utf8TypedPath::derive(path);
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {
-        Path::new(base.filter(|base| Path::new(base).is_absolute())?).join(path)
+        // Drive-relative and root-relative Windows paths require unrecorded
+        // drive state. Ordinary relative paths use their recorded base's grammar.
+        if path.is_windows() {
+            return None;
+        }
+        let base = Utf8TypedPath::derive(base?);
+        if !base.is_absolute() {
+            return None;
+        }
+        base.join(path.as_str())
     };
-    crate::absolute(absolute)
-        .ok()
-        .map(|path| path.to_string_lossy().into_owned())
+    // Historical paths never consult the host OS, cwd, or filesystem.
+    Some(absolute.normalize().as_str().to_owned())
 }
 pub(crate) fn read_targets(operation: &Operation) -> Option<ReadTargets<'_>> {
     if let Some(work) = &operation.work
@@ -132,9 +141,10 @@ pub(crate) fn use_kind(operation: &Operation) -> Option<UseKind> {
 }
 
 pub(crate) fn is_skill_file(path: &str) -> bool {
-    Path::new(path)
-        .file_name()
-        .is_some_and(|name| name == "SKILL.md")
+    let parsed = Utf8TypedPath::derive(path);
+    parsed.file_name() == Some("SKILL.md")
+        || !parsed.is_absolute()
+            && typed_path::Utf8WindowsPath::new(path).file_name() == Some("SKILL.md")
 }
 
 /// Completion of a legacy exec wrapper does not establish dispatch of a read

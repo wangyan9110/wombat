@@ -11,7 +11,6 @@ use crate::{
 use anyhow::Result;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    path::{Path, PathBuf},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -297,7 +296,7 @@ fn paths(
     operation: &Operation,
     meter: &mut Meter<'_>,
     projection: &mut Projection,
-    out: &mut BTreeSet<PathBuf>,
+    out: &mut BTreeSet<String>,
 ) -> Result<()> {
     let Some(work) = &operation.work else {
         projection.changed_files.unknown(Gap::MissingWorkMetadata);
@@ -337,19 +336,13 @@ fn paths(
                 projection.coverage.file_metadata_gaps += 1;
                 continue;
             }
-            if !Path::new(endpoint).is_absolute() {
-                projection.changed_files.unknown(Gap::MissingPathScope);
-                projection.coverage.path_scope_gaps += 1;
-                continue;
-            }
             // absolute input: lexical normalization only, never host cwd or current filesystem.
-            let normalized = crate::absolute(endpoint)?;
-            if !normalized.is_absolute() {
+            let Some(normalized) = usage_observations::normalized_path(endpoint, None) else {
                 projection.changed_files.unknown(Gap::MissingPathScope);
                 projection.coverage.path_scope_gaps += 1;
                 continue;
-            }
-            meter.work(normalized.as_os_str().len())?;
+            };
+            meter.work(normalized.len())?;
             out.insert(normalized);
         }
     }

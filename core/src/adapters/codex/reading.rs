@@ -1,5 +1,6 @@
 //! Bounded rollout reads, unchanged-file checks and parser boundaries.
 use super::*;
+use crate::file_metadata::FileMetadata;
 #[derive(Default, Serialize, Deserialize)]
 pub(super) struct State {
     pub(super) event_generation: Option<String>,
@@ -79,7 +80,7 @@ pub(super) fn read_file_from(
     facts: &mut Facts,
     report: &mut SourceReport,
     mut checkpoint: Option<&mut incremental::Checkpoint>,
-    capture: Option<&fs::Metadata>,
+    capture: Option<&FileMetadata>,
 ) {
     let evidence_path: Arc<str> = path.to_string_lossy().as_ref().into();
     let file_id = crate::hash(evidence_path.as_bytes());
@@ -116,7 +117,7 @@ pub(super) fn read_file_from(
             return;
         }
     };
-    let opened = file.metadata().ok();
+    let opened = FileMetadata::from_file(&file).ok();
     if capture.is_some_and(|expected| {
         opened
             .as_ref()
@@ -325,7 +326,7 @@ pub(super) fn read_file_from(
     if valid_records > 0 || length == 0 {
         report.files_read += 1;
     }
-    let after = fs::metadata(path).ok();
+    let after = FileMetadata::read(path).ok();
     if (consumed < length && !pending_tail)
         || after.as_ref().is_none_or(|m| m.len() < length)
         || before
@@ -392,14 +393,6 @@ pub(super) fn read_file_from(
     }
 }
 
-#[cfg(unix)]
-pub(super) fn file_changed(a: &fs::Metadata, b: &fs::Metadata) -> bool {
-    use std::os::unix::fs::MetadataExt;
-    a.dev() != b.dev()
-        || a.ino() != b.ino()
-        || (a.len() == b.len() && a.modified().ok() != b.modified().ok())
-}
-#[cfg(not(unix))]
-pub(super) fn file_changed(a: &fs::Metadata, b: &fs::Metadata) -> bool {
-    a.len() == b.len() && a.modified().ok() != b.modified().ok()
+pub(super) fn file_changed(a: &FileMetadata, b: &FileMetadata) -> bool {
+    a.physical != b.physical || (a.len() == b.len() && a.modified().ok() != b.modified().ok())
 }

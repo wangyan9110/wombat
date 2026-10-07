@@ -1,5 +1,76 @@
 use super::*;
 
+#[test]
+fn historical_paths_use_recorded_grammar_on_every_host() {
+    for (path, base, expected) in [
+        (
+            "/synthetic/a/../skill/SKILL.md",
+            None,
+            "/synthetic/skill/SKILL.md",
+        ),
+        (
+            "../skill/SKILL.md",
+            Some("/synthetic/project"),
+            "/synthetic/skill/SKILL.md",
+        ),
+        (
+            r"C:\synthetic\a\..\skill\SKILL.md",
+            None,
+            r"C:\synthetic\skill\SKILL.md",
+        ),
+        (
+            "C:/synthetic/skill/SKILL.md",
+            None,
+            r"C:\synthetic\skill\SKILL.md",
+        ),
+        (
+            r"..\skill\SKILL.md",
+            Some(r"C:\synthetic\project"),
+            r"C:\synthetic\skill\SKILL.md",
+        ),
+        (
+            "../skill/SKILL.md",
+            Some(r"C:\synthetic\project"),
+            r"C:\synthetic\skill\SKILL.md",
+        ),
+        (
+            r"\\server\share\project\..\skill\SKILL.md",
+            None,
+            r"\\server\share\skill\SKILL.md",
+        ),
+        (
+            r"literal\name/SKILL.md",
+            Some("/synthetic"),
+            r"/synthetic/literal\name/SKILL.md",
+        ),
+        (
+            "/synthetic/skill/SKILL.md",
+            Some(r"C:\unrelated"),
+            "/synthetic/skill/SKILL.md",
+        ),
+    ] {
+        assert_eq!(
+            normalized_path(path, base).as_deref(),
+            Some(expected),
+            "{path:?} {base:?}"
+        );
+        assert!(is_skill_file(expected));
+    }
+    for (path, base) in [
+        ("", Some("/synthetic")),
+        ("skill/SKILL.md", None),
+        ("skill/SKILL.md", Some("relative")),
+        ("skill/SKILL.md", Some("file:///synthetic")),
+        (r"C:skill\SKILL.md", Some(r"C:\synthetic")),
+        (r"\skill\SKILL.md", Some(r"C:\synthetic")),
+    ] {
+        assert_eq!(normalized_path(path, base), None, "{path:?} {base:?}");
+    }
+    assert!(is_skill_file(r"skill\SKILL.md"));
+    assert!(!is_skill_file("/synthetic/NOT_SKILL.md"));
+    assert!(!is_skill_file(r"/synthetic/literal\SKILL.md"));
+}
+
 fn operation(id: &str, kind: &str) -> Operation {
     Operation {
         id: id.into(),

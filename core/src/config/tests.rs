@@ -162,6 +162,64 @@ fn uses_request() -> Request {
 }
 
 #[test]
+fn inventory_and_recorded_paths_use_the_same_grammar_without_changing_display_identity() {
+    for (inventory, recorded, foreign) in [
+        (
+            r"C:\synthetic/skill/SKILL.md",
+            r"C:\synthetic\skill\SKILL.md",
+            r"D:\synthetic\skill\SKILL.md",
+        ),
+        (
+            r"C:\synthetic\skill\SKILL.md",
+            "C:/synthetic/skill/SKILL.md",
+            "/synthetic/skill/SKILL.md",
+        ),
+        (
+            r"\\server\share/skill/SKILL.md",
+            r"\\server\share\skill\SKILL.md",
+            r"\\other\share\skill\SKILL.md",
+        ),
+        (
+            "/synthetic/dir/../skill/SKILL.md",
+            "/synthetic/skill/SKILL.md",
+            r"C:\synthetic\skill\SKILL.md",
+        ),
+    ] {
+        let mut read = use_operation("matching", "skillRead", "completed");
+        read.path = Some(recorded.into());
+        let mut other = use_operation("foreign", "skillRead", "completed");
+        other.path = Some(foreign.into());
+        let mut v = use_view_paths(vec![read, other], true);
+        v.items[0].path = inventory.into();
+        let result = execute(uses_request(), "config:portable".into(), &v).unwrap();
+        assert_eq!(result.items[0].usage_count, Some(1), "{inventory}");
+        assert_eq!(result.items[0].observation, Observation::Used);
+        assert_eq!(result.items[0].path, inventory);
+        assert_eq!(result.items[0].id, "skill");
+    }
+    let mut read = use_operation("ambiguous", "skillRead", "completed");
+    read.path = Some(r"C:\synthetic\skill\SKILL.md".into());
+    let mut v = use_view_paths(vec![read], true);
+    v.items[0].path = r"C:\synthetic/skill/SKILL.md".into();
+    let mut duplicate = v.items[0].clone();
+    duplicate.id = "duplicate".into();
+    duplicate.path = r"C:\synthetic\skill\SKILL.md".into();
+    v.items.push(duplicate);
+    let result = execute(uses_request(), "config:portable".into(), &v).unwrap();
+    for item in result.items {
+        assert_eq!(item.usage_count, Some(0));
+        assert!(
+            result
+                .coverage
+                .issues
+                .iter()
+                .any(|issue| issue.code == "usageCountV3TargetUnknown"
+                    && issue.path.as_ref() == Some(&item.path))
+        );
+    }
+}
+
+#[test]
 fn declarations_and_catalogs_do_not_count_or_keep_cached_used_observations() {
     let v = use_view(vec![
         use_operation("declaration", "skillUse", "completed"),

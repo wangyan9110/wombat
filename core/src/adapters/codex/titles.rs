@@ -1,5 +1,6 @@
 //! Optional session-index titles never determine usage or ownership.
 use super::*;
+use crate::file_metadata::FileMetadata;
 use crate::session_events::title_observations::{TITLE_OBSERVATION_VERSION, TitleObservation};
 
 pub(super) fn apply_titles(facts: &mut Facts) {
@@ -47,14 +48,14 @@ pub(super) fn read_titles(root: &Path, facts: &mut Facts, report: &mut SourceRep
             return;
         }
     };
-    let identity = |meta: fs::Metadata| {
+    let identity = |meta: FileMetadata| {
         (
             incremental::physical_identity(&meta),
             meta.len(),
             meta.modified().ok(),
         )
     };
-    let before = file.metadata().ok().map(&identity);
+    let before = FileMetadata::from_file(&file).ok().map(&identity);
     let mut reader = BufReader::new(file);
     let mut buffer = Vec::new();
     let mut selected = BTreeMap::<String, TitleObservation>::new();
@@ -114,8 +115,11 @@ pub(super) fn read_titles(root: &Path, facts: &mut Facts, report: &mut SourceRep
         return;
     }
     if before.is_none()
-        || before != reader.get_ref().metadata().ok().map(&identity)
-        || before != fs::metadata(&path).ok().map(&identity)
+        || before
+            != FileMetadata::from_file(reader.get_ref())
+                .ok()
+                .map(&identity)
+        || before != FileMetadata::read(&path).ok().map(&identity)
     {
         issue(
             report,

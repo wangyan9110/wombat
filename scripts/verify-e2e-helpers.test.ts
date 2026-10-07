@@ -8,15 +8,16 @@ import {
 } from './verify-e2e-helpers.ts';
 
 test('verification arguments require an external report directory and preserve browser paths', () => {
-  assert.deepEqual(parseVerifyArgs(['--', '--scope', 'browser', '--output-dir', '/tmp/wombat-e2e', '--resume', '--playwright-module', '/opt/playwright/index.mjs', '--browser-executable', '/opt/chromium']), {
-    scope: 'browser', outputDir: '/tmp/wombat-e2e', resume: true,
+  const outputDir = path.join(os.tmpdir(), 'wombat-e2e');
+  assert.deepEqual(parseVerifyArgs(['--', '--scope', 'browser', '--output-dir', outputDir, '--resume', '--playwright-module', '/opt/playwright/index.mjs', '--browser-executable', '/opt/chromium']), {
+    scope: 'browser', outputDir, resume: true,
     playwrightModule: '/opt/playwright/index.mjs', browserExecutable: '/opt/chromium',
   });
-  assert.equal(parseVerifyArgs(['--output-dir', '/tmp/wombat-e2e'], { WOMBAT_PLAYWRIGHT_MODULE: '/opt/playwright/index.mjs' }).scope, 'all');
+  assert.equal(parseVerifyArgs(['--output-dir', outputDir], { WOMBAT_PLAYWRIGHT_MODULE: '/opt/playwright/index.mjs' }).scope, 'all');
   assert.throws(() => parseVerifyArgs([], {}), /--output-dir/);
   assert.throws(() => parseVerifyArgs(['--scope', 'api', '--output-dir', 'relative'], {}), /absolute path/);
-  assert.throws(() => parseVerifyArgs(['--scope', 'browser', '--output-dir', '/tmp/wombat-e2e'], {}), /PLAYWRIGHT_MODULE/);
-  assert.throws(() => parseVerifyArgs(['--scope', 'all', '--scope', 'api', '--output-dir', '/tmp/out'], {}), /Usage:/);
+  assert.throws(() => parseVerifyArgs(['--scope', 'browser', '--output-dir', outputDir], {}), /PLAYWRIGHT_MODULE/);
+  assert.throws(() => parseVerifyArgs(['--scope', 'all', '--scope', 'api', '--output-dir', outputDir], {}), /Usage:/);
   assert.equal(isWithin('/repo', '/repo/out'), true);
   assert.equal(isWithin('/repo', '/repo2/out'), false);
   assert.throws(() => assertExternalOutputDir('/repo', '/repo/reports'), /outside the repository/);
