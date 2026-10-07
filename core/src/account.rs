@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_json::Value;
 mod allowance;
 pub(crate) mod gate;
+pub(crate) mod history;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -108,6 +109,8 @@ pub(crate) fn normalize(c: Capture) -> Result<Response> {
     let observed = DateTime::parse_from_rfc3339(&c.checked_at)
         .map_err(|_| operation_error("INVALID_ARGUMENT", "Invalid account observation time"))?;
     let mut out = Response {
+        history: None,
+        history_error_code: None,
         output_version: 1,
         action: c.action,
         native_version: c.native_version,
@@ -217,3 +220,30 @@ pub(crate) fn normalize(c: Capture) -> Result<Response> {
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) fn capture(c: Capture) -> Result<Response> {
+    if c.action == Action::History {
+        return Err(operation_error(
+            "INVALID_ARGUMENT",
+            "History never captures native account data",
+        ));
+    }
+    let at = c.checked_at.clone();
+    let mut out = normalize(c)?;
+    if let Err(error) =
+        crate::storage::data_home().and_then(|root| history::record(&root, &out, &at))
+    {
+        out.history_error_code = Some(
+            if error
+                .downcast_ref::<crate::dto::OperationError>()
+                .is_some_and(|e| e.code == "UNSUPPORTED_VERSION")
+            {
+                "UNSUPPORTED_VERSION"
+            } else {
+                "HISTORY_UNAVAILABLE"
+            }
+            .into(),
+        );
+    }
+    Ok(out)
+}

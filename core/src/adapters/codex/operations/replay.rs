@@ -3,7 +3,7 @@ use super::*;
 impl Facts {
     pub(in crate::adapters::codex) fn remove_inherited_operations(
         &mut self,
-        forest: &ancestry::ForkForest<'_>,
+        forest: &session_relations::SessionRelations<'_>,
         report: &mut SourceReport,
         cancelled: &std::sync::atomic::AtomicBool,
     ) -> anyhow::Result<()> {

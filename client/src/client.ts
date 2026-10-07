@@ -120,7 +120,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
       if(!input(request))throw new CoreError('INVALID_ARGUMENT','Invalid account request');
       const result=await hosts.account!(request,options);
-      if(!output(result)||result.outputVersion!==1||result.action!==(request.action??'read'))throw new CoreError('PROTOCOL_ERROR','Invalid account response');
+      if(!output(result)||result.outputVersion!==1||result.action!==(request.action??'read')||(request.action==='history'&&result.history==null))throw new CoreError('PROTOCOL_ERROR','Invalid account response');
       return result;
     }}:{}),
     ...(directoriesTransport?{async directories(request:DirectoriesRequest,options:QueryOptions={} ):Promise<DirectoriesResult>{
@@ -161,7 +161,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateLiveRequest(request)) throw new CoreError('INVALID_ARGUMENT', '实时查询参数不符合数据协议');
       const result = await liveTransport(request, options);
-      if (!validateLiveResult(result) || result.outputVersion !== 1 || result.result.action !== request.query.action)
+      if (!validateLiveResult(result) || result.outputVersion !== 1 || result.result.action !== request.query.action || (!matchesComparison(request.query,result.result)||!matchesInspection(request.query,result.result)))
         throw new CoreError('PROTOCOL_ERROR', '实时用量数据格式不正确');
       return result;
     } } : {}),
@@ -180,7 +180,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateRequest(request)) throw new CoreError('INVALID_ARGUMENT', '查询参数不符合数据协议');
       const result = await transport(request, options);
-      if (!validateResponse(result) || result.outputVersion !== 5 || result.action !== request.action) {
+      if (!validateResponse(result) || result.outputVersion !== 5 || result.action !== request.action || (!matchesComparison(request,result)||!matchesInspection(request,result))) {
         throw new CoreError('PROTOCOL_ERROR', '用量数据格式不正确');
       }
       return result;
@@ -381,4 +381,32 @@ function matchesActivity(request: OptimizeRequest, result: OptimizeResult): bool
   const confirmed=activity.checks.slice(0,2).some(check=>check.outcome==='hit');
   const expected=activity.checks.filter(check=>check.outcome==='hit'&&(!confirmed||check.rule!=='inspect_repeated_requests')).map(check=>check.rule);
   return activity.advice.length===expected.length&&activity.advice.every((rule,index)=>rule===expected[index]);
+}
+
+function matchesComparison(request:Request,result:Response):boolean {
+ if(request.action!=='compare')return result.comparison==null;
+ const input=request.comparison,output=result.comparison;
+ if(!input||!output||input.kind!==output.kind)return false;
+ if(request.snapshotId!=null && result.snapshotRef.snapshotId!==request.snapshotId)return false;
+ if(input.kind==='periods' && output.kind==='periods')return output.dimension===input.dimension
+   &&output.baseline.scope.since===input.baselineSince&&output.baseline.scope.until===input.baselineUntil
+   &&output.current.scope.since===request.scope?.since&&output.current.scope.until===request.scope?.until;
+ if(input.kind==='sessions'&&output.kind==='sessions')return output.left.threadId===input.leftThreadId&&output.right.threadId===input.rightThreadId
+   &&output.includeDescendants===(input.includeDescendants??false);
+ return false;
+}
+
+function matchesInspection(request:Request,result:Response):boolean {
+ const plans=['investigate','trajectory','resources','review','context'];
+ if(!plans.includes(request.action))return result.inspection==null;
+ const output=result.inspection;if(!output||output.methodVersion!==1||output.kind!==request.action)return false;
+ if((request.action==='context')!==(output.context!=null)||(request.action==='review')!==(output.review!=null))return false;
+ if(request.snapshotId!=null&&result.snapshotRef.snapshotId!==request.snapshotId)return false;
+ const thread=request.threadId??request.scope?.threadId;if(thread!=null&&result.scope.threadId!==thread)return false;
+ for(const [key,value] of Object.entries(request.scope??{}))if(value!=null&&result.scope[key as keyof typeof result.scope]!==value)return false;
+ if([...output.candidates,...(output.review?.topTasks??[])].some(c=>c.evidence.some(p=>p.threadId!==c.threadId)))return false;
+ const proofs=[...output.candidates.flatMap(c=>c.evidence),...output.resources.flatMap(r=>r.evidence),...output.trajectory.flatMap(p=>[p.evidence,...(p.compactionComparison?[p.compactionComparison.beforeEvidence]:[])]),...(output.context?.records.map(r=>r.evidence)??[]),...(output.review?.topTasks.flatMap(c=>c.evidence)??[])];
+ return proofs.every(p=>p.view===(p.operationId!=null?'operation':p.turnId!=null?'turn':'task')&&p.methodVersion===1&&p.snapshotId===result.snapshotRef.snapshotId&&p.threadId.length>0
+  &&(thread==null||p.threadId===thread)&&Object.keys(p.scope).length===Object.keys(result.scope).length
+  &&Object.entries(p.scope).every(([key,value])=>value===result.scope[key as keyof typeof result.scope]));
 }

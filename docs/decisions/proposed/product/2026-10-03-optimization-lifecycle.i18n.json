@@ -29,13 +29,21 @@
       "zh": "b25fc9c44cbba62f3376b96812c29ff8aaf0cf96261e7741351159cece234652",
       "en": "38a2c94c597e8bc69c1006900ff84f4e73e4fca8fbabf76d97bed2c34c604416"
     },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/evidence-backed-usage-investigations-and-reviews": {
+      "zh": "10a11c7da180538aca9548bfbac200f96caa41e788dc5659d7dcf3fcd1d43167",
+      "en": "9b80efb1b4d077a622af4b2865888ec14a73e9f0d48192640b5234cae07691bc"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/shared-evidence-routes-and-agent-acceptance": {
+      "zh": "9d55ddb0b8c3babde2f16b6019a02d62013148fdb612bcd365fda92378e737df",
+      "en": "2235c44809041c4a80b8c8978332d8a3f19e0a47f9e0f308079bfe59761f7aeb"
+    },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/alternatives-considered": {
-      "zh": "ffca08edd1d4ee22e5aeb9056ea45e17cf24a37f2651159993586db057dbad0e",
-      "en": "12706281e6f15f0c7aa43b778fdc02e5d2e14294fb6c3103b6fdd48b24c89fa1"
+      "zh": "88244cfc75c5b0fd7668a56aad463cb862319454028a4134168e62482bc6bcb9",
+      "en": "4eb497d37b7fff728eecc4fca7786af84899c8da78f757c7bf7bae25e4969e53"
     },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/acceptance-criteria": {
-      "zh": "d431bb69620014ec67d83afe5ac04a88eefd77def00aa98195494cbd545c7129",
-      "en": "f463c313861877e1ce1fcd86e0b80dc970595b9e7f9663d382de48908944706b"
+      "zh": "664c31fc08c6d4f117ef20a92e17c76627bb55e4e888a13a6c9e133215940e95",
+      "en": "761d2c159c8b0eaf09b963650c49e8735dd8732b22dc5214d6bcc579dc246169"
     },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/risks": {
       "zh": "9ab2b9d595ebec40e42679d9b01783f80e5fe3c6f44292cda1e75cd30dec9d28",

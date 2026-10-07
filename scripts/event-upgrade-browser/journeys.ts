@@ -132,8 +132,9 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   assert.ok(record(refreshed) && record(refreshed.uses) && record(refreshed.uses.recordCount)); assert.equal(refreshed.uses.recordCount.value, 5);
   const latest = requests.filter(request => request.action === 'summary' && request.privacyProfile === 'local').at(-1); assert.ok(latest); assert.notEqual(latest.snapshotId, before);
   const afterIndex = requests.indexOf(latest); bound(requests.slice(afterIndex), String(latest.snapshotId), thread, turn, next.scope.sourceInstanceId);
+  await comparisons(page,fixture,language,width);
   assert.deepEqual(errors, []); await overflow(page);
-  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group'] };
+  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group','period-contributions-fixed-evidence','session-family-comparison','publication-changes'] };
 }
 
 async function rulePreviews(page: Page, origin: string, language: Language): Promise<void> {
@@ -229,4 +230,38 @@ export async function previews(page: Page, origin: string, language: Language, w
   assert.equal(await returning.evaluate(button => button === document.activeElement), true);
   await overflow(page); await rulePreviews(page, origin, language); assert.deepEqual(errors, []);
   return { source: 'preview', language, width, journeys: ['production-App-return', 'parallel-explanation-presentation-only', 'uses-failure-expiry-refresh', 'zero-missing-running', 'dense-object-and-record-pages-keyboard', 'rule-decisions-separate-from-checks', 'rule-recheck-resolution-version-and-evidence'] };
+}
+
+async function comparisons(page:Page,fixture:Fixture,language:Language,width:number) {
+ const current=await fixture.client.live!({query:{action:'threads',roots:[fixture.root],scope:{allTime:true}},mode:'cached'});
+ const parent=current.result.items.find(i=>i.kind==='thread'&&i.upstreamId===nativeThread);
+ const child=current.result.items.find(i=>i.kind==='thread'&&i.upstreamId==='synthetic-comparison-child');
+ assert.ok(parent?.kind==='thread'&&child?.kind==='thread');
+ const url=new URL(fixture.product);url.search=new URLSearchParams({page:'usage',since:'2026-10-03',until:'2026-10-03',timezone:'UTC',snapshot:current.result.snapshotRef.snapshotId}).toString();
+ const fragment=new URLSearchParams(url.hash.slice(1));fragment.set('lang',language);url.hash=fragment.toString();
+ await page.goto(url.href);
+ await activate(page.locator('.usage-comparison summary'));await page.locator('.usage-comparison tbody tr').first().waitFor();
+ await text(page.locator('.usage-comparison'),'+275 Token');await text(page.locator('.usage-comparison'),label('comparison.note'));await overflow(page);
+ const inspection=page.locator('.inspection').first();await activate(inspection.locator('summary').first());await text(inspection,label('inspection.noCandidates'));
+ await inspection.getByRole('combobox',{name:label('inspection.title')}).selectOption('resources');await text(inspection,label('inspection.limit.actual_changes_unavailable'));await inspection.locator('.inspection-card').first().waitFor();await overflow(page);
+ await activate(inspection.locator('.inspection-proof button').first());await page.locator('.evidence-selected').waitFor();
+ const proofUrl=new URL(page.url());assert.equal(proofUrl.searchParams.get('snapshot'),current.result.snapshotRef.snapshotId);assert.ok(proofUrl.searchParams.get('operation'));await overflow(page);
+ await page.goto(url.href);await activate(page.locator('.usage-comparison summary'));await page.locator('.usage-comparison tbody tr').first().waitFor();await activate(inspection.locator('summary').first());
+ await inspection.getByRole('combobox',{name:label('inspection.title')}).selectOption('context');await text(inspection,label('inspection.limit.context_metadata_unavailable'));await inspection.locator('.inspection-card').first().waitFor();await text(inspection,label('inspection.contentUnknown'));await overflow(page);
+ await inspection.getByRole('combobox',{name:label('inspection.title')}).selectOption('review');await text(inspection,label('inspection.concentration'));await text(inspection,label('inspection.topTasks'));await text(inspection,label('comparison.delta'));await overflow(page);
+ await activate(page.locator('.usage-comparison tbody tr td').nth(2).getByRole('button'));
+ await page.locator('.thread-row').first().waitFor();await settled(page);assert.equal(new URL(page.url()).searchParams.get('snapshot'),current.result.snapshotRef.snapshotId);
+ await activate(page.locator('.thread-row').filter({hasText:title}).first());
+ await page.waitForFunction(id=>new URL(location.href).searchParams.get('thread')===id,parent.id);
+ await page.locator('.turn[open]').waitFor();await execution(page).waitFor();await settled(page);
+ const trajectory=page.locator('.task-detail .inspection');await activate(trajectory.locator('summary'));await text(trajectory,label('inspection.limit.context_occupancy_unavailable'));await trajectory.locator('.inspection-card').first().waitFor();await overflow(page);
+ const compare=page.locator('.task-detail details').filter({hasText:label('comparison.sessions')}).first();
+ if(await compare.getAttribute('open')==null)await activate(compare.locator('summary').first());
+ await compare.getByRole('combobox',{name:label('comparison.other')}).fill(child.id);
+ await activate(compare.getByRole('button',{name:label('comparison.submit'),exact:true}));await compare.locator('tbody tr').first().waitFor();
+ await text(compare,'-165 Token');const family=compare.getByRole('checkbox',{name:label('comparison.family')});await family.focus();await family.press('Space');
+ await text(compare,'-220 Token');await text(compare,t('comparison.members',{count:2}));await overflow(page);
+ if(width<900)await activate(page.getByRole('button',{name:label('task.backToList'),exact:true}));
+ const changes=page.locator('.thread-list details').filter({hasText:label('comparison.refresh')}).first();
+ await activate(changes.locator('summary'));await text(changes,label('comparison.refreshNote'));await text(changes,'+110 Token');
 }

@@ -40,6 +40,14 @@ pub struct FilePathChange {
     pub change: ChangeKind,
     pub move_path: Option<String>,
 }
+impl FilePathChange {
+    /// Preserve both native endpoints of a move, without current-filesystem resolution.
+    pub(crate) fn targets(&self) -> impl Iterator<Item = &str> {
+        [Some(self.path.as_str()), self.move_path.as_deref()]
+            .into_iter()
+            .flatten()
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CommandSource {
@@ -107,8 +115,7 @@ impl WorkObservation {
                 let mut previous: Option<&str> = None;
                 for entry in changes {
                     anyhow::ensure!(
-                        valid_work_path(&entry.path)
-                            && entry.move_path.as_deref().is_none_or(valid_work_path)
+                        entry.targets().all(valid_work_path)
                             && (entry.move_path.is_none() || entry.change == ChangeKind::Update)
                             && previous.is_none_or(|p| p < entry.path.as_str()),
                         "invalid work path identity"

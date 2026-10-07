@@ -14,6 +14,25 @@ const response: UsageResult = {
   items: [], page: { offset: 0, limit: 50, total: 0 }, quality: { status: 'complete', issues: [], sources: [] },
 };
 
+test('portable comparison binds returned periods, dimensions and snapshot to the request', async () => {
+  const scope = {since:'2026-09-23',until:'2026-09-30',timezone:'UTC'};
+  const request: UsageRequest = {action:'compare',snapshotId:'synthetic',scope,
+    comparison:{kind:'periods',baselineSince:'2026-09-16',baselineUntil:'2026-09-23',dimension:'project'}};
+  const comparison: NonNullable<UsageResult['comparison']> = {kind:'periods',dimension:'project',
+    baseline:{scope:{...scope,since:'2026-09-16',until:'2026-09-23'},usage:response.summary,partial:false},
+    current:{scope,usage:response.summary,partial:false},delta:{tokens:0,cost:'0',tokenRatio:0},
+    drivers:[],remaining:{tokens:0,cost:'0',tokenRatio:0},undatedRecords:0};
+  const value: UsageResult = {...response,action:'compare',scope,comparison};
+  assert.equal(await createUsageClient({query:async()=>value}).query(request),value);
+  const invalid = [
+    {...value,snapshotRef:{...value.snapshotRef,snapshotId:'another'}},
+    {...value,comparison:{...comparison,dimension:'model'}},
+    {...value,comparison:{...comparison,baseline:{...comparison.baseline,scope}}},
+    {...value,comparison:{...comparison,current:{...comparison.current,scope:{...scope,until:'2026-10-01'}}}},
+  ];
+  for (const result of invalid) await assert.rejects(createUsageClient({query:async()=>result}).query(request),{code:'PROTOCOL_ERROR'});
+});
+
 test('portable client validates requests before invoking any host', async () => {
   let called = false;
   const client = createUsageClient({ query: async () => { called = true; return response; } });
@@ -78,4 +97,31 @@ test('usage v5 accepts separate calculation analysis and rejects unsupported met
  for(const invalid of [{...totalAnalysis,methodVersion:2},{...totalAnalysis,subtotal:9007199254740992},{...totalAnalysis,overflowRecords:-1},{...totalAnalysis,unexpected:true}]){
   await assert.rejects(createUsageClient({query:async()=>({...value,summary:{...value.summary,tokenAnalysis:{...value.summary.tokenAnalysis,totalAnalysis:invalid}}})}).query({action:'usage'}),{code:'PROTOCOL_ERROR'});
  }
+});
+
+test('inspection evidence cannot escape the returned fixed view or original scope',async()=>{
+ const scope={allTime:true,timezone:'UTC'};
+ const proof={view:'task',methodVersion:1,snapshotId:response.snapshotRef.snapshotId,scope,threadId:'exact-thread',turnId:null,operationId:null};
+ const inspection={methodVersion:1,kind:'investigate',policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:[],candidates:[{threadId:'exact-thread',title:null,signals:['high_usage'],usage:response.summary,input:1000000,cacheShare:0,largestUncachedJump:null,determinateOperations:0,failedOperations:0,outcomeGaps:0,repeatedRequests:0,evidence:[proof]}],resources:[],trajectory:[],review:null,candidateCount:1,resourceCount:0,unlocatedOperations:0};
+ const valid={...response,action:'investigate',scope,inspection};
+ assert.equal((await createUsageClient({query:async()=>valid}).query({action:'investigate',scope})).action,'investigate');
+ for(const evidence of [{...proof,snapshotId:'other-view'},{...proof,scope:{...scope,project:'/other'}},{...proof,methodVersion:2},{...proof,threadId:'different-thread'}]){
+  const invalid={...valid,inspection:{...inspection,candidates:[{...inspection.candidates[0],evidence:[evidence]}]}};
+  await assert.rejects(createUsageClient({query:async()=>invalid}).query({action:'investigate',scope}),{code:'PROTOCOL_ERROR'});
+ }
+});
+
+
+test('context inventory evidence stays in its exact returned scope and snapshot',async()=>{
+ const scope={allTime:true,timezone:'UTC',threadId:'exact-thread'};
+ const proof={view:'task',methodVersion:1,snapshotId:response.snapshotRef.snapshotId,scope,threadId:'exact-thread',turnId:null,operationId:null};
+ const context={observedRecords:1,injectedRecords:1,modelWindowRecords:0,records:[{id:'physical-record',kind:'injected_context',timestamp:null,recordKind:'response_snapshot',phase:'completed',presence:'non_empty',model:null,modelContextWindow:null,contentVersion:null,bytes:null,evidence:proof}]};
+ const inspection={methodVersion:1,kind:'context',policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:['context_metadata_unavailable','context_occupancy_unavailable'],candidates:[],resources:[],trajectory:[],context,review:null,candidateCount:0,resourceCount:0,unlocatedOperations:0};
+ const valid={...response,action:'context',scope,inspection};
+ assert.equal((await createUsageClient({query:async()=>valid}).query({action:'context',scope})).inspection?.context?.observedRecords,1);
+ for(const evidence of [{...proof,snapshotId:'other'},{...proof,scope:{allTime:true,timezone:'UTC'}},{...proof,threadId:'other'},{...proof,methodVersion:2}]){
+  const invalid={...valid,inspection:{...inspection,context:{...context,records:[{...context.records[0],evidence}]}}};
+  await assert.rejects(createUsageClient({query:async()=>invalid}).query({action:'context',scope}),{code:'PROTOCOL_ERROR'});
+ }
+ await assert.rejects(createUsageClient({query:async()=>({...valid,inspection:{...inspection,context:null}})}).query({action:'context',scope}),{code:'PROTOCOL_ERROR'});
 });

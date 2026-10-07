@@ -297,7 +297,7 @@ fn cancelled_accounting_checks_direct_fast_path_and_fork_reduction_without_mutat
     );
     let collected = collect(root.path());
     let parents = HashMap::new();
-    let forest = ancestry::ForkForest::new(&parents);
+    let forest = session_relations::SessionRelations::new(&parents);
     for direct in [false, true] {
         for thread in [None, collected.measurements[0].thread_id.clone()] {
             let mut row = collected.measurements[0].as_ref().clone();

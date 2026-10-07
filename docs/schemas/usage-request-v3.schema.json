@@ -3,6 +3,16 @@
   "title": "Request",
   "type": "object",
   "properties": {
+    "comparison": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ComparisonRequest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "action": {
       "$ref": "#/definitions/Action"
     },
@@ -120,6 +130,12 @@
         "null"
       ]
     },
+    "locateOperationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "matchedOnly": {
       "type": [
         "boolean",
@@ -132,6 +148,68 @@
     "action"
   ],
   "definitions": {
+    "ComparisonRequest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "baselineSince": {
+              "type": "string"
+            },
+            "baselineUntil": {
+              "type": "string"
+            },
+            "dimension": {
+              "$ref": "#/definitions/DriverDimension"
+            },
+            "kind": {
+              "type": "string",
+              "const": "periods"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "baselineSince",
+            "baselineUntil",
+            "dimension"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "leftThreadId": {
+              "type": "string"
+            },
+            "rightThreadId": {
+              "type": "string"
+            },
+            "includeDescendants": {
+              "type": "boolean",
+              "default": false
+            },
+            "kind": {
+              "type": "string",
+              "const": "sessions"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "leftThreadId",
+            "rightThreadId"
+          ]
+        }
+      ]
+    },
+    "DriverDimension": {
+      "type": "string",
+      "enum": [
+        "project",
+        "model",
+        "thread"
+      ]
+    },
     "Action": {
       "type": "string",
       "enum": [
@@ -139,7 +217,13 @@
         "usage",
         "threads",
         "turns",
-        "steps"
+        "steps",
+        "compare",
+        "investigate",
+        "trajectory",
+        "resources",
+        "review",
+        "context"
       ]
     },
     "Scope": {

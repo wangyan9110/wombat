@@ -154,6 +154,8 @@ pub(super) fn quality(snapshot: &Snapshot, count: usize) -> Quality {
 }
 pub(crate) fn validate(request: &Request) -> Result<()> {
     timezone(&request.scope)?;
+    super::comparison::validate_comparison(request)?;
+    super::inspection::validate(request)?;
     if request.scope.all_time == Some(true)
         && (request.scope.since.is_some()
             || request.scope.until.is_some()
@@ -201,6 +203,7 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
             || request.limit.is_some()
             || request.locate_thread_id.is_some()
             || request.locate_turn_id.is_some()
+            || request.locate_operation_id.is_some()
             || request.matched_only.is_some()
             || serde_json::to_value(&request.scope)?
                 .as_object()
@@ -213,6 +216,9 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
     }
     if request.presentation.is_some() && request.action != Action::Usage {
         return Err(invalid("展示分组仅适用于用量"));
+    }
+    if request.locate_operation_id.is_some() && request.action != Action::Steps {
+        return Err(invalid("操作定位仅适用于轮次记录"));
     }
     if request.locate_thread_id.is_some() && request.action != Action::Threads {
         return Err(invalid("定位仅适用于对话"));

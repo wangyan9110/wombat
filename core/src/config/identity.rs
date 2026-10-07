@@ -13,11 +13,12 @@ pub(super) fn aggregate(items: &mut Vec<Item>, issues: &mut Vec<Issue>) {
     }
     for (key, mut group) in groups {
         group.sort_by(|a, b| a.source_instance_id.cmp(&b.source_instance_id));
-        let versions: BTreeSet<_> = group
-            .iter()
-            .map(|i| (&i.content_hash, &i.measurement_status, &i.configured_state))
-            .collect();
-        if versions.len() > 1 {
+        let first = &group[0];
+        if group.iter().skip(1).any(|item| {
+            item.content_hash != first.content_hash
+                || item.measurement_status != first.measurement_status
+                || item.configured_state != first.configured_state
+        }) {
             // A file may change between source reads; never silently choose one version.
             if issues.len() < 256 {
                 issues.push(Issue {

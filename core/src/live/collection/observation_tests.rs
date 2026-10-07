@@ -1,5 +1,131 @@
 use super::*;
+use std::collections::BTreeSet;
 use std::path::Path;
+
+#[test]
+fn event_projection_appends_skip_old_membership_and_failed_publication_rolls_back() {
+    use std::io::Write;
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("sessions")).unwrap();
+    let path = root.path().join("sessions/events.jsonl");
+    let initial = [
+        json!({"type":"session_meta","timestamp":"2026-10-04T01:00:00Z","payload":{"id":"task"}}),
+        json!({"type":"event_msg","timestamp":"2026-10-04T01:00:01Z","payload":{"type":"task_started","turn_id":"a"}}),
+    ]
+    .iter()
+    .map(|row| row.to_string() + "\n")
+    .collect::<String>();
+    fs::write(&path, &initial).unwrap();
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let mut db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    let mut caches = BTreeMap::new();
+    let first = sync(&mut db, &key, &roots, false, None, &mut caches)
+        .unwrap()
+        .unwrap();
+    assert!(first.publication_change.is_none());
+    let source_id = sources(&roots).sources.remove(0).id;
+    let scope = format!("projection:{source_id}");
+    let bucket: i64 = db
+        .query_row(
+            "SELECT id FROM buckets WHERE scope=?1 AND field='events'",
+            [&scope],
+            |row| row.get(0),
+        )
+        .unwrap();
+    // BEFORE INSERT observes even a no-op UPSERT attempt. Reject historical writes.
+    db.execute_batch(&format!("CREATE TRIGGER reject_old_event BEFORE INSERT ON entries WHEN NEW.bucket={bucket} AND EXISTS(SELECT 1 FROM entries WHERE bucket={bucket} AND id=NEW.id) BEGIN SELECT RAISE(ABORT,'historical event membership rewritten'); END;")).unwrap();
+    writeln!(
+        fs::OpenOptions::new().append(true).open(&path).unwrap(),
+        "{}",
+        json!({"type":"event_msg","timestamp":"2026-10-04T01:00:02Z","payload":{"type":"task_complete","turn_id":"a"}})
+    )
+    .unwrap();
+    let second = sync(&mut db, &key, &roots, false, Some(&first), &mut caches)
+        .unwrap()
+        .unwrap();
+    let change = second.publication_change.as_ref().unwrap();
+    assert_eq!(
+        change.baseline.snapshot_id,
+        first.manifest.snapshot_ref.snapshot_id
+    );
+    assert_eq!(
+        change.current.snapshot_id,
+        second.manifest.snapshot_ref.snapshot_id
+    );
+    assert_eq!(change.turns_changed, 1);
+    assert_eq!(change.measurements_added, 0);
+    assert_eq!(first.events().unwrap().len(), 5);
+    assert_eq!(second.events().unwrap().len(), 9);
+    let saved = crate::live_index::load_map(&db, &scope).unwrap();
+    let view_scope = format!("view:{key}");
+    let saved_view = crate::live_index::load_map(&db, &view_scope).unwrap();
+    db.execute_batch(&format!("DROP TRIGGER reject_old_event; CREATE TRIGGER reject_new_event BEFORE INSERT ON entries WHEN NEW.bucket={bucket} BEGIN SELECT RAISE(ABORT,'synthetic publication failure'); END;")).unwrap();
+    writeln!(
+        fs::OpenOptions::new().append(true).open(&path).unwrap(),
+        "{}",
+        json!({"type":"event_msg","timestamp":"2026-10-04T01:00:03Z","payload":{"type":"task_started","turn_id":"b"}})
+    )
+    .unwrap();
+    assert!(sync(&mut db, &key, &roots, false, Some(&second), &mut caches).is_err());
+    assert_eq!(crate::live_index::load_map(&db, &scope).unwrap(), saved);
+    assert_eq!(
+        crate::live_index::load_map(&db, &view_scope).unwrap(),
+        saved_view
+    );
+    assert_eq!(
+        restore(&db, &key, &roots)
+            .unwrap()
+            .unwrap()
+            .events()
+            .unwrap(),
+        second.events().unwrap()
+    );
+    let restored = restore(&db, &key, &roots).unwrap().unwrap();
+    assert_eq!(
+        serde_json::to_value(&restored.publication_change).unwrap(),
+        serde_json::to_value(&second.publication_change).unwrap()
+    );
+    // The live worker discards parser caches after a failed transaction.
+    caches.clear();
+    db.execute_batch("DROP TRIGGER reject_new_event").unwrap();
+    let recovered = sync(&mut db, &key, &roots, false, Some(&second), &mut caches)
+        .unwrap()
+        .unwrap();
+    assert!(recovered.events().unwrap().len() > second.events().unwrap().len());
+    let verified = sync(&mut db, &key, &roots, true, Some(&recovered), &mut caches)
+        .unwrap()
+        .unwrap();
+    assert_eq!(verified.events().unwrap(), recovered.events().unwrap());
+    fs::write(&path, initial).unwrap();
+    let replacement = sync(&mut db, &key, &roots, false, Some(&verified), &mut caches)
+        .unwrap()
+        .unwrap();
+    assert_eq!(replacement.events().unwrap().len(), 5);
+    let original_ids: BTreeSet<_> = first
+        .events()
+        .unwrap()
+        .iter()
+        .map(|e| e.id().to_owned())
+        .collect();
+    assert!(
+        replacement
+            .events()
+            .unwrap()
+            .iter()
+            .all(|e| !original_ids.contains(e.id()))
+    );
+    assert_eq!(
+        restore(&db, &key, &roots)
+            .unwrap()
+            .unwrap()
+            .events()
+            .unwrap(),
+        replacement.events().unwrap()
+    );
+}
+
 fn source(root: &Path, title: &str) -> PathBuf {
     fs::create_dir(root.join("sessions")).unwrap();
     let path = root.join("sessions/source.jsonl");
@@ -133,4 +259,37 @@ fn observation_headers_reject_cached_append_restore_and_mixed_fallback_without_c
             }
         }
     }
+}
+
+#[test]
+fn future_publication_change_rejects_before_project_publication_without_writes() {
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    source(root.path(), "A");
+    let roots = vec![root.path().to_string_lossy().into_owned()];
+    let key = source_key(&roots);
+    let mut db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    sync(&mut db, &key, &roots, false, None, &mut BTreeMap::new()).unwrap();
+    let scope = format!("view:{key}");
+    let mut view = crate::live_index::load_map(&db, &scope).unwrap();
+    // A future header deliberately has no current payload fields.
+    view.insert(
+        "publicationChange".into(),
+        json!({"methodVersion":2,"futureShape":true}),
+    );
+    crate::live_index::save_map(&db, &scope, &view).unwrap();
+    let error = restore_projects::restore_projects(
+        &db,
+        &key,
+        &roots,
+        || None,
+        |_| panic!("unsupported publication must never expose partial facts"),
+    )
+    .err()
+    .unwrap();
+    assert_eq!(
+        crate::live_index::failure_code(&error),
+        "UNSUPPORTED_VERSION"
+    );
+    assert_eq!(crate::live_index::load_map(&db, &scope).unwrap(), view);
 }

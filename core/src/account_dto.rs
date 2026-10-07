@@ -8,6 +8,7 @@ pub enum Action {
     #[default]
     Read,
     Refresh,
+    History,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
@@ -123,6 +124,10 @@ pub struct ModelRestriction {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history: Option<AllowanceHistory>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_error_code: Option<String>,
     pub output_version: u8,
     pub action: Action,
     pub native_version: Option<String>,
@@ -160,4 +165,49 @@ pub struct AllowanceAssessment {
     pub bucket_id: Option<String>,
     pub window_id: Option<String>,
     pub reason: String,
+}
+
+/// Stored native observations, independent of the local usage ledger.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AllowanceHistory {
+    #[schemars(range(min = 1, max = 1))]
+    pub method_version: u32,
+    pub total_observations: u64,
+    pub observations: Vec<AllowanceObservation>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AllowanceObservation {
+    pub native_version: Option<String>,
+    pub id: String,
+    pub observed_at: String,
+    pub account_id: Option<String>,
+    pub status: String,
+    pub windows: Vec<AllowanceWindowObservation>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AllowanceWindowObservation {
+    pub id: String,
+    pub bucket_id: String,
+    pub used_percent: f64,
+    pub duration_minutes: Option<u64>,
+    pub resets_at: Option<String>,
+    pub status: String,
+    pub delta_percentage_points: Option<f64>,
+    pub interval_status: AllowanceIntervalStatus,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AllowanceIntervalStatus {
+    Compatible,
+    First,
+    ObservationGap,
+    AccountChanged,
+    WindowChanged,
+    ResetChanged,
+    Expired,
+    TimeOrder,
+    DurationUnknown,
 }

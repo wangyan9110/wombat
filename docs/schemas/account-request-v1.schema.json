@@ -18,7 +18,8 @@
       "type": "string",
       "enum": [
         "read",
-        "refresh"
+        "refresh",
+        "history"
       ]
     }
   }

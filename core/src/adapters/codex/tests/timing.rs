@@ -101,6 +101,103 @@ fn malformed_native_timing_preserves_lifecycle_and_reports_unknowns() {
 }
 
 #[test]
+fn event_projection_delta_keeps_occurrences_and_replaces_membership_only_on_replay() {
+    use std::io::Write;
+    let root = tempfile::tempdir().unwrap();
+    let index = tempfile::tempdir().unwrap();
+    let initial = [meta("t"), event("task_started", "a")];
+    let path = write(root.path(), "sessions/events.jsonl", &initial);
+    let prefix_bytes = fs::metadata(&path).unwrap().len();
+    let source = CodexAdapter
+        .discover(&DiscoveryRequest {
+            roots: vec![root.path().into()],
+        })
+        .sources
+        .remove(0);
+    let db = crate::live_index::open(&index.path().join("index.sqlite")).unwrap();
+    let mut cache = incremental::Cache::default();
+    let first = incremental::sync_cached(&db, &source, false, &mut cache)
+        .unwrap()
+        .unwrap();
+    assert!(first.events.is_none());
+    assert_eq!(first.collected.events.len(), 5);
+    writeln!(
+        fs::OpenOptions::new().append(true).open(&path).unwrap(),
+        "{}",
+        event("task_complete", "a")
+    )
+    .unwrap();
+    let next = incremental::sync_cached(&db, &source, false, &mut cache)
+        .unwrap()
+        .unwrap();
+    let delta = next.events.unwrap();
+    assert_eq!(delta.len(), 4);
+    assert!(
+        delta
+            .iter()
+            .all(|e| e.position().byte_offset >= prefix_bytes)
+    );
+    assert_eq!(next.collected.events.len(), 9);
+    for original in &first.collected.events {
+        assert_eq!(
+            next.collected
+                .events
+                .iter()
+                .find(|e| e.id() == original.id())
+                .unwrap()
+                .as_ref(),
+            original.as_ref()
+        );
+    }
+    assert!(
+        incremental::sync_cached(&db, &source, false, &mut cache)
+            .unwrap()
+            .is_none()
+    );
+    let verified = incremental::sync_cached(&db, &source, true, &mut cache)
+        .unwrap()
+        .unwrap();
+    assert!(verified.events.is_none());
+    assert_eq!(verified.collected.events, next.collected.events);
+    writeln!(
+        fs::OpenOptions::new().append(true).open(&path).unwrap(),
+        "{}",
+        event("task_started", "b")
+    )
+    .unwrap();
+    let restarted =
+        incremental::sync_cached(&db, &source, false, &mut incremental::Cache::default())
+            .unwrap()
+            .unwrap();
+    assert!(restarted.events.is_none());
+    // Source disappearance keeps observations; it is an empty delta, not a deletion.
+    // Restart has refreshed parser state, so use another fresh cache to establish it.
+    let mut cache = incremental::Cache::default();
+    incremental::sync_cached(&db, &source, true, &mut cache)
+        .unwrap()
+        .unwrap();
+    fs::remove_file(&path).unwrap();
+    let missing = incremental::sync_cached(&db, &source, false, &mut cache)
+        .unwrap()
+        .unwrap();
+    assert!(missing.events.unwrap().is_empty());
+    assert_eq!(missing.collected.events, restarted.collected.events);
+    write(root.path(), "sessions/events.jsonl", &initial);
+    let replacement = incremental::sync_cached(&db, &source, false, &mut cache)
+        .unwrap()
+        .unwrap();
+    assert!(replacement.events.is_none());
+    assert_eq!(replacement.collected.events.len(), 5);
+    assert!(
+        replacement.collected.events.iter().all(|e| !first
+            .collected
+            .events
+            .iter()
+            .any(|old| old.id() == e.id()))
+    );
+}
+
+#[test]
 fn append_restart_verify_truncation_and_replacement_obey_event_generations() {
     use std::io::Write;
     let root = tempfile::tempdir().unwrap();

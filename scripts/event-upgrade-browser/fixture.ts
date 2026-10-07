@@ -33,7 +33,8 @@ export function nativeRows(project: string, skill: string): unknown[] {
   // Five calls plus two commands = seven operations; each start/result is one.
   return [row('session_meta', { id: nativeThread, cwd: project }),
     row('turn_context', { turn_id: nativeTurn, model: 'gpt-5.4', effort: 'low' }),
-    row('event_msg', { type: 'task_started', turn_id: nativeTurn }),
+    row('event_msg', { type: 'task_started', turn_id: nativeTurn, model_context_window:128000 }),
+    row('response_item',{type:'message',role:'developer',content:[{type:'input_text',text:privateBody}]},1),
     row('response_item', { type: 'message', id: 'synthetic-browser-message', role: 'assistant', content: [{ type: 'output_text', text: privateBody }] }, 50),
     command('synthetic-browser-command-one', 'item_started', 10_000, 40_000), command('synthetic-browser-command-two', 'item_started', 30_000, 60_000),
     command('synthetic-browser-command-one', 'item_completed', 10_000, 40_000), command('synthetic-browser-command-two', 'item_completed', 30_000, 60_000),
@@ -77,6 +78,11 @@ export async function fixture(repo: string, signal: AbortSignal) {
     await writeFile(path.join(root, 'config.toml'), "[mcp_servers.synthetic-browser-server]\ncommand='synthetic-never-executed'\n");
     await writeFile(path.join(root, 'session_index.jsonl'), jsonl([{ id: nativeThread, thread_name: title, updated_at: new Date(epoch).toISOString() }]));
     await writeFile(file, jsonl(nativeRows(project, skill)));
+    await writeFile(path.join(root,'sessions','comparison-child.jsonl'),jsonl([
+      row('session_meta',{id:'synthetic-comparison-child',cwd:project,forked_from_id:nativeThread}),
+      row('turn_context',{turn_id:'synthetic-comparison-turn',model:'gpt-5.4'}),
+      row('event_msg',{type:'token_usage_record',thread_id:'synthetic-comparison-child',turn_id:'synthetic-comparison-turn',response_id:'synthetic-comparison-response',usage:{input_tokens:55,cached_input_tokens:0,cache_write_input_tokens:0,output_tokens:0,reasoning_output_tokens:0,total_tokens:55}}),
+    ]));
     Object.assign(process.env, { WOMBAT_DATA_HOME: data, CODEX_HOME: root, WOMBAT_AUTO_PRICES: '0', WOMBAT_CODEX_BIN: path.join(dir, 'absent-native-codex') });
     const binaryPath = path.join(repo, 'dist', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
     process.env.WOMBAT_CORE_BIN = binaryPath;
@@ -117,7 +123,7 @@ export async function fixture(repo: string, signal: AbortSignal) {
         const live = await client.live!({ query: { action: 'usage', roots: [root], scope: { allTime: true } }, mode: 'fresh' }, { signal });
         const snapshotId = live.result.snapshotRef.snapshotId;
         const threads = await client.live!({ query: { action: 'threads', roots: [root], snapshotId, scope: { allTime: true } }, mode: 'cached' }, { signal });
-        const thread = threads.result.items.find(item => item.kind === 'thread'); if (!thread) throw new Error('Synthetic thread missing');
+        const thread = threads.result.items.find(item => item.kind === 'thread' && item.upstreamId === nativeThread); if (!thread || thread.kind !== 'thread') throw new Error('Synthetic thread missing');
         const turns = await client.live!({ query: { action: 'turns', roots: [root], snapshotId, threadId: thread.id, scope: { allTime: true } }, mode: 'cached' }, { signal });
         const turn = turns.result.items.find(item => item.kind === 'turn'); if (!turn) throw new Error('Synthetic turn missing');
         const timing = await client.timing!({ action: 'summary', snapshotId, roots: [root], threadId: thread.id, turnId: turn.id, mode: 'cached', privacyProfile: 'local' }, { signal });

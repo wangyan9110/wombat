@@ -3,6 +3,10 @@ use crate::adapters::contract::{Issue, SourceReport, TokenField, TokenFields, To
 use crate::pricing::PriceResult;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+mod comparison;
+pub use comparison::*;
+mod inspection;
+pub use inspection::*;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -30,6 +34,12 @@ pub enum Action {
     Threads,
     Turns,
     Steps,
+    Compare,
+    Investigate,
+    Trajectory,
+    Resources,
+    Review,
+    Context,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -58,6 +68,7 @@ pub enum Presentation {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Request {
+    pub comparison: Option<ComparisonRequest>,
     pub action: Action,
     pub snapshot_id: Option<String>,
     pub roots: Option<Vec<String>>,
@@ -73,6 +84,7 @@ pub struct Request {
     pub limit: Option<usize>,
     pub locate_thread_id: Option<String>,
     pub locate_turn_id: Option<String>,
+    pub locate_operation_id: Option<String>,
     pub matched_only: Option<bool>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -305,6 +317,10 @@ pub enum TokenBasis {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inspection: Option<Inspection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comparison: Option<Comparison>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub facets: Option<Facets>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

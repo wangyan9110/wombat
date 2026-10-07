@@ -1,5 +1,5 @@
 //! Independent Codex rollout adapter. Only explicit identities merge facts.
-mod ancestry;
+use crate::session_relations;
 mod context;
 mod event_projection;
 pub(crate) mod incremental;
@@ -237,7 +237,7 @@ fn finish_projection(
     crate::operation_association::check(cancelled)?;
     facts.resolve_operations(report, cancelled)?;
     let parents = std::mem::take(&mut facts.parents);
-    let forest = ancestry::ForkForest::new_cancellable(&parents, cancelled)?;
+    let forest = session_relations::SessionRelations::new_cancellable(&parents, cancelled)?;
     if forest.unresolved > 0 {
         issue(
             report,

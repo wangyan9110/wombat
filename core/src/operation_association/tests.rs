@@ -75,6 +75,13 @@ fn late_bridge_merges_two_existing_groups_and_keeps_oldest_operation_id() {
                 .iter()
                 .all(|p| p.identity.as_deref() == Some("stable-call"))
         );
+        let identity = result.phases[0].identity.as_ref().unwrap();
+        assert!(
+            result
+                .phases
+                .iter()
+                .all(|phase| Arc::ptr_eq(identity, phase.identity.as_ref().unwrap()))
+        );
     }
 }
 #[test]
@@ -379,7 +386,15 @@ fn terminal_exit_code_conflicts_are_shared_and_start_zero_is_not_terminal() {
         },
     );
     let events = [start.clone(), end.clone()];
-    assert!(!resolved(&events).groups[0].outcome_conflict);
+    let resolution = resolved(&events);
+    assert!(!resolution.groups[0].outcome_conflict);
+    let endpoints = endpoints::reduce(&resolution.phases, &AtomicBool::new(false)).unwrap();
+    assert_eq!(
+        endpoints.groups[0].terminal.outcome(),
+        Some(TerminalOutcome::Failed)
+    );
+    assert_eq!(endpoints.groups[0].terminal.exit_code, Some(1));
+    assert_eq!(endpoints.groups[0].terminal_evidence_ids, [end.id()]);
     let events = [
         start,
         end,
@@ -395,6 +410,16 @@ fn terminal_exit_code_conflicts_are_shared_and_start_zero_is_not_terminal() {
     let result = resolved(&events);
     assert!(result.groups[0].outcome_conflict);
     assert!(result.phases.iter().all(|p| p.outcome_conflict));
+    let endpoints = endpoints::reduce(&result.phases, &AtomicBool::new(false)).unwrap();
+    assert_eq!(
+        endpoints.groups[0].terminal.state,
+        lifecycle::TerminalState::Conflicting
+    );
+    assert_eq!(endpoints.groups[0].terminal.exit_code, None);
+    assert_eq!(
+        endpoints.groups[0].terminal_evidence_ids,
+        [events[1].id(), events[2].id()]
+    );
 }
 
 #[test]
@@ -411,5 +436,13 @@ fn native_command_completion_is_closure_without_success_claim() {
             duration: None,
         },
     )];
-    assert!(resolved(&events).phases[0].terminal_outcome.is_none());
+    let resolution = resolved(&events);
+    assert!(resolution.phases[0].terminal_outcome.is_none());
+    let endpoints = endpoints::reduce(&resolution.phases, &AtomicBool::new(false)).unwrap();
+    assert_eq!(endpoints.groups[0].end_ms, Some(30));
+    assert_eq!(
+        endpoints.groups[0].terminal.state,
+        lifecycle::TerminalState::Unobserved
+    );
+    assert!(endpoints.groups[0].terminal_evidence_ids.is_empty());
 }

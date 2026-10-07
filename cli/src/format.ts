@@ -170,13 +170,16 @@ export function summaryDetails(summary: UsageSummary): string[] {
 }
 function qualityLine(result: UsageResult): string | undefined { return result.quality.status === 'partial' ? t("cli.format.data_status_value", { p0: result.quality.issues[0]?.message ?? t("cli.format.see_data_notes") }) : undefined; }
 export function renderUsageResult(result: UsageResult, width = 120, group?: 'day' | 'week' | 'month'): string {
-  const title = { refresh: t("cli.format.updated"), usage: t("cli.format.usage"), threads: t("common.threads"), turns: t("cli.format.turns"), steps: t("cli.format.records") }[result.action];
+  const title = { context:t('inspection.context'),investigate:t('inspection.investigate'),trajectory:t('inspection.trajectory'),resources:t('inspection.resources'),review:t('inspection.review'),compare: t('comparison.title'), refresh: t("cli.format.updated"), usage: t("cli.format.usage"), threads: t("common.threads"), turns: t("cli.format.turns"), steps: t("cli.format.records") }[result.action];
   const lines = [`Wombat · ${title}`, t("common.updated_value", { p0: dateLabel(result.snapshotRef.createdAt, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC', true) }), rangeLabel(result.scope.since, result.scope.until, result.snapshotRef.createdAt, result.scope.timezone ?? 'UTC'), usageLabel(result.summary), ...tokenCoverageLines(result.summary, width), ''];
+  if (result.inspection) lines.push(...inspectionLines(result));
+  if (result.comparison) lines.push(...comparisonLines(result));
+  if (result.freshness?.publicationChange) { const c=result.freshness.publicationChange; lines.push(t('comparison.refreshCounts',{added:c.measurementsAdded,changed:c.measurementsChanged,removed:c.measurementsRemoved,threads:c.threadsAdded,turns:c.turnsChanged}),t('comparison.refreshBasis',{prices:t(c.pricesChanged?'comparison.changed':'comparison.unchanged'),coverage:t(c.coverageChanged?'comparison.changed':'comparison.unchanged')})); }
   if (result.action === 'usage' && result.distribution && width >= 110)
     lines.push(usageTableHeader(width));
   for (const item of result.items)
     lines.push(...itemLines(item, result, width, group));
-  if (!result.items.length)
+  if (!result.items.length && !result.comparison && !result.inspection)
     lines.push(result.action === 'refresh' ? t("cli.format.records_saved") : result.page.total > 0 ? t("cli.format.no_records_on_this_page_value", { p0: result.page.total }) : t("common.no_records"));
   if (result.items.length > 0 && result.page.total > result.items.length)
     lines.push(`${result.page.offset + 1}—${result.page.offset + result.items.length} / ${result.page.total}`);
@@ -198,4 +201,25 @@ function wrapDisplay(text: string, width: number): string[] {
     line += segment;
   }
   return [...lines, line];
+}
+
+function comparisonLines(result:UsageResult):string[]{
+ const c=result.comparison;if(!c)return [];
+ const change=(d:NonNullable<UsageResult['comparison']>['delta'])=>`${t('comparison.delta')}: ${d.tokens==null?'—':(d.tokens>0?'+':'')+tokens(d.tokens)} Token · ${d.cost==null?'—':(d.cost.startsWith('-')?'':'+')+d.cost+' USD'}`;
+ if(c.kind==='sessions')return [t(c.includeDescendants?'comparison.family':'comparison.sessions'),`${c.left.title??c.left.threadId}: ${usageLabel(c.left.selected)} (${c.left.memberCount})`,`${c.right.title??c.right.threadId}: ${usageLabel(c.right.selected)} (${c.right.memberCount})`,change(c.delta),...(c.left.partial||c.right.partial?[t('comparison.partial')]:[]),t('comparison.sessionNote')];
+ return [`${t('comparison.baseline')}: ${c.baseline.scope.since} — ${c.baseline.scope.until} ${usageLabel(c.baseline.usage)}`,`${t('comparison.current')}: ${c.current.scope.since} — ${c.current.scope.until} ${usageLabel(c.current.usage)}`,change(c.delta),...c.drivers.map(d=>`${d.key??t('webui.unknown')}: ${change(d.delta)}`),`${t('comparison.remaining')}: ${change(c.remaining)}`,t('comparison.page',{offset:result.page.offset,total:result.page.total}),...(c.baseline.partial||c.current.partial?[t('comparison.partial')]:[]),t('comparison.note'),t('comparison.undated',{count:c.undatedRecords})];
+}
+
+function inspectionLines(result:UsageResult):string[] {
+ const i=result.inspection!,lines=[t('inspection.note'),...i.limitations.map(l=>t(`inspection.limit.${l}`))];
+ const p=i.policy;lines.push(t('inspection.policyText',{tokens:p.minimumTokens,input:p.minimumInput,cache:p.maximumCacheShare*100,jump:p.minimumInputJump,operations:p.minimumDeterminateOperations,failures:p.minimumFailures,share:p.minimumFailureShare*100,repeats:p.minimumRepeatedRequests}));
+ for(const c of [...i.candidates,...(i.review?.topTasks??[])])lines.push(c.title??c.threadId,usageLabel(c.usage),c.signals.map(s=>t(`inspection.signal.${s}`)).join(' · '),`${t('inspection.failures')}: ${c.failedOperations} / ${c.determinateOperations}`,`${t('inspection.repeated')}: ${c.repeatedRequests}`,...c.evidence.map(e=>JSON.stringify(e)));
+ if(i.kind==='investigate'&&!i.candidateCount)lines.push(t('inspection.noCandidates'));
+ for(const p of i.trajectory)lines.push(`${p.timestamp??'—'} · ${t('inspection.input')}: ${p.input??'—'} · ${t('inspection.uncachedDelta')}: ${p.uncachedDelta??'—'} · ${p.boundary?t(`inspection.boundary.${p.boundary}`):''}`,JSON.stringify(p.evidence));
+ for(const r of i.resources)lines.push(r.path,`${t('inspection.reads')}: ${r.reads} · ${t('inspection.proposed')}: ${r.proposedChanges} · ${t('inspection.reported')}: ${r.reportedChanges}`,`${t('inspection.duration')}: ${r.knownDurationMs??'—'} ms · ${t('inspection.coveredDuration',{count:r.durationCoveredOperations})}`,...r.evidence.map(e=>JSON.stringify(e)));
+ if(i.context){lines.push(t('inspection.contextCount',{count:i.context.injectedRecords,windows:i.context.modelWindowRecords}));for(const r of i.context.records)lines.push(t(`inspection.contextKind.${r.kind}`),r.timestamp??'—',r.modelContextWindow!=null?t('inspection.modelWindow',{tokens:r.modelContextWindow}):t('inspection.contentUnknown'),JSON.stringify(r.evidence));}
+ for(const point of i.trajectory)if(point.compactionComparison){const p=point.compactionComparison;lines.push(t('inspection.compactionComparison',{before:p.beforeInput,after:p.afterInput,difference:p.inputDifference}),t('inspection.compactionNote'),JSON.stringify(p.beforeEvidence));}
+ if(i.review?.concentration){const c=i.review.concentration;const percent=(v:number|null|undefined)=>v==null?'—':new Intl.NumberFormat(locale.getSnapshot().locale,{style:'percent',maximumFractionDigits:1}).format(v);lines.push(t('inspection.concentration'),t('inspection.concentrationShares',{top:percent(c.topTaskShare),five:percent(c.topFiveShare),ten:percent(c.topTenShare)}),t('inspection.remainingTasks')+': '+usageLabel(c.remainingTaskUsage));}
+ if(i.review){if(i.review.comparison)lines.push(...comparisonLines({...result,comparison:i.review.comparison}));for(const g of i.review.models)lines.push(g.key??t('webui.unknown'),usageLabel(g.usage));for(const tool of i.review.tools)lines.push(tool.kind+' · '+tool.operations);}
+ lines.push(`${result.page.offset} / ${result.page.total}`);return lines;
 }

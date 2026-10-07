@@ -125,7 +125,7 @@ export function reusableStage(record: ResumeRecord | undefined, stageName: strin
     && (stage as { name?: unknown }).name === stageName && (stage as { status?: unknown }).status === 'passed');
 }
 
-async function terminateTree(child: ChildProcess): Promise<boolean> {
+export async function terminateTree(child: ChildProcess): Promise<boolean> {
   if (!child.pid) return child.exitCode !== null || child.signalCode !== null;
   const closed = new Promise<void>(resolve => child.once('close', () => resolve()));
   if (process.platform === 'win32') {

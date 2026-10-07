@@ -1,3 +1,4 @@
+import {invokeOperation} from '../core.js';
 import {CoreError} from '../../errors.js';
 import type {AccountResult,AccountTransport} from '../../client.js';
 import type {CoreProcessOptions} from '../core.js';
@@ -9,6 +10,7 @@ import {nativeVersion,type CodexOptions} from './process.js';
 export function createAccountTransport(options:CoreProcessOptions & CodexOptions):AccountTransport {
   let cached:AccountResult|undefined,generation=0;
   return async(request,query)=>{
+    if(request.action==='history')return invokeOperation('account_history',{...request},query,options);
     const turn=++generation;
     let version:string|undefined,capture=unavailableCapture();
     try{

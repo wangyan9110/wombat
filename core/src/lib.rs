@@ -21,6 +21,7 @@ pub mod pricing;
 pub mod pricing_sync;
 mod query_cache;
 pub mod session_events;
+pub(crate) mod session_relations;
 mod shared_text;
 pub mod storage;
 pub mod timing;
@@ -107,7 +108,10 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
         "native_hook_context" => Ok(serde_json::to_value(config::hooks::context(
             serde_json::from_value(args.clone())?,
         )?)?),
-        "native_account" => Ok(serde_json::to_value(account::normalize(
+        "native_account" => Ok(serde_json::to_value(account::capture(
+            serde_json::from_value(args.clone())?,
+        )?)?),
+        "account_history" => Ok(serde_json::to_value(account::history::read(
             serde_json::from_value(args.clone())?,
         )?)?),
         "native_allowance_gate" => Ok(serde_json::to_value(account::gate::evaluate(

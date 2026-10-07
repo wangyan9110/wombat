@@ -10,7 +10,10 @@ use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
+mod comparison;
 mod conversations;
+mod inspection;
+pub(crate) use comparison::publication_change;
 #[cfg(test)]
 mod report_tests;
 mod reports;
@@ -35,6 +38,8 @@ pub(crate) fn refresh_response(
     rows: &[&PricedMeasurement],
 ) -> Result<Response> {
     Ok(Response {
+        inspection: None,
+        comparison: None,
         facets: None,
         distribution: None,
         price_update: None,
@@ -144,6 +149,12 @@ pub(crate) fn execute_snapshot(request: Request, snapshot: &Snapshot) -> Result<
 
 fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Response> {
     validate(&request)?;
+    if request.action == Action::Compare {
+        return comparison::execute(request, snapshot);
+    }
+    if inspection::is_action(&request.action) {
+        return inspection::execute(request, snapshot);
+    }
     let tz = timezone(&request.scope)?;
     request.scope.timezone = Some(tz.to_string());
     if let Some(id) = &request.thread_id {
@@ -292,7 +303,13 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
                 &selected.iter().map(|r| r.fact.id.as_str()).collect(),
             )?
         }
-        Action::Refresh => unreachable!(),
+        Action::Refresh
+        | Action::Compare
+        | Action::Investigate
+        | Action::Trajectory
+        | Action::Resources
+        | Action::Review
+        | Action::Context => unreachable!(),
     };
     let limit = request.limit.unwrap_or(50);
     let located_turn = request.locate_turn_id.as_ref().and_then(|id| {
@@ -300,7 +317,17 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
             .iter()
             .position(|item| matches!(item, Item::Turn { id: current, .. } if current == id))
     });
-    let offset = located_turn.or_else(|| request.locate_thread_id.as_ref().and_then(|id| items.iter().position(|item| matches!(item, Item::Thread { id: current, upstream_id, .. } if current == id || upstream_id.as_ref() == Some(id))))).map(|index| index / limit * limit).unwrap_or(request.offset.unwrap_or(0));
+    let located_operation = if let Some(id) = &request.locate_operation_id {
+        Some(
+            items
+                .iter()
+                .position(|item| matches!(item,Item::Operation{id:current,..} if current==id))
+                .ok_or_else(|| operation_error("NOT_FOUND", "所选固定轮次不存在此操作"))?,
+        )
+    } else {
+        None
+    };
+    let offset = located_operation.or(located_turn).or_else(|| request.locate_thread_id.as_ref().and_then(|id| items.iter().position(|item| matches!(item, Item::Thread { id: current, upstream_id, .. } if current == id || upstream_id.as_ref() == Some(id))))).map(|index| index / limit * limit).unwrap_or(request.offset.unwrap_or(0));
     let mut period_count = None;
     let distribution = if request.action == Action::Usage && !dimensional {
         let mut groups: Vec<Vec<Item>> = vec![];
@@ -392,6 +419,8 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         items.len()
     });
     Ok(Response {
+        inspection: None,
+        comparison: None,
         facets: (request.action == Action::Usage).then(|| {
             let (models, reasoning_efforts) = dimensions(&rows);
             Facets {

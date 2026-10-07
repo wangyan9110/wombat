@@ -7,7 +7,8 @@ export function withAutomaticPrices(client: UsageClient): UsageClient {
   let failed: LiveResult["result"]["priceUpdate"];
   return { ...client, async live(request: LiveRequest, options: QueryOptions = {}): Promise<LiveResult> {
     let result = await client.live!(request, options);
-    if (request.mode === 'cached' || request.query.snapshotId || process.env.WOMBAT_AUTO_PRICES === '0'
+    if (request.mode === 'cached' || (['compare','investigate','trajectory','resources','review','context'].includes(request.query.action) && request.mode !== 'fresh')
+      || request.query.snapshotId || process.env.WOMBAT_AUTO_PRICES === '0'
       || !result.result.summary.price.issues.includes('catalogPriceMissing')) return result;
     if (failed && Date.parse(failed.retryAt) > Date.now()) { result.result.priceUpdate = failed; return result; }
     try {

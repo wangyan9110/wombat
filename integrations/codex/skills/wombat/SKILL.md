@@ -12,6 +12,10 @@ Translate the user's question into a small set of CLI queries and return scoped,
 | Intent | Query flow | Result |
 |---|---|---|
 | Usage today or main contributors | Summary, then same-view task/model/project ranking as needed | Scope, tokens, known cost, unpriced usage, contributors |
+| Explain usage changes or compare tasks | Same-view period drivers or explicit task/family comparison | Arithmetic contributions, complete identities, coverage limits |
+| Explain a refresh | Read freshness.publicationChange from a live result | Added, corrected or removed facts, price/coverage changes, version-bound delta |
+| Investigate usage patterns | investigate, trajectory, resources or review in one fixed scope | Thresholds, supported observations, bounded same-view evidence; no waste diagnosis |
+| Read allowance history | account history | Stored native observations; compatible intervals only, no local-task attribution |
 | Find a task or costly turn | Search/full identity, matched versus complete usage, turn and relevant operations | Complete task/turn identities and evidence gaps |
 | Inspect instructions and extensions | Inventory, static suggestions, selected object details and evidence | Concrete findings, reviewable changes, unknowns |
 | Improve selected configuration | Inspect current files, make user-authorized changes with Codex, recheck | Actual changes, remaining findings, verification limits |
@@ -41,6 +45,8 @@ wombat threads --sort tokens --limit 10 --json
 wombat threads --search TEXT --sort recent --limit 10 --json
 wombat turns --thread THREAD_ID --snapshot SNAPSHOT_ID --sort tokens --limit 10 --json
 wombat steps --thread THREAD_ID --turn TURN_ID --snapshot SNAPSHOT_ID --sort time --limit 20 --json
+wombat compare --since YYYY-MM-DD --until YYYY-MM-DD --baseline-since YYYY-MM-DD --baseline-until YYYY-MM-DD --dimension project --snapshot SNAPSHOT_ID --json
+wombat compare --thread THREAD_ID --other-thread THREAD_ID --family --snapshot SNAPSHOT_ID --json
 ```
 
 Replace the example timezone with the user's timezone. Use `--all-time` for complete history and exact model/project identifiers from results. `--root` selects source logs; `--project` filters historical directory evidence.

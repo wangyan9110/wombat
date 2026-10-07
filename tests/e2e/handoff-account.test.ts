@@ -49,14 +49,29 @@ test('handoff reviews all pending files, merges shared targets and refuses chang
 
 test('account failures retain old section timestamps and a changed account clears previous windows', { timeout: 20_000 }, async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'wombat-account-')), fixture = path.join(dir, 'codex.cjs'), mode = path.join(dir, 'mode.json');
+  const previousDataHome = process.env.WOMBAT_DATA_HOME;
+  process.env.WOMBAT_DATA_HOME = path.join(dir, 'data');
   try {
     await writeFile(fixture, `const {readFileSync}=require('node:fs'); const mode=JSON.parse(readFileSync(${JSON.stringify(mode)},'utf8')); if(process.argv.includes('--version')){console.log('codex-cli 0.160.0');process.exit(0);} let buffer=''; process.stdin.on('data',chunk=>{buffer+=chunk;let end;while((end=buffer.indexOf('\\n'))>=0){const text=buffer.slice(0,end);buffer=buffer.slice(end+1);const m=JSON.parse(text);if(m.id==null)continue;let result={};let error=false;if(m.method==='account/read') result={requiresOpenaiAuth:true,account:{type:'chatgpt',email:'synthetic@example.invalid',planType:'pro'},workspaceRouting:{chatgptAccountId:mode.account}};if(m.method==='account/rateLimits/read'){error=mode.fail;result={accountId:mode.account,rateLimitsByLimitId:{synthetic:{primary:{usedPercent:12,windowDurationMins:37},credits:{balance:'12.500000001',hasCredits:true,unlimited:false},individualLimit:{limit:'20',used:'0',remainingPercent:100,resetsAt:1800000000}}},rateLimitResetCredits:{availableCount:2,credits:null},ordinaryUsageAllowed:true};}if(m.method==='account/usage/read'){error=mode.fail;result={summary:{lifetimeTokens:0,longestRunningTurnSec:123}};}console.log(JSON.stringify(error?{id:m.id,error:{code:-1,message:'Synthetic private error'}}:{id:m.id,result}));}});`);
     await writeFile(mode, JSON.stringify({ account: 'account-a', fail: false }));
     const client = createNodeClient({ binaryPath: binary, codexBinaryPath: fixture, automaticPrices: false });
     const first = await client.account!({ action: 'read' }); assert.equal(first.windows.length, 1); assert.equal(first.windows[0].durationMinutes, 37); assert.equal(first.summary?.longestRunningTurnSeconds, 123); assert.equal(first.summary?.lifetimeTokens, 0); assert.equal(first.identity?.maskedEmail, 'sy***@example.invalid'); assert.equal(first.buckets[0].credits?.balance, '12.500000001'); assert.equal(first.resetCredits?.availableCount, 2);
+    const stored = await client.account!({ action: 'history' });
+    assert.equal(stored.history?.totalObservations, 1);
+    assert.equal(stored.history?.observations[0].accountId, first.identity?.id);
+    assert.equal(stored.history?.observations[0].windows[0].usedPercent, 12);
     await writeFile(mode, JSON.stringify({ account: 'account-a', fail: true }));
     const stale = await client.account!({ action: 'refresh' }); assert.equal(stale.allowance.status, 'stale'); assert.equal(stale.allowance.checkedAt, first.allowance.checkedAt); assert.equal(stale.activity.checkedAt, first.activity.checkedAt); assert.equal(stale.windows.length, 1); assert.equal(stale.ordinaryUsageAllowed, null); assert.equal(stale.buckets[0].credits?.balance, '12.500000001'); assert.equal(stale.buckets[0].status, 'stale'); assert.equal(stale.buckets[0].individualLimit?.status, 'stale'); assert.equal(stale.resetCredits?.availableCount, 2); assert.ok(!JSON.stringify(stale).includes('Synthetic private error'));
     await writeFile(mode, JSON.stringify({ account: 'account-b', fail: true }));
     const switched = await client.account!({ action: 'refresh' }); assert.notEqual(switched.identity?.id, first.identity?.id); assert.equal(switched.windows.length, 0); assert.equal(switched.buckets.length, 0); assert.equal(switched.resetCredits, null); assert.equal(switched.summary, null); assert.equal(switched.allowance.status, 'unavailable');
-  } finally { await rm(dir, { recursive: true, force: true }); }
+    const history = await client.account!({ action: 'history' });
+    assert.equal(history.history?.totalObservations, 3);
+    assert.equal(history.history?.observations[0].accountId, switched.identity?.id);
+    assert.equal(history.history?.observations[1].status, 'unavailable');
+    assert.equal(history.history?.observations[1].windows.length, 0);
+  } finally {
+    if (previousDataHome === undefined) delete process.env.WOMBAT_DATA_HOME;
+    else process.env.WOMBAT_DATA_HOME = previousDataHome;
+    await rm(dir, { recursive: true, force: true });
+  }
 });

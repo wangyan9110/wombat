@@ -113,7 +113,7 @@ impl Facts {
     }
     pub(super) fn remove_inherited(
         &mut self,
-        forest: &ancestry::ForkForest<'_>,
+        forest: &session_relations::SessionRelations<'_>,
         cancelled: &std::sync::atomic::AtomicBool,
     ) -> anyhow::Result<()> {
         // Only byte-identical native counter events can be inherited. Direct response

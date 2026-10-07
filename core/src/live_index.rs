@@ -40,6 +40,7 @@ fn open_inner(path: &Path) -> Result<Connection> {
     db.execute_batch("PRAGMA page_size=16384; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA cache_size=-4096; PRAGMA temp_store=FILE; PRAGMA journal_size_limit=8388608; PRAGMA wal_autocheckpoint=512;")?;
     let version: i64 = db.pragma_query_value(None, "user_version", |row| row.get(0))?;
     if version == VERSION {
+        project_events::prepare_indexes(&db)?;
         return Ok(db);
     }
     if version != 0 {
@@ -53,6 +54,7 @@ fn open_inner(path: &Path) -> Result<Connection> {
     let version: i64 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
     if version == VERSION {
         tx.commit()?;
+        project_events::prepare_indexes(&db)?;
         return Ok(db);
     }
     if version != 0 {
@@ -87,9 +89,13 @@ fn bucket(db: &Connection, scope: &str, field: &str) -> Result<i64> {
         "INSERT INTO buckets(scope,field) VALUES(?1,?2) ON CONFLICT(scope,field) DO NOTHING",
     )?
     .execute(params![scope, field])?;
-    Ok(db
+    let id = db
         .prepare_cached("SELECT id FROM buckets WHERE scope=?1 AND field=?2")?
-        .query_row(params![scope, field], |row| row.get(0))?)
+        .query_row(params![scope, field], |row| row.get(0))?;
+    if field == "events" {
+        project_events::prepare_bucket_index(db, id)?;
+    }
+    Ok(id)
 }
 fn write(db: &Connection, bucket: i64, id: &str, payload: &str) -> Result<()> {
     db.prepare_cached(UPSERT)?

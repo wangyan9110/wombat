@@ -1,8 +1,20 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type Action = "read" | "refresh";
+export type AllowanceIntervalStatus =
+  | "compatible"
+  | "first"
+  | "observation_gap"
+  | "account_changed"
+  | "window_changed"
+  | "reset_changed"
+  | "expired"
+  | "time_order"
+  | "duration_unknown";
+export type Action = "read" | "refresh" | "history";
 
 export interface Response {
+  history?: AllowanceHistory | null;
+  historyErrorCode?: string | null;
   outputVersion: number;
   action: Action;
   nativeVersion?: string | null;
@@ -16,6 +28,32 @@ export interface Response {
   ordinaryUsageAllowed?: boolean | null;
   modelRestriction?: ModelRestriction | null;
   summary?: Summary | null;
+}
+/**
+ * Stored native observations, independent of the local usage ledger.
+ */
+export interface AllowanceHistory {
+  methodVersion: number;
+  totalObservations: number;
+  observations: AllowanceObservation[];
+}
+export interface AllowanceObservation {
+  nativeVersion?: string | null;
+  id: string;
+  observedAt: string;
+  accountId?: string | null;
+  status: string;
+  windows: AllowanceWindowObservation[];
+}
+export interface AllowanceWindowObservation {
+  id: string;
+  bucketId: string;
+  usedPercent: number;
+  durationMinutes?: number | null;
+  resetsAt?: string | null;
+  status: string;
+  deltaPercentagePoints?: number | null;
+  intervalStatus: AllowanceIntervalStatus;
 }
 export interface Section {
   status: string;

@@ -21,9 +21,36 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 Hook清单JSON与Web详情提供同口径的项目注册观察及插件身份，文本输出也标明插件。注册不代表运行；支持的声明形式与未知状态见[配置契约](../development/contracts.md)。
 
+## 对比用量
+
+周期对比与会话对比均读取已提交数据，默认不刷新。先执行 `wombat usage --fresh`，再使用下列命令；结束日期不含当天，两个周期须等长且不重叠。
+
+```sh
+wombat compare --since 2026-09-08 --until 2026-09-15 --baseline-since 2026-09-01 --baseline-until 2026-09-08 --dimension project --json
+wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-time --json
+```
+
+`--dimension` 可选 `project`、`model` 或 `thread`；`--limit` 和 `--offset` 控制贡献分页。会话 ID 使用 `threads --json` 的 `id`；`--family` 加入明确关联的后代。两种比较均保留日期和维度筛选，并支持 `--snapshot` 固定版本；显式 `--fresh` 才请求同步。过期版本返回错误，重新读取列表后再比较。实时结果中的 `freshness.publicationChange` 说明最近成功发布的变化，文本也显示变化计数；没有完整基准时不提供摘要。[核心参考](../../core/README.md) 定义计算与限制。
+
+## 使用检查与复盘
+
+先读取或更新用量，再用返回的 `snapshotRef.snapshotId` 固定以下查询；默认仅读取已提交数据，不主动同步。
+
+```sh
+wombat investigate --snapshot SNAPSHOT_ID --all-time --limit 5 --json
+wombat context --snapshot SNAPSHOT_ID --all-time --json
+wombat trajectory --snapshot SNAPSHOT_ID --thread THREAD_ID --all-time --json
+wombat resources --snapshot SNAPSHOT_ID --project /absolute/project --all-time --json
+wombat review --snapshot SNAPSHOT_ID --since 2026-09-08 --until 2026-09-15 --json
+wombat steps --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --locate-operation OPERATION_ID --json
+wombat account history --json
+```
+
+复盘不接受分页；省略日期时选择固定视图截止日期所在周，周一开始。其他检查可用 `--limit` 和 `--offset`，并保留同一范围。使用返回的完整证据身份下钻；操作不存在时返回 `NOT_FOUND`，视图过期时重新取得原范围并按身份定位。额度历史无需原生进程，只读取已保存的观测。阈值、统计口径及预算由[核心参考](../../core/README.md)维护；检查线索不能证明浪费，输入不是上下文占用，变更报告不是已验证的文件变化。
+
 ## Codex Skill
 
-以下是技术草稿的试验安装方式，正式任务流程正在由产品重新设计；本机尚未安装，行为验收未完成。
+以下是技术草稿的试验安装方式，正式任务流程仍在由产品设计；完整行为验收尚未完成。
 
 从源码构建并安装本机 `$wombat`：
 

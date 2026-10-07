@@ -21,9 +21,36 @@ Repeat `--root` to include multiple roots. Without it, use CODEX_HOME or `~/.cod
 
 Hook inventory JSON exposes the same per-project native registration and plugin identity as Web detail; text output also names the plugin. Registration does not establish execution. See the [configuration contract](../development/contracts.en.md) for supported declaration forms and unknown states.
 
+## Compare usage
+
+Period and session comparisons read committed data without refreshing by default. Run `wombat usage --fresh` first, then use these commands. End dates are exclusive; periods must be equal-length and non-overlapping.
+
+```sh
+wombat compare --since 2026-09-08 --until 2026-09-15 --baseline-since 2026-09-01 --baseline-until 2026-09-08 --dimension project --json
+wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-time --json
+```
+
+`--dimension` accepts `project`, `model` or `thread`; `--limit` and `--offset` page contributions. Session IDs use field `id` from `threads --json`; `--family` includes explicit descendants. Both comparisons retain date and dimension filters and accept `--snapshot`. Only explicit `--fresh` requests synchronization. Expired views return an error; read the list again before comparing. Live results expose `freshness.publicationChange` for the latest successful publication; text also shows change counts. No complete baseline means no summary. The [core reference](../../core/README.en.md) owns calculation and limits.
+
+## Usage inspection and review
+
+Read or refresh usage first, then pin these queries with the returned `snapshotRef.snapshotId`. They read committed data without synchronization by default.
+
+```sh
+wombat investigate --snapshot SNAPSHOT_ID --all-time --limit 5 --json
+wombat context --snapshot SNAPSHOT_ID --all-time --json
+wombat trajectory --snapshot SNAPSHOT_ID --thread THREAD_ID --all-time --json
+wombat resources --snapshot SNAPSHOT_ID --project /absolute/project --all-time --json
+wombat review --snapshot SNAPSHOT_ID --since 2026-09-08 --until 2026-09-15 --json
+wombat steps --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --locate-operation OPERATION_ID --json
+wombat account history --json
+```
+
+Review does not accept pagination. Without dates, it selects the fixed view cutoff's week, starting Monday. Other inspections accept `--limit` and `--offset` while retaining scope. Drill with returned complete evidence identities. An absent operation returns `NOT_FOUND`; after view expiry, reacquire the original scope and locate identities again. Allowance history needs no native process and reads stored observations only. The [core reference](../../core/README.en.md) owns thresholds, calculation and budgets. Signals do not establish waste, input is not context occupancy, and change reports are not verified file changes.
+
 ## Codex Skill
 
-The following installs the experimental technical draft. Product design is revising the task workflows; local installation and behavioral acceptance have not been completed.
+The following installs the experimental technical draft. Product design is still defining the task workflows; full behavioral acceptance has not been completed.
 
 Build from source and install the local `$wombat` Skill:
 

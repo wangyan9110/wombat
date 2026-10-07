@@ -245,6 +245,7 @@ pub(super) fn select_view(
             })?
     };
     let freshness = Freshness {
+        publication_change: snapshot.publication_change.clone(),
         project_loads: snapshot.project_loads.clone(),
         initial_scan: preview::is_initial(&snapshot),
         status: if selector.is_some() {

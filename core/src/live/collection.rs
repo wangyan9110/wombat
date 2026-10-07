@@ -341,15 +341,21 @@ pub(super) fn sync(
                     value.operations.iter().map(|r| r.id.as_str()),
                 )?;
             }
-            for event in &value.events {
-                projection.event(event)?;
+            if let Some(events) = synced.events {
+                for event in &events {
+                    projection.event(event)?;
+                }
+            } else {
+                for event in &value.events {
+                    projection.event(event)?;
+                }
+                crate::live_index::retain_field(
+                    &tx,
+                    &scope,
+                    "events",
+                    value.events.iter().map(|e| e.id()),
+                )?;
             }
-            crate::live_index::retain_field(
-                &tx,
-                &scope,
-                "events",
-                value.events.iter().map(|e| e.id()),
-            )?;
             updated.insert(source.id.clone(), value);
             crate::live_index::save_map(
                 &tx,
@@ -421,12 +427,14 @@ pub(super) fn sync(
         ));
     }
     let id = format!("live:{key}:{}", uuid::Uuid::new_v4());
-    let snapshot = Arc::new(crate::usage_store::memory(
-        collected,
-        id.clone(),
-        prices.clone(),
-        prior_view,
-    )?);
+    let mut snapshot =
+        crate::usage_store::memory(collected, id.clone(), prices.clone(), prior_view)?;
+    if let Some(prior) =
+        prior_view.filter(|prior| !super::preview::is_initial(prior) && !restoring_projects(prior))
+    {
+        snapshot.publication_change = Some(crate::usage_app::publication_change(prior, &snapshot)?);
+    }
+    let snapshot = Arc::new(snapshot);
     for source in &discovered.sources {
         if let Some(cache) = caches.get_mut(&source.id) {
             cache.share_measurements(snapshot.measurement_facts());
@@ -435,7 +443,7 @@ pub(super) fn sync(
     crate::live_index::save_map(
         &tx,
         &format!("view:{key}"),
-        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"failures":failures,"failureWatermarks":failure_watermarks,"createdAt":snapshot.manifest.snapshot_ref.created_at})
+        json!({"id": id,"prices":prices.catalog_hash,"epochs":epochs,"failures":failures,"failureWatermarks":failure_watermarks,"createdAt":snapshot.manifest.snapshot_ref.created_at,"publicationChange":snapshot.publication_change})
             .as_object()
             .unwrap(),
     )?;

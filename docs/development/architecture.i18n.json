@@ -18,8 +18,24 @@
       "en": "89b21205284ad477db509f062a9decf25f60beac4588628ca69757ff3f728967"
     },
     "/wombat-architecture/domain-and-persistence": {
-      "zh": "e971727d70d3967cad6cd67bbe7522768a5403f3888b6ee8488e37a92d815aae",
-      "en": "cd112a2531aaa3404580151980a48c2a93628b7085c3130ad6d8fa0ebd7eee9a"
+      "zh": "239ef154c5b483c2b69f8848c880e10aaf2a7add23507822000f14f6b2a901da",
+      "en": "e54122a1691b681cbf4c55d66bd74d14a8c662474ae0181bc55f480f47ceef26"
+    },
+    "/wombat-architecture/domain-and-persistence/domain-map": {
+      "zh": "c59d3fdc3aae9430b2d06940d0f8232d73b01505a5cb6af96a6896a29d694bf0",
+      "en": "3062d89836932a742a036cd3849ca7dd694f5017843dbe9fee335ce2f498756d"
+    },
+    "/wombat-architecture/domain-and-persistence/usage-facts-and-derived-results": {
+      "zh": "648bef661c234306b107ff5c52cace6aad6913cc2b55d24819a3c9040b7295fa",
+      "en": "c0c2b977f4c64c4e1e5382733fe0c97fc54d5d10d075f3ba2059c8c0bae0bf5b"
+    },
+    "/wombat-architecture/domain-and-persistence/configuration-checks-and-handoffs": {
+      "zh": "a99cde56d7e75e2dd58a5aadc5451eb55bff292306bc31ae9c476343793c867c",
+      "en": "a84c5d62a4e7195d0b88d673e40827c80de17e08b3c184d5a48498353b1fd777"
+    },
+    "/wombat-architecture/domain-and-persistence/persistence-boundaries-and-current-model-limits": {
+      "zh": "a527e27a3b617e22da57ff494751e2673a056a33468077f8d652dc738bf878da",
+      "en": "fd0fe662277b4c570b7c291b4a206a6e53d5b366c4d13f2186d0d0c48cc9f493"
     },
     "/wombat-architecture/development-entry-points": {
       "zh": "fb51011cdd7281ec7ba51281d8a4c39cf9b570926ba547029de6b9083274dae9",

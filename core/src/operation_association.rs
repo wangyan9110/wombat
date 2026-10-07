@@ -8,11 +8,15 @@ use crate::{
 use anyhow::{Result, ensure};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 pub(crate) const METHOD_VERSION: u32 = 1;
 pub(crate) mod endpoints;
+pub(crate) mod lifecycle;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum Alias<'a> {
@@ -69,7 +73,7 @@ pub(crate) enum TerminalOutcome {
 }
 pub(crate) struct ResolvedPhase<'a> {
     pub event: &'a Event,
-    pub identity: Option<String>,
+    pub identity: Option<Arc<str>>,
     pub kind: ObservationKind<'a>,
     pub phase: &'a Phase,
     pub native_start: Option<i64>,
@@ -424,8 +428,7 @@ impl<'a> Resolver<'a> {
             let mut servers = BTreeSet::new();
             let mut tools = BTreeSet::new();
             let mut kinds = BTreeSet::new();
-            let mut outcomes = BTreeSet::new();
-            let mut exit_codes = BTreeSet::new();
+            let mut terminal = lifecycle::TerminalEvidence::default();
             let mut target_conflict = false;
             let mut outcome_conflict = false;
             let mut group_aliases = BTreeSet::new();
@@ -437,9 +440,9 @@ impl<'a> Resolver<'a> {
                     operation_events.push(phase.event);
                     outcome_conflict |= operation.outcome_conflict;
                     if let Some(outcome) = phase.outcome {
-                        outcomes.insert(outcome);
+                        terminal.observe_outcome(outcome);
                         if let Some(code) = operation.exit_code {
-                            exit_codes.insert(code);
+                            terminal.observe_code(code);
                         }
                     }
                     if is_mcp(operation) {
@@ -457,12 +460,13 @@ impl<'a> Resolver<'a> {
                 }
             }
             target_conflict |= servers.len() > 1 || tools.len() > 1 || kinds.len() > 1;
-            outcome_conflict |= outcomes.len() > 1 || exit_codes.len() > 1;
+            outcome_conflict |= terminal.state() == lifecycle::TerminalState::Conflicting;
+            let shared_identity: Arc<str> = Arc::from(id.as_str());
             for phase in observed {
                 check(cancelled)?;
                 resolution.phases.push(ResolvedPhase {
                     event: phase.event,
-                    identity: (!phase.aliases.is_empty()).then(|| id.clone()),
+                    identity: (!phase.aliases.is_empty()).then(|| Arc::clone(&shared_identity)),
                     kind: phase.kind,
                     phase: phase.phase,
                     native_start: phase.native_start,

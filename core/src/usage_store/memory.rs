@@ -181,6 +181,7 @@ fn memory_inner(
         threads,
     };
     Ok(Snapshot {
+        publication_change: None,
         project_loads: vec![],
         project_rows: Some(project_rows),
         timing_cache: Mutex::default(),

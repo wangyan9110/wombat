@@ -1,6 +1,6 @@
 //! Index explicit fork trees once; cycles and their descendants have no trusted ancestry.
-use super::*;
 use crate::operation_association::check;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::atomic::AtomicBool;
 
 #[derive(Clone, Copy)]
@@ -9,20 +9,27 @@ struct Interval {
     end: usize,
 }
 
-pub(super) struct ForkForest<'a> {
+pub(crate) struct SessionRelations<'a> {
     intervals: BTreeMap<&'a str, Interval>,
-    pub(super) unresolved: usize,
+    pub(crate) unresolved: usize,
 }
 
-impl<'a> ForkForest<'a> {
-    pub(super) fn owner_order(&self, thread: &str) -> Option<usize> {
+impl<'a> SessionRelations<'a> {
+    pub(crate) fn is_descendant(&self, child: &str, parent: &str) -> bool {
+        self.intervals
+            .get(child)
+            .zip(self.intervals.get(parent))
+            .is_some_and(|(c, p)| c.start > p.start && c.start < p.end)
+    }
+
+    pub(crate) fn owner_order(&self, thread: &str) -> Option<usize> {
         self.intervals.get(thread).map(|interval| interval.start)
     }
     #[cfg(test)]
-    pub(super) fn new(parents: &'a HashMap<String, String>) -> Self {
+    pub(crate) fn new(parents: &'a HashMap<String, String>) -> Self {
         Self::new_cancellable(parents, &AtomicBool::new(false)).unwrap()
     }
-    pub(super) fn new_cancellable(
+    pub(crate) fn new_cancellable(
         parents: &'a HashMap<String, String>,
         cancelled: &AtomicBool,
     ) -> anyhow::Result<Self> {
@@ -93,7 +100,7 @@ impl<'a> ForkForest<'a> {
     /// Return replay -> oldest recorded ancestor within each exact evidence identity.
     /// Sorting borrowed identities costs O(E log E); no per-event ancestor walks or text copies.
     #[cfg(test)]
-    pub(super) fn replays<'b, K: Ord>(
+    pub(crate) fn replays<'b, K: Ord>(
         &self,
         entries: impl Iterator<Item = (K, &'b str, &'b str)>,
     ) -> Vec<(&'b str, &'b str)> {
@@ -102,7 +109,7 @@ impl<'a> ForkForest<'a> {
     }
     /// Sorting remains cooperative: cancellation is checked before and after
     /// the sort, and throughout collection and traversal, not inside comparisons.
-    pub(super) fn replays_cancellable<'b, K: Ord>(
+    pub(crate) fn replays_cancellable<'b, K: Ord>(
         &self,
         entries: impl Iterator<Item = (K, &'b str, &'b str)>,
         cancelled: &AtomicBool,
@@ -142,3 +149,6 @@ impl<'a> ForkForest<'a> {
         Ok(replay)
     }
 }
+
+#[cfg(test)]
+mod tests;

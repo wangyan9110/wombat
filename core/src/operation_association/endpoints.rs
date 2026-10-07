@@ -1,5 +1,6 @@
 //! Endpoint observations for already associated operations. Durations never create anchors.
 //! Callers bound observations before reduction and choose their own eligible kinds.
+use super::lifecycle::{TerminalEvidence, TerminalResult};
 use super::{BridgeKind, ObservationKind, ResolvedPhase, Scope, bridge_kind, check};
 use crate::session_events::{ItemKind, Phase};
 use std::{
@@ -27,8 +28,12 @@ struct Group<'a> {
     domains: BTreeMap<(&'a str, &'a str), Domain>,
     identity_conflict: bool,
     kinds: BTreeSet<u8>,
+    terminal: TerminalEvidence,
+    terminal_evidence_ids: Vec<&'a str>,
 }
 pub(crate) struct EndpointGroup<'a> {
+    pub terminal: TerminalResult,
+    pub terminal_evidence_ids: Vec<&'a str>,
     pub scope: Scope<'a>,
     pub identity: String,
     pub indices: Vec<usize>,
@@ -121,8 +126,24 @@ pub(crate) fn reduce<'a>(
             domains: BTreeMap::new(),
             identity_conflict: false,
             kinds: BTreeSet::new(),
+            terminal: TerminalEvidence::default(),
+            terminal_evidence_ids: vec![],
         });
         group.indices.push(index);
+        let mut witness = phase
+            .terminal_outcome
+            .is_some_and(|outcome| group.terminal.observe_outcome(outcome));
+        group.terminal.mark_conflict(phase.outcome_conflict);
+        if phase.terminal_outcome.is_some()
+            && let ObservationKind::Operation(operation) = phase.kind
+            && let Some(code) = operation.exit_code
+        {
+            witness |= group.terminal.observe_code(code);
+        }
+        if witness {
+            // At most two outcome and two exit-code witnesses, in source traversal order.
+            group.terminal_evidence_ids.push(event.id());
+        }
         group.identity_conflict |= phase.identity_conflict;
         if let Some(kind) = kind(phase.kind) {
             group.kinds.insert(kind);
@@ -248,6 +269,8 @@ pub(crate) fn reduce<'a>(
             }
         }
         result.groups.push(EndpointGroup {
+            terminal: group.terminal.finish(),
+            terminal_evidence_ids: group.terminal_evidence_ids,
             scope: group.scope,
             identity: id.to_owned(),
             indices: group.indices,

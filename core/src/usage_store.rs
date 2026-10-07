@@ -76,6 +76,7 @@ struct MemoryTurn {
     operations: Vec<Arc<Operation>>,
 }
 pub struct Snapshot {
+    pub(crate) publication_change: Option<crate::usage_app_dto::PublicationChange>,
     pub(crate) project_loads: Vec<crate::live::ProjectLoad>,
     pub(crate) timing_cache: Mutex<crate::timing::cache::Cache>,
     pub(crate) query_cache: Mutex<crate::query_cache::QueryCache>,

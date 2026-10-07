@@ -42,3 +42,21 @@ test('matching turns and turn location are only accepted by turns',()=>{
   assert.throws(()=>parseUsageArgs([action,'--locate-turn','t']));
  }
 });
+
+test('comparisons preserve explicit operands and never refresh implicitly',()=>{
+ const p=parseUsageArgs(['compare','--since','2026-09-08','--until','2026-09-15','--baseline-since','2026-09-01','--baseline-until','2026-09-08','--dimension','model']);
+ assert.equal(p.mode,'cached');assert.deepEqual(p.request.comparison,{kind:'periods',baselineSince:'2026-09-01',baselineUntil:'2026-09-08',dimension:'model'});
+ assert.deepEqual(parseUsageArgs(['compare','--thread','a','--other-thread','b','--family']).request.comparison,{kind:'sessions',leftThreadId:'a',rightThreadId:'b',includeDescendants:true});
+ for(const args of [['compare'],['compare','--thread','a'],['compare','--other-thread','b'],['usage','--family'],['compare','--thread','a','--other-thread','b','--dimension','model']])assert.throws(()=>parseUsageArgs(args));
+});
+
+test('inspection plans retain fixed scopes, require trajectory identity and default to committed data',()=>{
+ for(const action of ['investigate','resources','review','context'])assert.equal(parseUsageArgs([action]).mode,'cached');
+ assert.equal(parseUsageArgs(['trajectory','--thread','complete-id','--snapshot','fixed','--all-time']).request.scope?.threadId,'complete-id');
+ for(const args of [['trajectory'],['review','--all-time'],['review','--limit','5'],['review','--since','2026-09-01'],['resources','--sort','cost']])assert.throws(()=>parseUsageArgs(args));
+});
+
+test('operation evidence location is restricted to a full turn record query',()=>{
+ assert.equal(parseUsageArgs(['steps','--thread','a','--turn','b','--locate-operation','op']).request.locateOperationId,'op');
+ assert.throws(()=>parseUsageArgs(['threads','--locate-operation','op']));
+});

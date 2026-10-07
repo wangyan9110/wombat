@@ -50,7 +50,7 @@ impl Outcomes {
             + self.unclassified
             > 0
     }
-    fn record(&mut self, op: &Operation, conflict: bool) {
+    pub(crate) fn record(&mut self, op: &Operation, conflict: bool) {
         if conflict || op.outcome_conflict {
             self.conflicting += 1;
             return;
@@ -270,9 +270,8 @@ fn metadata(operation: &Operation, meter: &mut Meter<'_>) -> Result<()> {
             changes: Some(paths),
         } => {
             for path in paths {
-                meter.work(path.path.len())?;
-                if let Some(moved) = &path.move_path {
-                    meter.work(moved.len())?;
+                for target in path.targets() {
+                    meter.work(target.len())?;
                 }
             }
         }
@@ -331,10 +330,7 @@ fn paths(
         return Ok(());
     };
     for path in paths {
-        for endpoint in [Some(path.path.as_str()), path.move_path.as_deref()]
-            .into_iter()
-            .flatten()
-        {
+        for endpoint in path.targets() {
             meter.work(endpoint.len())?;
             if !crate::adapters::contract::valid_work_path(endpoint) {
                 projection.changed_files.unknown(Gap::InvalidFileMetadata);

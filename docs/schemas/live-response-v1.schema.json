@@ -24,6 +24,26 @@
     "Response": {
       "type": "object",
       "properties": {
+        "inspection": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Inspection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Comparison"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "facets": {
           "anyOf": [
             {
@@ -109,76 +129,195 @@
         "quality"
       ]
     },
-    "Facets": {
-      "description": "Observed dimensions, not a project registry or a configuration inventory.",
+    "Inspection": {
       "type": "object",
       "properties": {
-        "discoveredThreadCount": {
-          "description": "Metadata across this snapshot's authorized sources, independent of measurement/date filters.",
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
         },
-        "directories": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "kind": {
+          "$ref": "#/definitions/InspectionKind"
         },
-        "hasUnassigned": {
+        "policy": {
+          "$ref": "#/definitions/InspectionPolicy"
+        },
+        "partial": {
           "type": "boolean"
         },
-        "models": {
+        "limitations": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/InspectionLimit"
           }
         },
-        "reasoningEfforts": {
+        "candidates": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/InvestigationCandidate"
           }
         },
-        "agents": {
+        "trajectory": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/InputPoint"
           }
-        }
-      },
-      "required": [
-        "directories",
-        "hasUnassigned",
-        "models",
-        "reasoningEfforts",
-        "agents"
-      ]
-    },
-    "Distribution": {
-      "type": "object",
-      "properties": {
-        "unpricedTokens": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
         },
-        "tokenBasis": {
-          "description": "Basis for maxTokens and peak token scopes/dates.",
-          "allOf": [
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResourceHotspot"
+          }
+        },
+        "review": {
+          "anyOf": [
             {
-              "$ref": "#/definitions/TokenBasis"
+              "$ref": "#/definitions/PeriodReview"
+            },
+            {
+              "type": "null"
             }
           ]
         },
-        "maxTokens": {
-          "description": "Maximum of bucket analyzed subtotals; not necessarily a complete total.",
+        "candidateCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "resourceCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unlocatedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "context": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContextInventory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "kind",
+        "policy",
+        "partial",
+        "limitations",
+        "candidates",
+        "trajectory",
+        "resources",
+        "candidateCount",
+        "resourceCount",
+        "unlocatedOperations"
+      ]
+    },
+    "InspectionKind": {
+      "type": "string",
+      "enum": [
+        "investigate",
+        "trajectory",
+        "resources",
+        "review",
+        "context"
+      ]
+    },
+    "InspectionPolicy": {
+      "type": "object",
+      "properties": {
+        "minimumTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumCacheShare": {
+          "type": "number"
+        },
+        "minimumInputJump": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumDeterminateOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumFailures": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumFailureShare": {
+          "type": "number"
+        },
+        "minimumRepeatedRequests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "minimumTokens",
+        "minimumInput",
+        "maximumCacheShare",
+        "minimumInputJump",
+        "minimumDeterminateOperations",
+        "minimumFailures",
+        "minimumFailureShare",
+        "minimumRepeatedRequests"
+      ]
+    },
+    "InspectionLimit": {
+      "type": "string",
+      "enum": [
+        "source_partial",
+        "context_occupancy_unavailable",
+        "actual_changes_unavailable",
+        "unlocated_operations",
+        "unknown_input_order",
+        "operation_outcomes_partial",
+        "operation_model_association",
+        "context_metadata_unavailable"
+      ]
+    },
+    "InvestigationCandidate": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionSignal"
+          }
+        },
+        "usage": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "input": {
           "type": [
             "integer",
             "null"
@@ -186,299 +325,68 @@
           "minimum": 0,
           "maximum": 9007199254740991
         },
-        "maxCost": {
+        "cacheShare": {
           "type": [
-            "string",
+            "number",
             "null"
           ]
         },
-        "peakTokenDates": {
-          "type": "array",
-          "items": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+        "largestUncachedJump": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
-        "peakCostDates": {
-          "type": "array",
-          "items": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+        "determinateOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
-        "peakTokenScopes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Scope"
-          }
+        "failedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
-        "peakCostScopes": {
+        "outcomeGaps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "repeatedRequests": {
+          "description": "Identical callable/argument observations inside one exact turn/receiver.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Scope"
+            "$ref": "#/definitions/InspectionEvidence"
           }
         }
       },
       "required": [
-        "tokenBasis",
-        "peakTokenDates",
-        "peakCostDates",
-        "peakTokenScopes",
-        "peakCostScopes"
-      ]
-    },
-    "TokenBasis": {
-      "type": "string",
-      "enum": [
-        "analyzed_totals"
-      ]
-    },
-    "Scope": {
-      "type": "object",
-      "properties": {
-        "allTime": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "timezone": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "since": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "until": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "agentKind": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "sourceInstanceId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "model": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "modelUnknown": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "effortUnknown": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "undated": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "reasoningEffort": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "project": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "projectUnknown": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "threadId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "Automatic": {
-      "type": "object",
-      "properties": {
-        "status": {
-          "$ref": "#/definitions/AutomaticStatus"
-        },
-        "attemptId": {
-          "type": "string"
-        },
-        "attemptedAt": {
-          "type": "string"
-        },
-        "retryAt": {
-          "type": "string"
-        },
-        "errorCode": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "status",
-        "attemptId",
-        "attemptedAt",
-        "retryAt"
-      ]
-    },
-    "AutomaticStatus": {
-      "type": "string",
-      "enum": [
-        "checking",
-        "updated",
-        "unchanged",
-        "failed"
-      ]
-    },
-    "Freshness": {
-      "type": "object",
-      "properties": {
-        "projectLoads": {
-          "description": "Projects restored from committed facts; pending projects are not zero usage.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ProjectLoad"
-          }
-        },
-        "status": {
-          "type": "string"
-        },
-        "initialScan": {
-          "description": "Ephemeral task headers; no completed ledger or coverage is available yet.",
-          "type": "boolean",
-          "default": false
-        },
-        "checkedAt": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "revision": {
-          "type": "string"
-        },
-        "error": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "errorCode": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "status",
-        "revision"
-      ]
-    },
-    "ProjectLoad": {
-      "type": "object",
-      "properties": {
-        "project": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "state": {
-          "$ref": "#/definitions/ProjectLoadState"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "state"
-      ]
-    },
-    "ProjectLoadState": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "loading",
-        "ready"
-      ]
-    },
-    "Action": {
-      "type": "string",
-      "enum": [
-        "refresh",
+        "threadId",
+        "signals",
         "usage",
-        "threads",
-        "turns",
-        "steps"
+        "determinateOperations",
+        "failedOperations",
+        "outcomeGaps",
+        "repeatedRequests",
+        "evidence"
       ]
     },
-    "SnapshotRef": {
-      "type": "object",
-      "properties": {
-        "snapshotId": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "snapshotId",
-        "createdAt"
+    "InspectionSignal": {
+      "type": "string",
+      "enum": [
+        "high_usage",
+        "low_cache_reuse",
+        "input_jump",
+        "failure_share",
+        "repeated_request"
       ]
-    },
-    "AvailableRange": {
-      "type": "object",
-      "properties": {
-        "since": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "until": {
-          "description": "Exclusive local date boundary.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
     },
     "UsageSummary": {
       "type": "object",
@@ -927,6 +835,1227 @@
         "condition",
         "requestScoped"
       ]
+    },
+    "InspectionEvidence": {
+      "type": "object",
+      "properties": {
+        "view": {
+          "$ref": "#/definitions/InspectionEvidenceView"
+        },
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operationId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "view",
+        "methodVersion",
+        "snapshotId",
+        "scope",
+        "threadId"
+      ]
+    },
+    "InspectionEvidenceView": {
+      "type": "string",
+      "enum": [
+        "task",
+        "turn",
+        "operation"
+      ]
+    },
+    "Scope": {
+      "type": "object",
+      "properties": {
+        "allTime": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "timezone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "since": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "until": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agentKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceInstanceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modelUnknown": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "effortUnknown": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "undated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reasoningEffort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "projectUnknown": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "threadId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "InputPoint": {
+      "type": "object",
+      "properties": {
+        "measurementId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "uncachedInput": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cacheRead": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "inputDelta": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "uncachedDelta": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "boundary": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/InputBoundary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence": {
+          "$ref": "#/definitions/InspectionEvidence"
+        },
+        "compactionComparison": {
+          "description": "Two observations separated by a compaction marker; not a continuous delta or causal effect.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CompactionInputComparison"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "measurementId",
+        "epoch",
+        "evidence"
+      ]
+    },
+    "InputBoundary": {
+      "type": "string",
+      "enum": [
+        "first",
+        "compaction",
+        "model_change",
+        "source_change",
+        "ambiguous_order",
+        "missing_input",
+        "scope_gap",
+        "source_gap",
+        "turn_change",
+        "missing_context"
+      ]
+    },
+    "CompactionInputComparison": {
+      "type": "object",
+      "properties": {
+        "beforeMeasurementId": {
+          "type": "string"
+        },
+        "beforeInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "afterInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "inputDifference": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "beforeEvidence": {
+          "$ref": "#/definitions/InspectionEvidence"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "beforeMeasurementId",
+        "beforeInput",
+        "afterInput",
+        "inputDifference",
+        "beforeEvidence"
+      ]
+    },
+    "ResourceHotspot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sourceInstanceId": {
+          "type": "string"
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "identityBasis": {
+          "description": "Verified lexical read target or unnormalized source-reported change path.",
+          "type": "string"
+        },
+        "operations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reads": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "proposedChanges": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reportedChanges": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "knownDurationMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "durationCoveredOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "actualChanges": {
+          "description": "Source write reports do not establish independently observed disk changes.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionEvidence"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "sourceInstanceId",
+        "path",
+        "identityBasis",
+        "operations",
+        "reads",
+        "proposedChanges",
+        "reportedChanges",
+        "failedOperations",
+        "durationCoveredOperations",
+        "evidence"
+      ]
+    },
+    "PeriodReview": {
+      "type": "object",
+      "properties": {
+        "comparison": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Comparison"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "topTasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InvestigationCandidate"
+          }
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReviewGroup"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ToolFamilyCount"
+          }
+        },
+        "remainingModelUsage": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "weekStart": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concentration": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReviewConcentration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "topTasks",
+        "models",
+        "tools",
+        "remainingModelUsage"
+      ]
+    },
+    "Comparison": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "dimension": {
+              "$ref": "#/definitions/DriverDimension"
+            },
+            "baseline": {
+              "$ref": "#/definitions/ComparedUsage"
+            },
+            "current": {
+              "$ref": "#/definitions/ComparedUsage"
+            },
+            "delta": {
+              "$ref": "#/definitions/UsageDelta"
+            },
+            "drivers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/UsageDriver"
+              }
+            },
+            "remaining": {
+              "description": "Contribution of all drivers outside this page, so pages remain reconcilable.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/UsageDelta"
+                }
+              ]
+            },
+            "undatedRecords": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "kind": {
+              "type": "string",
+              "const": "periods"
+            }
+          },
+          "required": [
+            "kind",
+            "dimension",
+            "baseline",
+            "current",
+            "delta",
+            "drivers",
+            "remaining",
+            "undatedRecords"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "left": {
+              "$ref": "#/definitions/ComparedSession"
+            },
+            "right": {
+              "$ref": "#/definitions/ComparedSession"
+            },
+            "delta": {
+              "$ref": "#/definitions/UsageDelta"
+            },
+            "includeDescendants": {
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "sessions"
+            }
+          },
+          "required": [
+            "kind",
+            "left",
+            "right",
+            "delta",
+            "includeDescendants"
+          ]
+        }
+      ]
+    },
+    "DriverDimension": {
+      "type": "string",
+      "enum": [
+        "project",
+        "model",
+        "thread"
+      ]
+    },
+    "ComparedUsage": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "usage": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "partial": {
+          "description": "Includes source coverage and windows not yet closed at publication time.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "scope",
+        "usage",
+        "partial"
+      ]
+    },
+    "UsageDelta": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "description": "Complete analyzed totals only; missing observations never become zero.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "cost": {
+          "description": "Complete configured valuations only, with exact decimal subtraction.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tokenRatio": {
+          "description": "No percentage for a zero or unavailable baseline.",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "UsageDriver": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "baseline": {
+          "$ref": "#/definitions/ComparedUsage"
+        },
+        "current": {
+          "$ref": "#/definitions/ComparedUsage"
+        },
+        "delta": {
+          "$ref": "#/definitions/UsageDelta"
+        }
+      },
+      "required": [
+        "baseline",
+        "current",
+        "delta"
+      ]
+    },
+    "ComparedSession": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "own": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "descendants": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "selected": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "memberCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "partial": {
+          "description": "Conflicting/cyclic ancestry, absent parents or incomplete source coverage.",
+          "type": "boolean"
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        }
+      },
+      "required": [
+        "threadId",
+        "own",
+        "descendants",
+        "selected",
+        "memberCount",
+        "partial",
+        "scope"
+      ]
+    },
+    "ReviewGroup": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "usage": {
+          "$ref": "#/definitions/UsageSummary"
+        }
+      },
+      "required": [
+        "usage"
+      ]
+    },
+    "ToolFamilyCount": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "kind",
+        "operations",
+        "failed"
+      ]
+    },
+    "ReviewConcentration": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "measuredTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "totalTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "topTaskTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "topTaskShare": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "topFiveTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "topFiveShare": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "topTenTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "topTenShare": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "remainingTaskUsage": {
+          "$ref": "#/definitions/UsageSummary"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "measuredTasks",
+        "remainingTaskUsage"
+      ]
+    },
+    "ContextInventory": {
+      "type": "object",
+      "properties": {
+        "observedRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "injectedRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "modelWindowRecords": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "records": {
+          "description": "Physical safe records, not logical requests, messages or injection counts.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContextInventoryRecord"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "observedRecords",
+        "injectedRecords",
+        "modelWindowRecords",
+        "records"
+      ]
+    },
+    "ContextInventoryRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ContextRecordKind"
+        },
+        "timestamp": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recordKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "presence": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modelContextWindow": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "contentVersion": {
+          "description": "Native source records do not retain historical resource versions or measured bodies.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence": {
+          "$ref": "#/definitions/InspectionEvidence"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "evidence"
+      ]
+    },
+    "ContextRecordKind": {
+      "type": "string",
+      "enum": [
+        "injected_context",
+        "model_window"
+      ]
+    },
+    "Facets": {
+      "description": "Observed dimensions, not a project registry or a configuration inventory.",
+      "type": "object",
+      "properties": {
+        "discoveredThreadCount": {
+          "description": "Metadata across this snapshot's authorized sources, independent of measurement/date filters.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hasUnassigned": {
+          "type": "boolean"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reasoningEfforts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "directories",
+        "hasUnassigned",
+        "models",
+        "reasoningEfforts",
+        "agents"
+      ]
+    },
+    "Distribution": {
+      "type": "object",
+      "properties": {
+        "unpricedTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tokenBasis": {
+          "description": "Basis for maxTokens and peak token scopes/dates.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TokenBasis"
+            }
+          ]
+        },
+        "maxTokens": {
+          "description": "Maximum of bucket analyzed subtotals; not necessarily a complete total.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxCost": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "peakTokenDates": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "peakCostDates": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "peakTokenScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Scope"
+          }
+        },
+        "peakCostScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Scope"
+          }
+        }
+      },
+      "required": [
+        "tokenBasis",
+        "peakTokenDates",
+        "peakCostDates",
+        "peakTokenScopes",
+        "peakCostScopes"
+      ]
+    },
+    "TokenBasis": {
+      "type": "string",
+      "enum": [
+        "analyzed_totals"
+      ]
+    },
+    "Automatic": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/AutomaticStatus"
+        },
+        "attemptId": {
+          "type": "string"
+        },
+        "attemptedAt": {
+          "type": "string"
+        },
+        "retryAt": {
+          "type": "string"
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "attemptId",
+        "attemptedAt",
+        "retryAt"
+      ]
+    },
+    "AutomaticStatus": {
+      "type": "string",
+      "enum": [
+        "checking",
+        "updated",
+        "unchanged",
+        "failed"
+      ]
+    },
+    "Freshness": {
+      "type": "object",
+      "properties": {
+        "publicationChange": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PublicationChange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "projectLoads": {
+          "description": "Projects restored from committed facts; pending projects are not zero usage.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectLoad"
+          }
+        },
+        "status": {
+          "type": "string"
+        },
+        "initialScan": {
+          "description": "Ephemeral task headers; no completed ledger or coverage is available yet.",
+          "type": "boolean",
+          "default": false
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": "string"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "revision"
+      ]
+    },
+    "PublicationChange": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "baseline": {
+          "$ref": "#/definitions/SnapshotRef"
+        },
+        "current": {
+          "$ref": "#/definitions/SnapshotRef"
+        },
+        "measurementsAdded": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "measurementsRemoved": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "measurementsChanged": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "threadsAdded": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "turnsChanged": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pricesChanged": {
+          "type": "boolean"
+        },
+        "coverageChanged": {
+          "type": "boolean"
+        },
+        "delta": {
+          "$ref": "#/definitions/UsageDelta"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "baseline",
+        "current",
+        "measurementsAdded",
+        "measurementsRemoved",
+        "measurementsChanged",
+        "threadsAdded",
+        "turnsChanged",
+        "pricesChanged",
+        "coverageChanged",
+        "delta"
+      ]
+    },
+    "SnapshotRef": {
+      "type": "object",
+      "properties": {
+        "snapshotId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshotId",
+        "createdAt"
+      ]
+    },
+    "ProjectLoad": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/definitions/ProjectLoadState"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ]
+    },
+    "ProjectLoadState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "loading",
+        "ready"
+      ]
+    },
+    "Action": {
+      "type": "string",
+      "enum": [
+        "refresh",
+        "usage",
+        "threads",
+        "turns",
+        "steps",
+        "compare",
+        "investigate",
+        "trajectory",
+        "resources",
+        "review",
+        "context"
+      ]
+    },
+    "AvailableRange": {
+      "type": "object",
+      "properties": {
+        "since": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "until": {
+          "description": "Exclusive local date boundary.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "Item": {
       "oneOf": [

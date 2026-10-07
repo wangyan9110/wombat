@@ -1,11 +1,37 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
+export type ComparisonRequest =
+  | {
+      baselineSince: string;
+      baselineUntil: string;
+      dimension: DriverDimension;
+      kind: "periods";
+    }
+  | {
+      leftThreadId: string;
+      rightThreadId: string;
+      includeDescendants?: boolean;
+      kind: "sessions";
+    };
+export type DriverDimension = "project" | "model" | "thread";
+export type Action =
+  | "refresh"
+  | "usage"
+  | "threads"
+  | "turns"
+  | "steps"
+  | "compare"
+  | "investigate"
+  | "trajectory"
+  | "resources"
+  | "review"
+  | "context";
 export type Group = "day" | "week" | "month";
 export type Sort = "tokens" | "cost" | "recent" | "time";
 export type Presentation = "distribution" | "details" | "projects" | "models";
 
 export interface Request {
+  comparison?: ComparisonRequest | null;
   action: Action;
   snapshotId?: string | null;
   roots?: string[] | null;
@@ -20,6 +46,7 @@ export interface Request {
   limit?: number | null;
   locateThreadId?: string | null;
   locateTurnId?: string | null;
+  locateOperationId?: string | null;
   matchedOnly?: boolean | null;
 }
 export interface Scope {

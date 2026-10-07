@@ -1,10 +1,67 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
+export type InspectionKind = "investigate" | "trajectory" | "resources" | "review" | "context";
+export type InspectionLimit =
+  | "source_partial"
+  | "context_occupancy_unavailable"
+  | "actual_changes_unavailable"
+  | "unlocated_operations"
+  | "unknown_input_order"
+  | "operation_outcomes_partial"
+  | "operation_model_association"
+  | "context_metadata_unavailable";
+export type InspectionSignal = "high_usage" | "low_cache_reuse" | "input_jump" | "failure_share" | "repeated_request";
+export type TokenAnalysisScope = "selected_canonical_measurements";
+export type InspectionEvidenceView = "task" | "turn" | "operation";
+export type InputBoundary =
+  | "first"
+  | "compaction"
+  | "model_change"
+  | "source_change"
+  | "ambiguous_order"
+  | "missing_input"
+  | "scope_gap"
+  | "source_gap"
+  | "turn_change"
+  | "missing_context";
+export type Comparison =
+  | {
+      dimension: DriverDimension;
+      baseline: ComparedUsage;
+      current: ComparedUsage;
+      delta: UsageDelta;
+      drivers: UsageDriver[];
+      /**
+       * Contribution of all drivers outside this page, so pages remain reconcilable.
+       */
+      remaining: UsageDelta;
+      undatedRecords: number;
+      kind: "periods";
+    }
+  | {
+      left: ComparedSession;
+      right: ComparedSession;
+      delta: UsageDelta;
+      includeDescendants: boolean;
+      kind: "sessions";
+    };
+export type DriverDimension = "project" | "model" | "thread";
+export type ContextRecordKind = "injected_context" | "model_window";
 export type TokenBasis = "analyzed_totals";
 export type AutomaticStatus = "checking" | "updated" | "unchanged" | "failed";
 export type ProjectLoadState = "pending" | "loading" | "ready";
-export type Action = "refresh" | "usage" | "threads" | "turns" | "steps";
-export type TokenAnalysisScope = "selected_canonical_measurements";
+export type Action =
+  | "refresh"
+  | "usage"
+  | "threads"
+  | "turns"
+  | "steps"
+  | "compare"
+  | "investigate"
+  | "trajectory"
+  | "resources"
+  | "review"
+  | "context";
 export type Item =
   | {
       date?: string | null;
@@ -95,6 +152,8 @@ export type Item =
     };
 
 export interface Response {
+  inspection?: Inspection | null;
+  comparison?: Comparison | null;
   facets?: Facets | null;
   distribution?: Distribution | null;
   priceUpdate?: Automatic | null;
@@ -109,88 +168,47 @@ export interface Response {
   page: Page;
   quality: Quality;
 }
-/**
- * Observed dimensions, not a project registry or a configuration inventory.
- */
-export interface Facets {
+export interface Inspection {
+  methodVersion: number;
+  kind: InspectionKind;
+  policy: InspectionPolicy;
+  partial: boolean;
+  limitations: InspectionLimit[];
+  candidates: InvestigationCandidate[];
+  trajectory: InputPoint[];
+  resources: ResourceHotspot[];
+  review?: PeriodReview | null;
+  candidateCount: number;
+  resourceCount: number;
+  unlocatedOperations: number;
+  context?: ContextInventory | null;
+}
+export interface InspectionPolicy {
+  minimumTokens: number;
+  minimumInput: number;
+  maximumCacheShare: number;
+  minimumInputJump: number;
+  minimumDeterminateOperations: number;
+  minimumFailures: number;
+  minimumFailureShare: number;
+  minimumRepeatedRequests: number;
+}
+export interface InvestigationCandidate {
+  threadId: string;
+  title?: string | null;
+  signals: InspectionSignal[];
+  usage: UsageSummary;
+  input?: number | null;
+  cacheShare?: number | null;
+  largestUncachedJump?: number | null;
+  determinateOperations: number;
+  failedOperations: number;
+  outcomeGaps: number;
   /**
-   * Metadata across this snapshot's authorized sources, independent of measurement/date filters.
+   * Identical callable/argument observations inside one exact turn/receiver.
    */
-  discoveredThreadCount?: number | null;
-  directories: string[];
-  hasUnassigned: boolean;
-  models: string[];
-  reasoningEfforts: string[];
-  agents: string[];
-}
-export interface Distribution {
-  unpricedTokens?: number | null;
-  /**
-   * Basis for maxTokens and peak token scopes/dates.
-   */
-  tokenBasis: TokenBasis;
-  /**
-   * Maximum of bucket analyzed subtotals; not necessarily a complete total.
-   */
-  maxTokens?: number | null;
-  maxCost?: string | null;
-  peakTokenDates: (string | null)[];
-  peakCostDates: (string | null)[];
-  peakTokenScopes: Scope[];
-  peakCostScopes: Scope[];
-}
-export interface Scope {
-  allTime?: boolean | null;
-  timezone?: string | null;
-  since?: string | null;
-  until?: string | null;
-  agentKind?: string | null;
-  sourceInstanceId?: string | null;
-  model?: string | null;
-  modelUnknown?: boolean | null;
-  effortUnknown?: boolean | null;
-  undated?: boolean | null;
-  reasoningEffort?: string | null;
-  project?: string | null;
-  projectUnknown?: boolean | null;
-  threadId?: string | null;
-}
-export interface Automatic {
-  status: AutomaticStatus;
-  attemptId: string;
-  attemptedAt: string;
-  retryAt: string;
-  errorCode?: string | null;
-}
-export interface Freshness {
-  /**
-   * Projects restored from committed facts; pending projects are not zero usage.
-   */
-  projectLoads?: ProjectLoad[];
-  status: string;
-  /**
-   * Ephemeral task headers; no completed ledger or coverage is available yet.
-   */
-  initialScan?: boolean;
-  checkedAt?: string | null;
-  revision: string;
-  error?: string | null;
-  errorCode?: string | null;
-}
-export interface ProjectLoad {
-  project?: string | null;
-  state: ProjectLoadState;
-}
-export interface SnapshotRef {
-  snapshotId: string;
-  createdAt: string;
-}
-export interface AvailableRange {
-  since?: string | null;
-  /**
-   * Exclusive local date boundary.
-   */
-  until?: string | null;
+  repeatedRequests: number;
+  evidence: InspectionEvidence[];
 }
 export interface UsageSummary {
   /**
@@ -310,6 +328,253 @@ export interface PriceBasis {
   condition: string;
   requestInputTokens?: number | null;
   requestScoped: boolean;
+}
+export interface InspectionEvidence {
+  view: InspectionEvidenceView;
+  methodVersion: number;
+  snapshotId: string;
+  scope: Scope;
+  threadId: string;
+  turnId?: string | null;
+  operationId?: string | null;
+}
+export interface Scope {
+  allTime?: boolean | null;
+  timezone?: string | null;
+  since?: string | null;
+  until?: string | null;
+  agentKind?: string | null;
+  sourceInstanceId?: string | null;
+  model?: string | null;
+  modelUnknown?: boolean | null;
+  effortUnknown?: boolean | null;
+  undated?: boolean | null;
+  reasoningEffort?: string | null;
+  project?: string | null;
+  projectUnknown?: boolean | null;
+  threadId?: string | null;
+}
+export interface InputPoint {
+  measurementId: string;
+  timestamp?: string | null;
+  input?: number | null;
+  uncachedInput?: number | null;
+  cacheRead?: number | null;
+  inputDelta?: number | null;
+  uncachedDelta?: number | null;
+  boundary?: InputBoundary | null;
+  epoch: number;
+  evidence: InspectionEvidence;
+  /**
+   * Two observations separated by a compaction marker; not a continuous delta or causal effect.
+   */
+  compactionComparison?: CompactionInputComparison | null;
+}
+export interface CompactionInputComparison {
+  beforeMeasurementId: string;
+  beforeInput: number;
+  afterInput: number;
+  inputDifference: number;
+  beforeEvidence: InspectionEvidence;
+}
+export interface ResourceHotspot {
+  id: string;
+  sourceInstanceId: string;
+  project?: string | null;
+  path: string;
+  /**
+   * Verified lexical read target or unnormalized source-reported change path.
+   */
+  identityBasis: string;
+  operations: number;
+  reads: number;
+  proposedChanges: number;
+  reportedChanges: number;
+  failedOperations: number;
+  knownDurationMs?: number | null;
+  durationCoveredOperations: number;
+  /**
+   * Source write reports do not establish independently observed disk changes.
+   */
+  actualChanges?: number | null;
+  evidence: InspectionEvidence[];
+}
+export interface PeriodReview {
+  comparison?: Comparison | null;
+  topTasks: InvestigationCandidate[];
+  models: ReviewGroup[];
+  tools: ToolFamilyCount[];
+  remainingModelUsage: UsageSummary;
+  weekStart?: string | null;
+  concentration?: ReviewConcentration | null;
+}
+export interface ComparedUsage {
+  scope: Scope;
+  usage: UsageSummary;
+  /**
+   * Includes source coverage and windows not yet closed at publication time.
+   */
+  partial: boolean;
+}
+export interface UsageDelta {
+  /**
+   * Complete analyzed totals only; missing observations never become zero.
+   */
+  tokens?: number | null;
+  /**
+   * Complete configured valuations only, with exact decimal subtraction.
+   */
+  cost?: string | null;
+  /**
+   * No percentage for a zero or unavailable baseline.
+   */
+  tokenRatio?: number | null;
+}
+export interface UsageDriver {
+  key?: string | null;
+  baseline: ComparedUsage;
+  current: ComparedUsage;
+  delta: UsageDelta;
+}
+export interface ComparedSession {
+  threadId: string;
+  title?: string | null;
+  own: UsageSummary;
+  descendants: UsageSummary;
+  selected: UsageSummary;
+  memberCount: number;
+  /**
+   * Conflicting/cyclic ancestry, absent parents or incomplete source coverage.
+   */
+  partial: boolean;
+  scope: Scope;
+}
+export interface ReviewGroup {
+  key?: string | null;
+  usage: UsageSummary;
+}
+export interface ToolFamilyCount {
+  kind: string;
+  operations: number;
+  failed: number;
+}
+export interface ReviewConcentration {
+  methodVersion: number;
+  measuredTasks: number;
+  totalTokens?: number | null;
+  topTaskTokens?: number | null;
+  topTaskShare?: number | null;
+  topFiveTokens?: number | null;
+  topFiveShare?: number | null;
+  topTenTokens?: number | null;
+  topTenShare?: number | null;
+  remainingTaskUsage: UsageSummary;
+}
+export interface ContextInventory {
+  observedRecords: number;
+  injectedRecords: number;
+  modelWindowRecords: number;
+  /**
+   * Physical safe records, not logical requests, messages or injection counts.
+   */
+  records: ContextInventoryRecord[];
+}
+export interface ContextInventoryRecord {
+  id: string;
+  kind: ContextRecordKind;
+  timestamp?: string | null;
+  recordKind?: string | null;
+  phase?: string | null;
+  presence?: string | null;
+  model?: string | null;
+  modelContextWindow?: number | null;
+  /**
+   * Native source records do not retain historical resource versions or measured bodies.
+   */
+  contentVersion?: string | null;
+  bytes?: number | null;
+  evidence: InspectionEvidence;
+}
+/**
+ * Observed dimensions, not a project registry or a configuration inventory.
+ */
+export interface Facets {
+  /**
+   * Metadata across this snapshot's authorized sources, independent of measurement/date filters.
+   */
+  discoveredThreadCount?: number | null;
+  directories: string[];
+  hasUnassigned: boolean;
+  models: string[];
+  reasoningEfforts: string[];
+  agents: string[];
+}
+export interface Distribution {
+  unpricedTokens?: number | null;
+  /**
+   * Basis for maxTokens and peak token scopes/dates.
+   */
+  tokenBasis: TokenBasis;
+  /**
+   * Maximum of bucket analyzed subtotals; not necessarily a complete total.
+   */
+  maxTokens?: number | null;
+  maxCost?: string | null;
+  peakTokenDates: (string | null)[];
+  peakCostDates: (string | null)[];
+  peakTokenScopes: Scope[];
+  peakCostScopes: Scope[];
+}
+export interface Automatic {
+  status: AutomaticStatus;
+  attemptId: string;
+  attemptedAt: string;
+  retryAt: string;
+  errorCode?: string | null;
+}
+export interface Freshness {
+  publicationChange?: PublicationChange | null;
+  /**
+   * Projects restored from committed facts; pending projects are not zero usage.
+   */
+  projectLoads?: ProjectLoad[];
+  status: string;
+  /**
+   * Ephemeral task headers; no completed ledger or coverage is available yet.
+   */
+  initialScan?: boolean;
+  checkedAt?: string | null;
+  revision: string;
+  error?: string | null;
+  errorCode?: string | null;
+}
+export interface PublicationChange {
+  methodVersion: number;
+  baseline: SnapshotRef;
+  current: SnapshotRef;
+  measurementsAdded: number;
+  measurementsRemoved: number;
+  measurementsChanged: number;
+  threadsAdded: number;
+  turnsChanged: number;
+  pricesChanged: boolean;
+  coverageChanged: boolean;
+  delta: UsageDelta;
+}
+export interface SnapshotRef {
+  snapshotId: string;
+  createdAt: string;
+}
+export interface ProjectLoad {
+  project?: string | null;
+  state: ProjectLoadState;
+}
+export interface AvailableRange {
+  since?: string | null;
+  /**
+   * Exclusive local date boundary.
+   */
+  until?: string | null;
 }
 export interface Page {
   offset: number;

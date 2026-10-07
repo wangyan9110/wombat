@@ -7,7 +7,7 @@ export interface Route {
   allTime?: boolean; optimizeView?: string; decisionRevision?: string; suggestion?: string; suggestionRecord?: string;
   optimizeGroup?: 'pending'|'history'; optimizeCategory?: 'repair'|'trim'|'organize'|'space'; optimizeOffset?: number;
   agentsBytes?: number; descriptionCharacters?: number;
-  returnTo?: string;
+  returnTo?: string;operation?:string;
   snapshot?: string; configView?: string; configId?: string; configThread?: string;
   configOffset?: number; evidenceOffset?: number;
   relatedOffset?: number; eventsOffset?: number; periodDetailOffset?: number;
@@ -44,7 +44,7 @@ export function parseRoute(search: string, now = new Date()): Route {
     project: value('project'), unassigned: value('unassigned') === '1', model: value('model'), modelUnknown: value('modelUnknown') === '1', effort: value('effort'), effortUnknown: value('effortUnknown')==='1', undated:value('undated')==='1', agent: value('agent'), source: value('source'), search: value('search'),
     group: choice('group', ['day','week','month'], 'day'), dimension: choice('dimension', ['projects','models'], value('project') || value('unassigned') ? 'models' : 'projects'),
     turnView: choice('turnView',['matching','all'],'matching'), sort: choice('sort',['tokens','cost','recent'], p.get('page')==='threads'?'recent':'tokens'), periodSort: choice('periodSort',['time','tokens','cost'],'time'), turnSort: choice('turnSort',['time','tokens','cost','recent'],'time'),
-    offset: Math.max(0, Math.min(9007199254740991, Math.floor(Number(p.get('offset'))) || 0)), periodOffset: Math.max(0, Math.min(9007199254740991, Math.floor(Number(p.get('periodOffset'))) || 0)), turnOffset: Math.max(0, Math.min(9007199254740991, Math.floor(Number(p.get('turnOffset'))) || 0)), thread: value('thread'), turn: value('turn') };
+    offset: Math.max(0, Math.min(9007199254740991, Math.floor(Number(p.get('offset'))) || 0)), periodOffset: Math.max(0, Math.min(9007199254740991, Math.floor(Number(p.get('periodOffset'))) || 0)), turnOffset: Math.max(0, Math.min(9007199254740991, Math.floor(Number(p.get('turnOffset'))) || 0)), thread: value('thread'), turn: value('turn'),operation:value('operation') };
 }
 export function routeSearch(route: Route): string {
   const p = new URLSearchParams();
@@ -59,7 +59,7 @@ export function patchRoute(route: Route, patch: Partial<Route>): Route {
   const changingConfig = ['project','unassigned','since','until','allTime','timezone','agent','source'].some(k => k in patch);
   const changingReview = ['project','unassigned','source'].some(k => k in patch);
   return {...route,
-    ...(('thread' in patch && patch.thread !== route.thread || 'turn' in patch && patch.turn !== route.turn) ? {eventsOffset:0} : {}),
+    ...(('thread' in patch && patch.thread !== route.thread || 'turn' in patch && patch.turn !== route.turn) ? {eventsOffset:0,operation:undefined} : {}),
     ...(('configId' in patch && patch.configId !== route.configId) ? {relatedOffset:0} : {}),
     ...(changingConfig ? {periodDetailOffset:0, relatedOffset:0, eventsOffset:0} : {}),
     ...(('since'in patch||'until'in patch||patch.allTime||patch.undated)&&!('relativeDays'in patch)?{relativeDays:undefined}:{}),
@@ -107,7 +107,7 @@ export function advanceRelativeRoute(route:Route,now=new Date()):Route {
 
 export async function readUsagePage(client: import('@wombat/client').UsageClient, request: UsageRequest, options: import('@wombat/client').QueryOptions = {}) {
   const result = await readUsage(client, request, options);
-  if (!result.items.length && result.page.total > 0) return readUsage(client, {
+  if (!result.items.length && !result.comparison && !result.inspection && result.page.total > 0) return readUsage(client, {
     ...request, snapshotId: result.snapshotRef.snapshotId,
     offset: Math.floor((result.page.total - 1) / result.page.limit) * result.page.limit,
   }, options);

@@ -106,8 +106,6 @@ struct Fields<'a> {
     unsupported: bool,
     rejected_receiver: bool,
     gap: bool,
-    outcomes: BTreeSet<TerminalOutcome>,
-    codes: BTreeSet<i64>,
     durations: BTreeSet<u64>,
     witnesses: BTreeSet<String>,
 }
@@ -157,10 +155,12 @@ fn fields<'a>(
         unsupported: false,
         rejected_receiver: false,
         gap: false,
-        outcomes: BTreeSet::new(),
-        codes: BTreeSet::new(),
         durations: BTreeSet::new(),
-        witnesses: BTreeSet::new(),
+        witnesses: endpoint
+            .terminal_evidence_ids
+            .iter()
+            .map(|id| (*id).to_owned())
+            .collect(),
     };
     let mut function_fingerprint = None;
     let mut cwd = None;
@@ -172,25 +172,8 @@ fn fields<'a>(
         if !meter.use_field(0) {
             return Ok(None);
         }
-        if let Some(outcome) = phase.terminal_outcome
-            && out.outcomes.insert(outcome)
-            && out.outcomes.len() <= 2
-        {
-            out.witnesses.insert(phase.event.id().into());
-        }
-        if phase.outcome_conflict {
-            out.outcomes.insert(TerminalOutcome::Completed);
-            out.outcomes.insert(TerminalOutcome::Failed);
-        }
         match phase.kind {
             ObservationKind::Operation(op) => {
-                if phase.terminal_outcome.is_some()
-                    && let Some(code) = op.exit_code
-                    && out.codes.insert(code)
-                    && out.codes.len() <= 2
-                {
-                    out.witnesses.insert(phase.event.id().into());
-                }
                 if matches!(
                     phase.phase,
                     Phase::Completed | Phase::Failed | Phase::Cancelled
@@ -453,12 +436,11 @@ pub(super) fn collect<'a, 'p>(
         if endpoint.start_ms.is_none() {
             coverage.missing_start += 1;
         }
-        let outcome = (fields.outcomes.len() == 1 && fields.codes.len() <= 1)
-            .then(|| *fields.outcomes.first().unwrap());
+        let outcome = endpoint.terminal.outcome();
         if outcome.is_none() {
             coverage.indeterminate_outcomes += 1;
         }
-        let code = fields.codes.first().copied();
+        let code = endpoint.terminal.exit_code;
         let failed = matches!(outcome, Some(TerminalOutcome::Failed))
             || (outcome == Some(TerminalOutcome::Completed) && code.is_some_and(|c| c != 0));
         let failed = failed && !(fields.expected_nonzero && (code.is_none() || code == Some(1)));

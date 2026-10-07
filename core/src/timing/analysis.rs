@@ -1,7 +1,7 @@
 //! Safe-event mapping for a single explicit turn; no source bodies or time-based identity guesses.
 use super::{context, intervals};
 use crate::adapters::contract::Measurement;
-use crate::operation_association::{self, ObservationKind, TerminalOutcome};
+use crate::operation_association::{self, ObservationKind, lifecycle::TerminalState};
 use crate::session_events::{
     Event, Gap, ItemKind, LifecycleKind, MessageOrigin, Payload, Phase, Precision,
 };
@@ -419,14 +419,6 @@ fn category_at(index: usize) -> intervals::Category {
         intervals::Category::Mcp,
     ][index]
 }
-fn outcome_code(outcome: TerminalOutcome) -> u8 {
-    match outcome {
-        TerminalOutcome::Completed => 1,
-        TerminalOutcome::Failed => 2,
-        TerminalOutcome::Cancelled => 3,
-        TerminalOutcome::Declined => 4,
-    }
-}
 fn precision_rank(precision: &Precision) -> u8 {
     match precision {
         Precision::Second => 0,
@@ -759,9 +751,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
     for endpoint in endpoints.groups {
         check(cancelled)?;
         let mut categories = BTreeSet::new();
-        let mut terminal_states = BTreeSet::new();
         let mut target_conflict = false;
-        let mut outcome_conflict = false;
         let mut is_operation = false;
         for index in endpoint.indices {
             is_operation |= phase_operation(observations[index].kind);
@@ -770,10 +760,6 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
                 categories.insert(category);
             }
             target_conflict |= observation.target_conflict;
-            outcome_conflict |= observation.outcome_conflict;
-            if let Some(outcome) = observation.terminal_outcome {
-                terminal_states.insert(outcome_code(outcome));
-            }
         }
         let kind_conflict = endpoint.kind_conflict
             || (is_operation && (categories.contains(&1) || categories.contains(&2)));
@@ -816,7 +802,7 @@ fn analyze_impl(input: AnalyzeInput<'_>, cancelled: &AtomicBool) -> anyhow::Resu
                 .issues
                 .push(Issue::TargetConflict(identity.item.clone()));
         }
-        if outcome_conflict || terminal_states.len() > 1 {
+        if endpoint.terminal.state == TerminalState::Conflicting {
             result
                 .issues
                 .push(Issue::OutcomeConflict(identity.item.clone()));

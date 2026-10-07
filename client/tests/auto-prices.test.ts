@@ -24,6 +24,10 @@ test('automatic prices honor offline/fixed views, reuse cooldown, preserve scope
     const client = withAutomaticPrices(base);
     await client.live!({ query: { action: 'usage' }, mode: 'cached' });
     await client.live!({ query: { action: 'usage', snapshotId: 'fixed' } });
+    // Default comparisons keep their committed view even if official prices are missing.
+    const comparison = {action:'compare' as const,comparison:{kind:'sessions' as const,leftThreadId:'a',rightThreadId:'b'}};
+    await client.live!({query:comparison});
+    await client.live!({query:comparison,mode:'auto'});
     assert.equal(calls, 0);
     const checked = await client.live!({ query: { action: 'usage' } });
     assert.equal(checked.result.priceUpdate?.status, 'unchanged');

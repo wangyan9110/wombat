@@ -439,7 +439,7 @@ fn cancelled_fork_operation_reduction_preserves_existing_canonical_rows() {
     let before = facts.operations.clone();
     assert_eq!(before.len(), 2);
     let parents = facts.parents.clone();
-    let forest = super::super::ancestry::ForkForest::new(&parents);
+    let forest = super::super::session_relations::SessionRelations::new(&parents);
     let error = facts
         .remove_inherited_operations(
             &forest,

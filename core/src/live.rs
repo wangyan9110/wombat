@@ -37,6 +37,8 @@ pub enum Mode {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Freshness {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publication_change: Option<usage_app_dto::PublicationChange>,
     /// Projects restored from committed facts; pending projects are not zero usage.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub project_loads: Vec<ProjectLoad>,

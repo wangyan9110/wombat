@@ -340,6 +340,8 @@ pub(crate) struct MeasurementDelta {
 }
 pub(crate) struct Synced {
     pub collected: Collected,
+    /// None replaces membership after rebuild/replay; Some writes changed observations only.
+    pub events: Option<Vec<Arc<crate::session_events::Event>>>,
     pub operations: Option<BTreeSet<String>>,
     pub measurements: Option<MeasurementDelta>,
 }
@@ -704,6 +706,13 @@ fn sync_cached_with_context(
     // Events restore parser truth; refresh disposable projection rows on restart,
     // including references whose cached payload may have been discarded.
     let full = rebuild || previous.is_empty() || restoring;
+    let changed_events = (!full).then(|| {
+        facts
+            .dirty_events
+            .iter()
+            .map(|id| Arc::clone(&facts.events[id]))
+            .collect()
+    });
     let replace_operations = full || !facts.retired_operations.is_empty();
     let changed_operations = if replace_operations || !facts.parents.is_empty() {
         None
@@ -842,6 +851,7 @@ fn sync_cached_with_context(
     cache.projected = Some(result.measurements.clone());
     Ok(Some(Synced {
         collected: result,
+        events: changed_events,
         operations: changed_operations,
         measurements,
     }))

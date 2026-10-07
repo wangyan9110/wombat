@@ -25,6 +25,26 @@ pub(crate) fn restore_projects(
     let Some(id) = prior.get("id").and_then(Value::as_str) else {
         return Ok(None);
     };
+    // Validate the header before decoding facts or publishing a partial project.
+    let publication_change = prior
+        .get("publicationChange")
+        .filter(|value| !value.is_null())
+        .map(|value| {
+            if value.get("methodVersion").and_then(Value::as_u64) != Some(1) {
+                return Err(operation_error(
+                    "UNSUPPORTED_VERSION",
+                    "不支持的刷新变化摘要版本",
+                ));
+            }
+            let change: crate::usage_app_dto::PublicationChange =
+                serde_json::from_value(value.clone())?;
+            anyhow::ensure!(
+                change.current.snapshot_id == id,
+                "publication identity mismatch"
+            );
+            Ok(change)
+        })
+        .transpose()?;
     let prices = crate::pricing_sync::current()?;
     if prior.get("prices").and_then(Value::as_str) != Some(&prices.catalog_hash) {
         return Ok(None);
@@ -212,6 +232,9 @@ pub(crate) fn restore_projects(
         if let Some(at) = prior.get("createdAt").and_then(Value::as_str) {
             snapshot.manifest.snapshot_ref.created_at = at.into();
         }
+        if complete {
+            snapshot.publication_change = publication_change.clone();
+        }
         // Completed partitions are shared; the next batch carries only its new events.
         collected.events.clear();
         let snapshot = Arc::new(snapshot);
@@ -220,7 +243,7 @@ pub(crate) fn restore_projects(
         }
         previous = Some(snapshot);
     }
-    // Commit optional indexes only; the captured source projections remain unchanged.
+    // Finish the captured read snapshot without schema or projection writes.
     read_tx.commit()?;
     if let Some(snapshot) = &previous {
         publish(Arc::clone(snapshot));
@@ -276,6 +299,7 @@ mod tests {
             .unwrap()
             .unwrap();
         let original = crate::live_index::load_map(&db, &format!("view:{key}")).unwrap();
+        db.pragma_update(None, "query_only", true).unwrap();
         let mut batches = vec![];
         let restored = restore_projects(
             &db,

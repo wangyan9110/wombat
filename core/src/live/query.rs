@@ -16,7 +16,20 @@ pub(super) fn query(
     let selector = selection::ReadViewSelector::new(
         request.query.roots.clone().unwrap_or_default(),
         request.query.snapshot_id.clone(),
-        request.mode.clone(),
+        if matches!(
+            request.query.action,
+            usage_app_dto::Action::Compare
+                | usage_app_dto::Action::Investigate
+                | usage_app_dto::Action::Trajectory
+                | usage_app_dto::Action::Resources
+                | usage_app_dto::Action::Review
+                | usage_app_dto::Action::Context
+        ) && request.mode == Mode::Auto
+        {
+            Mode::Cached
+        } else {
+            request.mode.clone()
+        },
         request.verify,
         refresh,
     )?
@@ -40,11 +53,20 @@ pub(super) fn query(
         crate::usage_app::execute_snapshot(query, &snapshot)?
     };
     result.freshness = Some(freshness.clone());
-    Ok(Response {
+    let response = Response {
         output_version: 1,
         result,
         freshness,
-    })
+    };
+    if response.result.inspection.is_some()
+        && serde_json::to_vec(&response)?.len() > usage_app_dto::INSPECTION_RESPONSE_BYTES
+    {
+        return Err(operation_error(
+            "RESOURCE_LIMIT",
+            "检查查询含实时元数据后超过响应预算",
+        ));
+    }
+    Ok(response)
 }
 fn select_with_retained(
     selector: &selection::ReadViewSelector,
@@ -64,6 +86,7 @@ fn select_with_retained(
             return Ok((
                 Arc::clone(&snapshot),
                 Freshness {
+                    publication_change: snapshot.publication_change.clone(),
                     project_loads: snapshot.project_loads.clone(),
                     initial_scan,
                     status: "fixed".into(),

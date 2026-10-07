@@ -1,0 +1,56 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,mkdir,writeFile,appendFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {spawn,spawnSync} from 'node:child_process';
+import {once} from 'node:events';
+import {setTimeout as delay} from 'node:timers/promises';
+const jsonl=(rows:unknown[])=>rows.map(r=>JSON.stringify(r)+'\n').join('');
+const usage=(thread:string,id:string,n:number,day:string)=>({type:'event_msg',timestamp:`${day}T00:00:00Z`,payload:{type:'token_usage_record',thread_id:thread,turn_id:'u',response_id:id,usage:{input_tokens:n,cached_input_tokens:0,cache_write_input_tokens:0,output_tokens:0,reasoning_output_tokens:0,total_tokens:n}}});
+test('built CLI and Web share period drivers, family totals and durable refresh changes',{timeout:60_000},async()=>{
+ const dir=await mkdtemp(path.join(tmpdir(),'wombat-comparison-')),root=path.join(dir,'source'),data=path.join(dir,'data');
+ await mkdir(path.join(root,'sessions'),{recursive:true});
+ for(const [id,parent,n] of [['parent',null,100],['child','parent',30],['other',null,70]] as const)await writeFile(path.join(root,'sessions',`${id}.jsonl`),jsonl([{type:'session_meta',payload:{id,cwd:`/synthetic/${id}`,forked_from_id:parent}},{type:'turn_context',payload:{turn_id:'u',model:'gpt-5.4',effort:'high'}},{type:'response_item',timestamp:'2026-09-09T00:00:00Z',payload:{type:'message',role:'developer',content:[{type:'input_text',text:'Synthetic injected instruction'}]}},usage(id,`before-${id}`,n,'2026-09-02'),...(id==='parent'?[{type:'event_msg',timestamp:'2026-09-09T00:00:00Z',payload:{type:'compacted'}}]:[]),usage(id,`after-${id}`,id==='parent'?140:n,'2026-09-09')]));
+ const env:NodeJS.ProcessEnv={...process.env,CODEX_HOME:root,WOMBAT_DATA_HOME:data,WOMBAT_AUTO_PRICES:'0',WOMBAT_CODEX_BIN:path.join(dir,'absent-codex')};delete env.WOMBAT_CORE_BIN;
+ const binary=path.resolve('dist',process.platform==='win32'?'wombat-core.exe':'wombat-core'),cli=path.resolve('dist/wombat.js');
+ let service:ReturnType<typeof spawn>|undefined,web:ReturnType<typeof spawn>|undefined;
+ const stop=async(child:ReturnType<typeof spawn>|undefined)=>{if(!child||child.exitCode!==null||child.signalCode!==null)return;const exit=once(child,'close');child.kill('SIGTERM');const timer=setTimeout(()=>child.kill('SIGKILL'),2000);try{await exit;}finally{clearTimeout(timer);}};
+ const run=(args:string[])=>{const p=spawnSync(process.execPath,[cli,...args,'--json'],{env,encoding:'utf8',timeout:15_000,maxBuffer:8*1024*1024});assert.ifError(p.error);assert.ok([0,2].includes(p.status!),p.stdout+p.stderr);return JSON.parse(p.stdout);};
+ try{
+  service=spawn(binary,['--serve-usage'],{env,stdio:'ignore'});await once(service,'spawn');await delay(100);
+  const first=run(['usage','--fresh','--all-time']);
+  const args=['compare','--since','2026-09-08','--until','2026-09-15','--baseline-since','2026-09-01','--baseline-until','2026-09-08','--dimension','project','--limit','1'];
+  const compared=run(args);assert.equal(compared.snapshotRef.snapshotId,first.snapshotRef.snapshotId);assert.equal(compared.comparison.delta.tokens,40);assert.equal(compared.page.total,3);assert.equal(compared.comparison.drivers[0].delta.tokens+compared.comparison.remaining.tokens,40);
+  const threads=run(['threads','--all-time']);const id=(name:string)=>threads.items.find((t:{upstreamId:string})=>t.upstreamId===name).id;
+  const family=run(['compare','--thread',id('parent'),'--other-thread',id('other'),'--family','--all-time']);assert.equal(family.comparison.left.own.tokens.total,240);assert.equal(family.comparison.left.descendants.tokens.total,60);assert.equal(family.comparison.left.selected.tokens.total,300);assert.equal(family.comparison.left.memberCount,2);
+  const inspect=run(['investigate','--all-time']);assert.equal(inspect.inspection.candidateCount,0);assert.equal(inspect.snapshotRef.snapshotId,first.snapshotRef.snapshotId);
+  const trajectory=run(['trajectory','--thread',id('parent'),'--all-time']);assert.equal(trajectory.inspection.trajectory.length,2);assert.equal(trajectory.inspection.trajectory[1].uncachedDelta,null);assert.equal(trajectory.inspection.trajectory[1].compactionComparison.inputDifference,40);assert.ok(trajectory.inspection.limitations.includes('context_occupancy_unavailable'));
+  const contexts=run(['context','--thread',id('parent'),'--all-time']);assert.equal(contexts.inspection.context.injectedRecords,1);assert.equal(contexts.inspection.context.records[0].contentVersion,null);
+  const review=run(['review','--since','2026-09-08','--until','2026-09-15']);assert.equal(review.inspection.review.comparison.delta.tokens,40);assert.equal(review.inspection.review.models[0].usage.tokens.total,240);
+  const emptyHistory=run(['account','history']);assert.equal(emptyHistory.history.totalObservations,0,'history must work without a native Codex executable');
+  await appendFile(path.join(root,'sessions','parent.jsonl'),jsonl([usage('parent','new',10,'2026-09-10')]));
+  assert.equal(run(args).snapshotRef.snapshotId,first.snapshotRef.snapshotId,'compare must not refresh');
+  const refreshed=run(['usage','--fresh','--all-time']);assert.equal(refreshed.freshness.publicationChange.measurementsAdded,1);assert.equal(refreshed.freshness.publicationChange.delta.tokens,10);
+  const fixed=run([...args,'--snapshot',first.snapshotRef.snapshotId]);assert.equal(fixed.comparison.delta.tokens,40);
+  await stop(service);service=spawn(binary,['--serve-usage'],{env,stdio:'ignore'});await once(service,'spawn');await delay(100);
+  let restored=run(['usage','--cached','--all-time']);const restoredBy=Date.now()+5000;
+  while(restored.snapshotRef.snapshotId!==refreshed.snapshotRef.snapshotId&&Date.now()<restoredBy){await delay(30);restored=run(['usage','--cached','--all-time']);}
+  assert.equal(restored.snapshotRef.snapshotId,refreshed.snapshotRef.snapshotId);assert.deepEqual(restored.freshness.publicationChange,refreshed.freshness.publicationChange);
+  web=spawn(process.execPath,[cli,'web','--port','0'],{env,stdio:['ignore','pipe','pipe']});let output='',errors='';web.stderr!.on('data',b=>{errors+=b;if(errors.length>65536)web?.kill('SIGTERM');});web.stdout!.on('data',b=>{output+=b;if(output.length>65536)web?.kill('SIGTERM');});
+  const deadline=Date.now()+10_000;let url:string|undefined;
+  while(!url&&Date.now()<deadline){url=output.match(/http:\/\/127\.0\.0\.1:\d+\/[^\s]*/)?.[0];if(!url)await delay(30);}assert.ok(url,output+errors);
+  const parsed=new URL(url),token=new URLSearchParams(parsed.hash.slice(1)).get('token');assert.ok(token);
+  const call=async(query:unknown)=>{
+    const response=await fetch(`${parsed.origin}/api/live`,{method:'POST',headers:{Origin:parsed.origin,'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({query,mode:'cached'}),signal:AbortSignal.timeout(10_000)});
+    assert.equal(response.status,200);const frames=(await response.text()).trim().split('\n').map(line=>JSON.parse(line));const final=frames.at(-1);assert.equal(final.type,'result',JSON.stringify(final));return final.value;
+  };
+  await call({action:'usage',scope:{allTime:true}});
+  const value=(await call({action:'compare',snapshotId:restored.snapshotRef.snapshotId,scope:{since:'2026-09-08',until:'2026-09-15',timezone:'UTC'},comparison:{kind:'periods',baselineSince:'2026-09-01',baselineUntil:'2026-09-08',dimension:'project'},limit:1})).result;
+  assert.equal(value.comparison.delta.tokens,50);assert.deepEqual(value.freshness.publicationChange,restored.freshness.publicationChange);
+  for(const action of ['investigate','resources','review','context'] as const){const q={action,snapshotId:restored.snapshotRef.snapshotId,scope:{since:'2026-09-08',until:'2026-09-15',timezone:'UTC'}};const response=(await call(q)).result;assert.equal(response.inspection.kind,action);assert.equal(response.summary.tokens.total,250);if(action==='review')assert.equal(response.inspection.review.comparison.delta.tokens,50);}
+  const trajectoryValue=(await call({action:'trajectory',snapshotId:restored.snapshotRef.snapshotId,threadId:id('parent'),scope:{allTime:true}})).result;assert.deepEqual(trajectoryValue.inspection.trajectory.map((p:{input:number})=>p.input),[100,140,10]);assert.equal(trajectoryValue.inspection.trajectory[2].uncachedDelta,-130);
+
+  const bad=spawnSync(process.execPath,[cli,'compare','--since','2026-09-08','--until','2026-09-15','--baseline-since','2026-09-04','--baseline-until','2026-09-11','--json'],{env,encoding:'utf8',timeout:10_000});assert.equal(bad.status,1);assert.equal(JSON.parse(bad.stdout).error.code,'INVALID_ARGUMENT');
+ }finally{await stop(web);await stop(service);await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100});}
+});

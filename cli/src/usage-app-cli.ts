@@ -6,7 +6,7 @@ import packageMetadata from '../package.json' with { type: 'json' };
 import { CoreError, type UsageRequest, type UsageResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { renderUsageResult } from './format.js';
-export function usageHelp(): string { return t("cli.usage-app-cli.help").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('cli.doctor.summary')}\n${t('cli.timing.summary')}\n  wombat optimize`); }
+export function usageHelp(): string { return (t("cli.usage-app-cli.help") + "\n" + t("comparison.help") + "\n" + t("inspection.help") + "\n").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('cli.doctor.summary')}\n${t('cli.timing.summary')}\n  wombat optimize`); }
 export interface Invocation {
   request: UsageRequest;
   json: boolean;
@@ -16,8 +16,8 @@ export interface Invocation {
   watch: boolean;
   verify: boolean;
 }
-const actions = new Set(['refresh', 'usage', 'threads', 'turns', 'steps']);
-const valued = new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'presentation', 'sort', 'search', 'limit', 'offset', 'locate-thread', 'locate-turn']);
+const actions = new Set(['refresh', 'usage', 'threads', 'turns', 'steps', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context']);
+const valued = new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'presentation', 'sort', 'search', 'limit', 'offset', 'locate-thread', 'locate-turn', 'locate-operation', 'baseline-since', 'baseline-until', 'dimension', 'other-thread']);
 function invalid(message: string): never { throw new CoreError('INVALID_ARGUMENT', message); }
 export function parseUsageArgs(argv: string[]): Invocation {
   let action: UsageRequest['action'] = 'usage';
@@ -40,7 +40,7 @@ export function parseUsageArgs(argv: string[]): Invocation {
       help = true;
       continue;
     }
-    if (['--all-time', '--model-unknown', '--effort-unknown', '--undated', '--project-unknown', '--matched-only'].includes(arg)) { if (unknownFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", { p0: arg })); unknownFlags.add(arg); continue; }
+    if (['--all-time', '--model-unknown', '--effort-unknown', '--undated', '--project-unknown', '--matched-only', '--family'].includes(arg)) { if (unknownFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", { p0: arg })); unknownFlags.add(arg); continue; }
     if (arg === '--json') {
       if (json)
         invalid(t("cli.usage-app-cli.json_cannot_be_repeated"));
@@ -74,7 +74,7 @@ export function parseUsageArgs(argv: string[]): Invocation {
   if (action === 'refresh' && unknownFlags.size) invalid(t("cli.usage-app-cli.refresh_does_not_support_query_filters"));
   const request: UsageRequest = { action };
   const scope: NonNullable<UsageRequest['scope']> = {};
-  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search', 'locate-thread'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn'] : []), ...(action === 'turns' ? ['locate-turn'] : [])]);
+  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'compare' ? ['baseline-since', 'baseline-until', 'dimension', 'other-thread'] : []), ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search', 'locate-thread'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn','locate-operation'] : []), ...(action === 'turns' ? ['locate-turn'] : [])]);
   for (const name of [...values.keys(), ...(roots.length ? ['root'] : [])])
     if (!allowed.has(name))
       invalid(t("cli.usage-app-cli.value_does_not_support_value", { p0: action, p1: name }));
@@ -109,23 +109,37 @@ export function parseUsageArgs(argv: string[]): Invocation {
   if (unknownFlags.has('--effort-unknown')) { if (scope.reasoningEffort) invalid(t("cli.usage-app-cli.effort_unknown_cannot_be_combined_with")); scope.effortUnknown = true; }
   if (unknownFlags.has('--project-unknown')) { if (scope.project) invalid(t('webui.projectConflict')); scope.projectUnknown = true; }
   if (values.get('locate-thread')) request.locateThreadId = values.get('locate-thread');
+  if(values.get('locate-operation'))request.locateOperationId=values.get('locate-operation');
   if (values.get('locate-turn')) request.locateTurnId = values.get('locate-turn');
   if (unknownFlags.has('--matched-only')) {
     if (action !== 'turns') invalid(t('cli.usage-app-cli.value_does_not_support_value', {p0:action,p1:'matched-only'}));
     request.matchedOnly = true;
   }
   const thread = values.get('thread');
-  if (thread) {
+  if (thread && action !== 'compare') {
     if (action === 'turns' || action === 'steps')
       request.threadId = thread;
     else
       scope.threadId = thread;
+  }
+  if (unknownFlags.has('--family') && action !== 'compare') invalid(t('comparison.invalid'));
+  if (action === 'compare') {
+    if (thread || values.get('other-thread')) {
+      if (!thread || !values.get('other-thread') || values.has('baseline-since') || values.has('baseline-until') || values.has('dimension')) invalid(t('comparison.invalid'));
+      request.comparison = {kind:'sessions',leftThreadId:thread,rightThreadId:values.get('other-thread')!,includeDescendants:unknownFlags.has('--family')};
+    } else {
+      const baselineSince=values.get('baseline-since'),baselineUntil=values.get('baseline-until'),dimension=values.get('dimension')??'project';
+      if (!help && (!baselineSince || !baselineUntil || !scope.since || !scope.until) || !['project','model','thread'].includes(dimension) || unknownFlags.has('--family')) invalid(t('comparison.invalid'));
+      if (baselineSince && baselineUntil) request.comparison={kind:'periods',baselineSince,baselineUntil,dimension:dimension as 'project'|'model'|'thread'};
+    }
   }
   const turn = values.get('turn');
   if (turn)
     request.turnId = turn;
   if (!help && (action === 'turns' || action === 'steps') && !request.threadId)
     invalid(t("cli.usage-app-cli.value_requires_thread_id", { p0: action }));
+  if(!help&&action==='trajectory'&&!thread)invalid(t('cli.usage-app-cli.value_requires_thread_id',{p0:action}));
+  if(!help&&action==='review'&&(scope.allTime||scope.undated||values.has('limit')||values.has('offset')||!!scope.since!==!!scope.until))invalid(t('cli.config.invalid',{value:action}));
   if (!help && action === 'steps' && !request.turnId)
     invalid(t("cli.usage-app-cli.steps_requires_turn_id"));
   const group = values.get('group');
@@ -165,9 +179,9 @@ export function parseUsageArgs(argv: string[]): Invocation {
   if (liveFlags.has('--verify') && action !== 'refresh') invalid(t("cli.usage-app-cli.verify_only_supports_refresh"));
   if (request.snapshotId && (liveFlags.has('--fresh') || roots.length)) invalid(t("cli.usage-app-cli.snapshot_cannot_be_combined_with_fresh"));
   if (action === 'refresh' && liveFlags.has('--cached')) invalid(t("cli.usage-app-cli.refresh_cannot_use_cached"));
-  return { request, json, help, version, mode: liveFlags.has('--cached') ? 'cached' : liveFlags.has('--fresh') ? 'fresh' : 'auto', watch: liveFlags.has('--watch'), verify: liveFlags.has('--verify') };
+  return { request, json, help, version, mode: liveFlags.has('--cached') ? 'cached' : liveFlags.has('--fresh') ? 'fresh' : ['compare','investigate','trajectory','resources','review','context'].includes(action) ? 'cached' : 'auto', watch: liveFlags.has('--watch'), verify: liveFlags.has('--verify') };
 }
-export function resultExitCode(result: UsageResult): number { return result.quality.status === 'partial' || (result.freshness && !['current', 'fixed'].includes(result.freshness.status)) ? 2 : 0; }
+export function resultExitCode(result: UsageResult): number { return result.quality.status === 'partial' || result.inspection?.partial || (result.freshness && !['current', 'fixed'].includes(result.freshness.status)) ? 2 : 0; }
 export async function runUsageCli(argv = process.argv.slice(2)): Promise<number> {
   // Timing owns its default JSON and safe error envelope, including language errors.
   let commandIndex = 0;
@@ -193,7 +207,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     const client = createNodeClient();
