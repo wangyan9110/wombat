@@ -99,6 +99,33 @@ fn failed_and_declined_terminal_maps_report_paths_and_move_endpoints() {
     assert_eq!(out.changed_files.basis, Basis::ReportedPathUnion);
     assert_eq!(out.failed_operations.value, Some(1));
 }
+
+#[test]
+fn reported_windows_and_unix_paths_keep_foreign_identity_and_separator_equivalence() {
+    let out = run(&[file(
+        "portable",
+        "completed",
+        WorkStage::Terminal,
+        &[
+            (r"C:\synthetic\dir\..\a", Some(r"D:\synthetic\a")),
+            ("C:/synthetic/a", None),
+            ("/synthetic/a", None),
+            (r"\\server\share\a", None),
+        ],
+    )]);
+    assert_eq!(out.changed_files.value, Some(4));
+    assert_eq!(out.coverage.path_scope_gaps, 0);
+    for path in [r"C:a", r"\a"] {
+        let out = run(&[file(
+            "unbound",
+            "completed",
+            WorkStage::Terminal,
+            &[(path, None)],
+        )]);
+        assert_eq!(out.changed_files.value, None);
+        assert_eq!(out.changed_files.gaps, vec![Gap::MissingPathScope]);
+    }
+}
 #[test]
 fn explicit_empty_terminal_map_is_zero_but_proposed_is_unknown() {
     let empty = file("empty", "completed", WorkStage::Terminal, &[]);

@@ -201,7 +201,7 @@ fn established_generation_cannot_be_erased_in_watermark_or_reset_parser_data() {
     sync(&mut db, &source).unwrap();
     let scope = format!("parser:{}:{VERSION}:1", source.id);
     let mut stored = crate::live_index::load_map(&db, &scope).unwrap();
-    let path = fs::canonicalize(path).unwrap();
+    let path = dunce::canonicalize(path).unwrap();
     let path = path.to_str().unwrap();
     assert!(stored["checkpoints"][path]["state"]["event_generation"].is_string());
     stored["checkpoints"][path]["watermark"]["generation"] = serde_json::Value::Null;

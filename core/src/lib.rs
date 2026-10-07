@@ -5,6 +5,7 @@ mod config;
 pub mod config_dto;
 pub mod directories;
 pub mod dto;
+mod file_metadata;
 mod handoff;
 pub mod handoff_dto;
 pub mod live;
