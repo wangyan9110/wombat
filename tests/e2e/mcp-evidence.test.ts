@@ -29,6 +29,12 @@ test('MCP attempts, resources, fork replay and append/restart share exact CLI an
  const binary=path.resolve('dist',process.platform==='win32'?'wombat-core.exe':'wombat-core');let service=spawn(binary,['--serve-usage'],{stdio:'ignore',env:process.env});await once(service,'spawn');
  const client=createNodeClient({binaryPath:binary,automaticPrices:false});const scope={roots:[root],projectRoots:[project],scope:{allTime:true}};
  const host=await startWebHost({client,roots:[root],projectRoots:[project],assets:path.resolve('dist/web'),automaticPrices:false});
+ const currentInventory=async()=>{
+  // Auto reads may expose a provisional view during startup or project restoration.
+  const live=await client.live!({query:{action:'usage',roots:[root],scope:{allTime:true}},mode:'fresh'});
+  assert.equal(live.freshness.status,'current');
+  return client.config!({...scope,kind:'mcp',snapshotId:live.result.snapshotRef.snapshotId});
+ };
  try{
   const token=new URLSearchParams(new URL(host.url).hash.slice(1)).get('token')!;const http=createHttpClient({origin:host.origin,token,fetch:(url,init)=>fetch(url,{...init,headers:{...init?.headers,Origin:host.origin}})});
   const live=await http.live!({query:{action:'usage',scope:{allTime:true}},mode:'fresh'});
@@ -38,14 +44,14 @@ test('MCP attempts, resources, fork replay and append/restart share exact CLI an
   const cli=spawnSync(process.execPath,[path.resolve('dist/wombat.js'),'optimize','inventory','--action','evidence','--root',root,'--project-root',project,'--item',item.id,'--read-view',first.readView!,'--all-time','--json'],{env:process.env,encoding:'utf8',timeout:15_000});assert.equal(cli.status,2,cli.stderr+cli.stdout);assert.deepEqual(JSON.parse(cli.stdout).evidence,evidence.evidence);
   // A child arrives later with copied completed events and a genuinely new retry.
   await writeFile(path.join(root,'sessions/child.jsonl'),jsonl([meta('child',project,'parent'),context('u'),call,request('resource','read_mcp_resource',{server:'docs',uri:'synthetic://SECRET_URI'}),read,context('v'),end('retry','v','search')]));
-  const second=await client.config!({...scope,kind:'mcp'});assert.equal(second.items[0].usageCount,3);assert.equal(second.items[0].counts.toolCalls,2);assert.equal(second.items[0].counts.resourceReads,1);assert.equal(second.items[0].usage?.tokens.total,110);
+  const second=await currentInventory();assert.equal(second.items[0].usageCount,3);assert.equal(second.items[0].counts.toolCalls,2);assert.equal(second.items[0].counts.resourceReads,1);assert.equal(second.items[0].usage?.tokens.total,110);
   const frozen=await client.config!({...scope,readView:first.readView,kind:'mcp'});assert.equal(frozen.items[0].usageCount,2);
-  await appendFile(parentFile,jsonl([end('next','u','read_file',true)]));const appended=await client.config!({...scope,kind:'mcp'});assert.equal(appended.items[0].usageCount,4);assert.equal(appended.items[0].counts.failed,2);
+  await appendFile(parentFile,jsonl([end('next','u','read_file',true)]));const appended=await currentInventory();assert.equal(appended.items[0].usageCount,4);assert.equal(appended.items[0].counts.failed,2);
   service.kill('SIGTERM');await once(service,'exit');service=spawn(binary,['--serve-usage'],{stdio:'ignore',env:process.env});await once(service,'spawn');
-  const restored=await client.config!({...scope,kind:'mcp'});assert.equal(restored.items[0].usageCount,4);assert.deepEqual(restored.items[0].counts,appended.items[0].counts);assert.equal(restored.items[0].usage?.tokens.total,110);
+  const restored=await currentInventory();assert.equal(restored.items[0].usageCount,4);assert.deepEqual(restored.items[0].counts,appended.items[0].counts);assert.equal(restored.items[0].usage?.tokens.total,110);
   // An unclassified resource result creates a target gap; the prefix-only request remains unproven.
   await appendFile(parentFile,jsonl([request('prefix','mcp__docs__unconfirmed',{}),end('ambiguous','u','read_mcp_resource')]));
-  const uncertain=await client.config!({...scope,kind:'mcp'}),unknown=uncertain.items[0];assert.equal(unknown.usageCount,4,'unbound evidence must not erase confirmed uses');assert.equal(unknown.useBasis?.status,'partial');assert.ok((unknown.useBasis?.coverage.targetGaps??0)>0);assert.equal(uncertain.coverage.absenceObservable,false);
+  const uncertain=await currentInventory(),unknown=uncertain.items[0];assert.equal(unknown.usageCount,4,'unbound evidence must not erase confirmed uses');assert.equal(unknown.useBasis?.status,'partial');assert.ok((unknown.useBasis?.coverage.targetGaps??0)>0);assert.equal(uncertain.coverage.absenceObservable,false);
   assert.deepEqual(unknown.counts,restored.items[0].counts,'unproven operations do not become confirmed uses');assert.equal(unknown.usage?.tokens.total,110);
   assert.equal((await client.config!({...scope,readView:restored.readView,kind:'mcp'})).items[0].usageCount,4,'the retained complete view stays complete');
  }finally{await host.close();service.kill('SIGTERM');await once(service,'exit').catch(()=>{});for(const[k,v]of Object.entries(old)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await rm(dir,{recursive:true,force:true});}
