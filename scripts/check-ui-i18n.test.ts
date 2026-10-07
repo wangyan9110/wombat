@@ -123,6 +123,25 @@ test('executed checker returns nonzero diagnostics for invalid isolated sources 
   assert.match(invalid.stderr, /JSX product copy/);
 }));
 
+test('transport result keys resolve from source without dist and still reject open or missing keys', () => fixture(root => {
+  for (const transport of ['node', 'http']) {
+    mkdirSync(path.join(root, 'client/src', transport), { recursive: true });
+    writeFileSync(path.join(root, 'client/src', transport, 'index.ts'), `
+export declare function createClient(): {query(): Promise<{status:'complete'|'failed'}>};`);
+    const source = path.join(root, 'cli/src', `${transport}.ts`);
+    writeFileSync(source, `import {createClient} from '@wombat/client/${transport}';
+import {t} from '@wombat/client/locale';
+export async function render(){const result=await createClient().query();return t(\`state.${'${result.status}'}\`);}`);
+  }
+  assert.deepEqual(checkProject(root), []);
+  writeFileSync(path.join(root, 'client/src/node/index.ts'), `
+export declare function createClient(): {query(): Promise<{status:string}>};`);
+  assert.ok(checkProject(root).some(error => error.includes('node.ts:') && error.includes('not finite')));
+  writeFileSync(path.join(root, 'client/src/http/index.ts'), `
+export declare function createClient(): {query(): Promise<{status:'missing'}>};`);
+  assert.ok(checkProject(root).some(error => error.includes('http.ts:') && error.includes('state.missing: translation key has no locale entry')));
+}));
+
 
 test('locale binding failures fail closed without treating unrelated application semantics as locale errors', () => fixture(root => {
   const file = path.join(root, 'ui/src/view.tsx'), entry = path.join(root, 'client/src/locale/index.ts');

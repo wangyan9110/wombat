@@ -295,7 +295,12 @@ export function checkProject(root: string): string[] {
   const program = ts.createProgram([...sourceFiles, zhFile, enFile], {
     target: ts.ScriptTarget.ES2024, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext,
     jsx: ts.JsxEmit.ReactJSX, strict: true, skipLibCheck: true, noEmit: true,
-    paths: { '@wombat/client/locale': [localeFile], '@wombat/client': [path.join(root, 'client/src/index.ts')] },
+    paths: {
+      '@wombat/client': [path.join(root, 'client/src/index.ts')],
+      '@wombat/client/locale': [localeFile],
+      '@wombat/client/node': [path.join(root, 'client/src/node/index.ts')],
+      '@wombat/client/http': [path.join(root, 'client/src/http/index.ts')],
+    },
   });
   const syntaxErrors = program.getSyntacticDiagnostics().map(diagnostic => {
     const line = diagnostic.file && diagnostic.start !== undefined ? `${diagnostic.file.fileName}:${diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line + 1}: ` : '';
