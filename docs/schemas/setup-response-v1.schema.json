@@ -1,0 +1,246 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "checkedAt": {
+      "type": "string"
+    },
+    "project": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "nativeVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "discovery": {
+      "$ref": "#/definitions/Discovery"
+    },
+    "hooks": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/HookRegistry"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "runtimeCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "marketplacePath": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "errorCodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "outputVersion",
+    "checkedAt",
+    "discovery",
+    "runtimeCapabilities",
+    "errorCodes"
+  ],
+  "definitions": {
+    "Discovery": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/DiscoveryStatus"
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Instance"
+          }
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "instances"
+      ]
+    },
+    "DiscoveryStatus": {
+      "type": "string",
+      "enum": [
+        "available",
+        "ambiguous",
+        "disabled",
+        "missing",
+        "unavailable",
+        "selection_changed"
+      ]
+    },
+    "Instance": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "path",
+        "enabled"
+      ]
+    },
+    "HookRegistry": {
+      "description": "A current native registry observation; it never proves that a Hook ran.",
+      "type": "object",
+      "properties": {
+        "nativeVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checkedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/HookRegistryStatus"
+        },
+        "contexts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HookContext"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "contexts"
+      ]
+    },
+    "HookRegistryStatus": {
+      "type": "string",
+      "enum": [
+        "unavailable",
+        "partial",
+        "observed"
+      ]
+    },
+    "HookContext": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "registrations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HookRegistration"
+          }
+        }
+      },
+      "required": [
+        "project",
+        "complete",
+        "registrations"
+      ]
+    },
+    "HookRegistration": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string"
+        },
+        "nativeKey": {
+          "type": "string"
+        },
+        "contentHash": {
+          "type": "string"
+        },
+        "registrationHash": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "trust": {
+          "$ref": "#/definitions/HookTrust"
+        },
+        "handler": {
+          "$ref": "#/definitions/HookHandler"
+        },
+        "source": {
+          "type": "string"
+        },
+        "pluginId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "itemId",
+        "nativeKey",
+        "contentHash",
+        "registrationHash",
+        "enabled",
+        "trust",
+        "handler",
+        "source"
+      ]
+    },
+    "HookTrust": {
+      "type": "string",
+      "enum": [
+        "managed",
+        "untrusted",
+        "trusted",
+        "modified"
+      ]
+    },
+    "HookHandler": {
+      "type": "string",
+      "enum": [
+        "command",
+        "mcpTool",
+        "prompt",
+        "agent"
+      ]
+    }
+  }
+}

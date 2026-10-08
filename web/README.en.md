@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-`@wombat/web` exports `startWebHost(options)`, returning the browser URL, origin, and asynchronous `close()`. The CLI injects a Node client; the host does not own pricing, queries, or source parsing rules.
+`@wombat/web` exports `startWebHost(options)`, returning the browser URL, origin, asynchronous `close()`, and restricted `openView(request)`. The CLI injects a Node client; the host does not own pricing, queries, or source parsing rules.
 
 ## Access and resource limits
 
@@ -19,6 +19,9 @@ Static files come only from the built asset directory. Startup loads allowed fil
 `/api/timing` uses the generated timing protocol. Summary and evidence requests must explicitly provide a snapshot identity already published by this host; an absent or unpublished identity is rejected without selecting a new view. The host rejects browser `roots`, `projectRoots`, and snapshot paths, revalidates directory grants, and injects its authorized source roots. Rust verifies that the source, thread, and turn belong to that exact version. Expiry, revocation, or eviction fails explicitly without falling back to the latest version or restoring the old grant.
 
 Local summaries publish `readView.snapshotId` within the same 128-identity bound. Share summaries publish no read identity; share evidence is rejected. Configuration read-view identities remain separate. Capabilities do not select a snapshot or read directory grants. Timing does not load configuration, project working directories, prices, hooks, or account data. Request cancellation also prevents late results from publishing identities; other readers continue independently.
+## Context opening
+
+openView uses Rust-generated WebViewRequest and accepts only corresponding read-only queries for the five pages. It reads actual results within startup authorization, pins versions, and returns effective context with a session URL. Roots do not belong in context; mismatched explicit sources, unauthorized projects, and unsupported browser filters are rejected. Dates, language, objects, and versions remain independent; the browser uses its own pagination size. See the [CLI guide](../docs/guides/cli.en.md#codex-skill).
 
 ## Background prices
 
@@ -27,3 +30,9 @@ The host owns one background price task and returns basic usage first. Inject `c
 ## Verification
 
 After building the client, run `corepack pnpm --filter @wombat/web test`. Tests use only temporary synthetic directories and local listeners, covering authentication, scope, progress, cancellation, concurrency, and static resources. `tests/timing.test.ts` uses a mock client to verify timing authorization, paging, expiry, sharing, and independent cancellation; it does not exercise the real core or browser. `tests/e2e/web.test.ts` verifies the existing real-core host path after a full build; installation checks reuse the same black-box case.
+
+## Setup and collection
+
+The header opens setup and Skill guidance without creating Codex tasks. `/api/setup` provides bounded read-only native discovery and Hook registration checks. `/api/collection` provides generated receipt/status/event operations; raw event ingestion is unavailable over HTTP. The host fixes source roots, checks selected projects and revalidates directory grants before reading either interface. Choosing a browser filter does not authorize edits.
+
+The setup panel separates preferences, native discovery, registration/trust, actual receipt and the displayed history/view. It shows only the invocation name returned by discovery and preserves ambiguous instances. Event details are loaded on expansion, paged independently, and cancelled when closed or scoped differently. Chinese/English share these states; source identities and event kinds stay untranslated. Local preferences are changed through explicit displayed CLI commands, not by executing commands from Web. Closing Web does not establish that collection stopped.

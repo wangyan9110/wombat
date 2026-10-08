@@ -14,8 +14,8 @@
       "en": "3ce516f5f581c0b6a38e818cee16a7928e73752beb461b8be3e9e58f963df5eb"
     },
     "/cli-and-automation/codex-skill": {
-      "zh": "520b832ba0b30d6501f316d248245bede27ad8937911acc0651a4428f8036391",
-      "en": "b94e74e4dc9f78ae6ecc8674daa5131a14e6e88449e570381759d544290ba8be"
+      "zh": "2139d3e97af5884068e9de7d5432ac700f05f5bd33b0faae81423a19f3d63d92",
+      "en": "a7b68b05d2e3822b5b23c8c532374f2683c626bc4dea089dd1eb3cb2f05f371e"
     },
     "/cli-and-automation/language": {
       "zh": "cfeb3518580569b9e18e81faff0c4e1c5c22c77d25820978f49c8948d44e0b14",
@@ -60,6 +60,10 @@
     "/cli-and-automation/local-codex-handoff-and-account": {
       "zh": "ba839b9ac425a3743b04783b901a80634cb1d0402ea8dbf4816e058e8ce937b2",
       "en": "e2cc1b21b354109aad0f8d74e9b40599dc3c4fe96d158bfe70a909f2676ae96a"
+    },
+    "/cli-and-automation/setup-and-collection": {
+      "zh": "160a51ecc976cde504cf288dc7312215ac16cd6427833d25c93a82aa14401e97",
+      "en": "776b175950f01c47b28bebe915b0d0bc300a1c5aaa3133d05aa4778b59a1d515"
     }
   }
 }

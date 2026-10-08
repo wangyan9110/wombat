@@ -1,0 +1,117 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-codex-skill-entry-and-distribution": {
+      "zh": "c9f55cfbd261ae3b3728026fdf0bbb3305db3f292276adb57b45e4a42715eadd",
+      "en": "600416fb50b6a537ce3c2b22a4bf5656ab47e51e20174947ea4b03ddd513511b"
+    },
+    "/decision-codex-skill-entry-and-distribution/problem": {
+      "zh": "1f182e7b37fc1dda2a285af9af372ed782f3fe61c071e73b10169110658bc04e",
+      "en": "08f38ce323cd8b5046d14ea2a0126c609c37b82816aa02fc9ea9b3ef0e9681c7"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal": {
+      "zh": "055fb76b9ebc95be0019e3fccd134fdd805c94752e2ec4785f978ab656546f0d",
+      "en": "6b27e62813bf2993ccaff182a18e767a494c143bf580548bde7b618593c67508"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/product-positioning": {
+      "zh": "896cbecbf45e2989dbf92307929ea7b99a42d6b4429b7ed1e61159a393408d83",
+      "en": "4e585951dadbebaf9ad8b8c5ccd5d6d3c9197a57cd49d98406d07e6e45457cff"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/log-and-hooks-collection": {
+      "zh": "84d4c731794342ea519a1aec4bd6d83329ace1cbbfa70edca9a560d55ab579ec",
+      "en": "28eca6a86a2fd5b5a642e8b15dacaafa08977f87065c4a5c4eac788a9057dd59"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/skill-processing-and-web-viewing": {
+      "zh": "1b3e45c6256866dececb4097ea7b24451969919efc50108cdc533e91d5480dfa",
+      "en": "95efa37017a2b7da4916c26366fc76522d408cc334789684ab77c36ae0f6e69c"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/detailed-explanation-with-web-from-the-skill": {
+      "zh": "6d45bf010be954134001128d84c76e82ba6056cc744a4b854dd7716355ab9b4f",
+      "en": "2c04f6b4eb0c643b9bb2a3de0c0be1000b7eadb407a771cb20e9e1f93d734dbb"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design": {
+      "zh": "2e9e0b09fe15b9da97e120ff3488cc69d8ea4e051699ababb04f61d836a76cad",
+      "en": "35dec518547600e264bf39fbe8f76601bea4e697f084ee252b5356e5ee2a212d"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/reference-and-choices": {
+      "zh": "937bd979e154214418c1ceb24f432eb8fbc3d265785668bec431567fcfe6f7b1",
+      "en": "7a25d2184bb5c8c955cea311fe8be47a53d0f8a4de9b1b425ba883e01dd40678"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/page-structure-and-visuals": {
+      "zh": "da48b08dec0c4813e7996a0af4e59b6108f185bc14ffaf79ffbcd2dd02873247",
+      "en": "226e832ec6ba767a7e3ff8bd7ef57f2907a459ccb4b5a0f39fce8b2983c115cf"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/first-time-setup": {
+      "zh": "d3930242e5b8a6c79a8148739adbf1e8156167fc18495336a55d871e1d4348d2",
+      "en": "da230df48f01b1b2964c5c4180d34ece4b93eb98cfbe449668803ef0fe722d2f"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/daily-state-and-recovery": {
+      "zh": "dbb32b2e115cd654b555b8373c9fdaf8255f477de1cb88373131d3e3c4b9dd02",
+      "en": "a9f150d3b1ca16fcc019d5d73a904133d08ff8109f232e1a93936c78617094d9"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/skill-and-web-round-trips": {
+      "zh": "a27252a629900b391633eb66c663c28dd0d9730c2e822e10ddc4c4c368305de7",
+      "en": "e41ae07d2beb6f17a6c2b43ec0340de7500eeb3b59388953feec510c6eac4857"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/languages-failure-and-design-acceptance": {
+      "zh": "cd6d060ee930f6ac7b7030c06ab27fbee38b867c72ca86aef5778ca5299ff064",
+      "en": "7fb75a896245e3b21ac983be9fbd65a7a4dea1e47e1a3657c371336bf764a734"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/chinese-english-and-language-across-entries": {
+      "zh": "b7785b60da23b4c81b2235e5e872b7a703d869e53e63742e30e1a64b760ed2db",
+      "en": "a74043085f352daf9b2cb7e97ba7ca655b5f4ba76b69220cc2f70612048da21e"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/skill-entry-and-data-initialization": {
+      "zh": "81ff3f970caa78f1687c0ecd3576d76c360626d79efc4ec269f7c5466a111db6",
+      "en": "0b34f53c389d0b551898f44eabd7256ccd8be71e31f0a8fbf97503a2b3a786a0"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/user-tasks-and-answers": {
+      "zh": "b1b2abec7a2650e9b8d68c7594882398e19f79bfc885928aee939800fb9a7e79",
+      "en": "d0a305b891d60bbaf65a892fad4204277d4d7d3c0485d22148e30de73681e260"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/division-with-web": {
+      "zh": "d095715c80b8ec08c970ed3847a36f18c96984a674c06454b6028d323c9cd19b",
+      "en": "a15f791d4ef97ef80f5f48eca62d65bdf6a0bd1895dcf6fee908c19eb1df80fb"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/reusing-current-capabilities": {
+      "zh": "2d6331b5ac176d19a59eb0ea595eeb046705b851efddd1439ba4dcd99f291fa3",
+      "en": "83539324af26088d05947b04becfc9700ab3d9c299b16d8afe6b08719458f7ab"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/shared-processing-and-recheck-flows": {
+      "zh": "6ba9937c81529d0d5ddf9453e65c97b2b2ba8d91713cd3e53ed5a9cc66baee0a",
+      "en": "9d28598ffdaa2b919808e0ffe840ae21d8d3c854a1ed93b353f4e7343b043ef1"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/evidence-and-states": {
+      "zh": "05c45b91ce3a61d778ae3840bde33538b2be25469510f4fccbfe7f189c9c0b14",
+      "en": "6a41b2bb0fd52ef44cb2107c0fcf1ce029972b8e5c12013b376c5f437dd4fd7e"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/skill-structure-and-installation-proposal": {
+      "zh": "9c9576e913aaabb3a264c48e65a0c4ffe3141fb310b51de2bb7f8f972e20dc04",
+      "en": "404f450d65eb697b046fef9ce707f2070eb4f205b9b18e87fce3da1c246406f5"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/deferred-web-selected-handoff": {
+      "zh": "bf1e05a411271daa4ceb749cc255e7fe67f94bbb556e4d9331f9ae5514a37989",
+      "en": "d81a9dc9e1254fc8fe574e1950608c672473991069a61e7679b64c3a1f852ea4"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/official-and-open-source-management-practices": {
+      "zh": "cb62ebf0c7751755fcc154b99d290ec4adec0bba1b5e9f509fbcae58f0dcd95c",
+      "en": "e6a811d6b0c0f8b6c214b7f20d4988cd0962561bde5499bb40f14209e1ef52c3"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/implementation-work-packages": {
+      "zh": "f0c92da2559db7a14dec8e1c8d4253e57996c542b6711d2a9d54fb382e62ed7a",
+      "en": "0ce8ce936f28655fae89ddf422b50d170b589ee8db014607eb82e6d8c4d39970"
+    },
+    "/decision-codex-skill-entry-and-distribution/proposal/delivery-order-and-acceptance": {
+      "zh": "15145dedf78194910aaf92b01433ba71e0a22b6972c407ff04e68a01714d714a",
+      "en": "458d1c191e9c8c403a34312dbde83265e805626b97b6516affc4878780149f61"
+    },
+    "/decision-codex-skill-entry-and-distribution/alternatives-considered": {
+      "zh": "655fe1f9c6044ecd5c1d81021ad8fe58d82e64af19aab4be31c00b73141ce495",
+      "en": "078b1421145dd9ff4bae5ee51afd288eea339df55f78326e53960c00dbb3c901"
+    },
+    "/decision-codex-skill-entry-and-distribution/acceptance-criteria": {
+      "zh": "92db30c158d47e86cf21dcf3ef406e00c122a6ac9e5843298ea5d476a4b5a819",
+      "en": "8d5bf301a603ba6ffd7b79bc83b7d701511e19037564cc4d6927a1e4f9411984"
+    }
+  }
+}

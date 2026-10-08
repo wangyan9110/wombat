@@ -1,3 +1,4 @@
+import {checkSetup} from './setup.js';
 import { withAutomaticPrices } from './auto-prices.js';
 import { createUsageClient, type UsageClient, type AccountTransport, type HandoffTransport } from '../client.js';
 import { invokeCore, invokeOperation, type CoreProcessOptions } from './core.js';
@@ -5,6 +6,7 @@ import { queryLive } from './live.js';
 import { queryPrices } from './prices.js';
 import { createDirectoryTransport } from './directories.js';
 import type {CodexOptions} from './codex/process.js';
+export {receiveCodexHook} from './collection.js';
 export {binaryPath as resolveCoreBinary} from './core.js';
 
 export interface NodeClientOptions extends CoreProcessOptions,CodexOptions { automaticPrices?: boolean; directoryPicker?:(signal?:AbortSignal)=>Promise<string> }
@@ -13,6 +15,8 @@ export interface NodeClientOptions extends CoreProcessOptions,CodexOptions { aut
 export function createNodeClient(options: NodeClientOptions = {}): UsageClient {
   let account: Promise<AccountTransport> | undefined, handoff: Promise<HandoffTransport> | undefined;
   const client = createUsageClient({
+    setup: (r,q) => checkSetup(r,q,options),
+    collection: (r, q) => invokeOperation('collection', r, q, {...options,timeoutMs:5000,maxResponseBytes:2*1024*1024}),
     query: (request, queryOptions) => invokeCore(request, queryOptions, options),
     prices: (request, queryOptions) => queryPrices(request, queryOptions, options),
     live: (request, queryOptions) => queryLive(request, queryOptions, options),
@@ -29,3 +33,6 @@ export function createNodeClient(options: NodeClientOptions = {}): UsageClient {
   });
   return options.automaticPrices === false ? client : withAutomaticPrices(client);
 }
+
+export {manageSkill,skillCapabilities,type SkillInstallationOptions} from './skill-installation.js';
+export {discoverWombatSkill} from './codex/skills.js';

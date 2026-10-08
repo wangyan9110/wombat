@@ -20,6 +20,10 @@
     "/rust-core/storage-and-service-lifecycle": {
       "zh": "b1b0afaa5491c394521cd2acc3973341c976e3f111daa27d167b1fa1953677ea",
       "en": "d1537d56a5e4f22ab0a1f5c575d3c18f87ff1fffb7ef1bfa283e1c7283f918ab"
+    },
+    "/rust-core/runtime-collection": {
+      "zh": "1682a7a522f79ea35e1e54ec89701c25a4e13adedece3302a9b13ffd18ee087d",
+      "en": "8c0516d8d857cfd36d923cd690cac7f540551834e73740ea4735c45a579e89d3"
     }
   }
 }

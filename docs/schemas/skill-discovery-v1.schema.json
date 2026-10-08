@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Discovery",
+  "type": "object",
+  "properties": {
+    "status": {
+      "$ref": "#/definitions/DiscoveryStatus"
+    },
+    "instances": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Instance"
+      }
+    },
+    "errorCode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "status",
+    "instances"
+  ],
+  "definitions": {
+    "DiscoveryStatus": {
+      "type": "string",
+      "enum": [
+        "available",
+        "ambiguous",
+        "disabled",
+        "missing",
+        "unavailable",
+        "selection_changed"
+      ]
+    },
+    "Instance": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "path",
+        "enabled"
+      ]
+    }
+  }
+}

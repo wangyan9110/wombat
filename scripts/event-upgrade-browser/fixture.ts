@@ -7,7 +7,7 @@ import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
-import { createNodeClient } from '@wombat/client/node';
+import { receiveCodexHook, createNodeClient } from '@wombat/client/node';
 import { startWebHost } from '@wombat/web';
 import type { TimingLocalResult } from '@wombat/client';
 
@@ -116,6 +116,8 @@ export async function fixture(repo: string, signal: AbortSignal) {
       catch { signal.throwIfAborted(); }
       if (Date.now() > readyBy) throw new Error('Preview server readiness timed out'); await delay(100, undefined, { signal });
     }
+    await client.collection!({action:'configure',mode:'hooks'});
+    for(let n=0;n<51;n++) await receiveCodexHook({hook_event_name:'PostToolUse',session_id:nativeThread,turn_id:nativeTurn,tool_use_id:`synthetic-receipt-${n}`,cwd:project},{signal},{binaryPath});
     return { dir, root, project, skill, client, product: host.url, preview, close,
       reset: () => writeFile(file, jsonl(nativeRows(project, skill))),
       append: () => appendFile(file, jsonl([row('turn_context', { turn_id: nativeTurn, model: 'gpt-5.4', effort: 'low' }, 104_000), ...read(skill, 'synthetic-browser-read-four', 105_000), token('synthetic-browser-response-two', 110_000)])),

@@ -154,5 +154,6 @@ pub(crate) fn prepare(r: Request, id: String, view: &View) -> Result<Response> {
         projects,
         deliveries: vec![],
         allowance_checks: vec![],
+        skill_checks: vec![],
     })
 }

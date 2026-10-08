@@ -83,7 +83,7 @@ impl Facts {
         timestamp: Option<&str>,
         cwd: Option<&str>,
     ) -> String {
-        let id = stable_id(&["codex", source_id, "thread", upstream]);
+        let id = thread_identity(source_id, upstream);
         if let Some(cwd) = cwd {
             self.projects
                 .entry(id.clone())
@@ -124,7 +124,7 @@ impl Facts {
         timestamp: Option<&str>,
         status: Option<&str>,
     ) -> String {
-        let id = stable_id(&[thread, "turn", upstream]);
+        let id = turn_identity(thread, upstream);
         let turn = self.turns.entry(id.clone()).or_insert_with(|| Turn {
             id: id.clone(),
             thread_id: thread.into(),

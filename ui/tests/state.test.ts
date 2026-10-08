@@ -90,3 +90,15 @@ test('five surfaces retain independent inventory filters and manual expansion th
   assert.deepEqual(parseRoute(routeSearch(instructions)),instructions);
   assert.equal(parseRoute('?instructionExpansion='+encodeURIComponent('["invalid"]')).instructionExpansion,undefined);
 });
+
+
+test('Skill Web context retains exact usage scope and detail paging in browser routes',async()=>{
+ const {webViewSearch}=await import('@wombat/client');
+ const scope={project:'/synthetic/project',sourceInstanceId:'source',timezone:'America/New_York',since:'2026-03-08',until:'2026-03-10',threadId:'scope-thread',modelUnknown:true,effortUnknown:true};
+ const route=parseRoute(webViewSearch({page:'threads',usage:{action:'turns',snapshotId:'live:pinned',threadId:'selected-thread',scope,sort:'cost',offset:40}}));
+ assert.deepEqual(JSON.parse(JSON.stringify(scopeOf(route))),scope);assert.equal(route.thread,'selected-thread');assert.equal(route.turnOffset,40);assert.equal(route.turnSort,'cost');assert.equal(route.until,'2026-03-09');
+ const all=parseRoute(webViewSearch({page:'threads',usage:{action:'threads',snapshotId:'saved',scope:{allTime:true,threadId:'exact'}}}));
+ assert.equal(scopeOf(all).allTime,true);assert.equal(scopeOf(all).since,undefined);assert.equal(scopeOf(all).threadId,'exact');
+ const evidence=parseRoute(webViewSearch({page:'extensions',configuration:{action:'evidence',readView:'config:pinned',itemId:'item',offset:20,scope:{project:'/synthetic/project',timezone:'UTC',allTime:true}}}));
+ assert.equal(evidence.evidenceOffset,20);assert.equal(evidence.configView,'config:pinned');assert.equal(evidence.configId,'item');
+});

@@ -90,7 +90,7 @@ export function artifactIdentity(files: PayloadFile[]): string {
 }
 
 export function acceptanceInputIdentity(root: string): string {
-  const files = (['tests/integration', 'tests/e2e', 'integrations'] as const).flatMap(directory =>
+  const files = (['tests/integration', 'tests/e2e', 'skill'] as const).flatMap(directory =>
     inventory(path.join(root, directory)).map(file => ({ ...file, path: `${directory}/${file.path}` })));
   return hash(JSON.stringify(files));
 }

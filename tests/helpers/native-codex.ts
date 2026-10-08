@@ -13,7 +13,8 @@ process.once('SIGTERM',()=>process.exit(0));
 process.once('exit',()=>appendFileSync(${JSON.stringify(lifecycle)},JSON.stringify({pid:process.pid,event:'exit'})+'\\n'));
 if(process.argv.includes('--version')){console.log('codex-cli '+(mode.version||'0.160.0'));process.exit(0);}
 if(process.argv.includes('daemon'))process.exit(0);
-function reply(m){if(m.id==null)return null;appendFileSync(${JSON.stringify(calls)},JSON.stringify({method:m.method})+'\\n');let result={};
+function reply(m){if(m.id==null)return null;appendFileSync(${JSON.stringify(calls)},JSON.stringify({method:m.method,...(m.method==='thread/queue/add'?{params:m.params}:{})})+'\\n');let result={};
+if(m.method==='skills/list'){if(mode.skillsError)return {id:m.id,error:{code:-1,message:'Synthetic discovery error'}};result={data:[{cwd:m.params.cwds[0],errors:[],skills:mode.skills??[{name:'wombat',path:m.params.cwds[0]+'/.agents/skills/wombat/SKILL.md',enabled:true}]}]};}
 if(m.method==='hooks/list'){
  hookReads++;
  if(mode.mutateOnHookList&&hookReads===2)writeFileSync(mode.mutateOnHookList,mode.mutatedHookText);
@@ -27,12 +28,13 @@ if(m.method==='account/rateLimits/read'){
  const reset=Math.floor(Date.now()/1000)+(mode.kind==='expired'?-1:mode.resetAfter??3600);
  result={accountId:'account-a',ordinaryUsageAllowed:mode.kind==='available',rateLimitUpsell:['blocked','foreign','expired','switched'].includes(mode.kind)?{banner_type:'selected_model_limit',blocked_model_slug:mode.kind==='foreign'?'other-model':'synthetic-model',reset_at:reset}:null,rateLimitsByLimitId:{[mode.kind==='foreign'?'base_model_inference':'codex']:{normalModelSlug:mode.kind==='foreign'?'synthetic-model':null,primary:{usedPercent:mode.kind==='low'?92:mode.kind==='available'?20:100,windowDurationMins:17,resetsAt:reset},rateLimitReachedType:['blocked','foreign','expired','switched'].includes(mode.kind)?'rate_limit_reached':null}}};
 }
+if(m.method==='thread/start'&&mode.skillsAfterStart)writeFileSync(${JSON.stringify(mode)},JSON.stringify({...mode,skills:mode.skillsAfterStart}));
 if(m.method==='thread/start'&&mode.mutateOnStart)writeFileSync(mode.mutateOnStart,'changed after review');
 if(m.method==='thread/start')result={cwd:m.params.cwd,model:mode.actualModel||'synthetic-model',modelProvider:mode.provider||'openai',thread:{id:'00000000-0000-4000-8000-000000000001',cwd:m.params.cwd}};
 if(m.method==='thread/queue/add'){
  if(mode.queueBehavior==='rejected')return {id:m.id,error:{code:-1,message:'Synthetic private rejection'}};
  if(mode.queueBehavior==='disconnect')process.exit(0);
- result={queuedSubmission:{clientUserMessageId:mode.queueBehavior==='mismatch'?'different-message':m.params.clientUserMessageId}};
+ result={queuedSubmission:{clientUserMessageId:mode.queueBehavior==='mismatch'?'different-message':m.params.clientUserMessageId,input:mode.queueSkillMissing?m.params.input.filter(i=>i.type!=='skill'):m.params.input}};
 }
 return {id:m.id,result};}
 function respond(m,send){const result=reply(m);if(!result)return;const delay=m.method==='thread/queue/add'?mode.queueDelayMs:m.method==='thread/start'?mode.threadStartDelayMs:0;if(delay)setTimeout(()=>{appendFileSync(${JSON.stringify(lifecycle)},JSON.stringify({pid:process.pid,event:'delayedResponse',method:m.method})+'\\n');send(result);},delay);else send(result);}

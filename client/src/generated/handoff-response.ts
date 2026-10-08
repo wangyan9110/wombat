@@ -4,6 +4,7 @@ export type Action = "preview" | "send";
 export type RelationKind = "chain" | "copy";
 export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
 export type AllowanceStatus = "unknown" | "available" | "low" | "blocked";
+export type DiscoveryStatus = "available" | "ambiguous" | "disabled" | "missing" | "unavailable" | "selection_changed";
 
 export interface Response {
   outputVersion: number;
@@ -14,6 +15,7 @@ export interface Response {
   projects: Project[];
   deliveries: Delivery[];
   allowanceChecks: AllowanceCheck[];
+  skillChecks?: HandoffCheck[];
 }
 export interface Project {
   id: string;
@@ -112,6 +114,7 @@ export interface Delivery {
   threadId?: string | null;
   nativeVersion?: string | null;
   errorCode?: string | null;
+  skillPath?: string | null;
 }
 export interface AllowanceCheck {
   projectId: string;
@@ -129,4 +132,19 @@ export interface AllowanceAssessment {
   bucketId?: string | null;
   windowId?: string | null;
   reason: string;
+}
+export interface HandoffCheck {
+  projectId: string;
+  discovery: Discovery;
+  selected?: Instance | null;
+}
+export interface Discovery {
+  status: DiscoveryStatus;
+  instances: Instance[];
+  errorCode?: string | null;
+}
+export interface Instance {
+  name: string;
+  path: string;
+  enabled: boolean;
 }

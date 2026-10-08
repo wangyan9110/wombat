@@ -9,7 +9,7 @@ Maintain each fact in one place and link elsewhere. Update an existing owner bef
 | Subject | Owner |
 |---|---|
 | Standing Agent rules | Root or scoped AGENTS.md, in English |
-| Repeatable procedures | .agents/skills/; no separate product contracts |
+| Procedures | Dev: .agents/skills/; user: skill/; use module contracts |
 | Durable rationale and tradeoffs | [Decisions](decisions/README.en.md); no record for mechanical/local fixes |
 | Unfinished requirements and acceptance | Owning proposed decision; no parallel specification or status page |
 | Module relationships and data flow | [Architecture](development/architecture.en.md) |

@@ -1,0 +1,257 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "action": {
+      "$ref": "#/definitions/Action"
+    },
+    "checkedAt": {
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/definitions/Mode"
+    },
+    "state": {
+      "$ref": "#/definitions/State"
+    },
+    "received": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "buffered": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "gaps": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "identityUnknown": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "lastReceivedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EventRow"
+      }
+    },
+    "nextAfter": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "eventLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "bufferLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "outputVersion",
+    "action",
+    "checkedAt",
+    "mode",
+    "state",
+    "received",
+    "buffered",
+    "gaps",
+    "identityUnknown",
+    "events",
+    "eventLimit",
+    "bufferLimit"
+  ],
+  "definitions": {
+    "Action": {
+      "type": "string",
+      "enum": [
+        "status",
+        "events",
+        "configure",
+        "pause",
+        "resume"
+      ]
+    },
+    "Mode": {
+      "type": "string",
+      "enum": [
+        "logs",
+        "hooks"
+      ]
+    },
+    "State": {
+      "type": "string",
+      "enum": [
+        "logs_only",
+        "waiting",
+        "received",
+        "paused"
+      ]
+    },
+    "EventRow": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "receivedAt": {
+          "type": "string"
+        },
+        "buffered": {
+          "type": "boolean"
+        },
+        "observation": {
+          "$ref": "#/definitions/Observation"
+        },
+        "association": {
+          "$ref": "#/definitions/Association"
+        }
+      },
+      "required": [
+        "sequence",
+        "receivedAt",
+        "buffered",
+        "observation",
+        "association"
+      ]
+    },
+    "Observation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sourceInstanceId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "toolUseId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/definitions/EventKind"
+        },
+        "occurredAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nativeIdentity": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sourceInstanceId",
+        "sessionId",
+        "kind",
+        "nativeIdentity"
+      ]
+    },
+    "EventKind": {
+      "type": "string",
+      "enum": [
+        "SessionStart",
+        "SessionEnd",
+        "UserPromptSubmit",
+        "PreToolUse",
+        "PostToolUse",
+        "PermissionRequest",
+        "PreCompact",
+        "PostCompact",
+        "SubagentStart",
+        "SubagentStop",
+        "Stop",
+        "Interrupt"
+      ]
+    },
+    "Association": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/AssociationState"
+        },
+        "threadId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "turnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceEpoch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "AssociationState": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "linked",
+        "unavailable"
+      ]
+    }
+  }
+}

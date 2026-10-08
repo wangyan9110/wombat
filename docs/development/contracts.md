@@ -24,6 +24,10 @@ Rust 的 `core/src/usage_app_dto.rs` 定义请求与响应，`adapters/contract.
 
 实时新鲜度initialScan表示仅包含首次扫描的临时任务元数据，来源partial且用量未知。预览不落盘，不属于无指定版本的cached结果；fresh/refresh仍等待完整同步。Web解除临时版本固定后保留任务和筛选，普通固定版本不变；边界见[首次任务视图决策](../decisions/implemented/architecture/2026-10-04-initial-task-preview.md)。
 
+
+- [采集请求](../schemas/collection-request-v1.schema.json)与[响应](../schemas/collection-response-v1.schema.json)来自 `core/src/collection.rs`；偏好、安全接收与当前日志关联独立于 Token 账本。
+- [接入请求](../schemas/setup-request-v1.schema.json)与[响应](../schemas/setup-response-v1.schema.json)来自 `core/src/setup_dto.rs`；宿主报告原生发现与注册，不将其等同于实际接收。
+
 ## 客户端入口
 
 `@wombat/client` 导出生成的 `UsageRequest`、`UsageResult` 等类型，以及 `UsageClient.query(request, { signal, onProgress })`。`UsageClient.prices({action:"status"|"update"}, {signal,onProgress})` 返回生成的 `PricingResult`，含完整价表和版本/来源哈希。`UsageClient.live({query,mode,verify}, options)`为可选宿主能力；Node实现提供它，CLI默认使用，固定快照仍使用query。`createUsageClient(transport, pricingTransport, liveTransport, configTransport, optimizeTransport, preferencesTransport, directoriesTransport)` 包装受限传输并执行协议校验；其通用入口不包含 Node 或 React 依赖。
@@ -115,3 +119,11 @@ handoff响应的allowanceChecks逐项目返回状态、实际/预览模型、来
 仅ChatGPT账户、openai提供方及60秒内的原生明确模型限制可返回blocked：支持selected_model_limit和luna_reserve通知中的blocked_model_slug精确匹配，限制截止不晚于原生reset_at。过期转unknown，不推定恢复；无模型绑定的百分比、消费限制或展示名称不能拦截。普通codex桶剩余不超过10%只提醒；available仅表示原生报告普通账户额度可用，不保证当前任务能执行。UI按期限刷新状态，无自动发送；CLI文本与JSON使用相同结果。最终受阻可能留下已创建但未入队的空Codex任务，不另建回执或自动删除。
 
 进入逐项目发送后，取消在入队前返回该项目 failed/CANCELLED，入队尝试后未确认接受则为 unknown/HANDOFF_UNKNOWN；尚未开始的项目为 failed/CANCELLED，不继续发送。更早取消可能直接返回 CANCELLED 错误。Node 可返回部分发送事实，HTTP 连接关闭后无法再交付该响应；页面关闭只停止自身等待和后续发送，不撤回 Codex 已接受请求。连接和本次发送保护会清理，重新打开只预览，重发仍需用户确认；不保存执行回执。
+
+## Skill 与 Web 上下文契约 v1
+
+core/src/skill_dto.rs 生成[安装响应](../schemas/skill-installation-v1.schema.json)和[原生发现](../schemas/skill-discovery-v1.schema.json)，Node 入口提供 manageSkill 和 discoverWombatSkill。文件状态 absent/unmanaged/modified/installed 与 available/ambiguous/disabled/missing/unavailable/selection_changed 的发现状态独立。dataStatus 为 not_requested，安装不查询用量或账户。
+
+core/src/web_view_dto.rs 生成[受限 Web 上下文请求](../schemas/web-view-request-v1.schema.json)。通用客户端校验结构与生成浏览器参数，WebHost.openView 校验授权、读取真实结果并固定版本；只有只读查询，无任意根、文件应用或操作分派。实时版本不得跨明确来源根查询；未指定根的 CLI 固定版本行为保留。
+
+handoff v1 的 skillSelections 按 projectId/path 绑定，withoutSkill 仅由用户明确选择；响应 skillChecks 保留原生实例及选择，delivery.skillPath 记录实际绑定。原生名称可能含插件命名空间，队列接受确认同时核验消息身份和 Skill 名称/路径，未知不自动重试。

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "node --import tsx cli/src/index.ts",
-    "build": "node scripts/build-core.mjs && pnpm --filter @wombat/client build && pnpm --filter @wombat/ui build && pnpm --filter @wombat/web build && pnpm --filter @wombat/cli build && node scripts/build-cli.mjs && node scripts/build-web.ts && node scripts/record-build.ts",
+    "build": "node scripts/build-core.mjs && pnpm --filter @wombat/client build && pnpm --filter @wombat/ui build && pnpm --filter @wombat/web build && pnpm --filter @wombat/cli build && node scripts/build-cli.mjs && node scripts/build-web.ts && node scripts/build-skill.ts && node scripts/record-build.ts",
     "build:core": "node scripts/build-core.mjs",
     "typecheck": "pnpm -r typecheck && tsc --noEmit -p tsconfig.json && node scripts/check-module-boundaries.mjs",
     "test": "pnpm run test:core && pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
@@ -22,7 +22,6 @@
     "contracts:generate": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs",
     "contracts:check": "node scripts/build-core.mjs --check && node scripts/generate-usage-contracts.mjs --check",
     "skills:check": "node scripts/check-skills.mjs",
-    "skills:install": "node scripts/install-codex-skill.ts",
     "notes:check": "node scripts/check-decisions.mjs",
     "docs:budget": "node scripts/check-doc-budgets.mjs",
     "docs:i18n:check": "node scripts/check-doc-i18n.mjs",
@@ -51,7 +50,11 @@
     "skills:verify": "node .agents/skills/wombat-verify/scripts/verify.ts",
     "release:source-check": "node scripts/check-release-source.ts",
     "preview:retire": "node --import tsx scripts/retire-prototype.ts",
-    "verify:agent-query": "node --import tsx scripts/verify-agent-query.ts"
+    "verify:skill-native": "node --import tsx scripts/verify-skill-native.ts",
+    "verify:agent-query": "node --import tsx scripts/verify-agent-query.ts",
+    "skill:build": "node scripts/build-skill.ts",
+    "verify:skill-conversation": "node --import tsx scripts/verify-skill-conversation.ts",
+    "verify:skill-native-events": "node --import tsx scripts/verify-skill-native-events.ts"
   },
   "devDependencies": {
     "@types/node": "26.0.0",

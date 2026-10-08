@@ -1,6 +1,7 @@
 mod account;
 pub mod account_dto;
 pub mod adapters;
+pub mod collection;
 mod config;
 pub mod config_dto;
 pub mod directories;
@@ -23,7 +24,9 @@ pub mod pricing_sync;
 mod query_cache;
 pub mod session_events;
 pub(crate) mod session_relations;
+pub mod setup_dto;
 mod shared_text;
+pub mod skill_dto;
 pub mod storage;
 pub mod timing;
 pub mod timing_dto;
@@ -31,6 +34,7 @@ pub mod usage_app;
 pub mod usage_app_dto;
 pub(crate) mod usage_observations;
 pub mod usage_store;
+pub mod web_view_dto;
 use anyhow::Result;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -67,6 +71,33 @@ pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
 
 pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
     match op {
+        "schema_setup_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<setup_dto::Request>(),
+        )?),
+        "schema_setup_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<setup_dto::Response>(),
+        )?),
+        "collection" => Ok(serde_json::to_value(collection::dispatch(
+            serde_json::from_value(args.clone())?,
+        )?)?),
+        "collection_ingest" => {
+            collection::ingest(args.clone())?;
+            Ok(serde_json::json!({"accepted":true}))
+        }
+        "schema_collection_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<collection::Request>(),
+        )?),
+        "schema_collection_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<collection::Response>(),
+        )?),
         "timing" => Ok(serde_json::to_value(timing::dispatch(
             serde_json::from_value(args.clone())
                 .map_err(|_| dto::operation_error("INVALID_ARGUMENT", "Invalid timing request"))?,
@@ -95,6 +126,21 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
             schemars::generate::SchemaSettings::draft07()
                 .into_generator()
                 .into_root_schema_for::<timing_dto::ShareResponse>(),
+        )?),
+        "schema_web_view_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<web_view_dto::Request>(),
+        )?),
+        "schema_skill_installation" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<skill_dto::Installation>(),
+        )?),
+        "schema_skill_discovery" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<skill_dto::Discovery>(),
         )?),
         "schema_handoff_request" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()

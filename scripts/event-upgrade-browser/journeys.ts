@@ -133,8 +133,9 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   const latest = requests.filter(request => request.action === 'summary' && request.privacyProfile === 'local').at(-1); assert.ok(latest); assert.notEqual(latest.snapshotId, before);
   const afterIndex = requests.indexOf(latest); bound(requests.slice(afterIndex), String(latest.snapshotId), thread, turn, next.scope.sourceInstanceId);
   await comparisons(page,fixture,language,width);
+  await setupJourney(page,fixture,language,width,next.scope.sourceInstanceId);
   assert.deepEqual(errors, []); await overflow(page);
-  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group','period-contributions-fixed-evidence','session-family-comparison','publication-changes'] };
+  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group','period-contributions-fixed-evidence','session-family-comparison','publication-changes','setup-scoped-receipts-pagination-keyboard-reload'] };
 }
 
 async function rulePreviews(page: Page, origin: string, language: Language): Promise<void> {
@@ -264,4 +265,35 @@ async function comparisons(page:Page,fixture:Fixture,language:Language,width:num
  if(width<900)await activate(page.getByRole('button',{name:label('task.backToList'),exact:true}));
  const changes=page.locator('.thread-list details').filter({hasText:label('comparison.refresh')}).first();
  await activate(changes.locator('summary'));await text(changes,label('comparison.refreshNote'));await text(changes,'+110 Token');
+}
+
+async function setupJourney(page:Page,fixture:Fixture,language:Language,width:number,source:string) {
+ const requests:Record<string,unknown>[]=[];
+ page.on('request',r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/api/collection'&&requests.length<30){const body=r.postDataJSON();if(record(body))requests.push(body);}});
+ const url=new URL(fixture.product);url.search=new URLSearchParams({page:'usage',allTime:'1',project:fixture.project,source}).toString();
+ const fragment=new URLSearchParams(url.hash.slice(1));fragment.set('lang',language);url.hash=fragment.toString();
+ await page.goto(url.href);
+ const entry=page.getByRole('button',{name:label('setup.title'),exact:true}).first();await activate(entry);
+ const dialog=page.getByRole('dialog',{name:label('setup.title'),exact:true});await dialog.waitFor();
+ await text(dialog,label('setup.modeNote'));await text(dialog,'wombat collection mode hooks --json');
+ await dialog.locator('.setup-status dd').filter({hasText:label('setup.liveMode')}).waitFor();await dialog.locator('.setup-content[aria-busy="false"]').waitFor();const copiedRequests=requests.length;const command=dialog.locator('.setup-copy').filter({hasText:'wombat collection mode hooks --json'});await activate(command.getByRole('button',{name:label('setup.copyCommand'),exact:true}));await text(command,label('setup.copied'));assert.equal(await page.evaluate<string>('navigator.clipboard.readText()'),'wombat collection mode hooks --json');assert.equal(requests.length,copiedRequests);
+ await activate(dialog.locator('.setup-steps button').filter({hasText:label('setup.step.connect')}));
+ await text(dialog,label('collection.received'));await text(dialog,label('setup.unchecked'));await text(dialog,label('setup.receiptScope'));
+ await activate(dialog.locator('summary').filter({hasText:label('setup.events')}));
+ await waitCount(page,'dialog .setup-events tbody tr',50);
+ await text(dialog,label('setup.association.linked'));await text(dialog,nativeThread);
+ await activate(dialog.getByRole('button',{name:label('webui.next'),exact:true}));
+ await waitCount(page,'dialog .setup-events tbody tr',1);
+ assert.equal(await dialog.getByRole('button',{name:label('webui.next'),exact:true}).isEnabled(),false);
+ await activate(dialog.getByRole('button',{name:label('setup.firstEvents'),exact:true}));
+ await waitCount(page,'dialog .setup-events tbody tr',50);await overflow(page);
+ await activate(dialog.locator('.setup-steps button').filter({hasText:label('setup.step.history')}));await text(dialog,'wombat usage --watch --json');
+ await activate(dialog.locator('.setup-steps button').filter({hasText:label('setup.step.use')}));await text(dialog,label('setup.skillNote'));
+ const question=dialog.locator('.setup-example .setup-copy').first();const beforeCopy=requests.length;await activate(question.getByRole('button',{name:label('setup.copyQuestion'),exact:true}));await text(question,label('setup.copied'));const copied=await page.evaluate<string>('navigator.clipboard.readText()');assert.ok(copied.includes(label('setup.exampleUsage'))&&copied.includes(fixture.project));assert.equal(requests.length,beforeCopy);
+ await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
+ assert.equal(await entry.evaluate(e=>e===document.activeElement),true);
+ for(const r of requests){assert.equal(r.project,fixture.project);assert.equal(r.sourceInstanceId,source);assert.ok(!('roots' in r));assert.ok(!['configure','pause','resume'].includes(String(r.action)));}
+ assert.ok(requests.filter(r=>r.action==='events').length>=3);
+ await page.goto(page.url());await activate(page.getByRole('button',{name:label('setup.useWithSkill'),exact:true}));
+ await text(page.getByRole('dialog'),label('setup.skillNote'));await overflow(page);await page.keyboard.press('Escape');
 }

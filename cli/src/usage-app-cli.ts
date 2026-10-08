@@ -6,7 +6,7 @@ import packageMetadata from '../package.json' with { type: 'json' };
 import { CoreError, type UsageRequest, type UsageResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { renderUsageResult } from './format.js';
-export function usageHelp(): string { return (t("cli.usage-app-cli.help") + "\n" + t("comparison.help") + "\n" + t("inspection.help") + "\n").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('cli.doctor.summary')}\n${t('cli.timing.summary')}\n  wombat optimize`); }
+export function usageHelp(): string { return (t("cli.usage-app-cli.help") + "\n" + t("comparison.help") + "\n" + t("inspection.help") + "\n").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('skill.summary')}\n${t('setup.summaryHelp')}\n${t('collection.summaryHelp')}\n${t('cli.doctor.summary')}\n${t('cli.timing.summary')}\n  wombat optimize`); }
 export interface Invocation {
   request: UsageRequest;
   json: boolean;
@@ -194,10 +194,14 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
   const json = argv.includes('--json');
   try {
     argv = configureLanguage(argv);
+    if (argv[0] === 'setup') return await (await import('./setup-cli.js')).runSetupCli(argv.slice(1));
+    if (argv[0] === 'collection') return await (await import('./collection-cli.js')).runCollectionCli(argv.slice(1));
+    if (argv[0] === 'hook') return await (await import('./collection-cli.js')).runHookCli(argv.slice(1));
     if (argv[0] === 'account') return await (await import('./account-cli.js')).runAccountCli(argv.slice(1));
     if (argv[0] === 'directories') return await (await import('./directories-cli.js')).runDirectoriesCli(argv.slice(1));
     if (argv[0] === 'prices') return await runPricingCli(argv.slice(1));
     if (argv[0] === 'optimize') return await (await import('./config-cli.js')).runConfigCli(argv.slice(1));
+    if (argv[0] === 'skill') return (await import('./skill-cli.js')).runSkillCli(argv.slice(1));
     if (argv[0] === 'web') return await (await import('./web-cli.js')).runWebCli(argv.slice(1));
     if (argv[0] === 'update') return await (await import('./update-cli.js')).runUpdateCli(argv.slice(1));
     if (argv[0] === 'doctor') return (await import('./doctor-cli.js')).runDoctorCli(argv.slice(1));
@@ -207,7 +211,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context', 'skill', 'collection', 'hook', 'setup'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     const client = createNodeClient();
@@ -240,7 +244,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
     const code = error instanceof CoreError ? error.code : error instanceof Error && ['ExitPromptError', 'AbortPromptError'].includes(error.name) ? 'CANCELLED' : 'INTERNAL_ERROR';
     const message = (error instanceof Error ? error.message : String(error));
     if (json)
-      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize', 'account', 'update', 'doctor'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
+      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize', 'account', 'update', 'doctor', 'skill', 'web', 'collection', 'hook', 'setup'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
     else
       process.stderr.write(`Wombat · ${message}\n`);
     return code === 'CANCELLED' ? 130 : 1;

@@ -14,8 +14,12 @@
       "en": "24f23d4ef0ae230a39ed343dd01e0e13a410d427d95a4575eaa5830fb94970c9"
     },
     "/typed-client/http-transport": {
-      "zh": "5e2d87eae51154f80a47b2173a0c2059bb5ee7b3617df5bb7486ed2579ac7daa",
-      "en": "6d8070de495291580040c55f301a47dcddbbfdadef827c578aff1e57b8bb74cf"
+      "zh": "5868a90c5b749a19950695bc2f7b687d428d382b1cbef48895fd19c634003024",
+      "en": "533e288b7e474eccc5e3d200834db81133c1a7f2c03a310bd0e34c1502a1aae1"
+    },
+    "/typed-client/setup-and-runtime-observations": {
+      "zh": "098f310016d4887a9c1fa5abe3cf8b0fed186887401bffa140bf46fafcf01180",
+      "en": "a4f48b65234b8c5ede8f96f058b1be7bd290aeccd76aa59af527ffe0de423503"
     }
   }
 }

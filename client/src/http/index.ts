@@ -42,6 +42,8 @@ export function createHttpClient(options: { origin: string; token: string; fetch
     } finally { await reader?.cancel().catch(() => {}); }
   };
   return createUsageClient({
+    setup:(r,q)=>send('setup',r,q),
+    collection: (r,q) => send('collection',r,q),
     query: (r, q) => send('query', r, q),
     prices: (r, q) => send('prices', r, q),
     live: (r, q) => send('live', r, q),

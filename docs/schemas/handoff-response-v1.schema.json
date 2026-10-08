@@ -37,6 +37,13 @@
       "items": {
         "$ref": "#/definitions/AllowanceCheck"
       }
+    },
+    "skillChecks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/HandoffCheck"
+      },
+      "default": []
     }
   },
   "required": [
@@ -506,6 +513,12 @@
             "string",
             "null"
           ]
+        },
+        "skillPath": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -587,6 +600,86 @@
         "available",
         "low",
         "blocked"
+      ]
+    },
+    "HandoffCheck": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string"
+        },
+        "discovery": {
+          "$ref": "#/definitions/Discovery"
+        },
+        "selected": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Instance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "discovery"
+      ]
+    },
+    "Discovery": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/DiscoveryStatus"
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Instance"
+          }
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "instances"
+      ]
+    },
+    "DiscoveryStatus": {
+      "type": "string",
+      "enum": [
+        "available",
+        "ambiguous",
+        "disabled",
+        "missing",
+        "unavailable",
+        "selection_changed"
+      ]
+    },
+    "Instance": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "path",
+        "enabled"
       ]
     }
   }

@@ -1,3 +1,13 @@
+import type {Request as SetupRequest} from './generated/setup-request.js';
+import type {Response as SetupResult} from './generated/setup-response.js';
+export type {Request as SetupRequest} from './generated/setup-request.js';
+export type {Response as SetupResult} from './generated/setup-response.js';
+export type SetupTransport=(request:SetupRequest,options:QueryOptions)=>Promise<unknown>;
+import type { Request as CollectionRequest } from './generated/collection-request.js';
+import type { Response as CollectionResult } from './generated/collection-response.js';
+export type { Request as CollectionRequest } from './generated/collection-request.js';
+export type { Response as CollectionResult } from './generated/collection-response.js';
+export type CollectionTransport = (request: CollectionRequest, options: QueryOptions) => Promise<unknown>;
 import type { ShareResponse as TimingShareResult } from './generated/timing-share-response.js';
 import type { LocalResponse as TimingLocalResult } from './generated/timing-local-response.js';
 import type { Request as TimingRequest } from './generated/timing-request.js';
@@ -65,6 +75,8 @@ export type PricingTransport = (request: PricingRequest, options: QueryOptions) 
 export type LiveTransport = (request: LiveRequest, options: QueryOptions) => Promise<unknown>;
 
 export interface UsageClient {
+  setup?(request:SetupRequest,options?:QueryOptions):Promise<SetupResult>;
+  collection?(request: CollectionRequest, options?: QueryOptions): Promise<CollectionResult>;
   timing?(request: TimingRequest, options?: QueryOptions): Promise<TimingResult>;
   handoff?(request:HandoffRequest,options?:QueryOptions):Promise<HandoffResult>;
   account?(request:AccountRequest,options?:QueryOptions):Promise<AccountResult>;
@@ -78,6 +90,8 @@ export interface UsageClient {
 }
 
 export interface ClientTransports extends HostTransports {
+  setup?:SetupTransport;
+  collection?: CollectionTransport;
   query: UsageTransport;
   prices?: PricingTransport;
   live?: LiveTransport;
@@ -94,6 +108,24 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
     directories: directoriesTransport } = transports;
   const hosts = transports;
   return {
+    ...(transports.setup ? {async setup(request:SetupRequest,options:QueryOptions={}):Promise<SetupResult>{
+      const [{validate:input},{validate:output}]=await Promise.all([import('./generated/validate-setup-request.js'),import('./generated/validate-setup-response.js')]);
+      if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+      if(!input(request))throw new CoreError('INVALID_ARGUMENT','Invalid setup request');
+      const result=await transports.setup!(request,options);
+      if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+      if(!output(result)||result.outputVersion!==1||result.project!==(request.project??null))throw new CoreError('PROTOCOL_ERROR','Invalid setup response');
+      return result;
+    }}:{}),
+    ...(transports.collection ? { async collection(request: CollectionRequest, options: QueryOptions = {}): Promise<CollectionResult> {
+      const [{validate:input},{validate:output}] = await Promise.all([import('./generated/validate-collection-request.js'),import('./generated/validate-collection-response.js')]);
+      if(options.signal?.aborted) throw new CoreError('CANCELLED','Cancelled');
+      if(!input(request)) throw new CoreError('INVALID_ARGUMENT','Invalid collection request');
+      const result = await transports.collection!(request,options);
+      if(options.signal?.aborted) throw new CoreError('CANCELLED','Cancelled');
+      if(!output(result)||result.outputVersion!==1||result.action!==(request.action??'status')) throw new CoreError('PROTOCOL_ERROR','Invalid collection response');
+      return result;
+    }} : {}),
     ...(transports.timing ? { async timing(request: TimingRequest, options: QueryOptions = {}): Promise<TimingResult> {
       const [{validate: input}, {validate: output}] = await Promise.all([
         import('./generated/validate-timing-request.js'), import('./generated/validate-timing-response.js'),

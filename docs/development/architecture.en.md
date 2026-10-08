@@ -2,17 +2,22 @@
 
 [中文](architecture.md) | English
 
-Wombat uses a shared Rust core, generated contracts, and replaceable hosts. The direction is GUI, CLI, and CLI+Web; Tauri 2 is the selected desktop framework. Local Web pages are implemented against the revised page code. TUI product code has been removed; the desktop host remains unimplemented. See module READMEs for interfaces and [unfinished proposal](../decisions/proposed/product/2026-10-03-optimization-lifecycle.en.md) for outstanding acceptance.
+Wombat shares a Rust core and generated contracts across GUI, CLI and Web hosts. The Tauri 2 desktop host remains planned; Web is implemented and TUI is removed. See module READMEs for interfaces and [unfinished proposal](../decisions/proposed/product/2026-10-03-optimization-lifecycle.en.md) for outstanding acceptance.
 
 ## Data Flow
 
 ```mermaid
 flowchart LR
-  L[Read-only Agent logs] --> A[Rust adapters / measurements / pricing]
-  A --> D[SQLite incremental index / versioned views]
+  L[Agent logs] --> A[Rust adapters / measurements / pricing]
+  A --> D[SQLite index / views]
   A --> S[Immutable snapshots]
   D --> Q[Rust shared queries]
   S --> Q
+  HK[Hooks] --> B[CLI Hook input]
+  B --> RC[Rust collection]
+  RC --> O[Observations]
+  O --> Q
+  SK[Skill] --> C
   Q --> N[client/node]
   N --> C[CLI JSON / text]
   N --> W[web loopback host]
@@ -32,8 +37,9 @@ flowchart LR
 | `web/` | `startWebHost` receives a client, built assets, startup scope, and port; owns local HTTP, authentication, static files, and connection cleanup, without business algorithms |
 | `ui/` | React / TypeScript / Vite frontend; `App` receives `UsageClient`, implements five surfaces and details, and wires HTTP; no Node/Tauri dependency |
 | `cli/` | Arguments, JSON/text, exit codes, and explicit Web startup/shutdown; the default command prints usage text |
+| `skill/` | User workflows |
 
-Dependencies point from `cli → web + client/node`, `web → client`, `ui → client + client/http + client/locale`. The core has no presentation dependencies. Modules use only public package entries or versioned protocols, never each other's internal source; static boundary checks cover all TS/TSX modules. This remains a modular monolith; GitHub Releases provide one self-contained archive per target.
+Dependencies point from `cli → web + client/node`, `web → client`, `ui → client + client/http + client/locale`. The core has no presentation dependencies. Modules communicate through public entries or versioned protocols, retaining a modular monolith.
 
 Business rules stay in Rust: adapters own source semantics and identity; `pricing.rs` / `pricing_sync.rs` own amounts and catalog eligibility; `live.rs` / `live_index.rs` own incremental indexes and versions; `usage_store.rs` owns immutable snapshots; `usage_app.rs` / `usage_app_dto.rs` own operations, filters, sorting, full-scope totals, and pagination. Lists never recompute totals, shares, or pricing from the current page.
 

@@ -10,6 +10,8 @@
 - `refresh`, `usage`, `threads`, `turns`, `steps`, `prices`, `optimize`, and `timing` call the shared core through `@wombat/client/node`.
 - With no subcommand, the CLI prints usage text, just like `usage`; `web` explicitly starts interactive pages.
 
+- `skill install/status/uninstall` manages independent local copies; Codex owns formal plugins. `web --context FILE` validates and opens a scoped view.
+
 - Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).
 
 ## Limits and verification
@@ -35,3 +37,7 @@ Wombat rejects unknown snapshot and index formats without migrating or deleting 
 `wombat web` dynamically loads the local host, injects a Node client, and serves packaged `dist/web/` assets. The CLI owns startup links and shutdown; startup arguments fix source scope.
 
 Timing text renders repeated-behavior aggregates with duration provenance, request observations and localized coverage reasons. JSON retains the generated response unchanged. Calculation and sharing semantics belong to the [core reference](../core/README.en.md).
+
+## Collection entries
+
+`setup` reports separate runtime, discovery and registration observations without installation or model execution. `collection` exposes core preferences, status, safe event pages and pause/resume; JSON is the generated version 1 response. Machine-wide preference changes are distinct from project-filtered reads. `hook codex` is a bounded advisory stdin entry: it emits no stdout and exits 0 even when receipt fails, so it cannot supply model context or permission decisions. The [CLI guide](../docs/guides/cli.en.md) owns commands and limits.

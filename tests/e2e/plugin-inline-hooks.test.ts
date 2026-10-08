@@ -73,7 +73,7 @@ for (const array of [false, true]) test(`inline plugin Hook ${array ? 'array' : 
     }
     await assert.rejects(access(marker));
     const methods = (await readFile(native.calls,'utf8')).trim().split('\n').map(l => JSON.parse(l).method);
-    assert.ok(methods.every(m => ['initialize','hooks/list','config/read','account/read','account/rateLimits/read'].includes(m)));
+    assert.ok(methods.every(m => ['initialize','hooks/list','skills/list','config/read','account/read','account/rateLimits/read'].includes(m)));
     assert.ok(!methods.some(m => m.startsWith('thread/')));
   } finally {
     await host.close(); service.kill('SIGTERM'); await once(service,'exit').catch(() => {}); await native.waitForExit();

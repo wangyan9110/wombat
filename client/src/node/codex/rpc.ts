@@ -5,7 +5,7 @@ import {CoreError} from '../../errors.js';
 import type {QueryOptions} from '../../client.js';
 import {spawnCodex,stopCodex,type CodexOptions} from './process.js';
 
-type Method='hooks/list'|'config/read'|'account/read'|'account/rateLimits/read'|'account/usage/read'|'thread/start'|'thread/queue/add'|'thread/read';
+type Method='skills/list'|'hooks/list'|'config/read'|'account/read'|'account/rateLimits/read'|'account/usage/read'|'thread/start'|'thread/queue/add'|'thread/read';
 type Pending={resolve:(value:unknown)=>void;reject:(error:Error)=>void;timer:ReturnType<typeof setTimeout>};
 const MAX_BYTES=8*1024*1024;
 
@@ -46,7 +46,7 @@ export async function connectCodex(managed:boolean, query:QueryOptions, options:
   try{
     if(query.signal?.aborted){abort();throw new CoreError('CANCELLED','Cancelled');}
     if(socket)await new Promise<void>((resolve,reject)=>{const timer=setTimeout(()=>reject(new CoreError('CODEX_TIMEOUT','Codex connection timed out')),options.codexTimeoutMs??20_000);socket.once('open',()=>{clearTimeout(timer);resolve();});socket.once('error',()=>{clearTimeout(timer);reject(new CoreError('CODEX_UNAVAILABLE','Codex unavailable'));});socket.once('close',()=>{clearTimeout(timer);reject(new CoreError('CODEX_DISCONNECTED','Codex disconnected'));});});
-    await request('initialize',{clientInfo:{name:'wombat',version:'0.3.0'},capabilities:{experimentalApi:managed}});
+    await request('initialize',{clientInfo:{name:'wombat',version:'0.3.0'},capabilities:{experimentalApi:true}});
     send({jsonrpc:'2.0',method:'initialized'});
     return {request:(method:Method,params:unknown)=>request(method,params),close};
   }catch(error){close();throw error;}

@@ -98,7 +98,7 @@ test('plugin Hook identity, project coverage, retained declarations and rechecks
     }
     await assert.rejects(access(marker));
     const methods = (await readFile(native.calls, 'utf8')).trim().split('\n').map(l => JSON.parse(l).method);
-    assert.ok(methods.every(m => ['initialize', 'hooks/list', 'config/read', 'account/read', 'account/rateLimits/read'].includes(m)), JSON.stringify(methods));
+    assert.ok(methods.every(m => ['initialize', 'hooks/list', 'skills/list', 'config/read', 'account/read', 'account/rateLimits/read'].includes(m)), JSON.stringify(methods));
     assert.ok(!methods.some(m => m.startsWith('thread/')), 'preview and registry reads must not create or run a task');
   } finally {
     await host.close(); service.kill('SIGTERM'); await once(service, 'exit').catch(() => {});

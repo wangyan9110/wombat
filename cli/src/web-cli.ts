@@ -2,22 +2,24 @@ import { once } from 'node:events';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
+import {open as openFile} from 'node:fs/promises';
+import type {WebViewRequest} from '@wombat/client';
 import path from 'node:path';
 import { homedir } from 'node:os';
-import { CoreError } from '@wombat/client';
+import { CoreError, validateWebViewRequest } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { t } from '@wombat/client/locale';
 import { startWebHost } from '@wombat/web';
 import { explicitLaunchLanguage } from './locale.js';
 
 export async function runWebCli(argv: string[]): Promise<number> {
-  let port = 0, json = false, open = false;
+  let port = 0, json = false, open = false, contextFile:string|undefined;
   const roots: string[] = [], projectRoots: string[] = [], seen = new Set<string>();
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--help' || arg === '-h') { process.stdout.write(t('cli.web.help')); return 0; }
     const [name, inline] = arg.split(/=(.*)/s);
-    if (!['--port', '--root', '--project-root', '--json', '--open'].includes(name) || (!['--root', '--project-root'].includes(name) && seen.has(name)))
+    if (!['--port', '--root', '--project-root', '--json', '--open', '--context'].includes(name) || (!['--root', '--project-root'].includes(name) && seen.has(name)))
       throw new CoreError('INVALID_ARGUMENT', t('cli.web.invalid', { value: arg }));
     seen.add(name);
     if (name === '--json' || name === '--open') {
@@ -26,7 +28,8 @@ export async function runWebCli(argv: string[]): Promise<number> {
     }
     const value = inline ?? argv[++i];
     if (!value || value.startsWith('--')) throw new CoreError('INVALID_ARGUMENT', t('cli.web.invalid', { value: arg }));
-    if (name === '--root') roots.push(path.resolve(value));
+    if(name==='--context')contextFile=path.resolve(value);
+    else if (name === '--root') roots.push(path.resolve(value));
     else if (name === '--project-root') projectRoots.push(path.resolve(value));
     else {
       if (!/^\d+$/.test(value) || Number(value) > 65535) throw new CoreError('INVALID_ARGUMENT', t('cli.web.invalid', { value }));
@@ -48,10 +51,27 @@ export async function runWebCli(argv: string[]): Promise<number> {
   const stop = () => stopped.abort();
   process.once('SIGINT', stop); process.once('SIGTERM', stop);
   try {
-    process.stdout.write(json ? JSON.stringify({ outputVersion: 1, url: host.url, pid: process.pid }) + '\n' : t('cli.web.started', { url: host.url }) + '\n');
+    let view:{url:string;context:WebViewRequest}|undefined;
+    if(contextFile){
+      const file=await openFile(contextFile,'r');
+      let raw:unknown;
+      try{
+        const info=await file.stat();
+        if(!info.isFile()||info.size>65536)throw new CoreError('INVALID_ARGUMENT',t('web.contextInvalid'));
+        const buffer=Buffer.alloc(65537);
+        let size=0;
+        while(size<buffer.length){const {bytesRead}=await file.read(buffer,size,buffer.length-size,null);if(!bytesRead)break;size+=bytesRead;}
+        if(size>65536)throw new CoreError('INVALID_ARGUMENT',t('web.contextInvalid'));
+        try{raw=JSON.parse(buffer.subarray(0,size).toString('utf8'));}catch{throw new CoreError('INVALID_ARGUMENT',t('web.contextInvalid'));}
+      }finally{await file.close();}
+      validateWebViewRequest(raw);
+      view=await host.openView(raw,{signal:stopped.signal});
+    }
+    const url=view?.url??host.url;
+    process.stdout.write(json ? JSON.stringify({ outputVersion: 1, url, pid: process.pid,...(view?{context:view.context}:{}) }) + '\n' : t('cli.web.started', { url }) + '\n');
     if (open) {
       const program = process.platform === 'darwin' ? '/usr/bin/open' : process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/rundll32.exe') : '/usr/bin/xdg-open';
-      browser = spawn(program, process.platform === 'win32' ? ['url.dll,FileProtocolHandler', host.url] : [host.url], {stdio: 'ignore', windowsHide: true, timeout: 10000});
+      browser = spawn(program, process.platform === 'win32' ? ['url.dll,FileProtocolHandler', url] : [url], {stdio: 'ignore', windowsHide: true, timeout: 10000});
       browser.once('error', () => process.stderr.write(t('cli.web.openFailed')+'\n'));
       browser.once('exit', code => {if (code && !stopped.signal.aborted) process.stderr.write(t('cli.web.openFailed')+'\n');});
       browser.unref();

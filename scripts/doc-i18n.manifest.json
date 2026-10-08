@@ -264,6 +264,16 @@
       "zh": "docs/decisions/implemented/architecture/2026-10-05-analysis-first-events.md",
       "en": "docs/decisions/implemented/architecture/2026-10-05-analysis-first-events.en.md",
       "record": "docs/decisions/implemented/architecture/2026-10-05-analysis-first-events.i18n.json"
+    },
+    {
+      "zh": "skill/README.md",
+      "en": "skill/README.en.md",
+      "record": "skill/README.i18n.json"
+    },
+    {
+      "zh": "docs/decisions/proposed/product/2026-10-04-codex-skill.md",
+      "en": "docs/decisions/proposed/product/2026-10-04-codex-skill.en.md",
+      "record": "docs/decisions/proposed/product/2026-10-04-codex-skill.i18n.json"
     }
   ],
   "legacyUnpaired": [],

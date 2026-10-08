@@ -2,16 +2,16 @@
   "version": 2,
   "sections": {
     "/wombat-architecture": {
-      "zh": "6abe00246d2ac5c60658ed2e08c25338845f4e77d57cb6e8b566de1b3297543d",
-      "en": "538b679a834e3392c57af57332d9f4378527eab60c3f04ae9782899d85d5aff5"
+      "zh": "7d52da36834c03a656a3954bfe0bf20b1b0888221f1107aebfdf9ba6dfb5998e",
+      "en": "b9b156107ed4d1b39d2c332c9d27c9ddcfb7b102d1451b63b4bf01d7dd72844a"
     },
     "/wombat-architecture/data-flow": {
       "zh": "f3d50ef603c7d029feccd2525ac4d8d4adc4d5dbb77d2da5afef5fec06405d8b",
       "en": "28a598b035fcef6728d9b87dab8fe37d1d5bb1264f7b5ece72420c53628ed6fa"
     },
     "/wombat-architecture/modules": {
-      "zh": "d5f79145b8e565f2e094130e3d3ce4e942a1f8935289e90abe19eaddd814ef48",
-      "en": "e315354853b811e58d1cb2cd576a771d9b6130594d60cc5bdd44ddae6598a0be"
+      "zh": "0b64a07e19fcf734467d87b72915603cdaae6c185d17e5075763eeff88e52bad",
+      "en": "f6cf85bf5c244659a9e6df3c3628ec6d1de6b345595a0f5a9cf397fe36da3676"
     },
     "/wombat-architecture/host-and-service-responsibilities": {
       "zh": "0d6d5dcf9da4813e7cc7f60bc9017eafe2599b72612d4970837527e7e09900da",

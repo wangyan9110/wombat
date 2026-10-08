@@ -1,3 +1,5 @@
+export type { SetupRequest,SetupResult,SetupTransport } from './client.js';
+export type { CollectionRequest, CollectionResult, CollectionTransport } from './client.js';
 export { CoreError } from './errors.js';
 export type {AccountRequest,AccountResult,AccountTransport,HostTransports} from './client.js';
 export type {HandoffRequest,HandoffResult,HandoffTransport} from './client.js';
@@ -16,3 +18,4 @@ export { allowanceStatus, type AllowanceAssessment } from './allowance.js';
 
 export type { ClientTransports, TimingRequest, TimingResult, TimingLocalResult, TimingShareResult, TimingTransport } from './client.js';
 export type { TimingErrorOutput } from './generated/timing-error-output.js';
+export {webViewSearch,shiftCalendarDate,validateWebViewRequest,type WebViewRequest} from './web-view.js';

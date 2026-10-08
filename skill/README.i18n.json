@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "sections": {
+    "/wombat-user-skills": {
+      "zh": "1b562a293bceaa93e128752e67b5d39fbe9eea73127cbd9305ddfb6a6966cf2c",
+      "en": "f2f69d5e4bfa07314dc43db3d0aa6ef5523108df538c0ff70c6d3373817c8540"
+    },
+    "/wombat-user-skills/local-collection-package": {
+      "zh": "b16e1877d0d19c3767940905cc6777051ba36474cac8d9cb4aae3ef67d373b6f",
+      "en": "bd08a1e127d60c232a379e101c577fc643918a905211250415a732d2e7232eb5"
+    }
+  }
+}

@@ -12,10 +12,12 @@ export function parseHandoffArgs(argv: string[]) {
     const [key, inline] = argv[i].split(/=(.*)/s);
     if (['--help', '-h'].includes(key)) { help = true; continue; }
     if (key === '--json') { if (inline !== undefined || json) fail(key); json = true; continue; }
-    if (!['--root', '--project-root', '--project', '--source', '--suggestion', '--read-view', '--decision-revision', '--selection-version'].includes(key)) fail(key);
-    if (seen.has(key) && !['--root', '--project-root', '--suggestion'].includes(key)) fail(key); seen.add(key);
+    if (!['--root', '--project-root', '--project', '--source', '--suggestion', '--read-view', '--decision-revision', '--selection-version','--without-skill','--skill'].includes(key)) fail(key);
+    if (seen.has(key) && !['--root', '--project-root', '--suggestion','--skill'].includes(key)) fail(key); seen.add(key);
+    if(key==='--without-skill'){if(inline!==undefined||request.withoutSkill)fail(key);request.withoutSkill=true;continue;}
     const value = inline ?? argv[++i]; if (!value || value.startsWith('--')) fail(key);
     switch (key) {
+      case '--skill': {const equal=value.indexOf('=');if(equal<1||equal===value.length-1)fail(key);(request.skillSelections??=[]).push({projectId:value.slice(0,equal),path:path.resolve(value.slice(equal+1))});break;}
       case '--root': (request.roots ??= []).push(path.resolve(value)); break;
       case '--project-root': (request.projectRoots ??= []).push(path.resolve(value)); break;
       case '--suggestion': (request.suggestionIds ??= []).push(value); break;

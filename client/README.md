@@ -30,3 +30,11 @@ Node 客户端和本地服务使用协议 2，并隔离接口地址与服务锁�
 `UsageClient.config` 提供配置测量和证据，`optimize` 提供静态建议、用户记录和人工复查，`preferences` 只读取/保存 zh/en。配置对象和后续观察携带共用的类型化 `useBasis`，保留固定范围、方法、来源完整性、五维覆盖，以及不可用与已知零次的区别。`@wombat/client/locale` 为 CLI/UI 解释这些字段，不重算次数或推断历史采用。三者由 Rust 生成 v1 契约，Node/HTTP 并列实现；详见[公共契约](../docs/development/contracts.md)。
 
 `createNodeClient({automaticPrices:false})`只关闭客户端的自动补价装饰，显式prices操作仍可用。CLI实时查询默认保留原行为；Web使用此原始客户端并由宿主持有后台补价生命周期。
+
+用户工作流复用通用入口的 WebViewRequest、validateWebViewRequest 和 webViewSearch；Node 入口另提供 manageSkill 与 discoverWombatSkill，分别管理独立副本和读取原生实例。公共状态来自 Rust，安装不查询日志；详见[契约](../docs/development/contracts.md)。
+
+## 接入与运行时观察
+
+可选的 `UsageClient.setup` 与 `UsageClient.collection` 使用 Rust 生成的版本 1 协议，校验输入和输出。Node 接入检查分别读取运行时能力、按 cwd 限定的原生 Skill 发现和 Rust 绑定的 Hook 注册，总时限八秒，保留部分失败代码；不安装、不信任、不读取账户凭据、不启动模型任务。Node `receiveCodexHook` 只通过私有内核进程边界发送有上限的原始输入，HTTP 不开放该能力。采集调用的进程时限五秒，输出预算 2 MiB。Web 宿主负责来源与项目授权，内核负责安全事实与关联。共用 Hook 注册采集接受已核对的 0.160.0 和 0.160.1 接口，未知版本保留不可用状态。
+
+接入检查还返回已验证的运行时内置 marketplace 路径，用于生成显式原生安装命令。资源缺失保留为接入检查的部分错误；原生发现与采集事实仍可独立读取。

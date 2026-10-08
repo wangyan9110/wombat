@@ -119,3 +119,16 @@ test('web help and invalid arguments do not start a listener', () => {
     assert.equal(result.status, 1); assert.equal(JSON.parse(result.stdout).error.code, 'INVALID_ARGUMENT');
   }
 });
+
+
+test('Web context file rejects oversized and malformed input and closes the host',{timeout:15000},async()=>{
+ const dir=await mkdtemp(path.join(tmpdir(),'wombat-web-context-invalid-'));
+ try{
+  const file=path.join(dir,'context.json'),env={...process.env,CODEX_HOME:path.join(dir,'empty-default'),WOMBAT_DATA_HOME:path.join(dir,'data'),WOMBAT_AUTO_PRICES:'0'};
+  for(const content of ['x'.repeat(65537),'not-json',JSON.stringify({page:'usage',arbitrary:true})]){
+   await writeFile(file,content);
+   const result=spawnSync(runtime,[entry,'web','--root',path.join(dir,'source'),'--project-root',dir,'--context',file,'--json'],{env,encoding:'utf8',timeout:5000});
+   assert.equal(result.status,1,result.stderr);assert.equal(result.error,undefined);assert.equal(JSON.parse(result.stdout).error.code,'INVALID_ARGUMENT');
+  }
+ }finally{await rm(dir,{recursive:true,force:true,maxRetries:20,retryDelay:100});}
+});

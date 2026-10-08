@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/local-web-host": {
-      "zh": "e45cec27a1e83737b233bcd4967cd934c72bc8dcff31075fe823600373760b38",
-      "en": "9acde87dfc5168e0c91dfb9273ef421dc69cde2891989bcf196e1ea7e41cf937"
+      "zh": "69cd4bc58e55de1b80b09488f3445f026302a74d1100a96a8471760faf1aa7ca",
+      "en": "169cf79696785facfc8465c836025e0f78f6fb00232d92ca710bf974456401a3"
     },
     "/local-web-host/access-and-resource-limits": {
       "zh": "277cdf694d5be822266f060b195d03079ea938c31a33b6a2f88e20133c26e6f5",
@@ -13,6 +13,10 @@
       "zh": "f00a5d6f3b28455d9a341014b9a8da889e8b761275a915255f291e3ed2ce474d",
       "en": "f030f730c3269835991f44adebf5419d192060df169333970b16d4c0cb016834"
     },
+    "/local-web-host/context-opening": {
+      "zh": "064e515dd2843cbb53ca509e689398084da75e133f31b813cfc98b0a1cbc658b",
+      "en": "938eade39f9cd5685999c96df9a0270418ec72e8ecce1d7d0e16baf1de43f665"
+    },
     "/local-web-host/background-prices": {
       "zh": "da98a6cebf0b81c4e5155b84b5a063e9efdea635a161216f28cee0b792d76c4b",
       "en": "aadf222a61491af4f09cf6703d19993b3cb7f4a5bfae28fa0815d8cb47030a7b"
@@ -20,6 +24,10 @@
     "/local-web-host/verification": {
       "zh": "9623065101c63a47eb24a38bfb628fcc38e68c1ffb14a787a65b6d28e84f4e88",
       "en": "7b6e047342634a9074f3a7da64232f0446060382f9c9d3c229c6f1dc82cdaeda"
+    },
+    "/local-web-host/setup-and-collection": {
+      "zh": "77c540ba8146377b698097e545688511d702a5329218c60177eaa59ac1efed26",
+      "en": "11ccdb758dc2b4838f24fe6b2efe514c5f17c1e9683ec9c06cf8642405b9f15f"
     }
   }
 }

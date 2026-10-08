@@ -1,4 +1,0 @@
-interface:
-  display_name: "Wombat"
-  short_description: "查询本机 Codex 用量与高消耗任务，检查项目指令、Skill 和 MCP"
-  default_prompt: "使用 $wombat 查看今天的用量，找出消耗最多的任务并说明数据缺口。"

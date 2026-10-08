@@ -50,18 +50,22 @@ Review does not accept pagination. Without dates, it selects the fixed view cuto
 
 ## Codex Skill
 
-The following installs the experimental technical draft. Product design is still defining the task workflows; full behavioral acceptance has not been completed.
+The redesigned [user Skill](../../skill/README.en.md) starts from conversational tasks and can use Web for detailed explanation. Web browsing and selection can hand work to Codex for processing and rechecks. The Skill consumes existing CLI JSON and bounded index restoration/synchronization; account reads do not wait for logs.
 
-Build from source and install the local `$wombat` Skill:
+Codex manages the formal plugin, whose invocation name on verified Codex 0.160.0 is $wombat:wombat. Standalone local trials use $wombat:
 
 ```sh
-corepack pnpm build
-corepack pnpm skills:install
+wombat skill install --json
+wombat skill status --cwd /path/to/project --json
+wombat skill install --replace --json
+wombat skill uninstall --json
 ```
 
-The default location is `~/.agents/skills/wombat`. It includes the current platform's CLI, kernel and Web assets; runtime requires Node22+. Installation tooling requires Node26.4.0+. Existing directories are preserved; update a managed installation with `corepack pnpm skills:install -- --replace`. Use `--skills-root /path/to/skills` for another directory; replace does not overwrite a custom same-name Skill.
+Standalone installation copies only reviewed local product assets, defaulting to ~/.agents/skills/wombat. --directory selects a directory ending in wombat; --cwd selects the native discovery project. Only unchanged managed copies can be explicitly replaced or removed; custom directories, links, and user changes are protected. Independent v1 JSON separates file state, discovery/enablement, runtime capabilities, and data not requested. Installation does not scan logs. Unconfirmed native discovery exits2 without rolling back completed file installation. These commands do not manage plugins.
 
-In Codex, ask `$wombat show today's usage and locate the main consuming tasks` or `$wombat check this project's instructions and extensions`. The Skill connects queries by task; Codex manages authorized edits and recovery, followed by Wombat rechecks. The [optimization proposal](../decisions/proposed/product/2026-10-03-optimization-lifecycle.en.md) defines Web differences and boundaries. Codex normally discovers new Skills automatically; restart if it does not appear. Uninstall by removing only the installed wombat directory, retaining independent product data. This is local Skill installation, not a public plugin or MCP release.
+web --context FILE --json accepts a restricted generated contract: page is usage/threads/instructions/extensions/optimize, with the corresponding read-only usage/configuration/optimization request. --root/--project-root still authorize startup roots. The host reads and validates versions before returning effective context and a connection URL. Project, source, full object IDs, timezone, dates, and versions are retained; the product converts exclusive CLI until into display dates. Supply paired dates or allTime; unsupported browser filters are rejected. The browser uses its own pagination size. Restart requires a new URL, and connection tokens must stay local.
+
+Web handoff lists actually enabled Skills per project, rechecks names/paths, and sends text plus a skill item to the persistent queue. CLI uses --skill PROJECT_ID=PATH. Missing, disabled, or conflicting instances require selection or explicit --without-skill to use existing handoff behavior. Unknown delivery is never retried automatically; acceptance does not establish completed changes or rechecks. See the [product plan](../decisions/proposed/product/2026-10-04-codex-skill.en.md).
 
 ## Language
 
@@ -188,3 +192,25 @@ Delivery returns accepted, failed or unknown and an available Codex task ID; acc
 The confirmation dialog can refresh allowance while retaining file selection. Low allowance only warns; a reliable native restriction on the current task prevents sending and requires another confirmation after refresh. Expired, unknown or other-model restrictions do not establish exhaustion for this task or trigger automatic retries. Sending checks the actual task again; a final restriction may leave an empty Codex task with no queued request.
 
 The account v1 response has independent identity, allowance and activity status/read times, with masked email only. Actual window names, models, periods and resets come from Codex, without fixed five-hour/seven-day periods or legacy single-bucket fallback. Failures retain previous data/read times; account changes clear old facts. A past reset does not establish restored allowance. Balances and spending limits retain native decimal strings without guessing units. Reset credits are read-only; missing details and an empty list differ, and the 128-row detail limit never replaces the native count. Overview and account details share observations independently of project/date scope. Allowances are not added to or converted from project tokens/API estimates. Partial reads or unconfirmed delivery exit2, errors1 and cancellation130. `turns --sort recent` orders by reliable activity times, with unknown times last.
+
+## Setup and collection
+
+`wombat setup --project /path/to/project --json` checks native discovery and registration, preserving each state independently. It does not install, trust, scan account credentials or invoke a model. `--root` selects source directories. A missing Skill does not block viewing existing data.
+
+```sh
+wombat collection status --json
+wombat collection mode hooks --json
+wombat collection events --project /path/to/project --limit 50 --json
+wombat collection pause --json
+wombat collection resume --json
+wombat collection mode logs --json
+wombat usage --watch --json
+```
+
+Preferences are machine-wide; `--project` and repeated `--root` filter status and events only. Mode `logs` ignores new Hook input and preserves data. Mode `hooks` permits safe receipt but establishes neither registration nor trust. Install the [local collection package](../../skill/README.en.md), then review its declarations in Codex `/hooks`. The POSIX bridge resolves the managed launcher or Codex PATH; Windows remains unaccepted. Plugin removal does not delete observations.
+
+Pause retains up to 4,096 safe observations; resume makes them available. History viewing continues. Total retained observations are bounded to 100,000; known overflow or conflicting identities contribute to gaps. Missing native identity stays unknown, and rejected input or runtime failures are not reflected in persisted gaps. No lossless delivery or complete coverage is claimed. Source event time may be absent and differs from receipt time. Verified log associations use the current committed source epoch; obtain a normal fixed query view before further comparisons.
+
+Event pages accept `--limit 1..200` and `--after` from `nextAfter`. Status/events use generated v1 JSON; paused, buffered or known-gap results exit 2, errors exit 1 and cancellation exits 130. Ordinary live queries perform historical preparation. For continuous synchronization of appended logs, keep `usage --watch` running; a one-time query is not a permanent watcher. `hook codex` accepts at most 64 KiB from stdin, waits at most four seconds, never writes stdout and always exits 0 for advisory receipt failures. It retains no prompt/tool body and cannot control Codex permissions.
+
+Collection `--source ID` retains the selected source identity within authorized roots; a foreign ID returns `SOURCE_NOT_AUTHORIZED`. `--project` accepts a local relative path and resolves it to an absolute path before querying.

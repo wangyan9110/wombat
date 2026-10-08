@@ -32,6 +32,12 @@ use wire::*;
 
 pub const VERSION: &str = "codex-rollout-9";
 pub struct CodexAdapter;
+pub(crate) fn thread_identity(source: &str, native: &str) -> String {
+    stable_id(&["codex", source, "thread", native])
+}
+pub(crate) fn turn_identity(thread: &str, native: &str) -> String {
+    stable_id(&[thread, "turn", native])
+}
 
 #[cfg(test)]
 fn test_absolute(path: &str) -> String {

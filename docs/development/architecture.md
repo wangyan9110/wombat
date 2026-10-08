@@ -2,17 +2,22 @@
 
 中文 | [English](architecture.en.md)
 
-Wombat 采用共享 Rust 内核、生成契约和可替换宿主。方向为 GUI、CLI 与 CLI+Web，桌面框架已选 Tauri 2；本机 Web 已落地，TUI 已移除，桌面宿主待实施。模块接口见各模块 README，未完成验收见[未完成提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)。
+Wombat 共享 Rust 内核与生成契约，宿主方向为 GUI、CLI 和 Web。Tauri 2 桌面宿主待实施；Web 已落地，TUI 已移除。接口见模块 README，未完成验收见[未完成提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)。
 
 ## 数据流
 
 ```mermaid
 flowchart LR
-  L[Read-only Agent logs] --> A[Rust adapters / measurements / pricing]
-  A --> D[SQLite incremental index / versioned views]
+  L[Agent logs] --> A[Rust adapters / measurements / pricing]
+  A --> D[SQLite index / views]
   A --> S[Immutable snapshots]
   D --> Q[Rust shared queries]
   S --> Q
+  HK[Hooks] --> B[CLI Hook input]
+  B --> RC[Rust collection]
+  RC --> O[Observations]
+  O --> Q
+  SK[Skill] --> C
   Q --> N[client/node]
   N --> C[CLI JSON / text]
   N --> W[web loopback host]
@@ -32,8 +37,9 @@ flowchart LR
 | `web/` | `startWebHost` 接收客户端、构建资产、启动范围和端口；负责本机 HTTP、认证、静态文件及连接清理，不承载业务算法 |
 | `ui/` | React / TypeScript / Vite 前端；`App` 接收 `UsageClient`，实现五入口及详情，装配 HTTP；不依赖 Node/Tauri |
 | `cli/` | 参数、JSON/文本、退出码与显式 Web 启停；默认命令输出用量文本 |
+| `skill/` | 用户工作流 |
 
-依赖方向为 `cli → web + client/node`、`web → client`、`ui → client + client/http + client/locale`。`core` 不依赖展示模块。跨模块仅使用公开包入口或版本化协议，不引用内部源码；静态边界检查覆盖所有 TS/TSX 模块。仍为模块化单体，GitHub Release 按平台提供独立归档。
+依赖方向为 `cli → web + client/node`、`web → client`、`ui → client + client/http + client/locale`。`core` 不依赖展示模块。模块间只经公开入口或版本协议通信，保持模块化单体。
 
 业务规则保留在 Rust：适配器拥有来源语义与身份；`pricing.rs` / `pricing_sync.rs` 拥有金额与价表资格；`live.rs` / `live_index.rs` 拥有增量索引与版本；`usage_store.rs` 拥有不可变快照；`usage_app.rs` / `usage_app_dto.rs` 拥有操作、筛选、排序、完整范围汇总和分页。列表不从当前页重算总量、占比或计价。
 

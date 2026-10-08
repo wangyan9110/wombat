@@ -50,18 +50,22 @@ wombat account history --json
 
 ## Codex Skill
 
-以下是技术草稿的试验安装方式，正式任务流程仍在由产品设计；完整行为验收尚未完成。
+新版[用户 Skill](../../skill/README.md)以对话任务为入口，可结合 Web 详细解释；Web 浏览和选择后可交给 Codex 处理并复查。Skill 使用已有 CLI JSON，初始化复用有界索引恢复和同步，账户不等待日志。
 
-从源码构建并安装本机 `$wombat`：
+正式插件由 Codex 管理，插件调用名在已核验的 Codex 0.160.0 中为 $wombat:wombat。独立本机试用调用名为 $wombat：
 
 ```sh
-corepack pnpm build
-corepack pnpm skills:install
+wombat skill install --json
+wombat skill status --cwd /path/to/project --json
+wombat skill install --replace --json
+wombat skill uninstall --json
 ```
 
-默认安装到 `~/.agents/skills/wombat`，携带当前平台CLI、内核和Web资产，运行需要Node22+。安装工具需要Node26.4.0+。已有目录不覆盖；更新已安装版本用 `corepack pnpm skills:install -- --replace`。可用 `--skills-root /path/to/skills` 安装到其他目录；自定义同名Skill不会被replace覆盖。
+独立安装只从本机产品包的受审资源复制，默认 ~/.agents/skills/wombat；--directory 可指定以 wombat 结尾的目录，--cwd 指定原生发现项目。仅未改动的受管副本能明确替换或卸载；自定义目录、链接和用户改动受保护。JSON 使用独立 v1 契约，区分文件状态、发现/启用、运行能力和未请求数据。安装不扫描日志；原生发现无法确认时退出2，不回滚已经完成的文件安装。插件不由这些命令管理。
 
-在Codex输入 `$wombat 查看今天的用量并定位主要消耗任务` 或 `$wombat 检查当前项目的指令和扩展`。Skill按任务串联查询，用户授权后的改写与恢复由 Codex 管理，再回到 Wombat 复查；[优化闭环提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)说明与Web的差异和边界。Codex通常自动发现新Skill，未出现时重启。卸载只移除安装的wombat目录，保留独立产品数据。当前仅本机Skill安装，不是公开插件或MCP发行。
+web --context FILE --json 接收受限生成契约：page 为 usage/threads/instructions/extensions/optimize，配对应 usage/configuration/optimization 只读请求。启动根仍由 --root/--project-root 授权；宿主读取并验证版本，返回有效 context 和连接链接。保留项目、来源、完整对象 ID、时区、日期与版本；CLI until 排他，URL 展示日由产品换算。日期必须成对或用 allTime，无法映射的浏览器筛选拒绝；浏览器采用自身分页大小。重启后须重新取得链接，连接令牌不外发。
+
+Web 交接按项目列出实际启用的 Skill，发送时复核名称和路径，并在持久队列传入 text 与 skill 项。CLI 对应 --skill PROJECT_ID=PATH；缺失、禁用或冲突时须选择实例，或明确 --without-skill 沿用既有交接。送达未知不自动重发，接受请求不表示修改或复查已完成。详见[产品方案](../decisions/proposed/product/2026-10-04-codex-skill.md)。
 
 ## 语言
 
@@ -188,3 +192,25 @@ wombat account refresh --json
 确认窗口可刷新额度并保留文件选择。低额度只提醒；当前任务有可靠的原生限制时阻止发送，刷新后需再次确认。过期、未知或其他模型的限制不当作当前任务耗尽，也不会自动重发。发送会按实际任务重新核对；最终受阻可能留下没有请求内容的空Codex任务。
 
 账户v1响应中的身份、额度和活动有独立状态与读取时间；仅显示脱敏邮箱。真实窗口名称、模型、周期和重置来自Codex，不固定五小时/七天，不回退旧单桶。失败保留先前数据和读取时间，换账户清除旧数据；已过重置时间不推定满额。余额和消费限额保留来源小数字符串，不猜单位；重置权益只读，未提供明细与空列表分开，明细上限128条且不替代来源总数。概览和账户详情共享读取结果，项目或日期不改变账户范围。额度不与项目Token/API估算金额相加或换算。部分读取及未确认交接退出2，错误1、取消130。近期轮次可用`turns --sort recent`，按可靠活动时间排序，未知时间置后。
+
+## 接入与采集
+
+`wombat setup --project /path/to/project --json` 检查原生发现与注册，分别保留各项状态；不安装、不信任、不读取账户凭据、不调用模型。`--root` 选择来源目录。缺少 Skill 不影响查看已有数据。
+
+```sh
+wombat collection status --json
+wombat collection mode hooks --json
+wombat collection events --project /path/to/project --limit 50 --json
+wombat collection pause --json
+wombat collection resume --json
+wombat collection mode logs --json
+wombat usage --watch --json
+```
+
+偏好作用于本机；`--project` 和可重复的 `--root` 只筛选状态与事件。logs 模式忽略新 Hook 输入并保留数据；hooks 模式允许安全接收，不证明注册或信任。安装[本地采集插件](../../skill/README.md)，再在 Codex `/hooks` 中审查声明。POSIX 桥接使用受管启动器或 Codex PATH；Windows 仍未验收。移除插件不删除观察。
+
+暂停最多保留 4,096 条安全观察，恢复后可用；历史仍可查看。最多保留 100,000 条观察，已知溢出和身份冲突计入缺口。缺少原生身份时保持未知；输入拒绝和运行时失败不计入已存缺口，不声称无损投递或完整覆盖。来源事件时间可能缺失，与接收时间分开。已验证日志关联使用当前已提交的来源版本；后续比较前仍需获取普通固定查询视图。
+
+事件分页接受 `--limit 1..200`，以及 `nextAfter` 对应的 `--after`。状态与事件使用生成的 v1 JSON；暂停、待处理或已知缺口退出 2，错误退出 1，取消退出 130。普通实时查询准备历史；持续同步追加日志需保持 `usage --watch` 运行，一次查询不代表永久监控。`hook codex` 从 stdin 接收最多 64 KiB，等待最多四秒，不输出 stdout，advisory 接收失败也退出 0；不保留提示词或工具正文，不控制 Codex 权限。
+
+采集查询的 `--source ID` 在授权来源目录内保留选定来源身份；外部 ID 返回 `SOURCE_NOT_AUTHORIZED`。`--project` 接受本机相对路径，查询前转为绝对路径。

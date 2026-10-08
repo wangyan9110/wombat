@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/public-contracts": {
-      "zh": "cb86f54cd0f8987bfb96bf82411a05004c7d93b1b98de0d76c3b572e76bcae4d",
-      "en": "b36c0afab080f806edb6bc55f963b99e76c6562bf671a0432067b0e92de8647f"
+      "zh": "4116f9562219a40891b23621bd7fd65dca652173c43747a3747f557590cc5863",
+      "en": "613cc9be9cb7aa86308e07b922a7549f2925e7acd77352ea4e8a0389d1ecb790"
     },
     "/public-contracts/client-entries": {
       "zh": "43df27589e6cac42deff22d885581433bb66077922612dcb496abf56f4557b4f",
@@ -28,6 +28,10 @@
     "/public-contracts/handoff-allowance-assessment": {
       "zh": "1c14fad80d3d9e6eda3e7c93daa8b152689b813f4d277491442e9bca76489314",
       "en": "e12bdcb2d68d73a32d9f2aacd406df6199484b3bcf32aa00a39479e80ed5fff1"
+    },
+    "/public-contracts/skill-and-web-context-contracts-v1": {
+      "zh": "a07e4a40ac7e7818300c1356be742616ac714c8225ec7b9d7e938ea0358cf651",
+      "en": "acd299327258fe1bc87078ddfeb557b2056ff0a4ce5e872fb5f2d838c6a7db3c"
     }
   }
 }

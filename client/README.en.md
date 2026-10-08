@@ -30,3 +30,11 @@ The local Web host implements `/api/timing`; see the [Web host](../web/README.en
 `UsageClient.config` provides measurements/evidence, `optimize` static suggestions, user records and manual rechecks, and `preferences` only gets/sets zh/en. Configuration objects and follow-up observations carry the shared typed `useBasis`, preserving fixed scope, method, source completeness, five coverage dimensions, and unavailable versus known-zero observations. `@wombat/client/locale` explains these fields for CLI/UI without deriving counts or historical adoption. Rust generates all three v1 contracts with peer Node/HTTP implementations; see [public contracts](../docs/development/contracts.en.md).
 
 `createNodeClient({automaticPrices:false})` disables only the client’s automatic-price decorator; explicit prices operations remain available. CLI live queries retain their existing default behavior; Web uses this raw client and owns background price lifetime.
+
+User workflows reuse the portable WebViewRequest, validateWebViewRequest, and webViewSearch. Node also exposes manageSkill for standalone copies and discoverWombatSkill for native instances. Rust defines public states; installation does not query logs. See [contracts](../docs/development/contracts.en.md).
+
+## Setup and runtime observations
+
+Optional `UsageClient.setup` and `UsageClient.collection` use Rust-generated version 1 contracts and validate both boundaries. Node setup checks runtime capabilities, cwd-scoped native Skill discovery and Rust-bound Hook registration independently, with an eight-second overall bound and partial error codes. It does not install, trust, read account credentials or start a model task. Node `receiveCodexHook` sends bounded raw input only through the private core process boundary; HTTP does not expose it. Collection calls have a five-second process bound and 2 MiB output budget. The Web host owns source/project authorization; the core owns safe facts and associations. Shared Hook registry capture accepts verified 0.160.0 and 0.160.1 interfaces, preserving unavailable states on unknown versions.
+
+Setup also returns the validated bundled marketplace path for explicit native installation commands. Missing resources remain a partial setup error; native discovery and collection facts remain independently readable.

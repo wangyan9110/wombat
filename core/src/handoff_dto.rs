@@ -24,6 +24,8 @@ pub struct Request {
     pub suggestion_ids: Option<Vec<String>>,
     pub selection_version: Option<String>,
     pub language: Option<String>,
+    pub without_skill: Option<bool>,
+    pub skill_selections: Option<Vec<crate::skill_dto::Selection>>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -51,6 +53,7 @@ pub struct Delivery {
     pub thread_id: Option<String>,
     pub native_version: Option<String>,
     pub error_code: Option<String>,
+    pub skill_path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
@@ -70,4 +73,6 @@ pub struct Response {
     pub projects: Vec<Project>,
     pub deliveries: Vec<Delivery>,
     pub allowance_checks: Vec<AllowanceCheck>,
+    #[serde(default)]
+    pub skill_checks: Vec<crate::skill_dto::HandoffCheck>,
 }

@@ -670,3 +670,33 @@ mod scalar_tests {
         assert_eq!(scalar(&db, "reference", "mapping").unwrap(), None);
     }
 }
+
+/// Read committed projections without initialization, schema writes or migrations.
+pub(crate) fn reader(file: &Path) -> Result<Connection> {
+    let file = dunce::canonicalize(file)?;
+    let db = Connection::open_with_flags(
+        file,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NOFOLLOW,
+    )?;
+    db.busy_timeout(std::time::Duration::from_millis(500))?;
+    let version: i64 = db.pragma_query_value(None, "user_version", |r| r.get(0))?;
+    if version != VERSION {
+        return Err(crate::dto::operation_error(
+            "INDEX_UNSUPPORTED_VERSION",
+            "Unsupported live index",
+        ));
+    }
+    Ok(db)
+}
+/// Indexed identity lookup; observation formats are checked by their own consumers.
+pub(crate) fn fact<T: serde::de::DeserializeOwned>(
+    db: &Connection,
+    scope: &str,
+    field: &str,
+    id: &str,
+) -> Result<Option<T>> {
+    let payload:Option<String>=db.prepare_cached("SELECT json(e.payload) FROM buckets b JOIN entries e ON e.bucket=b.id WHERE b.scope=?1 AND b.field=?2 AND e.id=?3 AND e.source_bucket IS NULL AND length(e.payload)<=1048576")?.query_row(params![scope,field,id],|r|r.get(0)).optional()?;
+    payload
+        .map(|v| serde_json::from_str(&v).map_err(Into::into))
+        .transpose()
+}

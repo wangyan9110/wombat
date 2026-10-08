@@ -1,3 +1,4 @@
+import {shiftCalendarDate} from '@wombat/client';
 import type { UsageScope, UsageRequest } from '@wombat/client';
 export type Page = 'instructions' | 'extensions' | 'usage' | 'threads' | 'optimize' | 'prices' | 'sources';
 export interface Route {
@@ -8,7 +9,7 @@ export interface Route {
   optimizeGroup?: 'pending'|'history'; optimizeCategory?: 'repair'|'trim'|'organize'|'space'; optimizeOffset?: number;
   agentsBytes?: number; descriptionCharacters?: number;
   returnTo?: string;operation?:string;
-  snapshot?: string; configView?: string; configId?: string; configThread?: string;
+  scopeThread?:string; snapshot?: string; configView?: string; configId?: string; configThread?: string;
   configOffset?: number; evidenceOffset?: number;
   relatedOffset?: number; eventsOffset?: number; periodDetailOffset?: number;
   page: Page; since: string; until: string; timezone: string; project?: string; unassigned?: boolean;
@@ -17,7 +18,7 @@ export interface Route {
   dimension: 'projects' | 'models'; offset: number; periodOffset: number; turnOffset: number; thread?: string; turn?: string;
   turnView: 'matching' | 'all'; turnSort: 'time' | 'tokens' | 'cost' | 'recent'; periodSort: 'time' | 'tokens' | 'cost';
 }
-export function shiftDate(date: string, days: number): string { return new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10); }
+export const shiftDate = shiftCalendarDate;
 export function today(timezone: string, now = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
   return ['year', 'month', 'day'].map(type => parts.find(p => p.type === type)!.value).join('-');
@@ -38,7 +39,7 @@ export function parseRoute(search: string, now = new Date()): Route {
     agentsBytes:reminder('agentsBytes',1,Number.MAX_SAFE_INTEGER),descriptionCharacters:reminder('descriptionCharacters',0,1024),returnTo:value('returnTo'),
     allTime:value('allTime')==='1',optimizeView:value('optimizeView'),decisionRevision:value('decisionRevision'),suggestion:value('suggestion'),suggestionRecord:value('suggestionRecord'),
     optimizeGroup:choice('optimizeGroup',['pending','history'] as const,'pending'),optimizeCategory:choice('optimizeCategory',['repair','trim','organize','space',''] as const,'')||undefined,optimizeOffset:Math.max(0,Math.min(Number.MAX_SAFE_INTEGER,Math.floor(Number(p.get('optimizeOffset'))) || 0)),
-    snapshot: value('snapshot'), configView: value('configView'), configId: value('configId'), configThread: value('configThread'),
+    scopeThread:value('scopeThread'),snapshot: value('snapshot'), configView: value('configView'), configId: value('configId'), configThread: value('configThread'),
     configOffset: Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number(p.get('configOffset'))) || 0)), evidenceOffset: Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number(p.get('evidenceOffset'))) || 0)),
     relatedOffset: Math.max(0,Math.min(Number.MAX_SAFE_INTEGER,Math.floor(Number(p.get('relatedOffset'))) || 0)), eventsOffset: Math.max(0,Math.min(Number.MAX_SAFE_INTEGER,Math.floor(Number(p.get('eventsOffset'))) || 0)), periodDetailOffset: Math.max(0,Math.min(Number.MAX_SAFE_INTEGER,Math.floor(Number(p.get('periodDetailOffset'))) || 0)),
     project: value('project'), unassigned: value('unassigned') === '1', model: value('model'), modelUnknown: value('modelUnknown') === '1', effort: value('effort'), effortUnknown: value('effortUnknown')==='1', undated:value('undated')==='1', agent: value('agent'), source: value('source'), search: value('search'),
@@ -84,11 +85,11 @@ export function returnRoute(route: Route): Route | undefined {
   return parseRoute(route.returnTo);
 }
 export function scopeOf(r: Route): UsageScope {
-  return { allTime:r.allTime||undefined, since: r.undated||r.allTime?undefined:r.since, until: r.undated||r.allTime?undefined:shiftDate(r.until,1), undated:r.undated||undefined, timezone: r.timezone, project: r.project, projectUnknown: r.unassigned || undefined,
+  return { threadId:r.scopeThread,allTime:r.allTime||undefined, since: r.undated||r.allTime?undefined:r.since, until: r.undated||r.allTime?undefined:shiftDate(r.until,1), undated:r.undated||undefined, timezone: r.timezone, project: r.project, projectUnknown: r.unassigned || undefined,
     model: r.model, modelUnknown: r.modelUnknown || undefined, reasoningEffort: r.effort, effortUnknown:r.effortUnknown||undefined, agentKind: r.agent, sourceInstanceId: r.source };
 }
 export function fromScope(scope: UsageScope): Partial<Route> {
-  return { relativeDays:undefined,allTime:scope.allTime??false,...(scope.since?{since:scope.since}:{}), ...(scope.until?{until:shiftDate(scope.until,-1)}:{}), ...(scope.timezone?{timezone:scope.timezone}:{}), undated:scope.undated??false,
+  return { scopeThread:scope.threadId??undefined,relativeDays:undefined,allTime:scope.allTime??false,...(scope.since?{since:scope.since}:{}), ...(scope.until?{until:shiftDate(scope.until,-1)}:{}), ...(scope.timezone?{timezone:scope.timezone}:{}), undated:scope.undated??false,
     project: scope.project ?? undefined, unassigned: scope.projectUnknown ?? false, model: scope.model ?? undefined, modelUnknown: scope.modelUnknown ?? false,
     effort: scope.reasoningEffort ?? undefined, effortUnknown:scope.effortUnknown??false, agent: scope.agentKind ?? undefined, source: scope.sourceInstanceId ?? undefined };
 }

@@ -1,0 +1,15 @@
+{
+  "name": "wombat",
+  "description": "Local Codex usage, task history and configuration evidence workflows",
+  "license": "MIT",
+  "homepage": "https://github.com/wangyan9110/wombat",
+  "requiredCapabilities": [
+    "usage-json-v3",
+    "config-json-v1",
+    "account-json-v1",
+    "handoff-json-v1",
+    "web-context-v1",
+    "collection-json-v1",
+    "setup-json-v1"
+  ]
+}

@@ -3,6 +3,8 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { CoreError, createUsageClient, type QueryOptions, type UsageClient, type UsageRequest } from '@wombat/client';
+import {prepareWebView} from './context.js';
+import {webViewSearch,type WebViewRequest} from '@wombat/client';
 import { backgroundPrices } from './automatic-prices.js';
 import { timingAccess, publishTiming, activityAccess } from './timing.js';
 
@@ -19,7 +21,7 @@ export interface WebHostOptions {
   automaticPrices?: boolean;
   restartCommand?: string;
 }
-export interface WebHost { url: string; origin: string; close(): Promise<void> }
+export interface WebHost { url: string; origin: string; close(): Promise<void>; openView(request:WebViewRequest,query?:QueryOptions):Promise<{url:string;context:WebViewRequest}> }
 
 async function loadAssets(directory: string): Promise<Map<string, { body: Buffer; type: string }>> {
   const assets = new Map<string, { body: Buffer; type: string }>();
@@ -102,6 +104,18 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
   const activity = activityAccess(options.client,snapshots,()=>options.roots,revalidateFixed);
   const client = createUsageClient({
     timing,
+    setup:async(r,q)=>{
+      if(!options.client.setup)throw new CoreError('SETUP_UNAVAILABLE','Setup unavailable');
+      if(r.roots!=null)throw new CoreError('INVALID_ARGUMENT','Web scope is fixed at startup');
+      await revalidateFixed(q);await discoverProject(r.project,q);
+      return options.client.setup({...r,roots:options.roots},q);
+    },
+    collection: async (r,q) => {
+      if(!options.client.collection) throw new CoreError('COLLECTION_UNAVAILABLE','Collection unavailable');
+      if(r.roots!=null) throw new CoreError('INVALID_ARGUMENT','Web scope is fixed at startup');
+      await revalidateFixed(q); await discoverProject(r.project,q);
+      return options.client.collection({...r,roots:options.roots},q);
+    },
     query: async (r, q) => {
       const result = await options.client.query(scope(r), q);
       observeProjects(result);
@@ -165,7 +179,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       const supplied = Buffer.from(req.headers.authorization ?? '');
       if (supplied.length !== authorization.length || !timingSafeEqual(supplied, authorization) || req.headers.origin !== origin) return reject(403);
       if (req.method !== 'POST') return reject(405);
-      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences','/api/directories','/api/account','/api/handoff','/api/timing'].includes(req.url)) return reject(404);
+      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences','/api/directories','/api/account','/api/handoff','/api/timing','/api/collection','/api/setup'].includes(req.url)) return reject(404);
       if (req.headers['content-type'] !== 'application/json') return reject(415);
       if (Number(req.headers['content-length'] ?? 0) > BODY_LIMIT) return reject(413);
       if (active.size >= 8) return reject(429);
@@ -195,7 +209,9 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         // Revocation from another CLI/window is authoritative at the next request.
         if(req.url!=='/api/directories'&&req.url!=='/api/account'&&req.url!=='/api/timing'&&options.client.directories)updateGrants(await options.client.directories({action:'list'},query));
         // createUsageClient validates each unknown payload before the typed transport runs.
-        const value = req.url === '/api/timing' ? await client.timing!(request as Parameters<NonNullable<UsageClient['timing']>>[0], query)
+        const value = req.url === '/api/setup' ? await client.setup!(request as Parameters<NonNullable<UsageClient['setup']>>[0],query)
+          : req.url === '/api/collection' ? await client.collection!(request as Parameters<NonNullable<UsageClient['collection']>>[0],query)
+          : req.url === '/api/timing' ? await client.timing!(request as Parameters<NonNullable<UsageClient['timing']>>[0], query)
           : req.url === '/api/query' ? await client.query(request as Parameters<UsageClient['query']>[0], query)
           : req.url === '/api/account' ? await client.account!(request as Parameters<NonNullable<UsageClient['account']>>[0],query)
           : req.url === '/api/handoff' ? await client.handoff!(request as Parameters<NonNullable<UsageClient['handoff']>>[0],query)
@@ -249,7 +265,14 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       host = `127.0.0.1:${address.port}`; origin = `http://${host}`; resolve();
     });
   });
-  return { origin, url: `${origin}/#token=${token}${options.locale ? `&lang=${options.locale}` : ''}`, close: async () => {
+  return { origin, openView:async(request,query={})=>{
+    if(closing)throw new CoreError('CANCELLED','Web host is closed');
+    const q={...query,signal:AbortSignal.any([lifetime.signal,query.signal??new AbortController().signal,AbortSignal.timeout(30000)])};
+    const context=await prepareWebView(options.client,request,{roots:options.roots??[],projectRoots,authorizeProject:discoverProject},q);
+    const snapshot=context.usage?.snapshotId;if(snapshot){snapshots.add(snapshot);if(snapshots.size>128)snapshots.delete(snapshots.values().next().value!);}
+    const version=context.configuration?.readView??context.optimization?.readView;if(version){configViews.add(version);if(configViews.size>128)configViews.delete(configViews.values().next().value!);}
+    return {url:`${origin}/${webViewSearch(context)}#token=${token}${options.locale?`&lang=${options.locale}`:''}`,context};
+  }, url: `${origin}/#token=${token}${options.locale ? `&lang=${options.locale}` : ''}`, close: async () => {
     if (closing) return;
     closing = true;
     lifetime.abort();

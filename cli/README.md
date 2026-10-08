@@ -10,6 +10,8 @@
 - `refresh`、`usage`、`threads`、`turns`、`steps`、`prices`、`optimize`、`timing` 经 `@wombat/client/node` 调用共享内核。
 - 无子命令时输出用量文本，与 `usage` 一致；`web` 显式启动交互页面。
 
+- `skill install/status/uninstall` 管理独立本机副本；正式插件由 Codex 管理。`web --context FILE` 验证并打开同范围视图。
+
 - 展示语言使用 `@wombat/client/locale`，详见[产品语言与文案](../docs/i18n/product.md)。
 
 ## 限制与验证
@@ -35,3 +37,7 @@ Wombat 会拒绝未知快照或索引格式，不会迁移或删除原数据。�
 `wombat web` 动态加载本机宿主，注入 Node 客户端并使用打包的 `dist/web/` 资产。启动链接和退出归 CLI 管理；来源范围固定于启动参数。
 
 耗时文本展示重复行为汇总、耗时来源、请求出现记录与本地化覆盖说明。JSON 保持生成响应不变。计算与分享口径见[核心参考](../core/README.md)。
+
+## 采集入口
+
+`setup` 分别报告运行时、发现和注册观察，不安装或执行模型任务。`collection` 暴露内核偏好、状态、安全事件分页及暂停与恢复；JSON 使用生成的版本 1 响应。本机偏好修改与按项目筛选的读取分开。`hook codex` 是有上限的 advisory stdin 入口，不输出 stdout，接收失败时也退出 0，因此不会提供模型上下文或权限决定。[CLI 指南](../docs/guides/cli.md)负责命令和限制。

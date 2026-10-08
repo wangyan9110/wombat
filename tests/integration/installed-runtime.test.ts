@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { accessSync, constants, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, cpSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test } from 'node:test';
-import { installCodexSkill } from '../../scripts/install-codex-skill.ts';
 
 function canonicalPath(file: string): string {
   const resolved = realpathSync.native(file);
@@ -28,25 +27,18 @@ async function stopService(child: ChildProcess): Promise<void> {
   assert.equal(stopped(), true, 'installed runtime service did not stop');
 }
 
-test('skill installation preserves custom skills even with replace', () => {
-  const temp = mkdtempSync(path.join(os.tmpdir(), 'wombat-skill-existing-'));
-  try {
-    const file = path.join(temp, 'wombat/SKILL.md');
-    mkdirSync(path.dirname(file)); writeFileSync(file, 'User-owned skill');
-    assert.throws(() => installCodexSkill(temp, true), /already exists/);
-    assert.equal(readFileSync(file, 'utf8'), 'User-owned skill');
-  } finally { rmSync(temp, { recursive: true, force: true }); }
-});
-
 test('installed runtime queries synthetic usage, fixed drill-down and configuration outside the repository', { timeout: 45000 }, async () => {
-  const temp = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'wombat-skill-flow-')));
+  const temp = realpathSync.native(mkdtempSync(path.join(os.tmpdir(), 'wombat-skill-flow-')));
   let service: ChildProcess | undefined;
   try {
-    const skills = path.join(temp, 'skills'), installed = installCodexSkill(skills);
-    assert.throws(() => installCodexSkill(skills), /already exists/);
-    const marker = JSON.parse(readFileSync(path.join(installed, 'installation.json'), 'utf8')) as { target: string; files: { path: string; executable: boolean }[] };
-    assert.equal(marker.target, process.platform + '-' + process.arch);
-    for (const file of marker.files.filter(file => file.executable)) accessSync(path.join(installed, file.path), constants.X_OK);
+    const installed = path.join(temp, 'runtime');
+    mkdirSync(installed);
+    const dist = path.resolve('dist');
+    for (const name of readdirSync(dist).filter(name => /^wombat(?:-.*)?\.js$/.test(name))) cpSync(path.join(dist, name), path.join(installed, name));
+    const coreName = process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core';
+    cpSync(path.join(dist, coreName), path.join(installed, coreName));
+    for (const name of ['web', 'skill']) cpSync(path.join(dist, name), path.join(installed, name), {recursive:true});
+    accessSync(path.join(installed, coreName), constants.X_OK);
     const source = path.join(temp, 'source'), project = path.join(temp, 'project');
     mkdirSync(path.join(source, 'sessions'), { recursive: true }); mkdirSync(project);
     writeFileSync(path.join(project, 'AGENTS.md'), '# Project\nSynthetic instructions.\n');
@@ -60,7 +52,7 @@ test('installed runtime queries synthetic usage, fixed drill-down and configurat
       writeFileSync(path.join(source, 'sessions', id + '.jsonl'), rows.map(row => JSON.stringify(row)).join('\n') + '\n');
     }
     const env = { ...process.env, WOMBAT_DATA_HOME: path.join(temp, 'data'), CODEX_HOME: source, WOMBAT_AUTO_PRICES: '0', WOMBAT_CORE_BIN: '' };
-    const core = path.join(installed, 'runtime', process.platform === 'win32' ? 'wombat-core.exe' : 'wombat-core');
+    const core = path.join(installed, coreName);
     service = spawn(core, ['--serve-usage'], { cwd: temp, env, windowsHide: true, stdio: 'ignore' });
     await new Promise<void>((resolve, reject) => {
       const ready = () => { service!.off('error', failed); resolve(); };
@@ -71,7 +63,7 @@ test('installed runtime queries synthetic usage, fixed drill-down and configurat
     await delay(100);
     assert.equal(service.exitCode, null, 'installed runtime service exited during startup');
     const invoke = (args: string[]): any => {
-      const result = spawnSync(process.execPath, [path.join(installed, 'runtime/wombat.js'), ...args, '--json'], {
+      const result = spawnSync(process.execPath, [path.join(installed, 'wombat.js'), ...args, '--json'], {
         cwd: temp, env,
         encoding: 'utf8', timeout: 15000, maxBuffer: 4 * 1024 * 1024,
       });
@@ -96,7 +88,6 @@ test('installed runtime queries synthetic usage, fixed drill-down and configurat
     const suggestions = invoke(['optimize', 'list', ...configArgs, '--read-view', inventory.readView]);
     assert.ok(suggestions.suggestions.some((item: { item: { path: string }; findings: { rule: string }[] }) => canonicalPath(item.item.path) === canonicalSkill && item.findings.some(finding => finding.rule === 'descriptionSize')));
     await stopService(service); service = undefined;
-    assert.equal(installCodexSkill(skills, true), installed);
     assert.ok(invoke(['--help']).commands.includes('optimize'));
   } finally {
     if (service) await stopService(service);

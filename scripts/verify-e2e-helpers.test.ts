@@ -75,11 +75,11 @@ test('external Playwright package identity binds implementation contents and ver
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 
-test('acceptance fixture identity changes when a test or referenced integration asset changes', () => {
+test('acceptance fixture identity changes when a test or referenced Skill asset changes', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'wombat-e2e-inputs-'));
   try {
-    for (const directory of ['tests/integration', 'tests/e2e', 'integrations/codex/skills/wombat']) mkdirSync(path.join(temp, directory), { recursive: true });
-    const testFile = path.join(temp, 'tests/e2e/example.test.ts'), fixture = path.join(temp, 'integrations/codex/skills/wombat/SKILL.md');
+    for (const directory of ['tests/integration', 'tests/e2e', 'skill/wombat']) mkdirSync(path.join(temp, directory), { recursive: true });
+    const testFile = path.join(temp, 'tests/e2e/example.test.ts'), fixture = path.join(temp, 'skill/wombat/SKILL.md');
     writeFileSync(testFile, 'assert.equal(1, 1)'); writeFileSync(fixture, 'fixture-v1');
     const first = acceptanceInputIdentity(temp);
     writeFileSync(testFile, 'assert.equal(1, 2)');

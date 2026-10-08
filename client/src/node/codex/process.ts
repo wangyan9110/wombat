@@ -2,11 +2,12 @@ import {spawn, type ChildProcessWithoutNullStreams} from 'node:child_process';
 import {CoreError} from '../../errors.js';
 import type {QueryOptions} from '../../client.js';
 
-export interface CodexOptions { codexBinaryPath?: string; codexTimeoutMs?: number }
+export interface CodexOptions { codexBinaryPath?: string; codexTimeoutMs?: number; codexHome?: string }
 export function spawnCodex(args: string[], options: CodexOptions): ChildProcessWithoutNullStreams {
   const binary=options.codexBinaryPath ?? process.env.WOMBAT_CODEX_BIN ?? 'codex';
   const script=/\.[cm]?[jt]s$/.test(binary);
   return spawn(script?process.execPath:binary, script?[binary,...args]:args, {
+    env:options.codexHome?{...process.env,CODEX_HOME:options.codexHome}:process.env,
     stdio:['pipe','pipe','pipe'], windowsHide:true, detached:process.platform!=='win32',
   });
 }

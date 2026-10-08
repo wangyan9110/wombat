@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wombat"
+  short_description: "Explore local usage, tasks and configuration evidence"
+  default_prompt: "Use $wombat to explain my local Codex usage and relevant configuration evidence."
