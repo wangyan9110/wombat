@@ -1,12 +1,12 @@
 {
-  "summary": "This stable release adds whole-turn timing and event analysis for Codex tasks, with progressive project loading and more reliable updates while tasks are running.",
+  "summary": "This stable release brings local Codex usage analysis and configuration review into your existing conversation through a Codex plugin, with a Web dashboard for detailed evidence.",
   "highlights": [
-    "Inspect whole-turn durations, operation outcomes, repeated behavior, and changes in recorded request input through the Web interface and the timing CLI.",
-    "Open evidence pages tied to the same task, turn, and read version. Missing records remain explicit rather than becoming zero values or claims about the cause of slow work.",
-    "View committed project results progressively during large initial reads, with less event allocation and more targeted project event queries.",
-    "Keep reading Codex records while files are appended, and refresh active Web data every five minutes.",
-    "Resolve recorded Windows and Unix paths consistently, and recognize replaced Windows logs without relying on their creation time.",
-    "Create a separate timing summary for sharing with direct identifiers removed. Local evidence and the sharing summary remain separate."
+    "Install Wombat and its Codex plugin together, then ask questions about usage and project configuration in your existing Codex conversation. Open a Web view for the same project and data version.",
+    "Investigate usage increases through task and period comparisons, input trajectories, cache reuse, repeated requests, compaction comparisons and resource records.",
+    "Review AGENTS.md, Skills, MCP entries and Hooks for format issues, local references, Hook targets, duplicate instruction blocks and other supported checks. Review recommendations, authorize selected changes and rerun the same checks.",
+    "Read native Codex allowance observations and stored history separately from local token usage and estimated API costs.",
+    "Optionally collect native Hook observations through the collection plugin. Inspect project-scoped event receipts and pause or resume collection; historical log reading remains available without it.",
+    "Keep displayed numbers aligned with the selected Chinese or English language, including compact Token values. English count labels now use singular wording for one task, suggestion, session, operation or response."
   ],
   "knownLimitations": [
     "Codex is the only production data source in this release; support for other agents is planned.",
@@ -14,6 +14,6 @@
     "Older snapshot or index formats can be rejected without migration. Preserve the original data directory and its user decisions. A different WOMBAT_DATA_HOME creates an isolated store; it does not repair the old store or transfer its decisions.",
     "Timing describes recorded activity and can be partial or provisional. It does not establish why work was slow, code quality, token savings, or model performance.",
     "A sharing summary removes direct identifiers but does not guarantee anonymity. Preview it before sharing.",
-    "Large first reads can still take time. Native handoff requires a compatible local Codex installation; Wombat currently provides local Web and CLI interfaces."
+    "Large first reads can still take time. Native Codex plugin discovery and Hook registration require a compatible local Codex. Windows Hook collection remains unverified."
   ]
 }

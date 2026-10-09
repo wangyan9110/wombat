@@ -19,7 +19,7 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 ## Get started
 
-**Stable: [`v0.2.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.2.0).**
+**Stable: [`v0.3.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.0).**
 
 Wombat supports macOS, Linux, and Windows. No development tools or API key are required for local inspection. Install a compatible local Codex first to use the plugin.
 
