@@ -1,4 +1,5 @@
 import {realpathSync} from 'node:fs';
+import {spawn} from 'node:child_process';import {once} from 'node:events';
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,rm} from 'node:fs/promises';import path from 'node:path';import os from 'node:os';
 import {createNodeClient} from '@wombat/client/node';import {startWebHost} from '@wombat/web';import {createHttpClient} from '@wombat/client/http';
@@ -6,11 +7,15 @@ test('Web context validates live source scope, preserves exact versions and conv
   const root=realpathSync.native(await mkdtemp(path.join(os.tmpdir(),'wombat-web-context-'))),source=path.join(root,'source'),foreign=path.join(root,'foreign'),project=path.join(root,'project'),old=process.env.WOMBAT_DATA_HOME;
   process.env.WOMBAT_DATA_HOME=path.join(root,'data');
   let host:Awaited<ReturnType<typeof startWebHost>>|undefined;
+  let service:ReturnType<typeof spawn>|undefined;
   try{
     await mkdir(path.join(source,'sessions'),{recursive:true});await mkdir(path.join(foreign,'sessions'),{recursive:true});await mkdir(project);
-    const client=createNodeClient({automaticPrices:false,binaryPath:path.resolve('dist',process.platform==='win32'?'wombat-core.exe':'wombat-core')});
+    const binary=path.resolve('dist',process.platform==='win32'?'wombat-core.exe':'wombat-core');
+    service=spawn(binary,['--serve-usage'],{stdio:'ignore',env:process.env});await once(service,'spawn');
+    const client=createNodeClient({automaticPrices:false,binaryPath:binary});
     const scope={since:'2026-10-01',until:'2026-10-04',timezone:'Asia/Shanghai'};
     const result=(await client.live!({query:{action:'usage',roots:[source],scope,limit:1},mode:'fresh'})).result;
+    assert.equal(service.exitCode,null);assert.equal(service.signalCode,null);
     await assert.rejects(client.live!({query:{action:'usage',roots:[foreign],snapshotId:result.snapshotRef.snapshotId},mode:'cached'}),{code:'INVALID_ARGUMENT'});
     host=await startWebHost({client,assets:path.resolve('dist/web'),roots:[source],projectRoots:[project],automaticPrices:false,locale:'en'});
     const opened=await host.openView({page:'usage',usage:{action:'usage',snapshotId:result.snapshotRef.snapshotId,scope,limit:1}});
@@ -32,5 +37,9 @@ test('Web context validates live source scope, preserves exact versions and conv
     await assert.rejects(host.openView({page:'instructions',configuration:{action:'list',sort:'size'}}),{code:'INVALID_ARGUMENT'});
     const foreignView=(await client.live!({query:{action:'usage',roots:[foreign],limit:1},mode:'fresh'})).result;
     await assert.rejects(host.openView({page:'usage',usage:{action:'usage',snapshotId:foreignView.snapshotRef.snapshotId}}),{code:'INVALID_ARGUMENT'});
-  }finally{await host?.close();if(old===undefined)delete process.env.WOMBAT_DATA_HOME;else process.env.WOMBAT_DATA_HOME=old;await rm(root,{recursive:true,force:true});}
+  }finally{
+    await host?.close();
+    if(service&&service.exitCode===null&&service.signalCode===null){const closed=once(service,'close');service.kill('SIGTERM');const kill=setTimeout(()=>service?.kill('SIGKILL'),2000);try{await closed;}finally{clearTimeout(kill);}}
+    if(old===undefined)delete process.env.WOMBAT_DATA_HOME;else process.env.WOMBAT_DATA_HOME=old;await rm(root,{recursive:true,force:true});
+  }
 });
