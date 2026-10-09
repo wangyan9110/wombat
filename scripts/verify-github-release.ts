@@ -146,10 +146,10 @@ try {
   const previousBaseUrl = downloadPublishedRelease(previousTag, previousArchive);
   const upgradePrefix = path.join(scratch, 'upgrade-prefix');
   const installer = process.platform === 'win32'
-    ? spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.resolve('install.ps1'), '-Version', previousTag,
+    ? spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.resolve('scripts/install/install.ps1'), '-Version', previousTag,
       '-Prefix', upgradePrefix, '-BaseUrl', previousBaseUrl],
       {cwd: path.resolve('.'), encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024, windowsHide: true})
-    : spawnSync('sh', [path.resolve('install.sh'), '--version', previousTag, '--prefix', upgradePrefix, '--base-url', previousBaseUrl],
+    : spawnSync('sh', [path.resolve('scripts/install/install.sh'), '--version', previousTag, '--prefix', upgradePrefix, '--base-url', previousBaseUrl],
       {cwd: path.resolve('.'), encoding: 'utf8', timeout: 300_000, maxBuffer: 8 * 1024 * 1024});
   assert.ifError(installer.error); assert.equal(installer.status, 0, installer.stderr + installer.stdout);
   const upgradeRoot = path.join(upgradePrefix, 'lib', 'wombat');

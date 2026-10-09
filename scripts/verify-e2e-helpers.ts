@@ -1,4 +1,5 @@
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { spawnSync, type ChildProcess } from 'node:child_process';
+import spawn from 'cross-spawn';
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { closeSync, createWriteStream, openSync, writeSync } from 'node:fs';
 import { once } from 'node:events';
@@ -8,6 +9,10 @@ import { builtFiles, sourceIdentity } from './build-identity.ts';
 import { hash, hashFile, inventory, type PayloadFile } from './artifact-files.ts';
 
 export const VERIFY_E2E_VERSION = 1;
+export function stdoutFromLog(log: string): string {
+  const pattern = /\n\[(stdout|stderr)\] /g, parts = [...log.matchAll(pattern)];
+  return parts.map((part, index) => part[1] === 'stdout' ? log.slice(part.index! + part[0].length, parts[index + 1]?.index ?? log.length) : '').join('');
+}
 export type Scope = 'api' | 'browser' | 'all';
 export interface VerifyOptions {
   scope: Scope;
@@ -90,7 +95,7 @@ export function artifactIdentity(files: PayloadFile[]): string {
 }
 
 export function acceptanceInputIdentity(root: string): string {
-  const files = (['tests/integration', 'tests/e2e', 'skill'] as const).flatMap(directory =>
+  const files = (['tests/integration', 'tests/e2e', 'plugin'] as const).flatMap(directory =>
     inventory(path.join(root, directory)).map(file => ({ ...file, path: `${directory}/${file.path}` })));
   return hash(JSON.stringify(files));
 }

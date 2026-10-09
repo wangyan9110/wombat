@@ -24,7 +24,7 @@ Choose documentation by task. Source code, technical references, and implementat
 - [Contracts](development/contracts.en.md): Rust source of truth, generated types, versions, and formats.
 - [Source adapter acceptance](development/adapters.en.md): independent truth, data attribution, and failure cases.
 - [GitHub distribution decision](decisions/implemented/architecture/2026-10-04-github-release-distribution.en.md): durable packaging and channel rationale. Repeatable release operations belong to the [release Skill](../.agents/skills/wombat-release/SKILL.md).
-- [Contributing](../CONTRIBUTING.md) provides repository workflow entry points.
+- [Contributing](../.github/CONTRIBUTING.md) provides repository workflow entry points.
 
 ## Decisions and documentation maintenance
 

@@ -19,11 +19,11 @@ import { toolCommand } from './run-tool.ts';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const apiVersion = '2026-03-10';
 const managedReleaseFiles = new Set([
-  'README.i18n.json', 'README.md', 'README.zh-CN.md',
+  'docs/i18n/records/README.i18n.json', 'README.md', 'README.zh-CN.md',
   'cli/package.json', 'client/package.json', 'core/Cargo.lock', 'core/Cargo.toml',
   'docs/dependency-licenses.json', 'docs/guides/installation.en.md',
   'docs/guides/installation.i18n.json', 'docs/guides/installation.md',
-  'install.sh', 'package.json', 'ui/package.json', 'web/package.json',
+  'scripts/install/install.sh', 'scripts/install/install.ps1', 'package.json', 'ui/package.json', 'web/package.json',
   'scripts/release-notes/current.json',
 ]);
 
@@ -326,7 +326,7 @@ async function cleanInstall(version: string, source: string, repository: string,
   }
   // The documented raw URLs must work without authentication and match this source.
   for (const installer of ['install.sh', 'install.ps1']) {
-    const response = await fetch(`https://raw.githubusercontent.com/${repository}/main/${installer}`, { signal: AbortSignal.timeout(60_000) });
+    const response = await fetch(`https://raw.githubusercontent.com/${repository}/main/scripts/install/${installer}`, { signal: AbortSignal.timeout(60_000) });
     if (!response.ok) throw new Error(`Public installer URL failed: ${installer} (${response.status})`);
     const content = await response.text();
     if (Buffer.byteLength(content) > 1024 * 1024 || content !== readFileSync(path.join(releaseDirectory, installer), 'utf8')) {

@@ -3,7 +3,7 @@ import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import path from 'node:path';
 import {hash, hashFile, inventory, type PayloadFile} from './artifact-files.ts';
 export function sourceIdentity(root: string): string {
-  const paths = ['skill', 'core', 'client', 'cli', 'ui', 'web', 'scripts', 'licenses', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'rust-toolchain.toml', 'tsconfig.json'];
+  const paths = ['plugin', 'core', 'client', 'cli', 'ui', 'web', 'scripts', 'licenses', 'LICENSE', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'rust-toolchain.toml', 'tsconfig.json'];
   const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', ...paths], {cwd: root, encoding: 'utf8'}).split('\0').filter(f => f && existsSync(path.join(root, f)));
   return hash([...new Set(files)].sort().map(f => f+'\0'+hashFile(path.join(root, f))).join('\n'));
 }

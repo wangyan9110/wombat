@@ -64,11 +64,18 @@ for (const target of targets) {
     cpSync(path.join(root, 'dist', 'web'), path.join(runtime, 'web'), {recursive: true});
     cpSync(path.join(root, 'dist', 'skill'), path.join(runtime, 'skill'), {recursive: true});
     copyFileSync(path.join(root, 'LICENSE'), path.join(bundle, 'LICENSE'));
-    copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(bundle, 'THIRD_PARTY_NOTICES.md'));
+    const notices = readFileSync(path.join(root, 'licenses/THIRD_PARTY_NOTICES.md'), 'utf8');
+    writeFileSync(path.join(bundle, 'THIRD_PARTY_NOTICES.md'), notices
+      .replace('(../LICENSE)', '(LICENSE)')
+      .replace('(node-dependencies.txt)', '(lib/licenses/node-dependencies.txt)')
+      .replace('(rust-dependencies.txt)', '(lib/licenses/rust-dependencies.txt)')
+      .replace('(../docs/dependency-licenses.json)', '(lib/licenses/inventory.json)'));
     copyFileSync(path.join(root, 'README.md'), path.join(bundle, 'README.md'));
     copyFileSync(path.join(root, 'README.zh-CN.md'), path.join(bundle, 'README.zh-CN.md'));
     copyFileSync(path.join(root, 'LICENSE'), path.join(licenses, 'wombat-MIT.txt'));
-    copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(licenses, 'third-party-notices.md'));
+    writeFileSync(path.join(licenses, 'third-party-notices.md'), notices
+      .replace('(../LICENSE)', '(wombat-MIT.txt)')
+      .replace('(../docs/dependency-licenses.json)', '(inventory.json)'));
 
     const binary = nativeBinary(target);
     const runtimeBinary = nodeRuntimeBinary(target);

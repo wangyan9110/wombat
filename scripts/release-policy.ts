@@ -35,12 +35,12 @@ export function rootReadmeReleaseErrors(
   const requirements = [
     ['README.md', readmes.english, [
       `[\`v${version}\`](${releaseUrl})`,
-      `${raw}/install.sh`, `${raw}/install.ps1`, ...versionRequirements,
+      `${raw}/scripts/install/install.sh`, `${raw}/scripts/install/install.ps1`, ...versionRequirements,
       'macOS arm64/x64', 'Linux glibc arm64/x64', 'Windows x64',
     ]],
     ['README.zh-CN.md', readmes.chinese, [
       `[\`v${version}\`](${releaseUrl})`,
-      `${raw}/install.sh`, `${raw}/install.ps1`, ...versionRequirements,
+      `${raw}/scripts/install/install.sh`, `${raw}/scripts/install/install.ps1`, ...versionRequirements,
       'macOS arm64/x64', 'Linux glibc arm64/x64', 'Windows x64',
     ]],
   ] as const;

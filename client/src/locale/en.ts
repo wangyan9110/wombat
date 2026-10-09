@@ -43,7 +43,7 @@ export const en = {
   "setup.receiptScope": "Event receipt uses the selected source and project. Without a selected project, it includes all projects in that source. Usage date, model and unassigned-project filters do not apply to these event records.",
   "setup.registrationNote": "Skill availability, Hook registration and actual event receipt are independent. Silence does not establish a connection failure.",
   "setup.projectNote": "Select a project before checking its Skills and Hooks. Other projects are not inferred.",
-  "setup.installNote": "Install a standalone copy if the Skill is missing. Keep the plugin mode if already in use. Choose explicitly when multiple instances exist.",
+  "setup.installNote": "Install the Wombat plugin through Codex if missing. Keep your existing collection plugin, or choose one plugin when switching modes. Remove unchanged standalone copies with wombat skill uninstall --json.",
   "setup.hookInstallNote": "Install the collection plugin through the Wombat local marketplace. Installation does not enable collection or trust Hooks automatically.",
   "setup.nativeTrust": "Review declarations and trust in Codex /hooks, then recheck.",
   "setup.recheck": "Recheck",

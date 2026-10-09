@@ -102,8 +102,8 @@ jobs:
             candidate/wombat-*.tar.gz
             candidate/SHA256SUMS
             candidate/release-set.json
-            install.sh
-            install.ps1
+            scripts/install/install.sh
+            scripts/install/install.ps1
       - name: Publish the complete draft
         env:
           GH_TOKEN: ${{ github.token }}

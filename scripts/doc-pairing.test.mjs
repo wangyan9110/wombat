@@ -43,3 +43,29 @@ test('unclosed fences and translations captured at module load fail checks', () 
   assert.ok(inspect(zh + '\n```ts\nx\n', en + '\n```ts\nx\n').errors.some(error => error.includes('unclosed')));
   assert.ok(findCopy('view.ts', 'const title = t("common.title");').some(error => error.includes('initialization')));
 });
+
+test('the shipped pairing check includes GitHub community pages and narrow template exclusions', async t => {
+  const {copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync} = await import('node:fs');
+  const {spawnSync} = await import('node:child_process');
+  const path = await import('node:path');
+  const os = await import('node:os');
+  const {fileURLToPath} = await import('node:url');
+  const root = mkdtempSync(path.join(os.tmpdir(), 'wombat-community-pairing-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const directory of ['scripts', 'docs/i18n/records', 'core', 'client', 'cli', 'ui', 'web', '.github']) mkdirSync(path.join(root, directory), {recursive: true});
+  symlinkSync(fileURLToPath(new URL('../node_modules', import.meta.url)), path.join(root, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
+  for (const file of ['check-doc-i18n.mjs', 'doc-pairing.mjs']) copyFileSync(new URL(file, import.meta.url), path.join(root, 'scripts', file));
+  const community = {zh: '.github/CONTRIBUTING.zh-CN.md', en: '.github/CONTRIBUTING.md', record: 'docs/i18n/records/CONTRIBUTING.i18n.json'};
+  const chinese = '# 贡献\n\n中文 | [English](CONTRIBUTING.md)\n\n使用合成数据。\n';
+  const english = '# Contributing\n\nEnglish | [中文](CONTRIBUTING.zh-CN.md)\n\nUse synthetic data.\n';
+  const inspected = inspectPair(community, chinese, english, new Map([[community.zh, community], [community.en, community]]));
+  assert.deepEqual(inspected.errors, []);
+  writeFileSync(path.join(root, community.zh), chinese); writeFileSync(path.join(root, community.en), english);
+  writeFileSync(path.join(root, community.record), JSON.stringify(inspected.record, null, 2) + '\n');
+  writeFileSync(path.join(root, '.github/pull_request_template.md'), 'Change / 改动\n');
+  writeFileSync(path.join(root, 'scripts/doc-i18n.manifest.json'), JSON.stringify({pairs: [community], legacyUnpaired: [], excluded: ['.github/pull_request_template.md']}));
+  const run = () => spawnSync(process.execPath, [path.join(root, 'scripts/check-doc-i18n.mjs')], {encoding: 'utf8', timeout: 10000, maxBuffer: 65536});
+  const valid = run(); assert.ifError(valid.error); assert.equal(valid.status, 0, valid.stderr);
+  writeFileSync(path.join(root, '.github/unpaired.md'), '# Missing translation\n');
+  const invalid = run(); assert.equal(invalid.status, 1); assert.match(invalid.stderr, /\.github\/unpaired.md: add a complete bilingual pair/);
+});

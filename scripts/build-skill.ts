@@ -5,14 +5,14 @@ import {execFileSync} from 'node:child_process';
 import {inventory, hash} from './artifact-files.ts';
 
 export function buildSkill(root:string, output=path.join(root,'dist','skill')) {
-  const metadata=JSON.parse(readFileSync(path.join(root,'skill/package.json'),'utf8'));
+  const metadata=JSON.parse(readFileSync(path.join(root,'plugin/package.json'),'utf8'));
   const version=JSON.parse(readFileSync(path.join(root,'package.json'),'utf8')).version;
-  const files=inventory(path.join(root,'skill/wombat'));
+  const files=inventory(path.join(root,'plugin/skills/wombat'));
   if(!files.some(f=>f.path==='SKILL.md'))throw new Error('Missing Wombat Skill entry');
   mkdirSync(path.dirname(output),{recursive:true});
   const stage=mkdtempSync(path.join(path.dirname(output),'.skill-build-'));
   try{
-    cpSync(path.join(root,'skill/wombat'),path.join(stage,'wombat'),{recursive:true});
+    cpSync(path.join(root,'plugin/skills/wombat'),path.join(stage,'wombat'),{recursive:true});
     const source=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',timeout:5000,maxBuffer:4096}).trim();
     writeFileSync(path.join(stage,'manifest.json'),JSON.stringify({format:1,name:'wombat',version,source,requiredCapabilities:metadata.requiredCapabilities,files,contentHash:hash(JSON.stringify(files))},null,2)+'\n');
     const plugin=path.join(stage,'plugin');mkdirSync(path.join(plugin,'.codex-plugin'),{recursive:true});
@@ -25,7 +25,7 @@ export function buildSkill(root:string, output=path.join(root,'dist','skill')) {
     writeFileSync(path.join(plugin,'.codex-plugin/plugin.json'),JSON.stringify({...identity,skills:'./skills/',interface:presentation},null,2)+'\n');
     const collection=path.join(stage,'collection-plugin');
     cpSync(plugin,collection,{recursive:true});
-    cpSync(path.join(root,'skill/collection'),collection,{recursive:true});
+    for(const directory of ['hooks','scripts'])cpSync(path.join(root,'plugin',directory),path.join(collection,directory),{recursive:true});
     const collectionIdentity={...identity,name:'wombat-collection'};
     const collectionInterface={...presentation,displayName:'Wombat collection',defaultPrompt:['Use $wombat-collection:wombat to explain local usage and collection evidence.']};
     // Codex 0.160.1 skips lifecycle Hooks when a root manifest is present.

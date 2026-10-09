@@ -43,7 +43,7 @@ export const zh = {
   "setup.receiptScope": "事件接收按所选来源和项目查询；未选择具体项目时，包含该来源的所有项目。用量的日期、模型和未归属项目筛选不适用于这些事件记录。",
   "setup.registrationNote": "Skill 可用、Hooks 已注册与实际收到事件是三种独立状态。事件静默不证明连接失败。",
   "setup.projectNote": "先选择项目，再检查该项目的 Skill 与 Hooks；不会推断其他项目的状态。",
-  "setup.installNote": "未安装 Skill 时可安装独立副本；若已使用插件，请保留插件方式。多个实例需自行选择。",
+  "setup.installNote": "缺少插件时，通过 Codex 安装 Wombat 插件。已有采集插件可继续使用；切换模式时选择一个插件。未修改的独立副本可用 wombat skill uninstall --json 移除。",
   "setup.hookInstallNote": "采集插件通过 Wombat 本地 marketplace 安装。安装插件不会自动启用采集或信任 Hooks。",
   "setup.nativeTrust": "在 Codex 的 /hooks 中检查声明与信任，然后重新检查。",
   "setup.recheck": "重新检查",

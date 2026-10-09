@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const skillRoots = ['.agents/skills', 'skill'];
+const skillRoots = ['.agents/skills', 'plugin/skills'];
 const errors = [];
 let checked = 0;
 
@@ -38,11 +38,6 @@ for (const relativeRoot of skillRoots) {
   if (!existsSync(skillsRoot)) continue;
   for (const entry of readdirSync(skillsRoot, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    if (relativeRoot === 'skill' && entry.name === 'collection') {
-      if (existsSync(path.join(skillsRoot,entry.name,'SKILL.md'))) errors.push('skill/collection is reserved for plugin wiring, not a Skill entry');
-      resourceLinks(path.join(skillsRoot,entry.name));
-      continue;
-    }
     const relative = `${relativeRoot}/${entry.name}/SKILL.md`;
     const file = path.join(skillsRoot, entry.name, 'SKILL.md');
     if (!existsSync(file)) {

@@ -2,11 +2,11 @@
 
 English | [中文](CONTRIBUTING.zh-CN.md)
 
-Wombat uses a shared Rust core with a Node.js CLI and local Web host. Before you start, read [AGENTS.md](AGENTS.md), [architecture](docs/development/architecture.en.md), and the [development workflow](docs/development/workflow.en.md).
+Wombat uses a shared Rust core with a Node.js CLI and local Web host. Before you start, read [AGENTS.md](../AGENTS.md), [architecture](../docs/development/architecture.en.md), and the [development workflow](../docs/development/workflow.en.md).
 
 Install the locked dependencies and build the project. Then run type checks, generated contract checks, and tests. Cross-language tests use `dist` and must run after a build. For Rust changes, check formatting and run clippy with warnings treated as errors.
 
-For documentation or Skill changes, update both versions of paired pages and run `corepack pnpm docs:check`. Follow the [language review rules](docs/i18n/README.en.md) for ASD-STE100 technical writing and translation review.
+For documentation or Skill changes, update both versions of paired pages and run `corepack pnpm docs:check`. Follow the [language review rules](../docs/i18n/README.en.md) for ASD-STE100 technical writing and translation review.
 
 ```sh
 corepack pnpm install --frozen-lockfile
@@ -21,7 +21,7 @@ Keep business rules in Rust. Adapters normalize source facts; pricing and querie
 
 Never commit real messages, tool output, credentials or unaudited raw fields. Preserve user changes and user-owned data. Read-only collection must not mutate source files. No arbitrary execution capabilities belong in rendering interfaces.
 
-Dependency changes require license review and `licenses:generate` / `licenses:check`. Before packaging run `public:check`; this is a guard, not a publication or complete security audit. Record actual tested platforms and limits, not planned capabilities. See [third-party notices](THIRD_PARTY_NOTICES.md).
+Dependency changes require license review and `licenses:generate` / `licenses:check`. Before packaging run `public:check`; this is a guard, not a publication or complete security audit. Record actual tested platforms and limits, not planned capabilities. See [third-party notices](../licenses/THIRD_PARTY_NOTICES.md).
 
 ## Review and automation
 

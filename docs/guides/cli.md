@@ -50,7 +50,7 @@ wombat account history --json
 
 ## Codex Skill
 
-新版[用户 Skill](../../skill/README.md)以对话任务为入口，可结合 Web 查看证据；处理继续在当前 Codex 对话中完成，Web 保留查看与复查。Skill 使用已有 CLI JSON，初始化复用有界索引恢复和同步，账户不等待日志。
+新版[用户 Skill](../../plugin/README.md)以对话任务为入口，可结合 Web 查看证据；处理继续在当前 Codex 对话中完成，Web 保留查看与复查。Skill 使用已有 CLI JSON，初始化复用有界索引恢复和同步，账户不等待日志。
 
 正式插件由 Codex 管理，插件调用名在已核验的 Codex 0.160.0 中为 $wombat:wombat。独立本机试用调用名为 $wombat：
 
@@ -207,7 +207,7 @@ wombat collection mode logs --json
 wombat usage --watch --json
 ```
 
-偏好作用于本机；`--project` 和可重复的 `--root` 只筛选状态与事件。logs 模式忽略新 Hook 输入并保留数据；hooks 模式允许安全接收，不证明注册或信任。安装[本地采集插件](../../skill/README.md)，再在 Codex `/hooks` 中审查声明。POSIX 桥接使用受管启动器或 Codex PATH；Windows 仍未验收。移除插件不删除观察。
+偏好作用于本机；`--project` 和可重复的 `--root` 只筛选状态与事件。logs 模式忽略新 Hook 输入并保留数据；hooks 模式允许安全接收，不证明注册或信任。安装[本地采集插件](../../plugin/README.md)，再在 Codex `/hooks` 中审查声明。POSIX 桥接使用受管启动器或 Codex PATH；Windows 仍未验收。移除插件不删除观察。
 
 暂停最多保留 4,096 条安全观察，恢复后可用；历史仍可查看。最多保留 100,000 条观察，已知溢出和身份冲突计入缺口。缺少原生身份时保持未知；输入拒绝和运行时失败不计入已存缺口，不声称无损投递或完整覆盖。来源事件时间可能缺失，与接收时间分开。已验证日志关联使用当前已提交的来源版本；后续比较前仍需获取普通固定查询视图。
 

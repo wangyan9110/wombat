@@ -8,7 +8,7 @@ import {once} from 'node:events';
 import {setTimeout as delay} from 'node:timers/promises';
 import {parseArgs} from 'node:util';
 import {checkBuild,sourceIdentity} from './build-identity.ts';
-import {assertExternalOutputDir,runBoundedCommand,terminateTree} from './verify-e2e-helpers.ts';
+import {assertExternalOutputDir,runBoundedCommand,terminateTree,stdoutFromLog} from './verify-e2e-helpers.ts';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const record=(v:unknown):v is Record<string,unknown>=>v!=null&&typeof v==='object'&&!Array.isArray(v);
 const integer=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=0;
@@ -26,10 +26,7 @@ export function agentMetrics(stdout:string){
  const sum=(key:string)=>{if(!turns.length||turns.some(t=>!integer(t[key])))return null;const value=turns.reduce((n,t)=>n+(t[key] as number),0);if(!integer(value))throw new Error('Unsafe Agent token total');return value;};
  return {commands,unsupportedToolCalls,toolCalls:commands.length,toolResultBytes:bytes.reduce((a,b)=>a+b,0),inputTokens:sum('input_tokens'),cachedInputTokens:sum('cached_input_tokens'),outputTokens:sum('output_tokens'),reasoningTokens:sum('reasoning_tokens')};
 }
-export function stdoutFromLog(log:string){
- const pattern=/\n\[(stdout|stderr)\] /g,parts=[...log.matchAll(pattern)];
- return parts.map((p,index)=>{const next=parts[index+1];return p[1]==='stdout'?log.slice(p.index!+p[0].length,next?.index??log.length):'';}).join('');
-}
+export {stdoutFromLog} from './verify-e2e-helpers.ts';
 function query(cli:string,env:NodeJS.ProcessEnv,args:string[]){
  const start=performance.now();const run=spawnSync(process.execPath,[cli,...args,'--json'],{cwd:path.dirname(cli),env,encoding:'utf8',timeout:15_000,maxBuffer:1024*1024});
  if(run.error||![0,2].includes(run.status??-1))throw new Error('Installed query failed: '+(run.error?.message??run.stderr.slice(0,1000)));

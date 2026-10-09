@@ -6,7 +6,7 @@
   },
   "scope": "All locked Rust packages with notices, annotated by the enabled normal/build/dev graph across target conditions; disabled optional packages are not compiled into this build. Locally installed Node dependency graphs cover the root and every workspace importer, including development dependencies; first-party private workspace packages are excluded from third-party notices. Optional Node binaries absent on this host are listed separately. This is not cross-platform installation verification.",
   "lockfiles": {
-    "pnpm-lock.yaml": "74e7a5e7a3f614d74b447f2d6f7da4ffc6d75ea83dfa87668bf8c79f00e2824a",
+    "pnpm-lock.yaml": "c48232bc18a17d6389702070c02045d632111eefe781e0067f60329d516dad4c",
     "core/Cargo.lock": "f0f0f09be0448c46aa995c880c3928e9500b4914a0e33a9265779c91a54016f5"
   },
   "node": [
@@ -98,6 +98,19 @@
         {
           "name": "LICENSE",
           "sha256": "e1919b3b98b8bf6c1b99fcc60a0ed46027c97ac947432e1278446c9606f50161"
+        }
+      ]
+    },
+    {
+      "name": "@types/cross-spawn",
+      "version": "6.0.6",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
         }
       ]
     },
@@ -306,6 +319,19 @@
         {
           "name": "license",
           "sha256": "63cb98b3f6abfb3c3592c16f88253c1bdc834087bf52671e8ce5609e4eb693cf"
+        }
+      ]
+    },
+    {
+      "name": "cross-spawn",
+      "version": "7.0.6",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "aaa78451b6fecd1b9c4594c796c133c0e90cad100372ff8bc6de615e9ef9adf1"
         }
       ]
     },
@@ -527,6 +553,19 @@
         {
           "name": "LICENSE",
           "sha256": "4cd903859549d4b20b571041f96dfae1136ed079c476126268f9d7cc1b611150"
+        }
+      ]
+    },
+    {
+      "name": "isexe",
+      "version": "2.0.0",
+      "license": "ISC",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
         }
       ]
     },
@@ -1194,6 +1233,19 @@
       ]
     },
     {
+      "name": "path-key",
+      "version": "3.1.1",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        }
+      ]
+    },
+    {
       "name": "picocolors",
       "version": "1.1.1",
       "license": "ISC",
@@ -1307,6 +1359,32 @@
         {
           "name": "LICENSE",
           "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "name": "shebang-command",
+      "version": "2.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "69dee148a2cc470554dfa7142e830662062394d0fe67cddd379aba90dc60d6b3"
+        }
+      ]
+    },
+    {
+      "name": "shebang-regex",
+      "version": "3.0.0",
+      "license": "MIT",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "license",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
         }
       ]
     },
@@ -1476,6 +1554,19 @@
         {
           "name": "LICENSE.md",
           "sha256": "387dd7baa307083401a27c58c362c30832f5ba1dba84f10cc22c33401523f45c"
+        }
+      ]
+    },
+    {
+      "name": "which",
+      "version": "2.0.2",
+      "license": "ISC",
+      "role": "development",
+      "licenseSource": "installed package",
+      "files": [
+        {
+          "name": "LICENSE",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
         }
       ]
     },

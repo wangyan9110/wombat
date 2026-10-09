@@ -76,8 +76,8 @@ test('the root manifest repairs partially synchronized mirrors and preparation i
   assert.deepEqual(files.map(file => readFileSync(path.join(root, file), 'utf8')), before);
   const readme = readFileSync(path.join(root, 'README.md'), 'utf8');
   assert.match(readme, /\*\*Beta:/);
-  assert.match(readme, /--version 0\.2\.0-beta\.1 --open/);
-  assert.match(readme, /-Version 0\.2\.0-beta\.1 -Open/);
+  assert.match(readme, /--version 0\.2\.0-beta\.1 --plugin --open/);
+  assert.match(readme, /-Version 0\.2\.0-beta\.1 -Plugin -Open/);
   assert.equal(readme.match(/wombat update --check/g)?.length, 1);
   assert.match(readFileSync(path.join(root, 'docs/guides/installation.en.md'), 'utf8'), /Node 26\.4\.0/);
 });
@@ -109,8 +109,8 @@ test('promotes beta user copy to stable installation and update instructions', t
   const english = readFileSync(path.join(root, 'README.md'), 'utf8');
   const chinese = readFileSync(path.join(root, 'README.zh-CN.md'), 'utf8');
   assert.match(english, /\*\*Stable:/); assert.match(chinese, /\*\*正式版：/);
-  assert.match(english, /install\.sh \| sh -s -- --open\n/); assert.doesNotMatch(english, /--version 0\.1\.0/);
-  assert.match(english, /install\.ps1\)\)\) -Open/); assert.match(chinese, /install\.ps1\)\)\) -Open/);
+  assert.match(english, /install\.sh \| sh -s -- --plugin --open\n/); assert.doesNotMatch(english, /--version 0\.1\.0/);
+  assert.match(english, /install\.ps1\)\)\) -Plugin -Open/); assert.match(chinese, /install\.ps1\)\)\) -Plugin -Open/);
   assert.match(english, /wombat update --check\n+wombat update/);
   assert.match(chinese, /wombat update --check\n+wombat update/);
   assert.equal(english.match(/wombat update --check/g)?.length, 1);
@@ -120,4 +120,14 @@ test('promotes beta user copy to stable installation and update instructions', t
   prepareVersionFiles(root, '0.1.0');
   assert.equal(readFileSync(path.join(root, 'README.md'), 'utf8'), english);
   assert.equal(readFileSync(path.join(root, 'README.zh-CN.md'), 'utf8'), chinese);
+});
+
+test('release copy keeps relocated installer URLs through preview and stable preparation', t => {
+  const root = fixture();t.after(()=>rmSync(root,{recursive:true,force:true}));
+  for(const file of ['README.md','README.zh-CN.md'])writeFileSync(path.join(root,file),readFileSync(path.join(root,file),'utf8').replaceAll('/main/install.','/main/scripts/install/install.'));
+  prepareVersionFiles(root,'0.2.0-beta.1');
+  const preview=readFileSync(path.join(root,'README.md'),'utf8');
+  assert.match(preview,/main\/scripts\/install\/install\.sh \| sh -s -- --version 0\.2\.0-beta\.1 --plugin --open/);
+  prepareVersionFiles(root,'0.2.0');
+  assert.match(readFileSync(path.join(root,'README.md'),'utf8'),/main\/scripts\/install\/install\.sh \| sh -s -- --plugin --open/);
 });

@@ -27,7 +27,7 @@
     "docs:i18n:check": "node scripts/check-doc-i18n.mjs",
     "docs:i18n:record": "node scripts/check-doc-i18n.mjs --write",
     "docs:check": "pnpm run skills:check && pnpm run notes:check && pnpm run docs:budget && pnpm run docs:structure && pnpm run docs:i18n:check && pnpm run public:check",
-    "repo:check": "pnpm run release:source-check && pnpm run docs:check && node scripts/check-module-boundaries.mjs && pnpm run i18n:check && pnpm run test:repo",
+    "repo:check": "pnpm run installers:check && pnpm run release:source-check && pnpm run docs:check && node scripts/check-module-boundaries.mjs && pnpm run i18n:check && pnpm run test:repo",
     "licenses:generate": "node scripts/dependency-licenses.mjs",
     "licenses:check": "node scripts/dependency-licenses.mjs --check",
     "public:check": "node scripts/check-public-release.mjs",
@@ -54,21 +54,26 @@
     "verify:agent-query": "node --import tsx scripts/verify-agent-query.ts",
     "skill:build": "node scripts/build-skill.ts",
     "verify:skill-conversation": "node --import tsx scripts/verify-skill-conversation.ts",
-    "verify:skill-native-events": "node --import tsx scripts/verify-skill-native-events.ts"
+    "verify:skill-native-events": "node --import tsx scripts/verify-skill-native-events.ts",
+    "installers:generate": "node scripts/generate-installers.ts",
+    "installers:check": "node scripts/generate-installers.ts --check",
+    "plugin:install": "node scripts/install-plugin-bootstrap.ts"
   },
   "devDependencies": {
+    "@types/cross-spawn": "6.0.6",
     "@types/node": "26.0.0",
     "@wombat/cli": "workspace:*",
     "@wombat/client": "workspace:*",
+    "@wombat/web": "workspace:*",
     "ajv": "8.18.0",
+    "cross-spawn": "7.0.6",
     "esbuild": "^0.25.0",
     "json-schema-to-typescript": "15.0.4",
     "mdast-util-from-markdown": "2.0.2",
     "mdast-util-gfm": "3.1.0",
     "micromark-extension-gfm": "3.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "@wombat/web": "workspace:*"
+    "typescript": "^5.0.0"
   },
   "license": "MIT",
   "description": "Analyze local Codex token usage, task history and API cost estimates. Use the Codex Skill to review AGENTS.md, Skills, MCP and Hooks, with a Web dashboard for evidence.",

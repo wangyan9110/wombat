@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { sourceIdentity } from './build-identity.ts';
 import {
   acceptanceInputIdentity, assertExternalOutputDir, currentArtifactIdentity, externalFileIdentity, externalPackageIdentity, isWithin, parseVerifyArgs, plannedStages, reusableStage, runBoundedCommand, runFingerprint,
 } from './verify-e2e-helpers.ts';
@@ -78,8 +80,8 @@ test('external Playwright package identity binds implementation contents and ver
 test('acceptance fixture identity changes when a test or referenced Skill asset changes', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'wombat-e2e-inputs-'));
   try {
-    for (const directory of ['tests/integration', 'tests/e2e', 'skill/wombat']) mkdirSync(path.join(temp, directory), { recursive: true });
-    const testFile = path.join(temp, 'tests/e2e/example.test.ts'), fixture = path.join(temp, 'skill/wombat/SKILL.md');
+    for (const directory of ['tests/integration', 'tests/e2e', 'plugin/skills/wombat']) mkdirSync(path.join(temp, directory), { recursive: true });
+    const testFile = path.join(temp, 'tests/e2e/example.test.ts'), fixture = path.join(temp, 'plugin/skills/wombat/SKILL.md');
     writeFileSync(testFile, 'assert.equal(1, 1)'); writeFileSync(fixture, 'fixture-v1');
     const first = acceptanceInputIdentity(temp);
     writeFileSync(testFile, 'assert.equal(1, 2)');
@@ -87,6 +89,28 @@ test('acceptance fixture identity changes when a test or referenced Skill asset 
     assert.notEqual(changedTest, first);
     writeFileSync(fixture, 'fixture-v2');
     assert.notEqual(acceptanceInputIdentity(temp), changedTest);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('source identity includes plugin assets, relocated installers and notices', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'wombat-plugin-source-'));
+  try {
+    execFileSync('git', ['init', '--quiet', temp], { timeout: 5000, maxBuffer: 4096 });
+    const resources = ['plugin/skills/wombat/SKILL.md', 'plugin/package.json', 'plugin/hooks/hooks.json', 'plugin/scripts/collect.sh', 'scripts/install/install.sh', 'scripts/install/install.ps1', 'licenses/THIRD_PARTY_NOTICES.md'];
+    for (const file of resources) {
+      mkdirSync(path.dirname(path.join(temp, file)), { recursive: true });
+      writeFileSync(path.join(temp, file), 'source-v1');
+    }
+    let previous = sourceIdentity(temp);
+    for (const file of resources) {
+      writeFileSync(path.join(temp, file), 'source-v2');
+      const changed = sourceIdentity(temp);
+      assert.notEqual(changed, previous, file);
+      previous = changed;
+    }
+    mkdirSync(path.join(temp, 'dist/skill'), { recursive: true });
+    writeFileSync(path.join(temp, 'dist/skill/manifest.json'), 'generated');
+    assert.equal(sourceIdentity(temp), previous);
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 

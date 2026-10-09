@@ -44,7 +44,7 @@ if (!test && !check) {
   mkdirSync(notices, { recursive: true });
   for (const [source, name] of [
     ['LICENSE', 'wombat-MIT.txt'],
-    ['THIRD_PARTY_NOTICES.md', 'third-party-notices.md'],
+    ['licenses/THIRD_PARTY_NOTICES.md', 'third-party-notices.md'],
     ['licenses/node-dependencies.txt', 'node-dependencies.txt'],
     ['licenses/rust-dependencies.txt', 'rust-dependencies.txt'],
   ]) copyFileSync(path.join(root, source), path.join(notices, name));

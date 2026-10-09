@@ -35,10 +35,10 @@ function releaseReadme(content: string, version: string, chinese: boolean, file:
   if (!statusPattern.test(content)) throw new Error(`${file}: cannot locate release status`);
   let next = content.replace(statusPattern, status);
   next = next
-    .replace(/^\s*curl -fsSL https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/install\.sh.*$/m,
-      `   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s --${preview ? ` --version ${version}` : ''} --open`)
-    .replace(/^\s*& \(\[scriptblock\]::Create\(\(irm https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/install\.ps1\)\)\).*$/m,
-      `   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1)))${preview ? ` -Version ${version}` : ''} -Open`);
+    .replace(/^\s*curl -fsSL https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.sh.*$/m,
+      `   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s --${preview ? ` --version ${version}` : ''} --plugin --open`)
+    .replace(/^\s*& \(\[scriptblock\]::Create\(\(irm https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.ps1\)\)\).*$/m,
+      `   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1)))${preview ? ` -Version ${version}` : ''} -Plugin -Open`);
   const commands = preview ? `wombat update --check --version ${version}\nwombat update --version ${version}` : 'wombat update --check\nwombat update';
   const update = chinese
     ? `### 更新 Wombat\n\n${preview ? '检查或安装此预发行版本' : '检查或安装最新稳定版'}：\n\n\`\`\`sh\n${commands}\n\`\`\``

@@ -55,7 +55,7 @@ const inventory = JSON.parse(read('docs/dependency-licenses.json'));
 for (const [file, digest] of Object.entries(inventory.lockfiles)) {
   if (hash(readFileSync(path.join(root, file))) !== digest) issues.push(`license inventory lock mismatch: ${file}`);
 }
-for (const required of ['THIRD_PARTY_NOTICES.md', 'licenses/node-dependencies.txt', 'licenses/rust-dependencies.txt']) {
+for (const required of ['licenses/THIRD_PARTY_NOTICES.md', 'licenses/node-dependencies.txt', 'licenses/rust-dependencies.txt']) {
   if (!existsSync(path.join(root, required))) issues.push(`required notice missing: ${required}`);
 }
 // App-local checkpoints are not publication branches and must not be mirrored.

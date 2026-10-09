@@ -2,11 +2,11 @@
 
 中文 | [English](CONTRIBUTING.md)
 
-Wombat 使用共享 Rust 内核、Node.js CLI 和本机 Web 宿主。开始前阅读 [AGENTS.md](AGENTS.md)、[架构](docs/development/architecture.md)及[开发流程](docs/development/workflow.md)。
+Wombat 使用共享 Rust 内核、Node.js CLI 和本机 Web 宿主。开始前阅读 [AGENTS.md](../AGENTS.md)、[架构](../docs/development/architecture.md)及[开发流程](../docs/development/workflow.md)。
 
 安装锁定版本的依赖并构建项目，再执行类型检查、生成契约检查和测试。跨语言测试使用 `dist`，必须在构建后运行。修改 Rust 代码时，还须检查格式，并运行 clippy，将警告视为错误。
 
-修改文档或 Skill 时，同步更新已配对页面的两个版本，并执行 `corepack pnpm docs:check`。技术文档的 ASD-STE100 写作要求和翻译审校要求见[语言审校规则](docs/i18n/README.md)。
+修改文档或 Skill 时，同步更新已配对页面的两个版本，并执行 `corepack pnpm docs:check`。技术文档的 ASD-STE100 写作要求和翻译审校要求见[语言审校规则](../docs/i18n/README.md)。
 
 ```sh
 corepack pnpm install --frozen-lockfile
@@ -21,7 +21,7 @@ corepack pnpm test
 
 不要提交真实消息、工具输出、凭据或未经审查的原始字段。保留用户改动和用户拥有的数据。只读采集不得修改来源文件。渲染接口不得提供任意执行能力。
 
-依赖变化需检查许可证，并执行 `licenses:generate` / `licenses:check`。打包前运行 `public:check`；它是防护检查，不代表发布或完整安全审计。记录实际验证的平台和限制，不把计划能力写成现状。详见[第三方声明](THIRD_PARTY_NOTICES.md)。
+依赖变化需检查许可证，并执行 `licenses:generate` / `licenses:check`。打包前运行 `public:check`；它是防护检查，不代表发布或完整安全审计。记录实际验证的平台和限制，不把计划能力写成现状。详见[第三方声明](../licenses/THIRD_PARTY_NOTICES.md)。
 
 ## 评审与自动化
 

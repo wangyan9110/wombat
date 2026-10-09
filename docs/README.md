@@ -24,7 +24,7 @@
 - [契约](development/contracts.md)：Rust 源头、生成类型、版本与格式。
 - [来源适配验收](development/adapters.md)：独立真值、数据归属及故障用例。
 - [GitHub 分发决策](decisions/implemented/architecture/2026-10-04-github-release-distribution.md)：长期有效的打包与渠道取舍。重复发行操作由[发行 Skill](../.agents/skills/wombat-release/SKILL.md)维护。
-- [贡献说明](../CONTRIBUTING.zh-CN.md)提供仓库操作入口。
+- [贡献说明](../.github/CONTRIBUTING.zh-CN.md)提供仓库操作入口。
 
 ## 决策与文档维护
 

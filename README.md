@@ -21,32 +21,23 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 **Stable: [`v0.2.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.2.0).**
 
-Wombat supports macOS, Linux, and Windows. No development tools or API key are required for local inspection. The Skill requires a compatible local Codex installation.
+Wombat supports macOS, Linux, and Windows. No development tools or API key are required for local inspection. Install a compatible local Codex first to use the plugin.
 
-1. Install Wombat. On macOS or Linux, run:
+1. Install Wombat and its Codex plugin. On macOS or Linux, run:
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --open
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin --open
    ```
 
    On Windows PowerShell, run:
 
    ```powershell
-   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Open
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin -Open
    ```
 
-   The terminal prints a local URL and opens the Web dashboard. Wombat starts reading local records; discovered tasks are available before the initial read finishes.
+   The installer adds the plugin through Codex, then opens the Web dashboard. Wombat starts reading local records; discovered tasks are available before the initial read finishes. An existing enabled collection plugin keeps its installation mode. Omit `--plugin` or `-Plugin` when you only need Web.
 
-2. In a new terminal, open your project directory and install the standalone Codex Skill:
-
-   ```sh
-   wombat skill install --json
-   wombat skill status --cwd . --json
-   ```
-
-   If you already use the Wombat plugin, keep that installation mode. Use the invocation name actually discovered for your project; select explicitly if multiple instances exist. See the [Skill guide](skill/README.en.md) for plugin installation and removal. Updating Wombat does not update a Codex-managed plugin.
-
-3. In Codex, invoke the discovered Skill and ask a question. The standalone entry is `$wombat`. For example:
+2. Open your project in a new Codex conversation, invoke `$wombat:wombat`, and ask a question. If you already use the collection plugin, use `$wombat-collection:wombat`. Use the invocation actually discovered for your project; select explicitly if multiple instances exist. For example:
 
    > Where did this week's token usage increase? Locate the main tasks and turns, and explain the coverage.
 
@@ -56,7 +47,7 @@ Wombat supports macOS, Linux, and Windows. No development tools or API key are r
 
    Codex uses Wombat's local queries to explain available facts. Skill discovery and data readiness are separate: an installed Skill does not mean the initial read is complete. Codex conversations use model tokens.
 
-If installation does not complete, run the command again. If it still fails, [report the problem](https://github.com/wangyan9110/wombat/issues). If the Skill is unavailable, open **Setup and collection** in Web to inspect project discovery and installation guidance. You can view data in Web while resolving Skill setup.
+If plugin installation fails, Wombat remains installed. Check that Codex is available and rerun the installation command. If it still fails, [report the problem](https://github.com/wangyan9110/wombat/issues). If the Skill is unavailable, open **Setup and collection** in Web to inspect project discovery and plugin guidance. The [plugin guide](plugin/README.en.md) covers removal and existing standalone copies. You can view data in Web while resolving setup.
 
 ### Update Wombat
 
@@ -109,7 +100,7 @@ Use Web to inspect evidence and recheck results. Continue processing in your cur
 
 ## Optional Hook collection
 
-Historical log reading is available without the collection plugin. For native event observations, use **Setup and collection** in Web or ask the Skill about collection. The [collection guide](docs/guides/cli.en.md) explains modes, receipt status, and pause/resume; the [Skill guide](skill/README.en.md) explains the local collection plugin.
+Historical log reading is available without the collection plugin. For native event observations, use **Setup and collection** in Web or ask the Skill about collection. The [collection guide](docs/guides/cli.en.md) explains modes, receipt status, and pause/resume; the [Skill guide](plugin/README.en.md) explains the local collection plugin.
 
 Installing the plugin, selecting Hook collection, trusting declarations in Codex, and receiving events are separate steps. Hook receipts do not add token accounting or establish complete coverage. The POSIX bridge is implemented; Windows collection remains unverified.
 
@@ -138,7 +129,7 @@ corepack pnpm build
 node dist/wombat.js web
 ```
 
-See the [development workflow](docs/development/workflow.en.md) for environment setup and the [Skill guide](skill/README.en.md) for local plugin trials.
+See the [development workflow](docs/development/workflow.en.md) for environment setup and the [Skill guide](plugin/README.en.md) for local plugin trials.
 
 </details>
 
@@ -156,8 +147,8 @@ Codex is the current source for task analysis. Claude Code, pi, and other agents
 
 Having trouble understanding usage, maintaining your setup, or dealing with repeated checks? [Tell us about it](https://github.com/wangyan9110/wombat/issues). Share what you use, what happens, and how you handle it today. No private logs are needed. Requests for other agents are welcome.
 
-See [CONTRIBUTING](CONTRIBUTING.md) to contribute, or the [security policy](SECURITY.md) to report security issues.
+See [CONTRIBUTING](.github/CONTRIBUTING.md) to contribute, or the [security policy](.github/SECURITY.md) to report security issues.
 
 ## License
 
-[MIT](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) for dependency licenses.
+[MIT](LICENSE). See [third-party notices](licenses/THIRD_PARTY_NOTICES.md) for dependency licenses.

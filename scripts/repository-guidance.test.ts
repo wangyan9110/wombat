@@ -46,7 +46,7 @@ test('document budgets count Unicode characters and reject excess or missing fil
   assert.match(missing.output, /AGENTS\.md:.*missing file/);
 });
 
-for (const owner of ['.agents/skills', 'skill']) {
+for (const owner of ['.agents/skills', 'plugin/skills']) {
   test(`Skill metadata validates both acceptance and rejection in ${owner}`, () => {
     const file = `${owner}/sample/SKILL.md`;
     const valid = '---\nname: sample\ndescription: Synthetic workflow\n---\nRun a check.\n';
@@ -84,7 +84,7 @@ test('decision records reject lifecycle drift, invalid dates and proposal sectio
 });
 
 
-for (const skillRoot of ['.agents/skills', 'skill']) {
+for (const skillRoot of ['.agents/skills', 'plugin/skills']) {
   test(`Skill resource checks use portable paths and follow nested references in ${skillRoot}`, () => {
     const owner = `${skillRoot}/sample`;
     const resource = path.posix.relative(`${owner}/references`, 'owner.md');

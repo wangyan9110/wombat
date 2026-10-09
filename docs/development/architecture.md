@@ -37,7 +37,7 @@ flowchart LR
 | `web/` | `startWebHost` 接收客户端、构建资产、启动范围和端口；负责本机 HTTP、认证、静态文件及连接清理，不承载业务算法 |
 | `ui/` | React / TypeScript / Vite 前端；`App` 接收 `UsageClient`，实现五入口及详情，装配 HTTP；不依赖 Node/Tauri |
 | `cli/` | 参数、JSON/文本、退出码与显式 Web 启停；默认命令输出用量文本 |
-| `skill/` | 用户工作流 |
+| `plugin/` | 用户插件 |
 
 依赖方向为 `cli → web + client/node`、`web → client`、`ui → client + client/http + client/locale`。`core` 不依赖展示模块。模块间只经公开入口或版本协议通信，保持模块化单体。
 

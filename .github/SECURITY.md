@@ -16,4 +16,4 @@ In private, provide the affected version or commit, platform, impact, and a mini
 
 Before public release, the maintainer must verify private reporting and require the CI checks for platform verification, GitHub archive assembly, clean installation, and dependency advisories on the default branch. The present private repository's GitHub plan may block these settings; the policy file alone does not enable them. Do not mark this step complete until the controls are verified on GitHub.
 
-Inspect dependency advisories, reachable history, and the actual GitHub Release archives. Existing secret-pattern checks have limited coverage. If a secret was exposed, revoke or rotate it; deleting it from the latest tree is insufficient. For local data and network behavior, read [Privacy](docs/reference/privacy.en.md).
+Inspect dependency advisories, reachable history, and the actual GitHub Release archives. Existing secret-pattern checks have limited coverage. If a secret was exposed, revoke or rotate it; deleting it from the latest tree is insufficient. For local data and network behavior, read [Privacy](../docs/reference/privacy.en.md).

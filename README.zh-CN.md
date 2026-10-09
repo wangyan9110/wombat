@@ -21,32 +21,23 @@ Wombat 当前读取本机 Codex 记录，其他 Agent 尚在计划中。
 
 **正式版：[`v0.2.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.2.0)。**
 
-Wombat 支持 macOS、Linux 和 Windows，本机查看和检查无需开发工具或 API Key。使用 Skill 需要兼容的本机 Codex。
+Wombat 支持 macOS、Linux 和 Windows，本机查看和检查无需开发工具或 API Key。使用插件前需先安装兼容的本机 Codex。
 
-1. 安装 Wombat。在 macOS 或 Linux 中执行：
+1. 安装 Wombat 与 Codex 插件。在 macOS 或 Linux 中执行：
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --open
+   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin --open
    ```
 
    在 Windows PowerShell 中执行：
 
    ```powershell
-   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Open
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin -Open
    ```
 
-   终端会输出本机访问地址，并打开 Web 面板。Wombat 开始读取本机记录；首次读取完成前，可以先查看已发现的任务。
+   安装器通过 Codex 安装插件，然后打开 Web 面板。Wombat 开始读取本机记录；首次读取完成前，可以先查看已发现的任务。已启用的采集插件会保留原安装模式。仅使用 Web 时，可省略 `--plugin` 或 `-Plugin`。
 
-2. 在新终端中进入项目目录，安装独立 Codex Skill：
-
-   ```sh
-   wombat skill install --json
-   wombat skill status --cwd . --json
-   ```
-
-   如果已经使用 Wombat 插件，请保留原安装方式。使用该项目实际发现的调用名称；存在多个实例时，明确选择其中一个。插件安装与移除见 [Skill 指南](skill/README.md)。更新 Wombat 不会更新由 Codex 管理的插件。
-
-3. 在 Codex 中调用实际发现的 Skill，并提出问题。独立安装的入口是 `$wombat`。例如：
+2. 在 Codex 中打开项目并新建对话，调用 `$wombat:wombat` 后提出问题。已使用采集插件时，调用 `$wombat-collection:wombat`。以该项目实际发现的调用名称为准；存在多个实例时，明确选择其中一个。例如：
 
    > 这周的 Token 用量增加在哪里？定位主要任务和轮次，并说明覆盖范围。
 
@@ -56,7 +47,7 @@ Wombat 支持 macOS、Linux 和 Windows，本机查看和检查无需开发工�
 
    Codex 会通过 Wombat 的本机查询解释已有事实。Skill 发现状态与数据准备状态是独立的：Skill 已安装不代表首次读取已完成。Codex 对话会产生模型用量。
 
-安装未完成时，重新执行安装命令；再次失败时，在 [Issues](https://github.com/wangyan9110/wombat/issues) 反馈问题。Skill 不可用时，打开 Web 中的「接入与采集」，查看项目发现状态与安装指引。处理 Skill 接入问题期间，仍可在 Web 中查看数据。
+插件安装失败时，已安装的 Wombat 会保留。确认 Codex 可用后，重新执行安装命令；再次失败时，在 [Issues](https://github.com/wangyan9110/wombat/issues) 反馈问题。Skill 不可用时，打开 Web 中的「接入与采集」，查看项目发现状态与插件指引。移除插件及处理已有独立副本，见[插件指南](plugin/README.md)。接入期间仍可在 Web 中查看数据。
 
 ### 更新 Wombat
 
@@ -109,7 +100,7 @@ Web 用于查看证据和复查，处理继续在当前 Codex 对话中完成。
 
 ## 可选 Hook 采集
 
-读取历史日志无需安装采集插件。如需原生事件观察，可打开 Web 中的「接入与采集」，或向 Skill 询问采集方式。[采集指南](docs/guides/cli.md)说明模式、接收状态和暂停／恢复；[Skill 指南](skill/README.md)说明本机采集插件。
+读取历史日志无需安装采集插件。如需原生事件观察，可打开 Web 中的「接入与采集」，或向 Skill 询问采集方式。[采集指南](docs/guides/cli.md)说明模式、接收状态和暂停／恢复；[Skill 指南](plugin/README.md)说明本机采集插件。
 
 安装插件、选择 Hook 采集、在 Codex 中信任声明，以及实际收到事件，是独立步骤。Hook 接收记录不会增加 Token 计量，也不代表完整覆盖。POSIX 桥接已实现；Windows 采集尚未验证。
 
@@ -138,7 +129,7 @@ corepack pnpm build
 node dist/wombat.js web
 ```
 
-环境准备见[开发流程](docs/development/workflow.md)，本机插件试用方式见 [Skill 指南](skill/README.md)。
+环境准备见[开发流程](docs/development/workflow.md)，本机插件试用方式见 [Skill 指南](plugin/README.md)。
 
 </details>
 
@@ -156,8 +147,8 @@ Wombat 的本机查询和检查无需 API Key，也不调用模型。Skill 对�
 
 用量看不清，配置难维护，或遇到反复检查的问题？欢迎在 [Issues](https://github.com/wangyan9110/wombat/issues) 分享具体场景、使用的工具和现在的处理办法，无需提供私人日志。也欢迎反馈希望支持的 Agent。
 
-贡献方式见[贡献指南](CONTRIBUTING.zh-CN.md)。安全问题按[安全说明](SECURITY.zh-CN.md)反馈。
+贡献方式见[贡献指南](.github/CONTRIBUTING.zh-CN.md)。安全问题按[安全说明](.github/SECURITY.zh-CN.md)反馈。
 
 ## 许可证
 
-[MIT](LICENSE)。依赖许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
+[MIT](LICENSE)。依赖许可见[第三方声明](licenses/THIRD_PARTY_NOTICES.md)。

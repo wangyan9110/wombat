@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-const installer = readFileSync(new URL('../install.sh', import.meta.url), 'utf8');
-const windowsInstaller = readFileSync(new URL('../install.ps1', import.meta.url), 'utf8');
+const installer = readFileSync(new URL('./install/install.sh', import.meta.url), 'utf8');
+const windowsInstaller = readFileSync(new URL('./install/install.ps1', import.meta.url), 'utf8');
 const functionMatch = installer.match(/(configure_path\(\) \{[\s\S]*?\n\})\nconfigure_path\n/);
 const functionSource = functionMatch?.[1];
 assert(functionSource, 'install.sh must expose the tested configure_path function');
@@ -64,4 +64,27 @@ test('POSIX open option starts the installed launcher with the Web command', {sk
   execFileSync('sh', [script], {env: {PATH: '/usr/bin:/bin', launcher, open_app: '1', tmp: temporaryDownload}});
   assert.equal(readFileSync(output, 'utf8'), 'web --open\n');
   assert.equal(existsSync(temporaryDownload), false);
+});
+
+const pluginSource = installer.match(/(install_plugin\(\) \{[\s\S]*?\n\})\ninstall_plugin\n/)?.[1];
+assert(pluginSource, 'install.sh must expose the tested install_plugin function');
+test('combined POSIX installation opens Web only after native plugin success', {skip: process.platform === 'win32'}, t => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'wombat-install-plugin-flow-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const destination = path.join(root, 'version'), launcher = path.join(root, 'wombat'), webMarker = path.join(root, 'web'), binary = path.join(root, 'codex.mjs');
+  mkdirSync(path.join(destination, 'runtime'), {recursive: true});
+  symlinkSync(process.execPath, path.join(destination, 'runtime/node'));
+  mkdirSync(path.join(destination, 'lib/skill/.agents/plugins'), {recursive: true});
+  writeFileSync(path.join(destination, 'lib/skill/.agents/plugins/marketplace.json'), JSON.stringify({name:'wombat-local',plugins:['wombat','wombat-collection'].map(name=>({name,source:{source:'local',path:name==='wombat'?'./plugin':'./collection-plugin'}}))}));
+  writeFileSync(binary, `const a=process.argv.slice(2);if(process.env.FAIL_PLUGIN==='1')process.exit(3);if(a[1]==='list')console.log(JSON.stringify({installed:[]}));else if(a[2]==='list')console.log(JSON.stringify({marketplaces:[]}));else if(a[1]==='add')console.log(JSON.stringify({pluginId:a[2],installedPath:process.env.INSTALLED}));`);
+  writeFileSync(launcher, '#!/bin/sh\nprintf web > "$WEB_MARKER"\n');chmodSync(launcher,0o755);
+  const script = path.join(root, 'combined.sh');
+  writeFileSync(script, 'set -eu\n'+pluginSource+'\ninstall_plugin\n'+startSource+'\nstart_app\n');
+  const env = {...process.env,destination,launcher,tmp:path.join(root,'download'),open_app:'1',install_plugin_requested:'1',WOMBAT_CODEX_BIN:binary,INSTALLED:path.join(root,'native-plugin'),WEB_MARKER:webMarker};
+  assert.throws(()=>execFileSync('sh',[script],{env:{...env,FAIL_PLUGIN:'1'},stdio:'pipe'}));assert.equal(existsSync(webMarker),false);
+  execFileSync('sh',[script],{env,stdio:'pipe'});assert.equal(readFileSync(webMarker,'utf8'),'web');
+  rmSync(webMarker);
+  execFileSync('sh',[script],{env:{...env,FAIL_PLUGIN:'1',install_plugin_requested:'0'},stdio:'pipe'});assert.equal(existsSync(webMarker),true);
+  assert.match(windowsInstaller,/\[switch\]\$Plugin/);
+  assert.ok(windowsInstaller.indexOf('if ($Plugin)') < windowsInstaller.lastIndexOf('if ($Open)'));
 });

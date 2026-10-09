@@ -50,7 +50,7 @@ Review does not accept pagination. Without dates, it selects the fixed view cuto
 
 ## Codex Skill
 
-The redesigned [user Skill](../../skill/README.en.md) starts from conversational tasks and can use Web to inspect evidence. Processing continues in the current Codex conversation; Web retains viewing and rechecks. The Skill consumes existing CLI JSON and bounded index restoration/synchronization; account reads do not wait for logs.
+The redesigned [user Skill](../../plugin/README.en.md) starts from conversational tasks and can use Web to inspect evidence. Processing continues in the current Codex conversation; Web retains viewing and rechecks. The Skill consumes existing CLI JSON and bounded index restoration/synchronization; account reads do not wait for logs.
 
 Codex manages the formal plugin, whose invocation name on verified Codex 0.160.0 is $wombat:wombat. Standalone local trials use $wombat:
 
@@ -207,7 +207,7 @@ wombat collection mode logs --json
 wombat usage --watch --json
 ```
 
-Preferences are machine-wide; `--project` and repeated `--root` filter status and events only. Mode `logs` ignores new Hook input and preserves data. Mode `hooks` permits safe receipt but establishes neither registration nor trust. Install the [local collection package](../../skill/README.en.md), then review its declarations in Codex `/hooks`. The POSIX bridge resolves the managed launcher or Codex PATH; Windows remains unaccepted. Plugin removal does not delete observations.
+Preferences are machine-wide; `--project` and repeated `--root` filter status and events only. Mode `logs` ignores new Hook input and preserves data. Mode `hooks` permits safe receipt but establishes neither registration nor trust. Install the [local collection package](../../plugin/README.en.md), then review its declarations in Codex `/hooks`. The POSIX bridge resolves the managed launcher or Codex PATH; Windows remains unaccepted. Plugin removal does not delete observations.
 
 Pause retains up to 4,096 safe observations; resume makes them available. History viewing continues. Total retained observations are bounded to 100,000; known overflow or conflicting identities contribute to gaps. Missing native identity stays unknown, and rejected input or runtime failures are not reflected in persisted gaps. No lossless delivery or complete coverage is claimed. Source event time may be absent and differs from receipt time. Verified log associations use the current committed source epoch; obtain a normal fixed query view before further comparisons.
 

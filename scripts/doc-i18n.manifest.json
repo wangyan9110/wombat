@@ -21,14 +21,14 @@
       "record": "docs/decisions/implemented/process/2026-09-30-repository-guidance.i18n.json"
     },
     {
-      "zh": "CONTRIBUTING.zh-CN.md",
-      "en": "CONTRIBUTING.md",
-      "record": "CONTRIBUTING.i18n.json"
+      "zh": ".github/CONTRIBUTING.zh-CN.md",
+      "en": ".github/CONTRIBUTING.md",
+      "record": "docs/i18n/records/CONTRIBUTING.i18n.json"
     },
     {
       "zh": "README.zh-CN.md",
       "en": "README.md",
-      "record": "README.i18n.json"
+      "record": "docs/i18n/records/README.i18n.json"
     },
     {
       "zh": "cli/README.md",
@@ -121,9 +121,9 @@
       "record": "docs/decisions/implemented/product/2026-09-30-report-distribution.i18n.json"
     },
     {
-      "zh": "SECURITY.zh-CN.md",
-      "en": "SECURITY.md",
-      "record": "SECURITY.i18n.json"
+      "zh": ".github/SECURITY.zh-CN.md",
+      "en": ".github/SECURITY.md",
+      "record": "docs/i18n/records/SECURITY.i18n.json"
     },
     {
       "zh": "ui/README.md",
@@ -266,9 +266,9 @@
       "record": "docs/decisions/implemented/architecture/2026-10-05-analysis-first-events.i18n.json"
     },
     {
-      "zh": "skill/README.md",
-      "en": "skill/README.en.md",
-      "record": "skill/README.i18n.json"
+      "zh": "plugin/README.md",
+      "en": "plugin/README.en.md",
+      "record": "plugin/README.i18n.json"
     },
     {
       "zh": "docs/decisions/proposed/product/2026-10-04-codex-skill.md",
@@ -281,12 +281,13 @@
     "docs/decisions/AGENTS.md",
     "AGENTS.md",
     "scripts/AGENTS.md",
-    "THIRD_PARTY_NOTICES.md",
+    "licenses/THIRD_PARTY_NOTICES.md",
     "cli/AGENTS.md",
     "client/AGENTS.md",
     "core/AGENTS.md",
     "docs/AGENTS.md",
-    "docs/i18n/terminology.md"
+    "docs/i18n/terminology.md",
+    ".github/pull_request_template.md"
   ],
   "assetPairs": [
     {

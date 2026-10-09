@@ -54,6 +54,9 @@ for (const directory of ['docs', 'core', 'client', 'cli', 'ui', 'web']) {
     if (!known.has(file)) errors.push(`${file}: add a complete bilingual pair to the manifest or justify an exclusion`);
   }
 }
+if (existsSync(path.join(root, '.github'))) {
+  for (const file of walk('.github')) if (!known.has(file)) errors.push(`${file}: add a complete bilingual pair to the manifest or justify an exclusion`);
+}
 for (const entry of readdirSync(root, { withFileTypes: true })) {
   if (entry.isFile() && entry.name.endsWith('.md') && !known.has(entry.name)) {
     errors.push(`${entry.name}: add a complete bilingual pair to the manifest or justify an exclusion`);
