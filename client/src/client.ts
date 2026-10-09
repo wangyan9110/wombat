@@ -431,14 +431,36 @@ function matchesComparison(request:Request,result:Response):boolean {
 function matchesInspection(request:Request,result:Response):boolean {
  const plans=['investigate','trajectory','resources','review','context'];
  if(!plans.includes(request.action))return result.inspection==null;
- const output=result.inspection;if(!output||output.methodVersion!==1||output.kind!==request.action)return false;
+ const output=result.inspection;if(!output||output.methodVersion!==3||output.kind!==request.action)return false;
  if((request.action==='context')!==(output.context!=null)||(request.action==='review')!==(output.review!=null))return false;
+ if(['investigate','review'].includes(request.action)!==(output.opportunities!=null))return false;
+ if(['investigate','review'].includes(request.action)!==(output.activity!=null))return false;
  if(request.snapshotId!=null&&result.snapshotRef.snapshotId!==request.snapshotId)return false;
  const thread=request.threadId??request.scope?.threadId;if(thread!=null&&result.scope.threadId!==thread)return false;
  for(const [key,value] of Object.entries(request.scope??{}))if(value!=null&&result.scope[key as keyof typeof result.scope]!==value)return false;
  if([...output.candidates,...(output.review?.topTasks??[])].some(c=>c.evidence.some(p=>p.threadId!==c.threadId)))return false;
  const proofs=[...output.candidates.flatMap(c=>c.evidence),...output.resources.flatMap(r=>r.evidence),...output.trajectory.flatMap(p=>[p.evidence,...(p.compactionComparison?[p.compactionComparison.beforeEvidence]:[])]),...(output.context?.records.map(r=>r.evidence)??[]),...(output.review?.topTasks.flatMap(c=>c.evidence)??[])];
- return proofs.every(p=>p.view===(p.operationId!=null?'operation':p.turnId!=null?'turn':'task')&&p.methodVersion===1&&p.snapshotId===result.snapshotRef.snapshotId&&p.threadId.length>0
-  &&(thread==null||p.threadId===thread)&&Object.keys(p.scope).length===Object.keys(result.scope).length
-  &&Object.entries(p.scope).every(([key,value])=>value===result.scope[key as keyof typeof result.scope]));
+ const sameScope=(a:typeof result.scope,b:typeof result.scope)=>Object.keys(a).length===Object.keys(b).length&&Object.entries(a).every(([key,value])=>value===b[key as keyof typeof b]);
+ const proofMatches=(p:typeof proofs[number],scope:typeof result.scope)=>p.view===(p.operationId!=null?'operation':p.turnId!=null?'turn':'task')&&p.methodVersion===1&&p.snapshotId===result.snapshotRef.snapshotId&&p.threadId.length>0&&(thread==null||p.threadId===thread)&&sameScope(p.scope,scope);
+ if(!proofs.every(p=>proofMatches(p,result.scope)))return false;
+ const activity=output.activity;if(!activity)return true;
+ const dated=result.scope.since!=null&&result.scope.until!=null&&!result.scope.allTime&&!result.scope.undated;
+ if(dated!==(activity.baselineScope!=null)||(activity.baselineScope!=null)!==(activity.baselineCoverage!=null))return false;
+ if(activity.baselineScope){
+  const since=Date.parse(result.scope.since!+'T00:00:00Z'),until=Date.parse(result.scope.until!+'T00:00:00Z');
+  const start=new Date(2*since-until);if(!Number.isFinite(start.getTime()))return false;
+  if(!sameScope(activity.baselineScope,{...result.scope,since:start.toISOString().slice(0,10),until:result.scope.since}))return false;
+ }
+ const opportunities=output.opportunities;
+ if(opportunities && (opportunities.methodVersion!==1 || opportunities.checks.length!==17 || new Set(opportunities.checks.map(c=>c.rule)).size!==17 || !opportunities.checks.every(c=>
+  c.findings.length<=opportunities.limitPerCheck && c.findingCount>=c.findings.length && (c.status==='hit')===(c.findingCount>0)
+  && (c.status!=='miss'||c.gaps.length===0)
+  && c.findings.every(f=>f.evidence.every(p=>proofMatches(p,result.scope))&&f.baselineEvidence.every(p=>activity.baselineScope!=null&&proofMatches(p,activity.baselineScope))))))return false;
+ return activity.findings.length<=activity.limit&&activity.findingCount>=activity.findings.length&&activity.findings.every(f=>
+  (result.scope.sourceInstanceId==null||f.sourceInstanceId===result.scope.sourceInstanceId)
+  &&(result.scope.project==null||f.project===result.scope.project)
+  &&(!result.scope.projectUnknown||f.project==null)
+  &&(activity.baselineScope!=null)===(f.baseline!=null)&&f.evidence.length>0
+  &&f.evidence.every(p=>proofMatches(p,result.scope))
+  &&f.baselineEvidence.every(p=>activity.baselineScope!=null&&proofMatches(p,activity.baselineScope)));
 }

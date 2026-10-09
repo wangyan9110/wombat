@@ -7,6 +7,8 @@ mod comparison;
 pub use comparison::*;
 mod inspection;
 pub use inspection::*;
+mod opportunities;
+pub use opportunities::*;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

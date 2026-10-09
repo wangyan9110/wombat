@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { CoreError, type OptimizeRequest, type OptimizeResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
-import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText, useBasisPresentation, assessmentReason, reviewStatusLabel, activityRuleTitle, activityCheckText, activityAdviceText } from '@wombat/client/locale';
+import { t, reviewFindingLabel, reviewFindingNote, reviewFindingCount, reviewPresentation, followUpText, useBasisPresentation, assessmentReason, reviewStatusLabel, activityRuleTitle, activityFindingTitle, activityCheckText, activityAdviceText } from '@wombat/client/locale';
 import { terminalText } from './display-text.js';
 export function parseOptimizeArgs(argv: string[]) {
   const request: OptimizeRequest={action:'list'}, roots:string[]=[], projects:string[]=[], seen=new Set<string>();
@@ -68,8 +68,8 @@ export async function runOptimizeCli(argv:string[]):Promise<number>{
 export function formatOptimizeText(result: OptimizeResult): string {
   if(result.action==='activity'&&result.activity){
     const activity=result.activity;
-    return [t('activity.title'),...activity.checks.flatMap(check=>[`${activityRuleTitle(check.rule)}: ${activityCheckText(check)}`,
-      ...(activity.advice.some(rule=>rule===check.rule)?[activityAdviceText(check.rule)]:[])]),
+    return [t('activity.title'),...activity.advice.flatMap(rule=>{const check=activity.checks.find(check=>check.rule===rule)!;return [activityFindingTitle(check),activityAdviceText(rule),...(check.partial?[t('activity.partial')]:[])];}),
+      t('activity.checks'),...activity.checks.map(check=>`${activityRuleTitle(check.rule)}: ${activityCheckText(check)}`),
       t('activity.note'),`${activity.readView.snapshotId} · ${activity.scope.threadId} · ${activity.scope.turnId}`,
       activity.analysisMethod].map(terminalText).join('\n')+'\n';
   }

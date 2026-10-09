@@ -226,7 +226,7 @@ pub struct ReviewConcentration {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Inspection {
-    #[schemars(range(min = 1, max = 1))]
+    #[schemars(range(min = 3, max = 3))]
     pub method_version: u32,
     pub kind: InspectionKind,
     pub policy: InspectionPolicy,
@@ -240,4 +240,111 @@ pub struct Inspection {
     pub resource_count: usize,
     pub unlocated_operations: usize,
     pub context: Option<ContextInventory>,
+    pub activity: Option<ActivityReview>,
+    pub opportunities: Option<OpportunityReview>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActivitySignal {
+    RepeatedSlowRequest,
+    FailureSpike,
+    DurationSpike,
+    RecurringWorkflow,
+    RepeatedFailure,
+    RepeatedRejection,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Default)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityStats {
+    pub operations: u64,
+    pub tasks: usize,
+    pub determinate_operations: u64,
+    pub failed_operations: u64,
+    pub rejected_operations: u64,
+    pub failure_share: Option<f64>,
+    pub outcome_gaps: u64,
+    pub duration_samples: usize,
+    pub slow_operations: u64,
+    pub maximum_duration_ms: Option<u64>,
+    pub median_duration_ms: Option<f64>,
+    pub maximum_failures_in_task: u64,
+    pub maximum_rejections_in_task: u64,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityPolicy {
+    pub slow_duration_ms: u64,
+    pub minimum_slow_operations: u64,
+    pub minimum_current_outcomes: u64,
+    pub minimum_baseline_outcomes: u64,
+    pub minimum_spike_failures: u64,
+    pub minimum_failure_share: f64,
+    pub failure_share_multiplier: f64,
+    pub baseline_failure_share_floor: f64,
+    pub minimum_baseline_durations: usize,
+    pub minimum_baseline_median_ms: u64,
+    pub duration_multiplier: f64,
+    pub minimum_duration_increase_ms: u64,
+    pub minimum_workflow_operations: u64,
+    pub minimum_workflow_tasks: usize,
+    pub minimum_failures_in_task: u64,
+    pub minimum_rejections_in_task: u64,
+}
+impl Default for ActivityPolicy {
+    fn default() -> Self {
+        Self {
+            slow_duration_ms: 30_000,
+            minimum_slow_operations: 2,
+            minimum_current_outcomes: 5,
+            minimum_baseline_outcomes: 20,
+            minimum_spike_failures: 3,
+            minimum_failure_share: 0.2,
+            failure_share_multiplier: 3.0,
+            baseline_failure_share_floor: 0.01,
+            minimum_baseline_durations: 8,
+            minimum_baseline_median_ms: 2_000,
+            duration_multiplier: 10.0,
+            minimum_duration_increase_ms: 20_000,
+            minimum_workflow_operations: 5,
+            minimum_workflow_tasks: 2,
+            minimum_failures_in_task: 3,
+            minimum_rejections_in_task: 2,
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityFinding {
+    pub id: String,
+    pub signals: Vec<ActivitySignal>,
+    pub source_instance_id: String,
+    pub project: Option<String>,
+    pub tool: String,
+    pub current: ActivityStats,
+    pub baseline: Option<ActivityStats>,
+    pub evidence: Vec<InspectionEvidence>,
+    pub baseline_evidence: Vec<InspectionEvidence>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityCoverage {
+    pub observed_operations: u64,
+    pub matched_operations: u64,
+    pub outcome_gaps: u64,
+    pub duration_samples: u64,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActivityReview {
+    #[schemars(range(min = 1, max = 1))]
+    pub method_version: u32,
+    pub policy: ActivityPolicy,
+    /// Same authorized scope, preceding disjoint dates; absent for unbounded selections.
+    pub baseline_scope: Option<Scope>,
+    pub current_coverage: ActivityCoverage,
+    pub baseline_coverage: Option<ActivityCoverage>,
+    pub findings: Vec<ActivityFinding>,
+    pub finding_count: usize,
+    pub limit: usize,
 }

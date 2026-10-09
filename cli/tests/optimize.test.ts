@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import type { OptimizeResult, OptimizeSuggestion } from '@wombat/client';
 import { locale, t } from '@wombat/client/locale';
 import { formatOptimizeText } from '../src/optimize-cli.js';
+import {activityResult} from '../../tests/fixtures/activity.js';
 
 const at = '2026-10-01T00:00:00Z';
 const item: OptimizeSuggestion['item'] = {
@@ -47,6 +48,15 @@ function bilingual(run: () => void) {
   try { for (const language of ['zh', 'en'] as const) { locale.setLocale(language); run(); } }
   finally { locale.setLocale(saved); }
 }
+
+test('activity text leads with measured findings and next steps while retaining every check',()=>bilingual(()=>{
+ const fixture=activityResult(),text=formatOptimizeText(fixture);
+ assert.match(text,locale.getSnapshot().locale==='zh'?/失败后再次调用 1 次/:/Calls after failure: 1/);
+ const basis=text.indexOf(t('activity.checks'));
+ assert.ok(basis>0);assert.ok(text.indexOf(t('activity.failureAdvice'))<basis);
+ assert.ok(text.indexOf(t('activity.sampleSmall'))>basis);
+ assert.match(text,/live:synthetic:fixed/);assert.match(text,/safe_event_turn_v7/);
+}));
 
 test('optimize text separates each recorded decision and reason from current check facts in both languages', () => bilingual(() => {
   for (const kind of ['keep', 'not_applicable'] as const) for (const reason of ['necessary', 'object_changed', 'incorrect_evidence'] as const) {

@@ -1,10 +1,10 @@
 import {useEffect,useState} from 'react';
 import {CoreError,type UsageClient,type TimingLocalResult,type OptimizeResult} from '@wombat/client';
-import {t,activityRuleTitle,activityCheckText,activityAdviceText} from '@wombat/client/locale';
+import {t,activityRuleTitle,activityFindingTitle,activityCheckText,activityAdviceText} from '@wombat/client/locale';
 type Activity=NonNullable<OptimizeResult['activity']>;
 export function ActivityFacts({activity,onEvidence,blocked=false}:{activity:Activity;onEvidence:(refs:string[])=>void;blocked?:boolean}){
  return <section className="execution-activity" aria-label={t('activity.title')}><h4>{t('activity.title')}</h4>
-  {activity.advice.map(rule=>{const check=activity.checks.find(check=>check.rule===rule)!;return <article key={rule}><strong>{activityRuleTitle(rule)}</strong><p>{activityCheckText(check)}</p><p>{activityAdviceText(rule)}</p><button className="link" disabled={blocked||check.observed.evidenceRefs.length===0} onClick={()=>onEvidence(check.observed.evidenceRefs)}>{t('activity.records')}</button></article>;})}
+  {activity.advice.map(rule=>{const check=activity.checks.find(check=>check.rule===rule)!;return <article key={rule}><strong>{activityFindingTitle(check)}</strong><p>{activityAdviceText(rule)}</p>{check.partial&&<p className="compact-note">{t('activity.partial')}</p>}<button className="link" disabled={blocked||check.observed.evidenceRefs.length===0} onClick={()=>onEvidence(check.observed.evidenceRefs)}>{t('activity.records')}</button></article>;})}
   <p className="compact-note">{t('activity.note')}</p><details><summary>{t('activity.checks')}</summary>{activity.checks.map(check=><p key={check.rule}>{activityRuleTitle(check.rule)}: {activityCheckText(check)}</p>)}</details>
  </section>;
 }

@@ -7,7 +7,6 @@ import { QueryError } from './Feedback.js';
 import { reviewStateLabel } from './optimize/presentation.js';
 import { SuggestionDetail } from './optimize/SuggestionDetail.js';
 import { SuggestionMetric } from './optimize/SuggestionMetric.js';
-import { HandoffButton } from './optimize/Handoff.js';
 import { type Route } from './state.js';
 import { useOptimize } from './useOptimize.js';
 import { useReviewActions } from './optimize/useReviewActions.js';
@@ -15,7 +14,20 @@ export { findingLabel, statusLabel } from './optimize/presentation.js';
 export { useOptimize } from './useOptimize.js';
 export function OptimizeSummary({ client, route, navigate }: { client: UsageClient; route: Route; navigate: (r: Partial<Route>) => void }) {
   const q = useOptimize(client, { action: 'list', project: route.project, sourceInstanceId: route.source, limit: 3, ruleOverrides: { agentsBytes: route.agentsBytes, descriptionCharacters: route.descriptionCharacters } });
-  return <section className="panel optimize-summary"><div className="section-head"><h2>{t('optimize.summary')}</h2></div>{q.loading ? <p role="status">{t('webui.loading')}</p> : q.error ? <QueryError error={q.error} code={q.code} retry={q.retry} /> : q.data ? <><p>{t('optimize.summaryCount', { pending: q.data.pending, history: q.data.history })}</p>{q.data.suggestions.map(s => { const p = reviewPresentation(s); return <button className="config-row review-row" key={s.id} onClick={() => navigate({ page: 'optimize', optimizeView: q.data!.readView ?? undefined, decisionRevision: q.data!.decisionRevision, suggestion: s.id, suggestionRecord: s.recordId ?? undefined, optimizeCategory: undefined, optimizeGroup: 'pending', optimizeOffset: 0 })}><span className="config-identity"><strong>{p.title}</strong><span className="review-value">{p.value}</span></span><SuggestionMetric presentation={p}/></button>; })}<div className="controls"><button onClick={() => navigate({ page: 'optimize', optimizeView: q.data!.readView ?? undefined, decisionRevision: q.data!.decisionRevision, suggestion: undefined, suggestionRecord: undefined, optimizeOffset: 0, optimizeGroup: 'pending' })}>{t('optimize.viewAll')}</button><HandoffButton key={`${route.project}:${route.source}`} client={client} route={{...route,optimizeView:q.data.readView??undefined,decisionRevision:q.data.decisionRevision}} disabled={!q.data.pending}/></div><p className="note">{t('optimize.note')}</p></> : null}</section>;
+  return <section className="panel optimize-summary">
+    <div className="section-head"><h2>{t('optimize.summary')}</h2></div>
+    {q.loading ? <p role="status">{t('webui.loading')}</p> : q.error ? <QueryError error={q.error} code={q.code} retry={q.retry} /> : q.data ? <>
+      <p>{t('optimize.summaryCount', { pending: q.data.pending, history: q.data.history })}</p>
+      {q.data.suggestions.map(s => {
+        const p = reviewPresentation(s);
+        return <button className="config-row review-row" key={s.id} onClick={() => navigate({ page: 'optimize', optimizeView: q.data!.readView ?? undefined, decisionRevision: q.data!.decisionRevision, suggestion: s.id, suggestionRecord: s.recordId ?? undefined, optimizeCategory: undefined, optimizeGroup: 'pending', optimizeOffset: 0 })}>
+          <span className="config-identity"><strong>{p.title}</strong><span className="review-value">{p.value}</span></span><SuggestionMetric presentation={p}/>
+        </button>;
+      })}
+      <div className="controls"><button onClick={() => navigate({ page: 'optimize', optimizeView: q.data!.readView ?? undefined, decisionRevision: q.data!.decisionRevision, suggestion: undefined, suggestionRecord: undefined, optimizeOffset: 0, optimizeGroup: 'pending' })}>{t('optimize.viewAll')}</button></div>
+      <p className="note">{t('optimize.note')}</p>
+    </> : null}
+  </section>;
 }
 export function OptimizeView({ client, route, navigate, pin, embedded = false }: { client: UsageClient; route: Route; navigate: (r: Partial<Route>) => void; pin: (view: string, revision: string) => void; embedded?: boolean }) {
   const request: OptimizeRequest = { action: 'list', readView: route.optimizeView, decisionRevision: route.decisionRevision, project: route.project, sourceInstanceId: route.source, group: route.optimizeGroup ?? 'pending', category: route.optimizeCategory, offset: route.optimizeOffset ?? 0, limit: 30, ruleOverrides: { agentsBytes: route.agentsBytes, descriptionCharacters: route.descriptionCharacters } };
@@ -29,7 +41,8 @@ export function OptimizeView({ client, route, navigate, pin, embedded = false }:
   if (embedded) return <>{q.error && <QueryError error={q.error} code={q.code} retry={refresh} />} {detail}</>;
   if (route.unassigned) return <Empty title={t('optimize.empty')} copy={t('config.emptyHint')} />;
   return <>
-    <Heading title={t('optimize.title')} sub={t('optimize.note')}><div className="controls"><HandoffButton key={`${route.project}:${route.source}`} client={client} route={route} disabled={busy || q.loading || !result?.pending} /><button disabled={busy} onClick={q.loading ? q.cancel : refresh}>{t(q.loading ? 'webui.cancel' : 'config.refresh')}</button><button disabled={busy || q.loading || !result} onClick={() => void run('recheck')}>{t('optimize.recheck')}</button></div></Heading>
+    <Heading title={t('optimize.title')} sub={t('optimize.note')}><div className="controls"><button disabled={busy} onClick={q.loading ? q.cancel : refresh}>{t(q.loading ? 'webui.cancel' : 'config.refresh')}</button><button disabled={busy || q.loading || !result} onClick={() => void run('recheck')}>{t('optimize.recheck')}</button></div></Heading>
+    <p className="note">{t('optimize.skillProcessing')}</p>
     {q.loading && <p role="status">{t('webui.loading')}</p>}{q.error && <QueryError error={q.error} code={q.code} retry={q.code === 'VIEW_EXPIRED' || q.code === 'NOT_FOUND' ? refresh : q.retry} />}{error && <QueryError error={error.message} code={error.code} retry={refresh} />}
     {notice && <p className="read-notice" role="status">{notice}</p>}
     {busy && <p role="status">{t('webui.loading')}</p>}

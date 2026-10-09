@@ -90,7 +90,7 @@ pub(in crate::adapters::codex) fn discontinuity(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn record(
+pub(in crate::adapters::codex) fn record(
     facts: &mut Facts,
     thread: Option<String>,
     turn: Option<String>,

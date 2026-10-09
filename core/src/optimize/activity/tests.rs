@@ -15,49 +15,24 @@ fn metric(value: Option<u64>, basis: t::Basis) -> t::Count {
 fn positive_partial_signals_remain_hits_while_gaps_never_prove_a_miss() {
     let rule = ActivityRule::InspectCallsAfterFailure;
     assert_eq!(
-        check(
-            rule,
-            "same_operation_after_failure_v1",
-            &metric(Some(2), t::Basis::RepeatAfterFailure),
-            true
-        )
-        .outcome,
+        check(rule, &metric(Some(2), t::Basis::RepeatAfterFailure), true).outcome,
         RuleOutcome::Hit
     );
     assert_eq!(
-        check(
-            rule,
-            "same_operation_after_failure_v1",
-            &metric(Some(0), t::Basis::RepeatAfterFailure),
-            true
-        )
-        .outcome,
+        check(rule, &metric(Some(0), t::Basis::RepeatAfterFailure), true).outcome,
         RuleOutcome::Insufficient
     );
     assert_eq!(
-        check(
-            rule,
-            "same_operation_after_failure_v1",
-            &metric(Some(0), t::Basis::RepeatAfterFailure),
-            false
-        )
-        .outcome,
+        check(rule, &metric(Some(0), t::Basis::RepeatAfterFailure), false).outcome,
         RuleOutcome::Miss
     );
     assert_eq!(
-        check(
-            rule,
-            "same_operation_after_failure_v1",
-            &metric(None, t::Basis::ResourceLimit),
-            true
-        )
-        .outcome,
+        check(rule, &metric(None, t::Basis::ResourceLimit), true).outcome,
         RuleOutcome::Insufficient
     );
     assert_eq!(
         check(
             rule,
-            "same_operation_after_failure_v1",
             &metric(Some(1), t::Basis::SameRequestObservation),
             false
         )

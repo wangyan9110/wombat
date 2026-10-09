@@ -113,8 +113,8 @@
       "properties": {
         "methodVersion": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 1
+          "minimum": 3,
+          "maximum": 3
         },
         "kind": {
           "$ref": "#/definitions/InspectionKind"
@@ -178,6 +178,26 @@
           "anyOf": [
             {
               "$ref": "#/definitions/ContextInventory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "activity": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ActivityReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "opportunities": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OpportunityReview"
             },
             {
               "type": "null"
@@ -1673,6 +1693,708 @@
       "enum": [
         "injected_context",
         "model_window"
+      ]
+    },
+    "ActivityReview": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "policy": {
+          "$ref": "#/definitions/ActivityPolicy"
+        },
+        "baselineScope": {
+          "description": "Same authorized scope, preceding disjoint dates; absent for unbounded selections.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Scope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentCoverage": {
+          "$ref": "#/definitions/ActivityCoverage"
+        },
+        "baselineCoverage": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ActivityCoverage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActivityFinding"
+          }
+        },
+        "findingCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "policy",
+        "currentCoverage",
+        "findings",
+        "findingCount",
+        "limit"
+      ]
+    },
+    "ActivityPolicy": {
+      "type": "object",
+      "properties": {
+        "slowDurationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumSlowOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumCurrentOutcomes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumBaselineOutcomes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumSpikeFailures": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumFailureShare": {
+          "type": "number"
+        },
+        "failureShareMultiplier": {
+          "type": "number"
+        },
+        "baselineFailureShareFloor": {
+          "type": "number"
+        },
+        "minimumBaselineDurations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumBaselineMedianMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "durationMultiplier": {
+          "type": "number"
+        },
+        "minimumDurationIncreaseMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumWorkflowOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumWorkflowTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumFailuresInTask": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumRejectionsInTask": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "slowDurationMs",
+        "minimumSlowOperations",
+        "minimumCurrentOutcomes",
+        "minimumBaselineOutcomes",
+        "minimumSpikeFailures",
+        "minimumFailureShare",
+        "failureShareMultiplier",
+        "baselineFailureShareFloor",
+        "minimumBaselineDurations",
+        "minimumBaselineMedianMs",
+        "durationMultiplier",
+        "minimumDurationIncreaseMs",
+        "minimumWorkflowOperations",
+        "minimumWorkflowTasks",
+        "minimumFailuresInTask",
+        "minimumRejectionsInTask"
+      ]
+    },
+    "ActivityCoverage": {
+      "type": "object",
+      "properties": {
+        "observedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "matchedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "outcomeGaps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "durationSamples": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "observedOperations",
+        "matchedOperations",
+        "outcomeGaps",
+        "durationSamples"
+      ]
+    },
+    "ActivityFinding": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActivitySignal"
+          }
+        },
+        "sourceInstanceId": {
+          "type": "string"
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tool": {
+          "type": "string"
+        },
+        "current": {
+          "$ref": "#/definitions/ActivityStats"
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ActivityStats"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionEvidence"
+          }
+        },
+        "baselineEvidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionEvidence"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "signals",
+        "sourceInstanceId",
+        "tool",
+        "current",
+        "evidence",
+        "baselineEvidence"
+      ]
+    },
+    "ActivitySignal": {
+      "type": "string",
+      "enum": [
+        "repeated_slow_request",
+        "failure_spike",
+        "duration_spike",
+        "recurring_workflow",
+        "repeated_failure",
+        "repeated_rejection"
+      ]
+    },
+    "ActivityStats": {
+      "type": "object",
+      "properties": {
+        "operations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "determinateOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "rejectedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failureShare": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "outcomeGaps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "durationSamples": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "slowOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumDurationMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "medianDurationMs": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximumFailuresInTask": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumRejectionsInTask": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operations",
+        "tasks",
+        "determinateOperations",
+        "failedOperations",
+        "rejectedOperations",
+        "outcomeGaps",
+        "durationSamples",
+        "slowOperations",
+        "maximumFailuresInTask",
+        "maximumRejectionsInTask"
+      ]
+    },
+    "OpportunityReview": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "policy": {
+          "$ref": "#/definitions/OpportunityPolicy"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OpportunityCheck"
+          }
+        },
+        "limitPerCheck": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "policy",
+        "checks",
+        "limitPerCheck"
+      ]
+    },
+    "OpportunityPolicy": {
+      "type": "object",
+      "properties": {
+        "minimumUnpricedTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumAmountUsd": {
+          "type": "string"
+        },
+        "concentrationShare": {
+          "type": "number"
+        },
+        "outlierMultiple": {
+          "type": "number"
+        },
+        "increaseMultiple": {
+          "type": "number"
+        },
+        "minimumIncreaseUsd": {
+          "type": "string"
+        },
+        "minimumCacheCreated": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumReadCreateRatio": {
+          "type": "number"
+        },
+        "modelShare": {
+          "type": "number"
+        },
+        "maximumMedianOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumModelTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumOutlierTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumPermissionRequests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "permissionRequestShare": {
+          "type": "number"
+        },
+        "longInteractionMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "outboundWindowMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumRiskyDeclines": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumPolls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumPollWaitMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumObservedTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumPollingTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumPollingDays": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pollingWindowDays": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "minimumUnpricedTokens",
+        "minimumAmountUsd",
+        "concentrationShare",
+        "outlierMultiple",
+        "increaseMultiple",
+        "minimumIncreaseUsd",
+        "minimumCacheCreated",
+        "maximumReadCreateRatio",
+        "modelShare",
+        "maximumMedianOperations",
+        "minimumModelTasks",
+        "minimumOutlierTasks",
+        "minimumPermissionRequests",
+        "permissionRequestShare",
+        "longInteractionMs",
+        "outboundWindowMs",
+        "minimumRiskyDeclines",
+        "minimumPolls",
+        "maximumPollWaitMs",
+        "minimumObservedTasks",
+        "minimumPollingTasks",
+        "minimumPollingDays",
+        "pollingWindowDays"
+      ]
+    },
+    "OpportunityCheck": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "$ref": "#/definitions/OpportunityRule"
+        },
+        "status": {
+          "$ref": "#/definitions/OpportunityStatus"
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OpportunityGap"
+          }
+        },
+        "findingCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OpportunityFinding"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "status",
+        "gaps",
+        "findingCount",
+        "findings"
+      ]
+    },
+    "OpportunityRule": {
+      "type": "string",
+      "enum": [
+        "unpriced_usage",
+        "estimate_concentration",
+        "estimate_outlier",
+        "estimate_increase",
+        "cache_creation_reuse",
+        "model_review",
+        "sensitive_read",
+        "sensitive_change",
+        "outside_project_change",
+        "risky_command",
+        "secret_exposure",
+        "sensitive_outbound",
+        "repeated_risky_decline",
+        "permission_friction",
+        "unanswered_question",
+        "long_interaction",
+        "frequent_polling"
+      ]
+    },
+    "OpportunityStatus": {
+      "type": "string",
+      "enum": [
+        "hit",
+        "miss",
+        "insufficient"
+      ]
+    },
+    "OpportunityGap": {
+      "type": "string",
+      "enum": [
+        "source_partial",
+        "no_observations",
+        "incomplete_prices",
+        "no_baseline",
+        "unknown_cache",
+        "path_identity",
+        "runtime_coverage",
+        "interaction_association",
+        "outcome_unknown"
+      ]
+    },
+    "OpportunityFinding": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "object": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OpportunityMetric"
+          }
+        },
+        "safetyLabels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SafetyLabel"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionEvidence"
+          }
+        },
+        "baselineEvidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionEvidence"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "metrics",
+        "safetyLabels",
+        "evidence",
+        "baselineEvidence"
+      ]
+    },
+    "OpportunityMetric": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/OpportunityMetricName"
+        },
+        "value": {
+          "description": "Exact decimal representation; no client-side measurement or ratio calculation.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "$ref": "#/definitions/OpportunityUnit"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "unit"
+      ]
+    },
+    "OpportunityMetricName": {
+      "type": "string",
+      "enum": [
+        "unpriced_tokens",
+        "amount",
+        "baseline_amount",
+        "share",
+        "multiple",
+        "operations",
+        "tasks",
+        "median_operations",
+        "cache_created",
+        "cache_read",
+        "read_create_ratio",
+        "requests",
+        "unanswered",
+        "interval_ms",
+        "samples",
+        "unknown"
+      ]
+    },
+    "OpportunityUnit": {
+      "type": "string",
+      "enum": [
+        "count",
+        "token",
+        "usd",
+        "ratio",
+        "factor",
+        "milliseconds"
+      ]
+    },
+    "SafetyLabel": {
+      "type": "string",
+      "enum": [
+        "remote_script_execution",
+        "broad_deletion",
+        "broad_permissions",
+        "decode_execution",
+        "possible_credential"
       ]
     },
     "Facets": {

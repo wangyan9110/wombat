@@ -95,6 +95,18 @@ pub(super) fn process(
         report,
         &evidence,
     );
+    runtime_review::prompt(
+        item,
+        owner.as_deref(),
+        explicit_turn.as_deref().or_else(|| {
+            (owner == state.thread)
+                .then_some(state.turn.as_deref())
+                .flatten()
+        }),
+        facts,
+        report,
+        &evidence,
+    );
     if kind == "response_item"
         && let Some(loads) = instructions::loads(&p)
         && let Some(thread) = &owner

@@ -70,6 +70,8 @@ pub(super) struct Payload<'a> {
     #[serde(borrow)]
     pub output: Option<&'a RawValue>,
     #[serde(borrow)]
+    pub aggregated_output: Option<&'a RawValue>,
+    #[serde(borrow)]
     pub result: Option<&'a RawValue>,
     pub status: Option<String>,
     #[serde(borrow)]

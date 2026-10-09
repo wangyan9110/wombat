@@ -17,6 +17,10 @@
       "zh": "896cbecbf45e2989dbf92307929ea7b99a42d6b4429b7ed1e61159a393408d83",
       "en": "4e585951dadbebaf9ad8b8c5ccd5d6d3c9197a57cd49d98406d07e6e45457cff"
     },
+    "/decision-codex-skill-entry-and-distribution/proposal/current-delivery-order": {
+      "zh": "a41d74ecfc1cb2f9a00da765d0cb6798729b7fbf69fd6baff509eba3b6b82f67",
+      "en": "ad143ec1ff2b08f69ee794a84f8743b339c3fb3ae58164dfa2b5b4ba720ac203"
+    },
     "/decision-codex-skill-entry-and-distribution/proposal/log-and-hooks-collection": {
       "zh": "84d4c731794342ea519a1aec4bd6d83329ace1cbbfa70edca9a560d55ab579ec",
       "en": "28eca6a86a2fd5b5a642e8b15dacaafa08977f87065c4a5c4eac788a9057dd59"
@@ -50,8 +54,8 @@
       "en": "a9f150d3b1ca16fcc019d5d73a904133d08ff8109f232e1a93936c78617094d9"
     },
     "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/skill-and-web-round-trips": {
-      "zh": "a27252a629900b391633eb66c663c28dd0d9730c2e822e10ddc4c4c368305de7",
-      "en": "e41ae07d2beb6f17a6c2b43ec0340de7500eeb3b59388953feec510c6eac4857"
+      "zh": "434c7b0568791243d34ef4df2446d6ea997923671653c8c1bf9fdc9f9e530909",
+      "en": "262210135fa50c670fbf9ff135fed118ae53f65aceef3f10a37b7fe1642071b3"
     },
     "/decision-codex-skill-entry-and-distribution/proposal/web-setup-and-skill-collaboration-design/languages-failure-and-design-acceptance": {
       "zh": "cd6d060ee930f6ac7b7030c06ab27fbee38b867c72ca86aef5778ca5299ff064",
@@ -70,8 +74,8 @@
       "en": "d0a305b891d60bbaf65a892fad4204277d4d7d3c0485d22148e30de73681e260"
     },
     "/decision-codex-skill-entry-and-distribution/proposal/division-with-web": {
-      "zh": "d095715c80b8ec08c970ed3847a36f18c96984a674c06454b6028d323c9cd19b",
-      "en": "a15f791d4ef97ef80f5f48eca62d65bdf6a0bd1895dcf6fee908c19eb1df80fb"
+      "zh": "bfcf1f5bfa8cb98edac77564936f8ad52bb9f48069308a0bd7a78b998858e0ac",
+      "en": "e2500279fb1418a2a4b05d0368c92be951a3edfe2eb079c96de334ddd3327256"
     },
     "/decision-codex-skill-entry-and-distribution/proposal/reusing-current-capabilities": {
       "zh": "2d6331b5ac176d19a59eb0ea595eeb046705b851efddd1439ba4dcd99f291fa3",

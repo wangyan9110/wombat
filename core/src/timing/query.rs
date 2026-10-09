@@ -1199,6 +1199,7 @@ fn evidence_row(event: &Arc<Event>) -> Result<EvidenceRow> {
         Payload::Thread { .. } => row.record_kind = "thread".into(),
         Payload::Turn { .. } => row.record_kind = "turn".into(),
         Payload::Ancestry { .. } => row.record_kind = "ancestry".into(),
+        Payload::Review { .. } => row.record_kind = "review_observation".into(),
     }
     Ok(row)
 }

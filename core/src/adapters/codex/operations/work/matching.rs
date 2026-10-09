@@ -196,7 +196,7 @@ fn normalize(path: &str, platform: &SourcePathPlatform) -> Option<String> {
     }
     Some(out)
 }
-pub(super) fn target(cwd: &str, path: &str) -> Option<ReadMatchTarget> {
+pub(crate) fn target(cwd: &str, path: &str) -> Option<ReadMatchTarget> {
     let cwd = path_text(cwd)?;
     let path = path_text(path)?;
     let owner = platform(&cwd)?;

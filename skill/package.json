@@ -1,6 +1,6 @@
 {
   "name": "wombat",
-  "description": "Local Codex usage, task history and configuration evidence workflows",
+  "description": "Analyze Codex token usage and review configuration with local evidence",
   "license": "MIT",
   "homepage": "https://github.com/wangyan9110/wombat",
   "requiredCapabilities": [

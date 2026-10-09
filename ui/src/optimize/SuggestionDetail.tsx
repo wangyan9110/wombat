@@ -8,7 +8,6 @@ import { ReviewFacts } from './Assessments.js';
 import { returnRoute, linkedReturn, type Route } from '../state.js';
 import { FindingMethods, Findings } from './Findings.js';
 import { findingLabel, reviewStateLabel } from './presentation.js';
-import { HandoffButton } from './Handoff.js';
 import { FollowUp } from './FollowUp.js';
 interface Props { selected: OptimizeSuggestion; result: OptimizeResult; client: UsageClient; route: Route; busy: boolean; error?: { message: string; code?: string }; navigate: (patch: Partial<Route>) => void; refresh: () => void; run: (action: OptimizeRequest['action'], suggestionId?: string, decisionReason?: OptimizeRequest['decisionReason']) => Promise<void> }
 type CopyStatus='optimize.copied'|'optimize.copyFailed';
@@ -21,7 +20,7 @@ export function SuggestionDetail({ selected, result, client, route, busy, error,
     {returnRoute(route) && <button className="link" onClick={() => navigate(returnRoute(route)!)}>{t('webui.back')}</button>}<p className="tag">{t(`optimize.${selected.category}`)} · {reviewStateLabel(selected)}</p><p><code className="config-path">{selected.item.path}</code></p><button className="link" disabled={busy} onClick={() => navigate({ page: selected.item.kind === 'rule' ? 'instructions' : 'extensions', returnTo: linkedReturn(route), configView: result.readView ?? undefined, configId: selected.item.id, instructionSearch: undefined, extensionSearch: undefined, extensionKind: undefined, configOffset: 0, configThread: undefined })}>{t('optimize.configuration')}</button>
     <section className="review-issue"><h3>{t('optimize.issueFound')}</h3><p>{selected.findings.map(f => findingLabel(f.rule)).join(' · ')}</p></section>
     <section className="review-evidence"><h3>{t('optimize.locationEvidence')}</h3><Findings suggestion={selected} /></section>
-    <section><h3>{t('optimize.recommendedAction')}</h3><p className="review-benefit">{reviewPresentation(selected).value}</p>
+    <section><h3>{t('optimize.recommendedAction')}</h3><p className="review-benefit">{reviewPresentation(selected).value}</p><p className="note">{t('optimize.skillProcessing')}</p>
       <details className="provenance"><summary>{t('optimize.steps')}</summary><p>{t('optimize.manualNote')}</p><button disabled={busy} onClick={() => { void (navigator.clipboard ? navigator.clipboard.writeText(selected.item.path) : Promise.reject(new Error())).then(() => setCopy('optimize.copied'), () => setCopy('optimize.copyFailed')); }}>{t('optimize.copyPath')}</button><p role="status">{copy?t(copy):''}</p></details></section>
     {selected.status === 'recheckUnavailable' && <div className="read-notice"><p>{t('optimize.recheckUnavailableHint')}</p><button disabled={busy} onClick={() => void run('recheck', selected.id)}>{t('optimize.recheck')}</button></div>}
     <ReviewUsage key={JSON.stringify([selected.item.id, result.readView, route.since, route.until, route.allTime, route.timezone, route.agent, route.source, route.project])} client={client} suggestion={selected} readView={result.readView!} route={route} navigate={navigate} refresh={refresh} />
@@ -34,7 +33,6 @@ export function SuggestionDetail({ selected, result, client, route, busy, error,
       <div className="review-actions">
       <button disabled={busy} onClick={() => void run('recheck', selected.id)}>{t('optimize.recheck')}</button>
       {(route.optimizeGroup ?? 'pending') === 'pending' && <>
-        <HandoffButton client={client} route={route} suggestionId={selected.id} disabled={busy} />
         <button disabled={busy} onClick={() => void run('keep', selected.id, 'necessary')}>{t('optimize.keep')}</button>
         <label>{t('optimize.decisionReason')}<select disabled={busy} value={reason} onChange={e => setReason(e.target.value as typeof reason)}>
           <option value="object_changed">{t('optimize.reason.objectChanged')}</option>

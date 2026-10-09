@@ -7,7 +7,7 @@ use crate::session_events::{
 };
 
 mod recording;
-use recording::record;
+pub(super) use recording::record;
 pub(super) use recording::{Context, ancestry, discontinuity, measurement, operation};
 
 /// A valid outer record binds the damaged item to its known scope and source

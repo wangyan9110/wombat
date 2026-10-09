@@ -7,7 +7,9 @@ use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub const EVENT_VERSION: u32 = 3;
+pub const EVENT_VERSION: u32 = 4;
+mod review;
+pub use review::{ReviewObservation, SafetyLabel};
 pub mod title_observations;
 
 /// A generation belongs to one physical source file, not to an entire source root.
@@ -213,6 +215,9 @@ pub struct NativeDuration {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Payload {
+    Review {
+        observation: ReviewObservation,
+    },
     Ancestry {
         parent_id: String,
         evidence: EvidenceRef,
@@ -509,6 +514,10 @@ impl TryFrom<StoredEvent> for Event {
                 );
             }
             Payload::Activity { .. } => {}
+            Payload::Review { observation } => {
+                ensure!(thread.is_some(), "review observation requires thread");
+                observation.validate()?;
+            }
         }
         value.time.validate()?;
         Ok(Self(value))

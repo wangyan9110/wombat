@@ -4,7 +4,9 @@ For a Web handoff, preserve supplied cwd, target IDs/paths, hashes/existence, se
 
 Process within the user's authorization in the receiving conversation. Preserve purpose, triggers, necessary constraints, tests, references and shared projects. Codex owns file edits, review and recovery. Wombat has no apply/recover job API. Do not send another handoff to yourself.
 
-After edits, call `optimize recheck --suggestion ID --project-root PATH --project PATH --json` with current evidence; inspect per-rule outcomes. A passing static recheck is not proof of actual adoption, better task quality or financial savings. Report residual findings and uncheckable rules. Keep user decisions separate from checks.
+After editing a configuration suggestion, call `optimize recheck --suggestion ID --project-root PATH --project PATH --json` with current evidence; inspect per-rule outcomes. A passing static recheck is not proof of actual adoption, better task quality or financial savings. Report residual findings and uncheckable rules. Keep user decisions separate from checks.
+
+For changes prompted by a usage investigation, retain the original task, scope and baseline metrics. Report the actual change and compare relevant later observations when available, using `compare` or the original analysis. Do not invent a configuration suggestion ID or require a static recheck for an unrelated workflow change. Describe observed improvement separately from a causal explanation; missing follow-up data does not block a useful change summary. Do not run extra model tasks just to manufacture a benefit measurement.
 
 If the user explicitly chooses “keep” or “not applicable”, use `optimize keep|not-applicable --suggestion ID --reason necessary|object_changed|incorrect_evidence` with the reviewed readView/decisionRevision and scope. Follow current help for exact arguments. Rechecks must not revoke those decisions. Do not create consuming tasks just to test adoption.
 

@@ -47,6 +47,62 @@ export type Comparison =
     };
 export type DriverDimension = "project" | "model" | "thread";
 export type ContextRecordKind = "injected_context" | "model_window";
+export type ActivitySignal =
+  | "repeated_slow_request"
+  | "failure_spike"
+  | "duration_spike"
+  | "recurring_workflow"
+  | "repeated_failure"
+  | "repeated_rejection";
+export type OpportunityRule =
+  | "unpriced_usage"
+  | "estimate_concentration"
+  | "estimate_outlier"
+  | "estimate_increase"
+  | "cache_creation_reuse"
+  | "model_review"
+  | "sensitive_read"
+  | "sensitive_change"
+  | "outside_project_change"
+  | "risky_command"
+  | "secret_exposure"
+  | "sensitive_outbound"
+  | "repeated_risky_decline"
+  | "permission_friction"
+  | "unanswered_question"
+  | "long_interaction"
+  | "frequent_polling";
+export type OpportunityStatus = "hit" | "miss" | "insufficient";
+export type OpportunityGap =
+  | "source_partial"
+  | "no_observations"
+  | "incomplete_prices"
+  | "no_baseline"
+  | "unknown_cache"
+  | "path_identity"
+  | "runtime_coverage"
+  | "interaction_association"
+  | "outcome_unknown";
+export type OpportunityMetricName =
+  | "unpriced_tokens"
+  | "amount"
+  | "baseline_amount"
+  | "share"
+  | "multiple"
+  | "operations"
+  | "tasks"
+  | "median_operations"
+  | "cache_created"
+  | "cache_read"
+  | "read_create_ratio"
+  | "requests"
+  | "unanswered"
+  | "interval_ms"
+  | "samples"
+  | "unknown";
+export type OpportunityUnit = "count" | "token" | "usd" | "ratio" | "factor" | "milliseconds";
+export type SafetyLabel =
+  "remote_script_execution" | "broad_deletion" | "broad_permissions" | "decode_execution" | "possible_credential";
 export type TokenBasis = "analyzed_totals";
 export type AutomaticStatus = "checking" | "updated" | "unchanged" | "failed";
 export type ProjectLoadState = "pending" | "loading" | "ready";
@@ -187,6 +243,8 @@ export interface Inspection {
   resourceCount: number;
   unlocatedOperations: number;
   context?: ContextInventory | null;
+  activity?: ActivityReview | null;
+  opportunities?: OpportunityReview | null;
 }
 export interface InspectionPolicy {
   minimumTokens: number;
@@ -499,6 +557,123 @@ export interface ContextInventoryRecord {
   contentVersion?: string | null;
   bytes?: number | null;
   evidence: InspectionEvidence;
+}
+export interface ActivityReview {
+  methodVersion: number;
+  policy: ActivityPolicy;
+  /**
+   * Same authorized scope, preceding disjoint dates; absent for unbounded selections.
+   */
+  baselineScope?: Scope | null;
+  currentCoverage: ActivityCoverage;
+  baselineCoverage?: ActivityCoverage | null;
+  findings: ActivityFinding[];
+  findingCount: number;
+  limit: number;
+}
+export interface ActivityPolicy {
+  slowDurationMs: number;
+  minimumSlowOperations: number;
+  minimumCurrentOutcomes: number;
+  minimumBaselineOutcomes: number;
+  minimumSpikeFailures: number;
+  minimumFailureShare: number;
+  failureShareMultiplier: number;
+  baselineFailureShareFloor: number;
+  minimumBaselineDurations: number;
+  minimumBaselineMedianMs: number;
+  durationMultiplier: number;
+  minimumDurationIncreaseMs: number;
+  minimumWorkflowOperations: number;
+  minimumWorkflowTasks: number;
+  minimumFailuresInTask: number;
+  minimumRejectionsInTask: number;
+}
+export interface ActivityCoverage {
+  observedOperations: number;
+  matchedOperations: number;
+  outcomeGaps: number;
+  durationSamples: number;
+}
+export interface ActivityFinding {
+  id: string;
+  signals: ActivitySignal[];
+  sourceInstanceId: string;
+  project?: string | null;
+  tool: string;
+  current: ActivityStats;
+  baseline?: ActivityStats | null;
+  evidence: InspectionEvidence[];
+  baselineEvidence: InspectionEvidence[];
+}
+export interface ActivityStats {
+  operations: number;
+  tasks: number;
+  determinateOperations: number;
+  failedOperations: number;
+  rejectedOperations: number;
+  failureShare?: number | null;
+  outcomeGaps: number;
+  durationSamples: number;
+  slowOperations: number;
+  maximumDurationMs?: number | null;
+  medianDurationMs?: number | null;
+  maximumFailuresInTask: number;
+  maximumRejectionsInTask: number;
+}
+export interface OpportunityReview {
+  methodVersion: number;
+  policy: OpportunityPolicy;
+  checks: OpportunityCheck[];
+  limitPerCheck: number;
+}
+export interface OpportunityPolicy {
+  minimumUnpricedTokens: number;
+  minimumAmountUsd: string;
+  concentrationShare: number;
+  outlierMultiple: number;
+  increaseMultiple: number;
+  minimumIncreaseUsd: string;
+  minimumCacheCreated: number;
+  maximumReadCreateRatio: number;
+  modelShare: number;
+  maximumMedianOperations: number;
+  minimumModelTasks: number;
+  minimumOutlierTasks: number;
+  minimumPermissionRequests: number;
+  permissionRequestShare: number;
+  longInteractionMs: number;
+  outboundWindowMs: number;
+  minimumRiskyDeclines: number;
+  minimumPolls: number;
+  maximumPollWaitMs: number;
+  minimumObservedTasks: number;
+  minimumPollingTasks: number;
+  minimumPollingDays: number;
+  pollingWindowDays: number;
+}
+export interface OpportunityCheck {
+  rule: OpportunityRule;
+  status: OpportunityStatus;
+  gaps: OpportunityGap[];
+  findingCount: number;
+  findings: OpportunityFinding[];
+}
+export interface OpportunityFinding {
+  id: string;
+  object?: string | null;
+  metrics: OpportunityMetric[];
+  safetyLabels: SafetyLabel[];
+  evidence: InspectionEvidence[];
+  baselineEvidence: InspectionEvidence[];
+}
+export interface OpportunityMetric {
+  name: OpportunityMetricName;
+  /**
+   * Exact decimal representation; no client-side measurement or ratio calculation.
+   */
+  value?: string | null;
+  unit: OpportunityUnit;
 }
 /**
  * Observed dimensions, not a project registry or a configuration inventory.

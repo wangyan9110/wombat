@@ -1,4 +1,5 @@
 pub mod codex;
+pub(crate) use codex::review_target;
 pub mod contract;
 pub(crate) mod shared_strings;
 

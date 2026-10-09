@@ -50,7 +50,7 @@ Review does not accept pagination. Without dates, it selects the fixed view cuto
 
 ## Codex Skill
 
-The redesigned [user Skill](../../skill/README.en.md) starts from conversational tasks and can use Web for detailed explanation. Web browsing and selection can hand work to Codex for processing and rechecks. The Skill consumes existing CLI JSON and bounded index restoration/synchronization; account reads do not wait for logs.
+The redesigned [user Skill](../../skill/README.en.md) starts from conversational tasks and can use Web to inspect evidence. Processing continues in the current Codex conversation; Web retains viewing and rechecks. The Skill consumes existing CLI JSON and bounded index restoration/synchronization; account reads do not wait for logs.
 
 Codex manages the formal plugin, whose invocation name on verified Codex 0.160.0 is $wombat:wombat. Standalone local trials use $wombat:
 
@@ -65,7 +65,7 @@ Standalone installation copies only reviewed local product assets, defaulting to
 
 web --context FILE --json accepts a restricted generated contract: page is usage/threads/instructions/extensions/optimize, with the corresponding read-only usage/configuration/optimization request. --root/--project-root still authorize startup roots. The host reads and validates versions before returning effective context and a connection URL. Project, source, full object IDs, timezone, dates, and versions are retained; the product converts exclusive CLI until into display dates. Supply paired dates or allTime; unsupported browser filters are rejected. The browser uses its own pagination size. Restart requires a new URL, and connection tokens must stay local.
 
-Web handoff lists actually enabled Skills per project, rechecks names/paths, and sends text plus a skill item to the persistent queue. CLI uses --skill PROJECT_ID=PATH. Missing, disabled, or conflicting instances require selection or explicit --without-skill to use existing handoff behavior. Unknown delivery is never retried automatically; acceptance does not establish completed changes or rechecks. See the [product plan](../decisions/proposed/product/2026-10-04-codex-skill.en.md).
+For a separate Codex task, CLI handoff checks actually enabled Skills per project, rechecks names/paths, and sends text plus a skill item to the persistent queue. Use --skill PROJECT_ID=PATH. Missing, disabled, or conflicting instances require selection or explicit --without-skill to use existing handoff behavior. Unknown delivery is never retried automatically; acceptance does not establish completed changes or rechecks. The primary Web interface no longer provides dispatch buttons; existing handoff interfaces and records remain. See the [product plan](../decisions/proposed/product/2026-10-04-codex-skill.en.md).
 
 ## Language
 
@@ -176,7 +176,7 @@ The Web optimization list presents a suggestion, value and key metric. Details e
 
 ## Local Codex handoff and account
 
-A runnable local Codex is required; the native interface is verified on0.160.0. Codex owns sign-in, model review, execution and restoration. CLI and Web share the same selection; sign-in credentials are not copied.
+Handoff requires a runnable local Codex; the native interface is verified on0.160.0. Codex owns sign-in, model review, execution and restoration. CLI and the retained HTTP handoff interface share the same selection; sign-in credentials are not copied.
 
 ```sh
 wombat optimize handoff preview --project-root /path/to/project --json
@@ -189,7 +189,7 @@ Review project working directories, files and evidence in preview, then send usi
 
 Delivery returns accepted, failed or unknown and an available Codex task ID; accepted establishes request acceptance only. Inspect with `codex resume TASK_ID`. After disconnection inspect Codex before deciding to resend; resending is manual, without execution receipts or historical lookup. Repeated manual sends may create new tasks; closing Wombat does not cancel accepted tasks. Use `optimize recheck` after handling to determine whether a problem remains.
 
-The confirmation dialog can refresh allowance while retaining file selection. Low allowance only warns; a reliable native restriction on the current task prevents sending and requires another confirmation after refresh. Expired, unknown or other-model restrictions do not establish exhaustion for this task or trigger automatic retries. Sending checks the actual task again; a final restriction may leave an empty Codex task with no queued request.
+Low allowance only warns; a reliable native restriction on the current task prevents sending. Expired, unknown or other-model restrictions do not establish exhaustion for this task or trigger automatic retries. Sending checks the actual task again; a final restriction may leave an empty Codex task with no queued request. The legacy confirmation component remains but is not a primary Web entry.
 
 The account v1 response has independent identity, allowance and activity status/read times, with masked email only. Actual window names, models, periods and resets come from Codex, without fixed five-hour/seven-day periods or legacy single-bucket fallback. Failures retain previous data/read times; account changes clear old facts. A past reset does not establish restored allowance. Balances and spending limits retain native decimal strings without guessing units. Reset credits are read-only; missing details and an empty list differ, and the 128-row detail limit never replaces the native count. Overview and account details share observations independently of project/date scope. Allowances are not added to or converted from project tokens/API estimates. Partial reads or unconfirmed delivery exit2, errors1 and cancellation130. `turns --sort recent` orders by reliable activity times, with unknown times last.
 

@@ -71,17 +71,20 @@
     "@wombat/web": "workspace:*"
   },
   "license": "MIT",
-  "description": "Explore Codex task history, token usage, and API cost estimates locally. Check AGENTS.md and Skill files, and browse MCP entries and call attempts.",
+  "description": "Analyze local Codex token usage, task history and API cost estimates. Use the Codex Skill to review AGENTS.md, Skills, MCP and Hooks, with a Web dashboard for evidence.",
   "keywords": [
     "codex",
+    "codex-skill",
     "token-usage",
-    "usage-tracker",
+    "usage-analysis",
+    "cost-estimates",
     "task-history",
     "agents-md",
     "agent-skills",
     "mcp",
-    "configuration",
-    "web",
+    "hooks",
+    "configuration-review",
+    "web-dashboard",
     "cli"
   ],
   "repository": {

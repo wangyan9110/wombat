@@ -7,6 +7,7 @@ mod outcome;
 mod replay;
 mod work;
 pub(super) use merge::merge_metadata;
+pub(crate) use work::review_target;
 pub(super) fn operation_id(thread: &str, turn: Option<&str>, identity: &str) -> String {
     stable_id(&[thread, "operation", turn.unwrap_or(""), identity])
 }
@@ -231,6 +232,7 @@ pub(super) fn operation(
         }
     }
     outcome::apply(&mut op, item, completed, operation_kind == "mcp", report);
+    runtime_review::operation(item, &op, facts, report, &evidence);
     facts.operation(op, report);
 }
 

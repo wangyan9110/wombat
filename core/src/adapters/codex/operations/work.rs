@@ -8,6 +8,7 @@ use serde_json::value::RawValue;
 mod command;
 mod matching;
 pub(super) use command::observe as command;
+pub(crate) use matching::target as review_target;
 
 #[derive(Default)]
 struct FileMap {

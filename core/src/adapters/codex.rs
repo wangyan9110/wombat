@@ -8,10 +8,12 @@ mod instructions;
 mod observation_tests;
 mod operations;
 pub(crate) mod preview;
+mod runtime_review;
 mod skills;
 #[cfg(test)]
 mod tests;
 mod timing;
+pub(crate) use operations::review_target;
 #[cfg(test)]
 mod watermark_tests;
 mod wire;
@@ -30,7 +32,7 @@ use std::{
 };
 use wire::*;
 
-pub const VERSION: &str = "codex-rollout-9";
+pub const VERSION: &str = "codex-rollout-10";
 pub struct CodexAdapter;
 pub(crate) fn thread_identity(source: &str, native: &str) -> String {
     stable_id(&["codex", source, "thread", native])

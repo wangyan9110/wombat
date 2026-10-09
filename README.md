@@ -5,13 +5,15 @@
   </picture>
 </p>
 
-# Wombat — Make AI work better
+# Wombat — Codex Token Usage Analysis & Configuration Review
 
 English | [中文](README.zh-CN.md)
 
-Wombat is a local tool for Codex users who want to understand token usage and task timing, inspect instructions and extensions, and turn evidence-backed findings into work for Codex.
+**Understand Codex usage. Improve with evidence.**
 
-Use one overview to find high-usage tasks, review API cost estimates and account allowance, inspect AGENTS.md, Skills, MCP entries, and Hooks, and recheck the results after changes.
+Wombat is a local Codex token usage analyzer and configuration review tool. Locate high-usage tasks, review task timing, inspect repeated operations and project configuration, then use the evidence to decide what to change next.
+
+Use the Codex Skill to ask questions, inspect evidence, authorize changes, and recheck results in your existing conversation. For example: 'Where did this week's usage increase?', 'Which operations need a closer look?', or 'What needs attention in this project's AGENTS.md and Skills?' Open the local Web dashboard when you need charts, timelines, or detailed records.
 
 Wombat currently reads local Codex records. Support for other agents is planned.
 
@@ -19,9 +21,9 @@ Wombat currently reads local Codex records. Support for other agents is planned.
 
 **Stable: [`v0.2.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.2.0).**
 
-Wombat supports macOS, Linux, and Windows. No development tools or API key are required.
+Wombat supports macOS, Linux, and Windows. No development tools or API key are required for local inspection. The Skill requires a compatible local Codex installation.
 
-1. Install and open Wombat. On macOS or Linux, run:
+1. Install Wombat. On macOS or Linux, run:
 
    ```sh
    curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --open
@@ -33,9 +35,28 @@ Wombat supports macOS, Linux, and Windows. No development tools or API key are r
    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Open
    ```
 
-2. Wombat starts reading local records. The terminal prints a local URL, and the browser opens that address. You can view discovered tasks before the initial read finishes.
+   The terminal prints a local URL and opens the Web dashboard. Wombat starts reading local records; discovered tasks are available before the initial read finishes.
 
-If installation does not complete, run the command again. If it still fails, [report the problem](https://github.com/wangyan9110/wombat/issues). If the browser does not open, use the full URL from the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources** and select **Retry**. Add a project directory from **Data sources** when you want to inspect configuration outside the projects found in task history.
+2. In a new terminal, open your project directory and install the standalone Codex Skill:
+
+   ```sh
+   wombat skill install --json
+   wombat skill status --cwd . --json
+   ```
+
+   If you already use the Wombat plugin, keep that installation mode. Use the invocation name actually discovered for your project; select explicitly if multiple instances exist. See the [Skill guide](skill/README.en.md) for plugin installation and removal. Updating Wombat does not update a Codex-managed plugin.
+
+3. In Codex, invoke the discovered Skill and ask a question. The standalone entry is `$wombat`. For example:
+
+   > Where did this week's token usage increase? Locate the main tasks and turns, and explain the coverage.
+
+   > Check this project's AGENTS.md and Skills. Preserve their purpose and suggest changes.
+
+   > Open Web details for the same project and data version, then continue here.
+
+   Codex uses Wombat's local queries to explain available facts. Skill discovery and data readiness are separate: an installed Skill does not mean the initial read is complete. Codex conversations use model tokens.
+
+If installation does not complete, run the command again. If it still fails, [report the problem](https://github.com/wangyan9110/wombat/issues). If the Skill is unavailable, open **Setup and collection** in Web to inspect project discovery and installation guidance. You can view data in Web while resolving Skill setup.
 
 ### Update Wombat
 
@@ -46,42 +67,66 @@ wombat update --check
 wombat update
 ```
 
-## Improve your day-to-day Codex workflow
+## What you can ask the Codex Skill
 
-### Understand your Codex token usage
+### Understand Codex token usage and API cost estimates
 
-The overview shows usage trends, usage by project, and estimated API costs. When usage spikes, inspect the related tasks and turns for input, cache, output, and activity records.
+Find high-usage tasks, inspect input, cache, and output tokens, and compare periods or tasks. Follow usage investigation signals to the related turns and operations. Input trajectories, compaction comparisons, resource records, and period reviews provide more context for further inspection.
 
-Account allowance and reset times help you plan your next work. They describe your account, separately from usage in local records.
+Read account allowance, reset times, and stored allowance history separately. API cost estimates are not subscription charges and cannot be converted to remaining allowance. Investigation signals do not prove waste or explain its cause.
 
-### See how long tasks take and where the time goes
+### Inspect task duration and activity
 
-See task duration and a breakdown of time spent. Use this view to decide which parts of the work need a closer look.
+Review recorded task and turn timing, operation intervals, repeated calls and reads, and Skill or MCP use evidence. Open the Web timeline for a detailed view.
 
-These timings come from identifiable task and operation records. They show the recorded sequence; they do not diagnose why a task was slow.
+Timings describe identifiable records and their sequence. Missing durations or associations remain unknown; operation costs are not inferred. These records do not diagnose why a task was slow.
 
-### Find recommendations backed by evidence
+### Review AGENTS.md, Skills, MCP entries, and Hooks
 
-Inspect AGENTS.md, Skills, MCP entries, and Hooks. Open related recommendations beside each file or extension.
+Ask Codex to explain configuration evidence and Wombat recommendations. Checks include format issues, exact duplicate instruction blocks, large files, local references, and Hook targets. Turn activity checks can also highlight repeated rapid status checks.
 
-Wombat checks files and records for format issues, exact duplicate instruction blocks, large files, and repeated rapid status checks.
+Recommendations identify the location, evidence, suggested action, and content to preserve. Current configuration does not prove historical loading or use; missing evidence does not justify disabling or deleting an extension.
 
-Each recommendation explains where to act, what to change, and what to preserve. Decide whether to act, keep the current setup, or mark the recommendation as not applicable.
+### Make authorized changes and recheck them
 
-### Send work to Codex, then check the result
+Continue in the same Codex conversation to review recommendations, authorize selected changes, and rerun the same checks. You can also keep the current setup or mark a recommendation as not applicable.
 
-Select one recommendation or a group within the current scope. After confirming the projects, files, and scope, send the recommendations to Codex.
+Resolved issues move to action history. Remaining issues stay available for review. User decisions remain separate from check results. File checks do not prove reduced token usage; changes to runtime behavior need evidence from later work records.
 
-Review the work and changes in Codex. When it finishes, return to Wombat and rerun the checks.
+## Use the Web dashboard for charts and evidence
 
-Sending requires a compatible local Codex installation. If native handoff is unavailable, apply the recommendation yourself and rerun the check.
+Web provides usage trends, project and model distributions, task lists, turn timelines, configuration details, and recommendation history. The Skill can open a view for the same project and data version, so you can examine the evidence and continue in Codex.
 
-Resolved issues move to action history. Issues that remain stay pending.
+To open Web directly:
 
-You can also edit files yourself and recheck them. Changes to runtime behavior need confirmation from later work records. A passed file check does not prove lower token usage.
+```sh
+wombat web --open
+```
+
+If the browser does not open, use the full URL printed in the terminal. If no tasks appear, complete a Codex task and select **Refresh data**. If reading fails, open **Data sources** and select **Retry**. Add a project directory from **Data sources** to inspect configuration outside the projects found in task history.
+
+Use Web to inspect evidence and recheck results. Continue processing in your current Codex conversation. “Use with Skill” in the header provides installation guidance, the discovered invocation, and example questions. When you need a separate Codex task, review and send selected objects through [CLI handoff](docs/guides/cli.en.md). Queue acceptance does not establish completed changes or resolution.
+
+## Optional Hook collection
+
+Historical log reading is available without the collection plugin. For native event observations, use **Setup and collection** in Web or ask the Skill about collection. The [collection guide](docs/guides/cli.en.md) explains modes, receipt status, and pause/resume; the [Skill guide](skill/README.en.md) explains the local collection plugin.
+
+Installing the plugin, selecting Hook collection, trusting declarations in Codex, and receiving events are separate steps. Hook receipts do not add token accounting or establish complete coverage. The POSIX bridge is implemented; Windows collection remains unverified.
+
+## CLI and source development
 
 <details>
-<summary>Run from source or use the CLI</summary>
+<summary>Use JSON queries or run from source</summary>
+
+The CLI provides JSON output for scripts. See the [CLI guide](docs/guides/cli.en.md) for filters, fixed versions, comparisons, timing, and configuration queries:
+
+```sh
+wombat usage --json
+wombat threads --sort tokens --json
+wombat turns --thread THREAD_ID --sort tokens --json
+wombat optimize inventory --project-root /path/to/project --json
+wombat optimize list --project-root /path/to/project --json
+```
 
 To run from source, you need Node.js 26.4.0 or newer, Corepack, pnpm, and the Rust version specified in `rust-toolchain.toml`.
 
@@ -93,21 +138,11 @@ corepack pnpm build
 node dist/wombat.js web
 ```
 
-See the [development workflow](docs/development/workflow.en.md) for environment setup.
-
-The CLI provides JSON output for scripts:
-
-```sh
-wombat usage --json
-wombat threads --sort tokens --json
-wombat turns --thread THREAD_ID --sort tokens --json
-wombat optimize inventory --project-root /path/to/project --json
-wombat optimize list --project-root /path/to/project --json
-```
+See the [development workflow](docs/development/workflow.en.md) for environment setup and the [Skill guide](skill/README.en.md) for local plugin trials.
 
 </details>
 
-Local inspection needs no API key and makes no model calls. Sending work to Codex shares only the content and findings needed for the selected objects. Codex tasks use model tokens. API cost estimates are not subscription charges and cannot be converted to remaining allowance. [Privacy](docs/reference/privacy.en.md) · [Pricing](docs/reference/pricing.en.md).
+Wombat's local queries and checks need no API key and make no model calls. Skill conversations and work sent to Codex use model tokens. Sending transfers the selected targets and necessary findings to Codex. [Privacy](docs/reference/privacy.en.md) · [Pricing](docs/reference/pricing.en.md).
 
 ## Compatibility
 

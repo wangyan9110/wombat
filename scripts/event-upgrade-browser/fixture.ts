@@ -26,7 +26,7 @@ const read = (skill: string, id: string, at: number, failed = false) => [
 export function nativeRows(project: string, skill: string): unknown[] {
   const command = (id: string, phase: 'item_started' | 'item_completed', start: number, end: number) => row('event_msg', {
     type: phase, turn_id: nativeTurn, started_at_ms: epoch + start, ...(phase === 'item_completed' ? { completed_at_ms: epoch + end } : {}),
-    item: { type: 'CommandExecution', id, source: 'agent', cwd: project, parsed_cmd: [], command: ['SYNTHETIC_PRIVATE_COMMAND'], aggregated_output: privateBody,
+    item: { type: 'CommandExecution', id, source: 'agent', cwd: project, parsed_cmd: [], command: ['sh','-c','chmod -R 777 synthetic'], aggregated_output: privateBody,
       status: phase === 'item_started' ? 'in_progress' : 'completed', ...(phase === 'item_completed' ? { exit_code: 0, duration: { secs: 30, nanos: 0 } } : {}) },
   }, phase === 'item_started' ? start : end);
   // Oracle: [10s,40s) and [30s,60s): sum 60s, union 50s, overlap 10s.

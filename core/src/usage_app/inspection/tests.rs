@@ -2,7 +2,7 @@ use super::*;
 use crate::session_events::{Event, Position, Time};
 use std::sync::Arc;
 
-fn snapshot(records: &[(&str, &str, &str, u64)], suffix: &str) -> Snapshot {
+pub(super) fn snapshot(records: &[(&str, &str, &str, u64)], suffix: &str) -> Snapshot {
     let root = tempfile::tempdir().unwrap();
     let source = SourceInstance {
         id: "synthetic".into(),
@@ -80,6 +80,53 @@ fn snapshot(records: &[(&str, &str, &str, u64)], suffix: &str) -> Snapshot {
 }
 fn request(value: Value) -> Request {
     serde_json::from_value(value).unwrap()
+}
+
+#[test]
+fn pure_checks_preserve_threshold_edges_and_ignore_unavailable_statistics() {
+    let s = snapshot(
+        &[("1", "a", "2026-09-02T00:00:00Z", 1_000_000)],
+        "pure-rules",
+    );
+    let result = execute(
+        request(serde_json::json!({"action":"investigate","scope":{"allTime":true}})),
+        &s,
+    )
+    .unwrap();
+    let mut c = result.inspection.unwrap().candidates.remove(0);
+    let p = InspectionPolicy::default();
+    c.input = Some(100_000);
+    c.cache_share = Some(0.2);
+    c.largest_uncached_jump = Some(100_000);
+    c.determinate_operations = 5;
+    c.failed_operations = 2;
+    c.repeated_requests = 3;
+    assert_eq!(
+        rules::signals(&c, &p),
+        vec![
+            InspectionSignal::HighUsage,
+            InspectionSignal::LowCacheReuse,
+            InspectionSignal::InputJump,
+            InspectionSignal::FailureShare,
+            InspectionSignal::RepeatedRequest
+        ]
+    );
+    c.input = Some(99_999);
+    c.largest_uncached_jump = Some(99_999);
+    c.determinate_operations = 4;
+    c.repeated_requests = 2;
+    assert_eq!(rules::signals(&c, &p), vec![InspectionSignal::HighUsage]);
+    c.input = Some(100_000);
+    c.cache_share = Some(0.2001);
+    c.determinate_operations = 10;
+    c.failed_operations = 3;
+    assert_eq!(rules::signals(&c, &p), vec![InspectionSignal::HighUsage]);
+    c.input = None;
+    c.cache_share = None;
+    c.largest_uncached_jump = None;
+    c.determinate_operations = 0;
+    c.failed_operations = 0;
+    assert_eq!(rules::signals(&c, &p), vec![InspectionSignal::HighUsage]);
 }
 
 #[test]
@@ -308,10 +355,15 @@ fn event_budget_is_shared_across_reads_and_rejects_before_decoding() {
         facts: 0,
         bytes: MAX_EVENT_BYTES - bytes,
     };
-    assert_eq!(order_map(&s, &thread, &mut work).unwrap().len(), 1);
+    assert_eq!(
+        order_map(&thread_events(&s, &thread, &mut work).unwrap())
+            .unwrap()
+            .len(),
+        1
+    );
     // A subsequent read exceeds the aggregate budget even if its payload cannot decode.
     s.manifest.events.partitions[0].chunks[0].file.sha256 = "invalid".into();
-    let error = order_map(&s, &thread, &mut work).err().unwrap();
+    let error = thread_events(&s, &thread, &mut work).err().unwrap();
     assert_eq!(
         error
             .downcast_ref::<crate::dto::OperationError>()

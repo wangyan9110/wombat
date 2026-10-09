@@ -50,7 +50,7 @@ wombat account history --json
 
 ## Codex Skill
 
-新版[用户 Skill](../../skill/README.md)以对话任务为入口，可结合 Web 详细解释；Web 浏览和选择后可交给 Codex 处理并复查。Skill 使用已有 CLI JSON，初始化复用有界索引恢复和同步，账户不等待日志。
+新版[用户 Skill](../../skill/README.md)以对话任务为入口，可结合 Web 查看证据；处理继续在当前 Codex 对话中完成，Web 保留查看与复查。Skill 使用已有 CLI JSON，初始化复用有界索引恢复和同步，账户不等待日志。
 
 正式插件由 Codex 管理，插件调用名在已核验的 Codex 0.160.0 中为 $wombat:wombat。独立本机试用调用名为 $wombat：
 
@@ -65,7 +65,7 @@ wombat skill uninstall --json
 
 web --context FILE --json 接收受限生成契约：page 为 usage/threads/instructions/extensions/optimize，配对应 usage/configuration/optimization 只读请求。启动根仍由 --root/--project-root 授权；宿主读取并验证版本，返回有效 context 和连接链接。保留项目、来源、完整对象 ID、时区、日期与版本；CLI until 排他，URL 展示日由产品换算。日期必须成对或用 allTime，无法映射的浏览器筛选拒绝；浏览器采用自身分页大小。重启后须重新取得链接，连接令牌不外发。
 
-Web 交接按项目列出实际启用的 Skill，发送时复核名称和路径，并在持久队列传入 text 与 skill 项。CLI 对应 --skill PROJECT_ID=PATH；缺失、禁用或冲突时须选择实例，或明确 --without-skill 沿用既有交接。送达未知不自动重发，接受请求不表示修改或复查已完成。详见[产品方案](../decisions/proposed/product/2026-10-04-codex-skill.md)。
+需要独立 Codex 任务时，CLI 交接按项目检查实际启用的 Skill，发送时复核名称和路径，并在持久队列传入 text 与 skill 项。使用 --skill PROJECT_ID=PATH；缺失、禁用或冲突时须选择实例，或明确 --without-skill 沿用既有交接。送达未知不自动重发，接受请求不表示修改或复查已完成。Web 的主要界面不再提供派发按钮，既有交接接口与记录保留。详见[产品方案](../decisions/proposed/product/2026-10-04-codex-skill.md)。
 
 ## 语言
 
@@ -176,7 +176,7 @@ Web优化列表显示建议、价值和关键指标，详情可展开处理步�
 
 ## 本机 Codex 交接与账户
 
-需要本机可运行的 Codex；当前原生接口在0.160.0验证。登录、模型审阅、执行及恢复均由 Codex 管理。CLI 和 Web 使用同一清单；不会复制登录凭据。
+交接需要本机可运行的 Codex；当前原生接口在0.160.0验证。登录、模型审阅、执行及恢复均由 Codex 管理。CLI 和保留的 HTTP 交接接口使用同一清单；不会复制登录凭据。
 
 ```sh
 wombat optimize handoff preview --project-root /path/to/project --json
@@ -189,7 +189,7 @@ wombat account refresh --json
 
 发送返回accepted、failed或unknown及可用的Codex任务ID；accepted只表示接受请求。查看任务用`codex resume TASK_ID`。失联时先在Codex核对，再由用户决定重发；不会自动重发，不保存执行回执或遍历历史查重。重复手动发送可能产生新任务，关闭Wombat不取消已接受任务。处理后使用`optimize recheck`判断问题是否仍在。
 
-确认窗口可刷新额度并保留文件选择。低额度只提醒；当前任务有可靠的原生限制时阻止发送，刷新后需再次确认。过期、未知或其他模型的限制不当作当前任务耗尽，也不会自动重发。发送会按实际任务重新核对；最终受阻可能留下没有请求内容的空Codex任务。
+低额度只提醒；当前任务有可靠的原生限制时阻止发送。过期、未知或其他模型的限制不当作当前任务耗尽，也不会自动重发。发送会按实际任务重新核对；最终受阻可能留下没有请求内容的空Codex任务。旧确认组件仍保留，但不属于当前 Web 的主要入口。
 
 账户v1响应中的身份、额度和活动有独立状态与读取时间；仅显示脱敏邮箱。真实窗口名称、模型、周期和重置来自Codex，不固定五小时/七天，不回退旧单桶。失败保留先前数据和读取时间，换账户清除旧数据；已过重置时间不推定满额。余额和消费限额保留来源小数字符串，不猜单位；重置权益只读，未提供明细与空列表分开，明细上限128条且不替代来源总数。概览和账户详情共享读取结果，项目或日期不改变账户范围。额度不与项目Token/API估算金额相加或换算。部分读取及未确认交接退出2，错误1、取消130。近期轮次可用`turns --sort recent`，按可靠活动时间排序，未知时间置后。
 

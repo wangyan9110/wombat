@@ -22,6 +22,14 @@ The five tasks are usage, task location, account allowance, configuration checks
 
 Wombat supplies data, evidence, user decisions, and check results; the current Codex handles understanding, file changes, review, and recovery. The Skill coordinates those responsibilities. The first version adds no MCP service, model API, or separate execution job.
 
+### Current delivery order
+
+Deliver question → findings and advice → processing in the current conversation → observed changes. First improve Skill routing to existing usage investigations, input trajectories, resource hotspots, period reviews, and configuration checks. Then organize a few findings and concrete next steps into the answer. Finally choose configuration rechecks or usage comparisons for the question. Available partial facts can support analysis and advice. Codex separates observations, possible causes, and recommendations, with relevant limits beside each conclusion. Complete continuous observation is not a prerequisite for every answer.
+
+Reuse Rust facts, generated contracts, and existing evidence references. Usage candidates and configuration recommendations can appear in one answer while retaining their identities and verification methods. A shared presentation does not require new problem storage, resource entities, a general rule framework, or an execution service. Web reuses existing details and header Skill guidance. Remove dispatch buttons from the primary overview, recommendation list, and detail interfaces while preserving existing interfaces and records.
+
+The first acceptance flow starts with a usage question, locates a task, checks its project, handles an authorized object, and rechecks it. Verify that follow-up questions preserve targets and scope, that partial data still produces supported answers, and measure actual query counts, response sizes, and time to the first useful result. The [optimization proposal](2026-10-03-optimization-lifecycle.en.md) continues to own continuous coverage, inactivity checks, resource cleanup, and historical-content adoption. Accept them separately later. They do not block this common flow, and passing this batch does not complete the full scope.
+
 ### Log and Hooks collection
 
 Collection is part of this delivery and shares the Rust core with Skill and Web. Existing log adapters provide historical collection, usage, and safe operation facts. New Hooks receive runtime events that the host actually supplies, improving freshness and adding observations missing from logs. Current native Hook registration observations establish registration, enablement, and trust only; they do not receive runtime events. See the [registration decision](../../implemented/architecture/2026-10-04-hook-registry-observation.en.md). Skill and Web add no separate parser, database, or accounting rules.
@@ -100,7 +108,7 @@ When starting from Skill, Codex first answers the question and opens a matching 
 
 When starting from Web, users can view data directly or open “Use with Skill” for invocation guidance. Offer generic questions for the page topic, such as explaining today's main usage contributors or checking the current project's configuration suggestions and their evidence. Show the exact invocation name only after confirming an available instance. Examples may be copied; they do not bind selected page objects into processing tasks, send to Codex, or create conversations.
 
-The proposed Suggestions page removes “Send to Codex” and batch dispatch from the primary interface, replacing them with guidance for processing in the current conversation and rechecks. Preserve existing interfaces and historical records initially. Details still show issues, locations, evidence, methods, user decisions, and recheck results without assuming successful changes. Instructions and Extensions retain filters/details; Tasks retains turns, events, and same-version drill-down.
+The [UI README](../../../../ui/README.en.md) owns current recommendation actions and presentation. Processing continues in the current conversation; Web retains viewing and rechecks. Preserve legacy dispatch interfaces and records while evaluating removal separately. Details still show issues, locations, evidence, methods, user decisions, and recheck results without assuming successful changes. Instructions and Extensions retain filters/details; Tasks retains turns, events, and same-version drill-down.
 
 #### Languages, failure, and design acceptance
 
@@ -171,7 +179,7 @@ Default answers use natural paragraphs for conclusion, evidence, and next steps.
 |---|---|---|
 | Understand usage | Trends, filters, composition, lists, and details | Choose relevant views, explain main contributors, and drill down when needed |
 | Check configuration | Browse instruction trees, extensions, suggestions, and history | Connect evidence and suggestions around the current project or selected object |
-| Start processing | No extensions to page-selected task dispatch in this delivery; preserve existing entries for evaluation | Handle authorized objects in the current conversation; hand off only when a new task is explicitly requested |
+| Start processing | Display Skill guidance and rechecks; retain dispatch interfaces and records for evaluation | Handle authorized objects in the current conversation; hand off only when a new task is explicitly requested |
 | Determine resolution | Display per-rule rechecks and subsequent observations | Run the same recheck after changes and explain passed, remaining, and unavailable checks |
 | Read allowance | Persistent summary and detail window | Explain account state, windows, and restrictions for the question |
 | Continue browsing | Preserve filters, expansion, language, and page state | Preserve objects and evidence context needed by this conversation |

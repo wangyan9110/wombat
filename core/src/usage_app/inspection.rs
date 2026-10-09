@@ -8,7 +8,10 @@ const MAX_FACTS: usize = 250_000;
 const MAX_WORK: usize = 100_000;
 const MAX_EVENT_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_BYTES: usize = INSPECTION_RESPONSE_BYTES;
+mod activity;
 mod context;
+mod opportunities;
+mod rules;
 pub(super) fn is_action(action: &Action) -> bool {
     matches!(
         action,
@@ -157,11 +160,8 @@ fn thread_events(
     Ok(events)
 }
 fn order_map(
-    s: &Snapshot,
-    thread: &crate::usage_store::ThreadEntry,
-    work: &mut EventWork,
+    events: &[Arc<crate::session_events::Event>],
 ) -> Result<BTreeMap<String, Option<Order>>> {
-    let events = thread_events(s, thread, work)?;
     let mut epochs: BTreeMap<(String, String), u64> = BTreeMap::new();
     let mut out = BTreeMap::new();
     let mut context_epochs = BTreeMap::<(String, String), (u64, Option<String>)>::new();
@@ -248,9 +248,9 @@ fn trajectory(
     thread: &crate::usage_store::ThreadEntry,
     rows: &[&PricedMeasurement],
     all: &[&PricedMeasurement],
-    work: &mut EventWork,
+    events: &[Arc<crate::session_events::Event>],
 ) -> Result<Vec<InputPoint>> {
-    let order = order_map(s, thread, work)?;
+    let order = order_map(events)?;
     let selected: BTreeSet<_> = rows.iter().map(|r| r.fact.id.as_str()).collect();
     let mut rows: Vec<_> = all
         .iter()
@@ -372,9 +372,20 @@ fn trajectory(
     Ok(out)
 }
 fn failed(op: &Operation) -> bool {
+    inspection_outcomes(op).failed > 0
+}
+fn inspection_outcomes(op: &Operation) -> crate::timing::work::Outcomes {
     let mut outcomes = crate::timing::work::Outcomes::default();
     outcomes.record(op, false);
-    outcomes.failed > 0
+    // Confirmed search/test/diff exit 1 is an expected negative result, not a failed request.
+    if outcomes.failed > 0
+        && op.exit_code == Some(1)
+        && op.matching.as_ref().is_some_and(|m| m.expected_nonzero)
+    {
+        outcomes.succeeded += outcomes.failed;
+        outcomes.failed = 0;
+    }
+    outcomes
 }
 fn operation_matches(op: &Operation, scope: &Scope, tz: Tz, rows: &[&PricedMeasurement]) -> bool {
     let at = op
@@ -427,7 +438,14 @@ fn candidate(
     let cache_share = pair_summary.cache_hit_rate;
     let mut outcomes = crate::timing::work::Outcomes::default();
     for op in ops {
-        outcomes.record(op, false);
+        let observed = inspection_outcomes(op);
+        outcomes.succeeded += observed.succeeded;
+        outcomes.failed += observed.failed;
+        outcomes.nonterminal += observed.nonterminal;
+        outcomes.indeterminate += observed.indeterminate;
+        outcomes.conflicting += observed.conflicting;
+        outcomes.identity_gaps += observed.identity_gaps;
+        outcomes.unclassified += observed.unclassified;
     }
     let determinate_operations = outcomes.determinate();
     let failed_operations = outcomes.failed;
@@ -448,30 +466,6 @@ fn candidate(
         .iter()
         .filter_map(|r| r.uncached_delta.filter(|d| *d > 0).map(|v| v as u64))
         .max();
-    let mut signals = vec![];
-    if usage
-        .complete_token_total()
-        .is_some_and(|n| n >= p.minimum_tokens)
-    {
-        signals.push(InspectionSignal::HighUsage);
-    }
-    if input.is_some_and(|n| n >= p.minimum_input)
-        && cache_share.is_some_and(|r| r <= p.maximum_cache_share)
-    {
-        signals.push(InspectionSignal::LowCacheReuse);
-    }
-    if jump.is_some_and(|n| n >= p.minimum_input_jump) {
-        signals.push(InspectionSignal::InputJump);
-    }
-    if determinate_operations >= p.minimum_determinate_operations
-        && failed_operations >= p.minimum_failures
-        && failed_operations as f64 / determinate_operations as f64 >= p.minimum_failure_share
-    {
-        signals.push(InspectionSignal::FailureShare);
-    }
-    if repeated_requests >= p.minimum_repeated_requests {
-        signals.push(InspectionSignal::RepeatedRequest);
-    }
     let mut proof = vec![evidence(s, scope, &thread.thread.id, None, None)];
     if let Some(point) = points
         .iter()
@@ -489,10 +483,10 @@ fn candidate(
             Some(&op.id),
         ));
     }
-    Ok(InvestigationCandidate {
+    let mut candidate = InvestigationCandidate {
         thread_id: thread.thread.id.clone(),
         title: thread.thread.title.clone(),
-        signals,
+        signals: vec![],
         usage,
         input,
         cache_share,
@@ -506,7 +500,9 @@ fn candidate(
             + outcomes.unclassified,
         repeated_requests,
         evidence: proof,
-    })
+    };
+    candidate.signals = rules::signals(&candidate, p);
+    Ok(candidate)
 }
 fn resources(
     s: &Snapshot,
@@ -668,6 +664,30 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
     let mut selected_threads = 0;
     let mut outcome_gaps = false;
     let policy = InspectionPolicy::default();
+    let mut activity = matches!(request.action, Action::Investigate | Action::Review)
+        .then(|| activity::Builder::new(&request.scope))
+        .transpose()?;
+    let baseline_scope = activity.as_ref().and_then(|a| a.baseline_scope.clone());
+    let baseline_rows: Vec<_> = baseline_scope
+        .as_ref()
+        .map(|scope| {
+            rows.iter()
+                .filter(|r| matches(r, scope, tz, &projects))
+                .collect()
+        })
+        .unwrap_or_default();
+    let mut opportunities = matches!(request.action, Action::Investigate | Action::Review)
+        .then(|| {
+            opportunities::Builder::new(
+                snapshot,
+                &request.scope,
+                &selected,
+                baseline_scope
+                    .as_ref()
+                    .map(|scope| (scope, baseline_rows.as_slice())),
+            )
+        })
+        .transpose()?;
     for thread in &snapshot.manifest.threads {
         let t = &thread.thread;
         if request
@@ -718,15 +738,50 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
                 if operation_work > MAX_WORK {
                     return Err(limit());
                 }
-                ops.extend(
-                    data.operations
-                        .into_iter()
-                        .filter(|op| operation_matches(op, &request.scope, tz, &matching)),
-                );
+                ops.extend(data.operations);
             }
             // Canonical operation identities are retained once, including unassigned turns.
             ops.sort_by(|a, b| a.id.cmp(&b.id));
             ops.dedup_by(|a, b| a.id == b.id);
+            if let (Some(activity), Some(baseline)) = (&mut activity, &baseline_scope) {
+                let baseline_rows: Vec<_> = all_by_thread
+                    .get(t.id.as_str())
+                    .into_iter()
+                    .flatten()
+                    .copied()
+                    .filter(|r| matches(r, baseline, tz, &projects))
+                    .collect();
+                for op in &ops {
+                    if operation_matches(op, baseline, tz, &baseline_rows) {
+                        activity.add(snapshot, baseline, thread, op, true);
+                    }
+                }
+            }
+            ops.retain(|op| operation_matches(op, &request.scope, tz, &matching));
+            if let Some(activity) = &mut activity {
+                for op in &ops {
+                    activity.add(snapshot, &request.scope, thread, op, false);
+                }
+            }
+        }
+        let events = if opportunities.is_some()
+            || request.action == Action::Trajectory
+            || !matching.is_empty()
+        {
+            thread_events(snapshot, thread, &mut event_work)?
+        } else {
+            vec![]
+        };
+        if let Some(checks) = &mut opportunities {
+            checks.thread(
+                snapshot,
+                &request.scope,
+                thread,
+                &ops,
+                &events,
+                &matching,
+                tz,
+            )?;
         }
         let current_points = if request.action != Action::Resources && !matching.is_empty() {
             trajectory(
@@ -738,7 +793,7 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
                     .get(t.id.as_str())
                     .map(Vec::as_slice)
                     .unwrap_or_default(),
-                &mut event_work,
+                &events,
             )?
         } else {
             vec![]
@@ -765,11 +820,9 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
             unlocated_operations +=
                 resources(snapshot, &request.scope, thread, &ops, &mut hotspots)?;
         }
-        let mut outcomes = crate::timing::work::Outcomes::default();
         for op in &ops {
-            outcomes.record(op, false);
+            outcome_gaps |= inspection_outcomes(op).partial();
         }
-        outcome_gaps |= outcomes.partial();
         for op in &ops {
             let entry = tools
                 .entry(op.kind.to_string())
@@ -985,7 +1038,7 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
     };
     let response = Response {
         inspection: Some(Inspection {
-            method_version: 1,
+            method_version: 3,
             kind,
             policy,
             partial,
@@ -998,6 +1051,10 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
             resource_count,
             unlocated_operations,
             context,
+            activity: activity.map(activity::Builder::finish),
+            opportunities: opportunities
+                .map(|builder| builder.finish(snapshot, tz))
+                .transpose()?,
         }),
         comparison: None,
         facets: None,

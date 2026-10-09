@@ -214,11 +214,24 @@ export {repeatedBehaviorReasonText} from './repeated-behavior.js';
 
 type ActivityCheck=NonNullable<import('../generated/optimize-response.js').Response['activity']>['checks'][number];
 type ActivityRule=ActivityCheck['rule'];
+export {inspectionCandidateText,inspectionActivityText,inspectionActivityFindingText,inspectionActivityPolicyText,inspectionOpportunityCheckText,inspectionOpportunityFindingText,inspectionOpportunityPolicyText} from './inspection.js';
 export function activityRuleTitle(rule:ActivityRule):string {
   switch(rule){case 'inspect_calls_after_failure':return t('activity.failure');case 'inspect_repeated_reads':return t('activity.read');case 'inspect_repeated_requests':return t('activity.request');case 'inspect_failure_share':return t('activity.failureShare');case 'inspect_input_change':return t('inputChange.title');}
 }
 export function activityAdviceText(rule:ActivityRule):string {
   switch(rule){case 'inspect_calls_after_failure':return t('activity.failureAdvice');case 'inspect_repeated_reads':return t('activity.readAdvice');case 'inspect_repeated_requests':return t('activity.requestAdvice');case 'inspect_failure_share':return t('activity.failureShareAdvice');case 'inspect_input_change':return t('activity.inputChangeAdvice');}
+}
+/** Concrete headline from the published check, without choosing thresholds or inferring causes. */
+export function activityFindingTitle(check:ActivityCheck):string {
+ if(check.outcome!=='hit'||check.observed.value==null)return activityRuleTitle(check.rule);
+ const count=check.observed.value;
+ switch(check.rule){
+  case 'inspect_calls_after_failure':return t('activity.finding.failure',{count});
+  case 'inspect_repeated_reads':return t('activity.finding.read',{count});
+  case 'inspect_repeated_requests':return t('activity.finding.request',{count});
+  case 'inspect_failure_share':return check.outcomes?operationOutcomeText(check.outcomes).headline:activityRuleTitle(check.rule);
+  case 'inspect_input_change':return t('activity.finding.input',{tokens:count});
+ }
 }
 export function activityCheckText(check:ActivityCheck):string {
   if(check.rule==='inspect_input_change'&&check.inputChange&&check.inputPolicy){

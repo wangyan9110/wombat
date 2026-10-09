@@ -243,7 +243,12 @@ async function comparisons(page:Page,fixture:Fixture,language:Language,width:num
  await page.goto(url.href);
  await activate(page.locator('.usage-comparison summary'));await page.locator('.usage-comparison tbody tr').first().waitFor();
  await text(page.locator('.usage-comparison'),'+275 Token');await text(page.locator('.usage-comparison'),label('comparison.note'));await overflow(page);
- const inspection=page.locator('.inspection').first();await activate(inspection.locator('summary').first());await text(inspection,label('inspection.noCandidates'));
+ const inspection=page.locator('.inspection').first();await activate(inspection.locator('summary').first());
+ await text(inspection,label('inspection.opportunities.title'));await text(inspection,label('inspection.opportunities.rule.risky_command'));await text(inspection,label('inspection.opportunities.label.broad_permissions'));
+ await text(inspection,label('inspection.activity.title'));await text(inspection,label('inspection.activity.signal.repeated_slow_request'));await text(inspection,label('inspection.activity.advice.repeated_slow_request'));
+ await activate(inspection.locator('.inspection-card').filter({hasText:label('inspection.activity.signal.repeated_slow_request')}).getByRole('button').first());await page.locator('.evidence-selected').waitFor();
+ const activityProofUrl=new URL(page.url());assert.equal(activityProofUrl.searchParams.get('snapshot'),current.result.snapshotRef.snapshotId);assert.ok(activityProofUrl.searchParams.get('operation'));await overflow(page);
+ await page.goto(url.href);await activate(inspection.locator('summary').first());
  await inspection.getByRole('combobox',{name:label('inspection.title')}).selectOption('resources');await text(inspection,label('inspection.limit.actual_changes_unavailable'));await inspection.locator('.inspection-card').first().waitFor();await overflow(page);
  await activate(inspection.locator('.inspection-proof button').first());await page.locator('.evidence-selected').waitFor();
  const proofUrl=new URL(page.url());assert.equal(proofUrl.searchParams.get('snapshot'),current.result.snapshotRef.snapshotId);assert.ok(proofUrl.searchParams.get('operation'));await overflow(page);

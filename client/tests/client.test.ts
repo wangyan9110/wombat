@@ -99,10 +99,13 @@ test('usage v5 accepts separate calculation analysis and rejects unsupported met
  }
 });
 
+const emptyOpportunities={"methodVersion":1,"policy":{"minimumUnpricedTokens":50000,"minimumAmountUsd":"1","concentrationShare":0.4,"outlierMultiple":2,"increaseMultiple":2,"minimumIncreaseUsd":"1","minimumCacheCreated":100000,"maximumReadCreateRatio":0.3,"modelShare":0.6,"maximumMedianOperations":15,"minimumModelTasks":5,"minimumOutlierTasks":5,"minimumPermissionRequests":5,"permissionRequestShare":0.1,"longInteractionMs":30000,"outboundWindowMs":300000,"minimumRiskyDeclines":2,"minimumPolls":5,"maximumPollWaitMs":2000,"minimumObservedTasks":5,"minimumPollingTasks":3,"minimumPollingDays":2,"pollingWindowDays":7},"checks":[{"rule":"unpriced_usage","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"estimate_concentration","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"estimate_outlier","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"estimate_increase","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"cache_creation_reuse","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"model_review","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"sensitive_read","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"sensitive_change","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"outside_project_change","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"risky_command","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"secret_exposure","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"sensitive_outbound","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"repeated_risky_decline","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"permission_friction","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"unanswered_question","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"long_interaction","status":"miss","gaps":[],"findingCount":0,"findings":[]},{"rule":"frequent_polling","status":"miss","gaps":[],"findingCount":0,"findings":[]}],"limitPerCheck":3};
+const emptyActivity={methodVersion:1,policy:{slowDurationMs:30000,minimumSlowOperations:2,minimumCurrentOutcomes:5,minimumBaselineOutcomes:20,minimumSpikeFailures:3,minimumFailureShare:0.2,failureShareMultiplier:3,baselineFailureShareFloor:0.01,minimumBaselineDurations:8,minimumBaselineMedianMs:2000,durationMultiplier:10,minimumDurationIncreaseMs:20000,minimumWorkflowOperations:5,minimumWorkflowTasks:2,minimumFailuresInTask:3,minimumRejectionsInTask:2},baselineScope:null,currentCoverage:{observedOperations:0,matchedOperations:0,outcomeGaps:0,durationSamples:0},baselineCoverage:null,findings:[],findingCount:0,limit:30};
+
 test('inspection evidence cannot escape the returned fixed view or original scope',async()=>{
  const scope={allTime:true,timezone:'UTC'};
  const proof={view:'task',methodVersion:1,snapshotId:response.snapshotRef.snapshotId,scope,threadId:'exact-thread',turnId:null,operationId:null};
- const inspection={methodVersion:1,kind:'investigate',policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:[],candidates:[{threadId:'exact-thread',title:null,signals:['high_usage'],usage:response.summary,input:1000000,cacheShare:0,largestUncachedJump:null,determinateOperations:0,failedOperations:0,outcomeGaps:0,repeatedRequests:0,evidence:[proof]}],resources:[],trajectory:[],review:null,candidateCount:1,resourceCount:0,unlocatedOperations:0};
+ const inspection={methodVersion:3,kind:'investigate',opportunities:emptyOpportunities,activity:emptyActivity,policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:[],candidates:[{threadId:'exact-thread',title:null,signals:['high_usage'],usage:response.summary,input:1000000,cacheShare:0,largestUncachedJump:null,determinateOperations:0,failedOperations:0,outcomeGaps:0,repeatedRequests:0,evidence:[proof]}],resources:[],trajectory:[],review:null,candidateCount:1,resourceCount:0,unlocatedOperations:0};
  const valid={...response,action:'investigate',scope,inspection};
  assert.equal((await createUsageClient({query:async()=>valid}).query({action:'investigate',scope})).action,'investigate');
  for(const evidence of [{...proof,snapshotId:'other-view'},{...proof,scope:{...scope,project:'/other'}},{...proof,methodVersion:2},{...proof,threadId:'different-thread'}]){
@@ -116,7 +119,7 @@ test('context inventory evidence stays in its exact returned scope and snapshot'
  const scope={allTime:true,timezone:'UTC',threadId:'exact-thread'};
  const proof={view:'task',methodVersion:1,snapshotId:response.snapshotRef.snapshotId,scope,threadId:'exact-thread',turnId:null,operationId:null};
  const context={observedRecords:1,injectedRecords:1,modelWindowRecords:0,records:[{id:'physical-record',kind:'injected_context',timestamp:null,recordKind:'response_snapshot',phase:'completed',presence:'non_empty',model:null,modelContextWindow:null,contentVersion:null,bytes:null,evidence:proof}]};
- const inspection={methodVersion:1,kind:'context',policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:['context_metadata_unavailable','context_occupancy_unavailable'],candidates:[],resources:[],trajectory:[],context,review:null,candidateCount:0,resourceCount:0,unlocatedOperations:0};
+ const inspection={methodVersion:3,kind:'context',opportunities:null,activity:null,policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:['context_metadata_unavailable','context_occupancy_unavailable'],candidates:[],resources:[],trajectory:[],context,review:null,candidateCount:0,resourceCount:0,unlocatedOperations:0};
  const valid={...response,action:'context',scope,inspection};
  assert.equal((await createUsageClient({query:async()=>valid}).query({action:'context',scope})).inspection?.context?.observedRecords,1);
  for(const evidence of [{...proof,snapshotId:'other'},{...proof,scope:{allTime:true,timezone:'UTC'}},{...proof,threadId:'other'},{...proof,methodVersion:2}]){
@@ -124,4 +127,36 @@ test('context inventory evidence stays in its exact returned scope and snapshot'
   await assert.rejects(createUsageClient({query:async()=>invalid}).query({action:'context',scope}),{code:'PROTOCOL_ERROR'});
  }
  await assert.rejects(createUsageClient({query:async()=>({...valid,inspection:{...inspection,context:null}})}).query({action:'context',scope}),{code:'PROTOCOL_ERROR'});
+});
+
+test('activity baseline evidence cannot widen authorization, overlap the current period or change methods',async()=>{
+ const scope={since:'2026-09-08',until:'2026-09-15',timezone:'UTC',project:'/synthetic',sourceInstanceId:'source'};
+ const baselineScope={...scope,since:'2026-09-01',until:'2026-09-08'};
+ const proof={view:'operation',methodVersion:1,snapshotId:response.snapshotRef.snapshotId,scope,threadId:'a',turnId:'turn',operationId:'op'};
+ const stats={operations:2,tasks:1,determinateOperations:2,failedOperations:0,rejectedOperations:0,failureShare:0,outcomeGaps:0,durationSamples:2,slowOperations:2,maximumDurationMs:30000,medianDurationMs:30000,maximumFailuresInTask:0,maximumRejectionsInTask:0};
+ const finding={id:'safe-group',signals:['repeated_slow_request'],sourceInstanceId:'source',project:'/synthetic',tool:'exec_command',current:stats,baseline:stats,evidence:[proof],baselineEvidence:[{...proof,scope:baselineScope}]};
+ const activity={...emptyActivity,baselineScope,baselineCoverage:emptyActivity.currentCoverage,findings:[finding],findingCount:1};
+ const inspection={methodVersion:3,kind:'investigate',opportunities:emptyOpportunities,policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:[],candidates:[],resources:[],trajectory:[],context:null,review:null,activity,candidateCount:0,resourceCount:0,unlocatedOperations:0};
+ const valid={...response,action:'investigate',scope,inspection};
+ assert.ok((await createUsageClient({query:async()=>valid}).query({action:'investigate',scope})).inspection?.activity);
+ for(const invalid of [
+  {...activity,baselineScope:{...baselineScope,project:'/other'}},
+  {...activity,baselineScope:{...baselineScope,since:'2026-09-02'}},
+  {...activity,baselineScope:scope}, {...activity,methodVersion:2},
+  {...activity,findings:[{...finding,baselineEvidence:[proof]}]},
+  {...activity,findings:[{...finding,evidence:[{...proof,snapshotId:'other'}]}]},
+  {...activity,findings:[{...finding,sourceInstanceId:'foreign'}]},
+  {...activity,findings:[{...finding,baseline:null}]}, {...activity,baselineCoverage:null},
+ ])await assert.rejects(createUsageClient({query:async()=>({...valid,inspection:{...inspection,activity:invalid}})}).query({action:'investigate',scope}),{code:'PROTOCOL_ERROR'});
+ for(const methodVersion of [1,2,4])await assert.rejects(createUsageClient({query:async()=>({...valid,inspection:{...inspection,methodVersion}})}).query({action:'investigate',scope}),{code:'PROTOCOL_ERROR'});
+});
+
+test('opportunity evidence, versions and whole-check counts stay bound to the returned view',async()=>{
+ const scope={allTime:true,timezone:'UTC'},proof={view:'task',methodVersion:1,snapshotId:response.snapshotRef.snapshotId,scope,threadId:'a',turnId:null,operationId:null};
+ const finding={id:'synthetic-finding',object:null,metrics:[{name:'unpriced_tokens',value:'50000',unit:'token'}],safetyLabels:[],evidence:[proof],baselineEvidence:[]};
+ const checks=emptyOpportunities.checks.map(c=>c.rule==='unpriced_usage'?{...c,status:'hit',findingCount:1,findings:[finding]}:c);
+ const opportunities={...emptyOpportunities,checks};
+ const inspection={methodVersion:3,kind:'investigate',opportunities,activity:emptyActivity,policy:{minimumTokens:1000000,minimumInput:100000,maximumCacheShare:0.2,minimumInputJump:100000,minimumDeterminateOperations:5,minimumFailures:2,minimumFailureShare:0.4,minimumRepeatedRequests:3},partial:false,limitations:[],candidates:[],resources:[],trajectory:[],review:null,candidateCount:0,resourceCount:0,unlocatedOperations:0};
+ const valid={...response,action:'investigate',scope,inspection};assert.ok((await createUsageClient({query:async()=>valid}).query({action:'investigate',scope})).inspection?.opportunities);
+ for(const invalid of [null,{...opportunities,methodVersion:2},{...opportunities,checks:checks.slice(1)},{...opportunities,checks:[checks[0],...checks.slice(0,-1)]},{...opportunities,checks:checks.map(c=>c.rule==='unpriced_usage'?{...c,status:'miss'}:c)},{...opportunities,checks:checks.map(c=>c.rule==='unpriced_usage'?{...c,findings:[{...finding,evidence:[{...proof,snapshotId:'other'}]}]}:c)},{...opportunities,checks:checks.map(c=>c.rule==='unpriced_usage'?{...c,findings:[{...finding,baselineEvidence:[proof]}]}:c)}])await assert.rejects(createUsageClient({query:async()=>({...valid,inspection:{...inspection,opportunities:invalid}})}).query({action:'investigate',scope}),{code:'PROTOCOL_ERROR'});
 });

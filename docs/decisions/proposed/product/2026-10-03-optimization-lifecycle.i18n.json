@@ -30,20 +30,24 @@
       "en": "38a2c94c597e8bc69c1006900ff84f4e73e4fca8fbabf76d97bed2c34c604416"
     },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/evidence-backed-usage-investigations-and-reviews": {
-      "zh": "10a11c7da180538aca9548bfbac200f96caa41e788dc5659d7dcf3fcd1d43167",
-      "en": "9b80efb1b4d077a622af4b2865888ec14a73e9f0d48192640b5234cae07691bc"
+      "zh": "3537614271b15a2e2197c7f64ca82656bbb74e94f844e4654e0879ba9acaaf9c",
+      "en": "a4a529536b36fb9a16a3b61a0d41eca160470e2e86a506c6bab6304c504ec2af"
     },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/shared-evidence-routes-and-agent-acceptance": {
-      "zh": "9d55ddb0b8c3babde2f16b6019a02d62013148fdb612bcd365fda92378e737df",
-      "en": "2235c44809041c4a80b8c8978332d8a3f19e0a47f9e0f308079bfe59761f7aeb"
+      "zh": "23ee657ca106318bf333a501f09b329922e9c6df096c55df8ed58385a4b4dce6",
+      "en": "93c14182b61b1695302e15d7c418740a483b163f959f5e38be24be0cef2292d3"
+    },
+    "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/proposal/check-architecture-and-rule-methods-from-cot": {
+      "zh": "0787508ee8da892f05cd30d65b97ded283dc2c062baa91e6c7cc26899501518c",
+      "en": "4f85da1eeb2f04eb0ce3bceec7a65a4d9b4f129730699d27ee96722d8320be00"
     },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/alternatives-considered": {
       "zh": "88244cfc75c5b0fd7668a56aad463cb862319454028a4134168e62482bc6bcb9",
       "en": "4eb497d37b7fff728eecc4fca7786af84899c8da78f757c7bf7bae25e4969e53"
     },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/acceptance-criteria": {
-      "zh": "664c31fc08c6d4f117ef20a92e17c76627bb55e4e888a13a6c9e133215940e95",
-      "en": "761d2c159c8b0eaf09b963650c49e8735dd8732b22dc5214d6bcc579dc246169"
+      "zh": "d9a5cad3d2d4849384ca5902742c765bcfba6a28b4857fff1c4e897115b570fd",
+      "en": "58bdbae04fa05eb70d4fc61dc1fa89450e6300380d18bf3ea93c8f56a88aba59"
     },
     "/decision-note-complete-optimization-lifecycle-and-runtime-evidence/risks": {
       "zh": "9ab2b9d595ebec40e42679d9b01783f80e5fe3c6f44292cda1e75cd30dec9d28",

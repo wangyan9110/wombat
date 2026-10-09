@@ -1,6 +1,7 @@
 //! Pure inspection checks consume shared analysis; no source reads or review-store writes.
 use crate::{dto::operation_error, optimize_dto::*, timing_dto as t};
 use anyhow::Result;
+mod rules;
 
 pub(crate) fn validate(request: &Request) -> Result<()> {
     if request.action != Action::Activity {
@@ -53,16 +54,10 @@ pub(crate) fn timing_request(request: &Request) -> Result<t::Request> {
     })
 }
 /// A positive observation is useful even with source gaps. A miss needs complete matching coverage.
-fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -> ActivityCheck {
-    let expected_basis = match rule {
-        ActivityRule::InspectCallsAfterFailure => t::Basis::RepeatAfterFailure,
-        ActivityRule::InspectRepeatedReads => t::Basis::SuccessfulReadRepeat,
-        ActivityRule::InspectRepeatedRequests => t::Basis::SameRequestObservation,
-        ActivityRule::InspectFailureShare => t::Basis::DeterminateTerminalOutcomes,
-        ActivityRule::InspectInputChange => t::Basis::RequestInput,
-    };
+fn check(rule: ActivityRule, observed: &t::Count, partial: bool) -> ActivityCheck {
+    let definition = rule.definition();
     let supported_basis =
-        observed.basis == expected_basis && matches!(observed.status, t::MetricStatus::Derived);
+        observed.basis == definition.basis && matches!(observed.status, t::MetricStatus::Derived);
     let (outcome, reason) = if observed.value.is_some() && !supported_basis {
         (
             RuleOutcome::Unsupported,
@@ -88,8 +83,8 @@ fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -
         outcomes: None,
         failure_policy: None,
         rule,
-        version: 1,
-        method: method.into(),
+        version: definition.version,
+        method: definition.method.into(),
         outcome,
         observed: observed.clone(),
         partial,
@@ -99,6 +94,8 @@ fn check(rule: ActivityRule, method: &str, observed: &t::Count, partial: bool) -
 /// A deterministic inspection threshold over the captured determinate subset, not a fault detector.
 fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
     let policy = FailureSharePolicy::default();
+    let rule = ActivityRule::InspectFailureShare;
+    let definition = rule.definition();
     let (outcome, reason) = match observed.determinate_operations.value {
         None => (
             RuleOutcome::Insufficient,
@@ -106,10 +103,9 @@ fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
         ),
         Some(_)
             if observed.determinate_operations.status != t::MetricStatus::Derived
-                || observed.determinate_operations.basis
-                    != t::Basis::DeterminateTerminalOutcomes
+                || observed.determinate_operations.basis != definition.basis
                 || observed.failed.status != t::MetricStatus::Derived
-                || observed.failed.basis != t::Basis::DeterminateTerminalOutcomes =>
+                || observed.failed.basis != definition.basis =>
         {
             (
                 RuleOutcome::Unsupported,
@@ -123,7 +119,7 @@ fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
         Some(_) => match (observed.failed.value, observed.failure_ratio.value) {
             (Some(failed), Some(ratio))
                 if observed.failure_ratio.status == t::MetricStatus::Derived
-                    && observed.failure_ratio.basis == t::Basis::DeterminateTerminalOutcomes =>
+                    && observed.failure_ratio.basis == definition.basis =>
             {
                 (
                     if failed >= u64::from(policy.minimum_failures) && ratio >= policy.minimum_ratio
@@ -144,9 +140,9 @@ fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
     ActivityCheck {
         input_change: None,
         input_policy: None,
-        rule: ActivityRule::InspectFailureShare,
-        version: 1,
-        method: "terminal_failure_inspection_v1".into(),
+        rule,
+        version: definition.version,
+        method: definition.method.into(),
         outcome,
         observed: observed.failed.clone(),
         partial: observed.partial,
@@ -158,6 +154,8 @@ fn failure_share(observed: &t::OutcomeStatistics) -> ActivityCheck {
 /// A source-order increase is an inspection hint; it does not establish monotonic growth or waste.
 fn input_change(observed: &t::InputChange, source_status: &str) -> ActivityCheck {
     let policy = InputChangePolicy::default();
+    let rule = ActivityRule::InspectInputChange;
+    let definition = rule.definition();
     let stats = observed.statistics.as_ref();
     let measure = stats
         .map(|s| s.maximum_increase.clone())
@@ -177,8 +175,7 @@ fn input_change(observed: &t::InputChange, source_status: &str) -> ActivityCheck
             RuleOutcome::Insufficient,
             Some(ActivityReason::ActivitySampleTooSmall),
         )
-    } else if measure.status != t::MetricStatus::Derived || measure.basis != t::Basis::RequestInput
-    {
+    } else if measure.status != t::MetricStatus::Derived || measure.basis != definition.basis {
         (
             RuleOutcome::Unsupported,
             Some(ActivityReason::ActivityBasisUnsupported),
@@ -200,9 +197,9 @@ fn input_change(observed: &t::InputChange, source_status: &str) -> ActivityCheck
         }
     };
     ActivityCheck {
-        rule: ActivityRule::InspectInputChange,
-        version: 1,
-        method: "request_input_change_inspection_v1".into(),
+        rule,
+        version: definition.version,
+        method: definition.method.into(),
         outcome,
         reason,
         observed: measure,
@@ -232,43 +229,32 @@ fn count_gap(reasons: &[t::RepeatCoverageReason], source_status: &str, rule: Act
 }
 pub(crate) fn evaluate(summary: &t::LocalResponse) -> ActivityResult {
     let repeats = &summary.time.repeated_behavior;
-    let checks = vec![
-        check(
-            ActivityRule::InspectCallsAfterFailure,
-            "same_operation_after_failure_v1",
-            &repeats.after_failure.count,
-            count_gap(
-                &repeats.coverage.reason_codes,
-                &summary.coverage.source_status,
-                ActivityRule::InspectCallsAfterFailure,
-            ),
-        ),
-        check(
-            ActivityRule::InspectRepeatedReads,
-            "same_target_read_v1",
-            &repeats.repeated_read.count,
-            count_gap(
-                &repeats.coverage.reason_codes,
-                &summary.coverage.source_status,
-                ActivityRule::InspectRepeatedReads,
-            ),
-        ),
-        check(
-            ActivityRule::InspectRepeatedRequests,
-            "same_request_observation_v1",
-            &repeats.same_request_observation_count,
-            count_gap(
-                &repeats.coverage.reason_codes,
-                &summary.coverage.source_status,
-                ActivityRule::InspectRepeatedRequests,
-            ),
-        ),
-        failure_share(&summary.work.outcomes),
-        input_change(
-            &summary.context.input_change,
-            &summary.coverage.source_status,
-        ),
-    ];
+    let checks: Vec<_> = rules::RULES
+        .into_iter()
+        .map(|rule| {
+            let observed = match rule {
+                ActivityRule::InspectCallsAfterFailure => &repeats.after_failure.count,
+                ActivityRule::InspectRepeatedReads => &repeats.repeated_read.count,
+                ActivityRule::InspectRepeatedRequests => &repeats.same_request_observation_count,
+                ActivityRule::InspectFailureShare => return failure_share(&summary.work.outcomes),
+                ActivityRule::InspectInputChange => {
+                    return input_change(
+                        &summary.context.input_change,
+                        &summary.coverage.source_status,
+                    );
+                }
+            };
+            check(
+                rule,
+                observed,
+                count_gap(
+                    &repeats.coverage.reason_codes,
+                    &summary.coverage.source_status,
+                    rule,
+                ),
+            )
+        })
+        .collect();
     // Keep check facts independent. The broader request hint adds no advice when a confirmed link is available.
     let confirmed = checks[..2].iter().any(|c| c.outcome == RuleOutcome::Hit);
     let advice = checks

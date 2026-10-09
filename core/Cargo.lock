@@ -1403,6 +1403,7 @@ dependencies = [
  "memmap2",
  "percent-encoding",
  "pulldown-cmark",
+ "regex",
  "rusqlite",
  "rust_decimal",
  "schemars",
