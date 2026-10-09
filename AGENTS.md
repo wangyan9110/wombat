@@ -1,16 +1,17 @@
 # Wombat Agent Instructions
 
-Wombat analyzes local Agent usage/configuration with a Rust core, Node CLI, and Web UI. Preserve changes. User instructions override nested scoped rules.
+Preserve changes. User instructions override scoped rules.
 
 ## Read by task
 
 - Code: read [architecture](docs/development/architecture.en.md), [conventions](docs/development/workflow.en.md), scoped instructions, and the module README.
-- Product behavior: use its module/reference owner; keep unfinished acceptance in [proposed decisions](docs/decisions/proposed/). Read history only when needed.
-- Documentation: follow [docs/AGENTS.md](docs/AGENTS.md) and use [wombat-docs](.agents/skills/wombat-docs/SKILL.md) for restructuring. Keep one owner per fact.
+- Product: use module/reference owners; keep unfinished acceptance in [proposed decisions](docs/decisions/proposed/). Read history only when needed.
+- Documentation: follow [docs/AGENTS.md](docs/AGENTS.md) and use [wombat-docs](.agents/skills/wombat-docs/SKILL.md) for restructuring.
 - Workflows: [review](.agents/skills/wombat-review/SKILL.md), [commit](.agents/skills/wombat-commit/SKILL.md), [verify](.agents/skills/wombat-verify/SKILL.md), [release](.agents/skills/wombat-release/SKILL.md), [scripts](scripts/AGENTS.md).
 
 ## Standing constraints
 
+- One fact, one home: each fact or rule has one authoritative owner; reference or generate elsewhere. Translations share its owner; tests are independent evidence.
 - Rust owns source facts, accounting, pricing, storage, and queries. Client owns generated contracts and transports; CLI/Web assemble hosts; UI receives UsageClient without Node/Tauri dependencies. Cross-module access uses public package exports or protocols. Keep business rules out of views.
 - Define public DTOs in Rust and generate TS/Schema. Version protocols, snapshots, adapters, and prices independently. Deliver new core capabilities through both Web and non-TTY interfaces under the [delivery workflow](docs/development/workflow.en.md).
 - Keep a modular monolith. Prefer mature, maintained, license-compatible libraries to custom compatibility, infrastructure, or common algorithm code; lock dependencies and explain exceptions. Add abstractions only for current consumers. Tauri is planned; do not restore TUI, diagnostics, or HTML reports.
@@ -25,7 +26,7 @@ Wombat analyzes local Agent usage/configuration with a Rust core, Node CLI, and 
 
 ## Verify and finish
 
-Select checks by scope; do not repeat unaffected passing checks. Runtime requirements live in root package.json.
+Select checks by scope; reuse unaffected passing results. Runtime requirements: root package.json.
 
 - Docs, rules, and tooling: `corepack pnpm repo:check` and `git diff --check`. Wire mechanical rules into executed aggregate checks, test valid and invalid cases, and scope exceptions narrowly.
 - Rust: focused accuracy/failure tests, fmt, and locked clippy across all targets with warnings denied; commands are in the [workflow](docs/development/workflow.en.md).
@@ -34,4 +35,4 @@ Select checks by scope; do not repeat unaffected passing checks. Runtime require
 - Dependency changes: run `licenses:generate` and `licenses:check`. Before publication run `repo:check`, `public:check`, and `github:pack`; checks do not replace review or platform acceptance.
 - Root package.json alone owns the version. Authorized releases use `corepack pnpm release:publish`.
 
-Report scope, actual checks, limits, and how to run. Record [decisions](docs/decisions/README.en.md) only for lasting rationale absent from code, tests, and current docs; mechanical/local edits are exempt.
+Report scope, checks, limits, and commands. Record [decisions](docs/decisions/README.en.md) for lasting rationale absent from code, tests, and docs; mechanical/local edits need none.

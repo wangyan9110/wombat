@@ -4,7 +4,7 @@ Follow [root rules](../AGENTS.md). Check claims against source, generated contra
 
 ## Ownership
 
-Maintain each fact in one place and link elsewhere. Update an existing owner before creating a page; add a page only for a distinct reader task or responsibility. Parent pages orient readers without repeating descendant details.
+Apply the [one fact, one home rule](../AGENTS.md#standing-constraints) with the owners below. Add pages only for distinct reader tasks or responsibilities. Parent pages orient readers without repeating descendant details.
 
 | Subject | Owner |
 |---|---|
