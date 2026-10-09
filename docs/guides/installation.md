@@ -24,6 +24,10 @@ curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/ins
 
 ## 更新
 
+更新 Wombat 与 Codex 插件时，重新执行上面的带插件选项的安装命令。自定义安装目录或指定版本时，保留相应选项。
+
+下面的命令只检查或更新 Wombat 运行时，不会更新 Codex 管理的插件。
+
 只检查是否有更新：
 
 ```sh

@@ -35,15 +35,15 @@ function releaseReadme(content: string, version: string, chinese: boolean, file:
   if (!statusPattern.test(content)) throw new Error(`${file}: cannot locate release status`);
   let next = content.replace(statusPattern, status);
   next = next
-    .replace(/^\s*curl -fsSL https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.sh.*$/m,
-      `   curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s --${preview ? ` --version ${version}` : ''} --plugin --open`)
-    .replace(/^\s*& \(\[scriptblock\]::Create\(\(irm https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.ps1\)\)\).*$/m,
-      `   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1)))${preview ? ` -Version ${version}` : ''} -Plugin -Open`);
+    .replace(/^([ \t]*)curl -fsSL https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.sh.*$/m,
+      (_match, indent: string) => `${indent}curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s --${preview ? ` --version ${version}` : ''} --plugin --open`)
+    .replace(/^([ \t]*)& \(\[scriptblock\]::Create\(\(irm https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.ps1\)\)\).*$/m,
+      (_match, indent: string) => `${indent}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1)))${preview ? ` -Version ${version}` : ''} -Plugin -Open`);
   const commands = preview ? `wombat update --check --version ${version}\nwombat update --version ${version}` : 'wombat update --check\nwombat update';
   const update = chinese
-    ? `### 更新 Wombat\n\n${preview ? '检查或安装此预发行版本' : '检查或安装最新稳定版'}：\n\n\`\`\`sh\n${commands}\n\`\`\``
-    : `### Update Wombat\n\nCheck for or install ${preview ? 'this pre-release' : 'the latest stable release'}:\n\n\`\`\`sh\n${commands}\n\`\`\``;
-  return replaceSection(next, chinese ? /^### (?:更新预发行版本|更新 Wombat)$/m : /^### (?:Update a pre-release|Update Wombat)$/m,
+    ? `## 更新\n\n重新执行上面的安装命令，可以更新 Wombat 与 Codex 插件。检查更新，或只更新 Wombat 运行时：\n\n\`\`\`sh\n${commands}\n\`\`\`\n\n指定版本和自定义安装目录见[安装指南](docs/guides/installation.md)。`
+    : `## Update\n\nRerun the installation command above to update Wombat and its Codex plugin. Check for updates, or update only the Wombat runtime:\n\n\`\`\`sh\n${commands}\n\`\`\`\n\nSee the [installation guide](docs/guides/installation.en.md) for specific versions and custom installation directories.`;
+  return replaceSection(next, chinese ? /^#{2,3} (?:更新|更新预发行版本|更新 Wombat)$/m : /^#{2,3} (?:Update|Update a pre-release|Update Wombat)$/m,
     /^## /m, update, file);
 }
 

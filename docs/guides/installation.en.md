@@ -24,6 +24,10 @@ If plugin installation fails, Wombat remains installed and Web does not start au
 
 ## Update
 
+To update Wombat and its Codex plugin, rerun the installation command above with the plugin option. Keep any options for a custom installation directory or a specific version.
+
+The commands below only check or update the Wombat runtime. They do not update the plugin managed by Codex.
+
 Check for an update without installing it:
 
 ```sh

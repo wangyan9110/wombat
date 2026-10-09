@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import {applyReleaseCopy} from './release-copy.ts';
 
 import {
   consistencyErrors,
@@ -130,4 +131,22 @@ test('release copy keeps relocated installer URLs through preview and stable pre
   assert.match(preview,/main\/scripts\/install\/install\.sh \| sh -s -- --version 0\.2\.0-beta\.1 --plugin --open/);
   prepareVersionFiles(root,'0.2.0');
   assert.match(readFileSync(path.join(root,'README.md'),'utf8'),/main\/scripts\/install\/install\.sh \| sh -s -- --plugin --open/);
+});
+
+test('release copy preserves installer fences and plugin update guidance in the question-led README', () => {
+  for(const file of ['README.md','README.zh-CN.md']){
+    const chinese=file.endsWith('zh-CN.md');
+    const original=`**${chinese?'正式版：':'Stable: '}[\`v0.3.0\`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.0)${chinese?'。':'.'}**\n\n\`\`\`sh\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin --open\n\`\`\`\n\n\`\`\`powershell\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin -Open\n\`\`\`\n\n## ${chinese?'更新':'Update'}\n\nOld update copy\n\n## ${chinese?'数据与使用范围':'Data and scope'}\n\nRetained scope.\n`;
+    const preview=applyReleaseCopy(file,original,'0.4.0-beta.1');
+    assert.match(preview,/```sh\ncurl[^\n]+--version 0\.4\.0-beta\.1 --plugin --open\n```/);
+    assert.match(preview,/```powershell\n& [^\n]+-Version 0\.4\.0-beta\.1 -Plugin -Open\n```/);
+    assert.match(preview,/wombat update --check --version 0\.4\.0-beta\.1\nwombat update --version 0\.4\.0-beta\.1/);
+    const stable=applyReleaseCopy(file,preview,'0.4.0');
+    assert.doesNotMatch(stable,/--version|-Version|Old update copy/);
+    assert.match(stable,chinese?/只更新 Wombat 运行时/:/update only the Wombat runtime/);
+    assert.match(stable,chinese?/可以更新 Wombat 与 Codex 插件/:/update Wombat and its Codex plugin/);
+    assert.ok(stable.endsWith('Retained scope.\n'));
+    assert.equal(applyReleaseCopy(file,stable,'0.4.0'),stable);
+    assert.throws(()=>applyReleaseCopy(file,original.replace(/^## (更新|Update)$/m,'Update text'),'0.4.0'),/cannot locate release copy section/);
+  }
 });
