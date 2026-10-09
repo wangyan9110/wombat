@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {installBundledPlugin} from './install-plugin-bootstrap.ts';
-import {embedBootstrap, generateInstallers} from './generate-installers.ts';
+import {embedBootstrap, generateInstallers, installerDependencyNotice} from './generate-installers.ts';
 
 function fixture(t: {after: (fn: () => void) => void}, scenario = 'fresh') {
   const root = mkdtempSync(path.join(os.tmpdir(), 'wombat-plugin-stage-'));
@@ -25,6 +25,31 @@ else console.log('ok');`);
   return {root, marketplace, binary, trace, env: {...process.env, SCENARIO: scenario, TRACE: trace, INSTALLED: path.join(root, 'installed'), OLD_SOURCE: path.join(root, 'old/lib/skill')}};
 }
 function calls(file: string): string[][] {return readFileSync(file, 'utf8').trim().split('\n').map(line => JSON.parse(line));}
+
+test('installer notices use actual license filenames on case-sensitive filesystems', t => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'wombat-installer-notices-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const [index, name] of ['LICENSE', 'license', 'License', 'LICENSE.md', 'license.md', 'LICENSE.txt', 'license.txt'].entries()) {
+    const directory = path.join(root, 'case-' + index);
+    mkdirSync(directory);
+    writeFileSync(path.join(directory, 'package.json'), JSON.stringify({name: 'synthetic-dependency', version: '1.0.0', license: 'MIT'}));
+    writeFileSync(path.join(directory, name), 'Synthetic license text: ' + name);
+    assert.equal(installerDependencyNotice(directory), 'synthetic-dependency@1.0.0\nSynthetic license text: ' + name);
+  }
+});
+test('installer notices reject missing files, directories and unreviewed licenses', t => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'wombat-installer-notices-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  writeFileSync(path.join(root, 'package.json'), JSON.stringify({name: 'synthetic-dependency', version: '1.0.0', license: 'ISC'}));
+  writeFileSync(path.join(root, 'readme.md'), 'This file is not a license.');
+  assert.throws(() => installerDependencyNotice(root), /notice missing/);
+  mkdirSync(path.join(root, 'LICENSE'));
+  assert.throws(() => installerDependencyNotice(root), /notice missing/);
+  writeFileSync(path.join(root, 'license.txt'), 'Synthetic ISC license text.');
+  assert.match(installerDependencyNotice(root), /Synthetic ISC license text/);
+  writeFileSync(path.join(root, 'package.json'), JSON.stringify({name: 'synthetic-dependency', version: '1.0.0', license: 'unknown'}));
+  assert.throws(() => installerDependencyNotice(root), /Review installer dependency license/);
+});
 
 for (const scenario of ['fresh', 'collection', 'upgrade']) test('plugin installer uses native management: ' + scenario, async t => {
   const f = fixture(t, scenario);

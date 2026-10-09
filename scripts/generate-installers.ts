@@ -1,5 +1,5 @@
 import {buildSync} from 'esbuild';
-import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+import {existsSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
@@ -8,6 +8,15 @@ export function embedBootstrap(installer: string, code: string): string {
   const start = installer.indexOf(begin), finish = installer.indexOf(end);
   if (start < 0 || finish < start || installer.indexOf(begin, start + 1) >= 0 || installer.indexOf(end, finish + 1) >= 0) throw new Error('Installer needs one closed plugin bootstrap region.');
   return installer.slice(0, start + begin.length) + '\n' + code.trimEnd() + '\n' + installer.slice(finish);
+}
+export function installerDependencyNotice(directory: string): string {
+  const metadata = JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as {name: string; version: string; license: string};
+  if (metadata.license !== 'MIT' && metadata.license !== 'ISC') throw new Error('Review installer dependency license: ' + metadata.name);
+  const name = readdirSync(directory, {withFileTypes: true})
+    .filter(entry => entry.isFile() && /^license(?:\.(?:md|txt))?$/i.test(entry.name))
+    .map(entry => entry.name).sort()[0];
+  if (!name) throw new Error('Installer dependency notice missing: ' + metadata.name);
+  return metadata.name + '@' + metadata.version + '\n' + readFileSync(path.join(directory, name), 'utf8');
 }
 export function installerBootstrap(root: string): string {
   const built = buildSync({entryPoints: [path.join(root, 'scripts/install-plugin-bootstrap.ts')], bundle: true, platform: 'node', format: 'cjs', target: 'node26.4', write: false, minify: true, legalComments: 'inline', metafile: true});
@@ -22,13 +31,7 @@ export function installerBootstrap(root: string): string {
     }
     packages.add(directory);
   }
-  const notices = [...packages].map(directory => {
-    const metadata = JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as {name: string; version: string; license: string};
-    if (metadata.license !== 'MIT' && metadata.license !== 'ISC') throw new Error('Review installer dependency license: ' + metadata.name);
-    const license = ['LICENSE', 'LICENSE.md', 'LICENSE.txt'].map(name => path.join(directory, name)).find(existsSync);
-    if (!license) throw new Error('Installer dependency notice missing: ' + metadata.name);
-    return metadata.name + '@' + metadata.version + '\n' + readFileSync(license, 'utf8');
-  }).sort().join('\n');
+  const notices = [...packages].map(installerDependencyNotice).sort().join('\n');
   return (notices ? '/* Bundled dependency notices\n' + notices.replaceAll('*/', '* /') + '\n*/\n' : '') + built.outputFiles[0].text;
 }
 export function generateInstallers(root: string, check: boolean): void {
