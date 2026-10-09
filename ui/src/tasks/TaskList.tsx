@@ -1,3 +1,4 @@
+import { numberLabel } from '@wombat/client/locale';
 import type { UsageItem, UsageResult } from '@wombat/client';
 import { t } from '@wombat/client/locale';
 import { SummaryToken, Token, amount, directoryName, timestamp } from '../components.js';
@@ -9,7 +10,7 @@ export type TaskItem = Extract<UsageItem, { kind: 'thread' }>;
 export function TaskListSummary({ result }: { result: UsageResult }) {
   const usage = result.summary;
   return <div className="task-list-summary" aria-label={t('task.currentSummary')}>
-    <span><strong>{result.page.total.toLocaleString()}</strong><small>{t('webui.threads')}</small></span>
+    <span><strong>{numberLabel(result.page.total)}</strong><small>{t('webui.threads')}</small></span>
     <span><strong><SummaryToken summary={usage} /></strong><small>Token</small></span>
     <span><strong>{usage.price.status === 'unknown' ? '—' : amount(usage, 2)}</strong><small>{t('webui.estimate')}</small></span>
   </div>;

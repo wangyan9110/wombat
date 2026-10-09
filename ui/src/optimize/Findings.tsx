@@ -1,3 +1,4 @@
+import { numberLabel } from '@wombat/client/locale';
 import type { OptimizeSuggestion } from '@wombat/client';
 import { directoryName } from '../components.js';
 import { reviewFindingLabel, reviewFindingNote, reviewFindingCount, t } from '@wombat/client/locale';
@@ -63,7 +64,7 @@ export function Findings({ suggestion }: { suggestion: OptimizeSuggestion }) {
     return <li key={finding.identity.findingId ?? finding.rule + index}>
       <strong>{reviewFindingLabel(finding.rule)}</strong>
       <p>{reviewFindingNote(finding.rule, suggestion.item.project ? directoryName(suggestion.item.project) : undefined)}</p>
-      {count ? <p>{count}</p> : finding.observed != null && <dl className="finding-measurements"><div><dt>{t('optimize.currentValue')}</dt><dd>{finding.observed.toLocaleString()}</dd></div>{finding.threshold != null && <><div><dt>{t('optimize.comparisonValue')}</dt><dd>{finding.threshold.toLocaleString()}</dd></div><div><dt>{t('optimize.difference')}</dt><dd>{Math.max(0, finding.observed - finding.threshold).toLocaleString()}</dd></div></>}</dl>}
+      {count ? <p>{count}</p> : finding.observed != null && <dl className="finding-measurements"><div><dt>{t('optimize.currentValue')}</dt><dd>{numberLabel(finding.observed)}</dd></div>{finding.threshold != null && <><div><dt>{t('optimize.comparisonValue')}</dt><dd>{numberLabel(finding.threshold)}</dd></div><div><dt>{t('optimize.difference')}</dt><dd>{numberLabel(Math.max(0, finding.observed - finding.threshold))}</dd></div></>}</dl>}
       {!finding.evidence && finding.rule !== 'skillFormat' && <p><code>{suggestion.item.path}</code></p>}
       {finding.rule === 'skillFormat' && <FormatDiagnostics suggestion={suggestion} />}
       {finding.rule !== 'hookTarget' && finding.rule !== 'skillFormat' && finding.evidenceCodes.length > 0 && <p>{finding.evidenceCodes.join(' · ')}</p>}
@@ -76,7 +77,7 @@ export function FindingMethods({ suggestion }: { suggestion: OptimizeSuggestion 
   return <ul className="finding-list">{suggestion.findings.map((finding, index) => <li key={`${finding.rule}:${index}`}>
     <strong>{reviewFindingLabel(finding.rule)}</strong>
     <p><code>{finding.rule}</code> · <code>{finding.basis ?? t('webui.unknown')}</code> · <code>{suggestion.ruleVersion}</code></p>
-    {finding.threshold != null && <p>{t('optimize.threshold')}: {finding.threshold.toLocaleString()}</p>}
+    {finding.threshold != null && <p>{t('optimize.threshold')}: {numberLabel(finding.threshold)}</p>}
     {finding.evidence && <p><code>{finding.evidence.method}</code>{finding.evidence.direction && <> · <code>{finding.evidence.direction}</code> · <code>{finding.evidence.transform}</code></>}</p>}
   </li>)}</ul>;
 }

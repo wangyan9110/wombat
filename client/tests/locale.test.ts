@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LocaleRuntime, resolveLocale, locale, relatedActivityText, monthLabel, eventStatusLabel } from '../src/locale/index.js';
+import { LocaleRuntime, resolveLocale, locale, relatedActivityText, monthLabel, eventStatusLabel, numberLabel, compactNumberLabel } from '../src/locale/index.js';
 test('explicit, environment and system language precedence, including regional tags', () => {
   assert.equal(resolveLocale({ explicit: 'en-US', environment: 'zh', languages: ['zh-CN'] }), 'en');
   assert.equal(resolveLocale({ environment: 'zh_CN.UTF-8', languages: ['en'] }), 'zh');
@@ -76,4 +76,41 @@ test('operation outcomes distinguish running, interrupted and unknown in both lo
    assert.equal(eventStatusLabel('source-defined-status'),'source-defined-status');
   }
  }finally{locale.setLocale(saved);}
+});
+
+test('number display follows language switches while zero and missing values remain distinct', () => {
+  const saved = locale.getSnapshot().locale;
+  try {
+    for (const [language, compact] of [['en', '12.35K'], ['zh', '1.23万'], ['en', '12.35K']] as const) {
+      locale.setLocale(language);
+      assert.equal(numberLabel(12345), '12,345');
+      assert.equal(compactNumberLabel(12345), compact);
+      assert.equal(numberLabel(0), '0');
+      assert.equal(compactNumberLabel(0), '0');
+      assert.equal(numberLabel(null), '—');
+      assert.equal(compactNumberLabel(undefined), '—');
+      assert.equal(numberLabel(-1234.5), '-1,234.5');
+      assert.equal(numberLabel(0.25, { style: 'percent' }), '25%');
+    }
+  } finally { locale.setLocale(saved); }
+});
+test('configuration, comparison and analysis sentences agree with single counts', () => {
+  const runtime = new LocaleRuntime('en');
+  const variants = [
+    ['config.relatedTaskCount', 'task', 'tasks'],
+    ['config.findingCount', 'suggestion', 'suggestions'],
+    ['comparison.members', 'session', 'sessions'],
+  ] as const;
+  for (const [key, one, other] of variants) {
+    for (const count of [0, 1, 2, '—'] as const) {
+      assert.equal(runtime.t(key, { count }), `${count} ${count === 1 ? one : other}`);
+    }
+  }
+  assert.equal(runtime.t('inspection.coveredDuration', { count: 1 }), 'Covers 1 operation');
+  assert.equal(runtime.t('comparison.undated', { count: 1 }), '1 undated record is excluded from the period comparison.');
+  assert.equal(runtime.t('inspection.observed.repeated_request', { count: 1 }), '1 additional identical request observation within matching turns and receivers.');
+  assert.match(runtime.t('usage.tokenAnalysis.formula', { count: 1 }), /^Totals for 1 response calculated/);
+  assert.match(runtime.t('usage.tokenAnalysis.formula', { count: 2 }), /^Totals for 2 responses calculated/);
+  runtime.setLocale('zh');
+  assert.equal(runtime.t('config.relatedTaskCount', { count: 1 }), '1 个任务');
 });

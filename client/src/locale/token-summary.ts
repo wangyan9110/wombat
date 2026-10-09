@@ -1,6 +1,6 @@
 /** Present Rust-owned quantities and coverage without rebuilding token totals. */
 import type { UsageSummary } from '../generated/usage-app.js';
-import { t, locale } from './index.js';
+import { t, numberLabel, compactNumberLabel } from './index.js';
 
 export type SummaryTokenField = keyof UsageSummary['tokenAnalysis']['fields'];
 export function tokenSummaryPresentation(summary: UsageSummary, field: SummaryTokenField = 'total') {
@@ -36,7 +36,7 @@ export function tokenSummaryPresentation(summary: UsageSummary, field: SummaryTo
 export function tokenSummaryText(summary: UsageSummary, field: SummaryTokenField = 'total', compact = false): string {
   const presentation = tokenSummaryPresentation(summary, field);
   if (presentation.value == null) return presentation.unavailable;
-  const number = new Intl.NumberFormat(locale.getSnapshot().locale === 'zh' ? 'zh-CN' : 'en-US', compact && presentation.value >= 10000 ? { notation: 'compact', maximumFractionDigits: 2 } : {}).format(presentation.value);
+  const number = compact && presentation.value >= 10000 ? compactNumberLabel(presentation.value) : numberLabel(presentation.value);
   return presentation.qualifier ? `${number} · ${presentation.qualifier}` : number;
 }
 

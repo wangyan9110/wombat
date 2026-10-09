@@ -23,9 +23,13 @@ test('unknown and known-subtotal costs are distinct, and mixed-rate aggregates d
  const html=renderToStaticMarkup(createElement(Basis,{summary,onPrices:()=>{}}));
  assert.doesNotMatch(html,/×/);assert.match(html,/\$0\.125/);
 });
-test('compact tokens retain exact accessible values and date-only evidence does not invent times',()=>{
- const html=renderToStaticMarkup(createElement(Token,{value:1234567,interactive:true}));
- assert.match(html,/1\.23M/);assert.match(html,/1,234,567 Token/);
+test('compact tokens follow the selected language and retain exact accessible values',()=>{
+ const saved=locale.getSnapshot().locale;
+ try{for(const [language,display] of [['en','1.23M'],['zh','123.46万']] as const){
+  locale.setLocale(language);
+  const html=renderToStaticMarkup(createElement(Token,{value:1234567,interactive:true}));
+  assert.ok(html.includes(display));assert.match(html,/1,234,567 Token/);
+ }}finally{locale.setLocale(saved);}
  assert.equal(timestamp('2026-09-29','America/Los_Angeles','date'),'2026-09-29');
 });
 
@@ -77,5 +81,24 @@ test('pricing basis explains unavailable costs without erasing recorded tokens o
  const missing=renderToStaticMarkup(createElement(Token,{value:null}));
  assert.match(missing,language==='en'?/No token count is available/:/此项未提供 Token 数量/);
  assert.doesNotMatch(missing,/0 Token|Unknown|未知/);
+ }}finally{locale.setLocale(saved);}
+});
+
+test('task totals ignore a different system locale and preserve unknown metric labels', async context=>{
+ const {TaskListSummary}=await import('../src/tasks/TaskList.js');
+ const {createPreviewClient}=await import('../src/preview/fixtures.js');
+ const native=Number.prototype.toLocaleString;
+ context.mock.method(Number.prototype,'toLocaleString',function(this:number,language?:Intl.LocalesArgument,options?:Intl.NumberFormatOptions){
+  return native.call(this,language??'de-DE',options);
+ });
+ assert.equal((1234).toLocaleString(),'1.234');
+ const result=await createPreviewClient('complete').query({action:'threads',scope:{allTime:true},limit:10});
+ const saved=locale.getSnapshot().locale;
+ try{for(const language of ['en','zh'] as const){
+  locale.setLocale(language);
+  const html=renderToStaticMarkup(createElement(TaskListSummary,{result:{...result,page:{...result.page,total:1234}}}));
+  assert.match(html,/<strong>1,234<\/strong>/);assert.doesNotMatch(html,/1\.234/);
+  const missing=renderToStaticMarkup(createElement(Token,{value:null}));
+  assert.match(missing,/—/);assert.doesNotMatch(missing,/>0</);
  }}finally{locale.setLocale(saved);}
 });

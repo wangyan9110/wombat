@@ -1,3 +1,4 @@
+import { numberLabel } from '@wombat/client/locale';
 import type { TimingLocalResult } from '@wombat/client';
 import { t,operationOutcomeText } from '@wombat/client/locale';
 
@@ -16,7 +17,7 @@ type WorkLabel =
 
 function countText(value: Count, unit = ''): string {
   if (value.value == null) return basisText(value.basis);
-  return `${value.value.toLocaleString()}${unit} · ${t(`execution.work.measure.${value.status}`)} · ${basisText(value.basis)}`;
+  return `${numberLabel(value.value)}${unit} · ${t(`execution.work.measure.${value.status}`)} · ${basisText(value.basis)}`;
 }
 
 function omitUnavailable(value: Count): boolean {

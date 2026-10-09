@@ -1,3 +1,4 @@
+import { numberLabel } from './index.js';
 /** Presentation of Rust's pinned projection; never recompute membership or operation counts. */
 import type { Item } from '../generated/config-response.js';
 import { t } from './index.js';
@@ -13,7 +14,7 @@ export function useBasisPresentation(basis: Item['useBasis']) {
     ? t('useBasis.dateWindow', { since: window.since, until: window.until, timezone: window.timezone })
     : t('useBasis.followUpWindow', { after: window.after, through: window.through });
   const coverage = basis.coverage;
-  const gap = (value: number | null | undefined) => value == null ? t('useBasis.gapUnknown') : value.toLocaleString();
+  const gap = (value: number | null | undefined) => value == null ? t('useBasis.gapUnknown') : numberLabel(value);
   return {
     summary: t(basis.status === 'observed' ? 'useBasis.observed' : basis.status === 'partial' ? 'useBasis.partialObservation' : 'useBasis.unavailable'),
     notes: [range, t(basis.sourceCompleteness === 'complete' ? 'useBasis.complete' : basis.sourceCompleteness === 'partial' ? 'useBasis.partial' : 'useBasis.sourceUnknown'), t('useBasis.sourceTime'), t('useBasis.notAbsence')],

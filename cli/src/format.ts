@@ -1,4 +1,4 @@
-import { automaticPriceText, pricingIssueText, tokenSummaryText, tokenSummaryPresentation, type SummaryTokenField } from '@wombat/client/locale';
+import { numberLabel, compactNumberLabel, automaticPriceText, pricingIssueText, tokenSummaryText, tokenSummaryPresentation, type SummaryTokenField } from '@wombat/client/locale';
 import { t, locale, labels, monthLabel, inspectionCandidateText, inspectionActivityText, inspectionActivityFindingText, inspectionActivityPolicyText, inspectionOpportunityCheckText, inspectionOpportunityFindingText } from '@wombat/client/locale';
 import stringWidth from 'string-width';
 import { terminalText } from './display-text.js';
@@ -29,7 +29,7 @@ export function money(value: string | null | undefined, places = 2): string {
   const digits = (scaled / unit).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `$${digits}.${(scaled % unit).toString().padStart(places, '0')}`;
 }
-export function tokens(value: number | null | undefined): string { return value == null ? '—' : value.toLocaleString('en-US'); }
+export function tokens(value: number | null | undefined): string { return numberLabel(value); }
 export function usageLabel(usage: UsageSummary, detail = false, compact = false): string {
   if (usage.measurementCount === 0) return t("common.no_usage_records");
   const price = usage.price.status === 'unknown' ? t("common.cost_unknown") : money(usage.price.cost ?? usage.price.knownCost, detail ? 4 : 2) + (usage.price.status === 'partial' ? '*' : '');
@@ -87,7 +87,7 @@ function tableCount(value: number | null | undefined): string {
   const exact = tokens(value);
   if (exact.length <= 12 || value == null)
     return exact;
-  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
+  return compactNumberLabel(value);
 }
 function pad(value: string, width: number, right = false): string {
   const truncated = fit(value, width);

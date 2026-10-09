@@ -62,6 +62,13 @@ export class LocaleRuntime {
 /** One presentation session per CLI process; independent runtimes are available to other hosts. */
 export const locale = new LocaleRuntime();
 export const t = locale.t;
+/** Presentation numbers follow the active language, independent of the host locale. */
+export function numberLabel(value: number | null | undefined, options?: Intl.NumberFormatOptions): string {
+  return value == null ? '—' : new Intl.NumberFormat(locale.getSnapshot().locale === 'zh' ? 'zh-CN' : 'en-US', options).format(value);
+}
+export function compactNumberLabel(value: number | null | undefined): string {
+  return numberLabel(value, { notation: 'compact', maximumFractionDigits: 2 });
+}
 /** Two independent counts require independent agreement in the complete sentence. */
 export function relatedActivityText(turns: number | string, count: number | string): string {
   return t(turns === 1 ? 'optimize.tasks.turnOne' : 'optimize.tasks', { turns, count });
@@ -78,7 +85,7 @@ export function monthLabel(value: string): string {
 export function bytesLabel(value: number | null | undefined): string {
   if (value == null) return '—';
   if (value > 0 && value < 10.24) return '<0.01 KiB';
-  return new Intl.NumberFormat(locale.getSnapshot().locale === 'zh' ? 'zh-CN' : 'en-US', { maximumFractionDigits: 2 }).format(value / 1024) + ' KiB';
+  return numberLabel(value / 1024, { maximumFractionDigits: 2 }) + ' KiB';
 }
 /** One finding supplies the headline and key metric; all findings remain in the detail. */
 export function reviewPresentation(s: import('../generated/optimize-response.js').Suggestion): {title:string;value:string;metric:number|null|undefined;label:string;metricText?:string} {

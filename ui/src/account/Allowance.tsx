@@ -1,3 +1,4 @@
+import { numberLabel } from '@wombat/client/locale';
 import type { AccountResult } from '@wombat/client';
 import { t } from '@wombat/client/locale';
 import { timestamp } from '../components.js';
@@ -32,7 +33,7 @@ export function AllowanceDetails({ data, timezone }: { data: AccountResult; time
       {b.individualLimit && <><h5>{t('account.spendLimit')}</h5><dl className="facts"><dt>{t('account.limit')}</dt><dd>{b.individualLimit.limit ?? t('webui.unknown')}</dd><dt>{t('account.used')}</dt><dd>{b.individualLimit.used ?? t('webui.unknown')}</dd></dl><p>{b.individualLimit.remainingPercent == null ? t('webui.unknown') : t('account.remaining', { percent: b.individualLimit.remainingPercent })}</p><ResetTime value={b.individualLimit.resetsAt} timezone={timezone} /></>}
       {b.spendControlReached != null && <p>{t('account.spendReached', { value: reported(b.spendControlReached) })}</p>}{b.rateLimitReachedType && <p>{t('account.nativeRestriction')} <code>{b.rateLimitReachedType}</code></p>}<p className="note">{t('account.nativeUnits')}</p>
     </article>)}
-    {reset && <section className="reset-credits"><h4>{t('account.resetCredits')}</h4><p>{t('account.resetCount', { count: reset.availableCount?.toLocaleString() ?? t('webui.unknown') })}</p><p className="note">{t('account.resetReadonly')}</p>
+    {reset && <section className="reset-credits"><h4>{t('account.resetCredits')}</h4><p>{t('account.resetCount', { count: reset.availableCount == null ? t('webui.unknown') : numberLabel(reset.availableCount) })}</p><p className="note">{t('account.resetReadonly')}</p>
       {reset.credits == null ? <p>{t('account.resetDetailsUnknown')}</p> : reset.credits.length === 0 ? <p>{t('account.resetDetailsEmpty')}</p> : <ul>{reset.credits.map(c => <li key={c.id}><strong>{c.title ?? c.id}</strong> · {t(c.status === 'available' ? 'account.creditAvailable' : c.status === 'redeeming' ? 'account.creditRedeeming' : c.status === 'redeemed' ? 'account.creditRedeemed' : 'webui.unknown')}{c.description && <p>{c.description}</p>}{c.grantedAt && <p>{t('account.granted', { time: timestamp(c.grantedAt, timezone) })}</p>}{c.expiresAt && <p>{t('account.expires', { time: timestamp(c.expiresAt, timezone) })}</p>}</li>)}</ul>}{reset.detailsTruncated && <p role="status">{t('account.resetTruncated')}</p>}
     </section>}
     <p className="note">{t(data.ordinaryUsageAllowed == null ? 'account.ordinaryUnknown' : data.ordinaryUsageAllowed ? 'account.ordinaryAllowed' : 'account.ordinaryDenied')}</p>

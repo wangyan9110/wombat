@@ -1,3 +1,4 @@
+import { numberLabel } from '@wombat/client/locale';
 import { UseBasis } from './UseBasis.js';
 import { useState } from 'react';
 import type { ConfigResult, OptimizeSuggestion, UsageClient } from '@wombat/client';
@@ -46,5 +47,5 @@ export function TextChanges({suggestion}:{suggestion:OptimizeSuggestion}) {
  const rows=textChanges(suggestion);
  // Per-rule comparisons and reasons remain in ReviewFacts; this table is numerical only.
  if(!rows.length)return null;
- return <section className="review-related"><h3>{t('optimize.comparison')}</h3><div className="report-table-wrap"><table className="project-table text-change-table"><thead><tr><th>{t('webui.type')}</th><th>{t('optimize.before')}</th><th>{t('optimize.after')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.label}><td>{r.label}</td><td>{r.before.toLocaleString()}</td><td>{r.after.toLocaleString()}</td></tr>)}</tbody></table></div><p className="note">{t('optimize.comparisonNote')}</p></section>;
+ return <section className="review-related"><h3>{t('optimize.comparison')}</h3><div className="report-table-wrap"><table className="project-table text-change-table"><thead><tr><th>{t('webui.type')}</th><th>{t('optimize.before')}</th><th>{t('optimize.after')}</th></tr></thead><tbody>{rows.map(r=><tr key={r.label}><td>{r.label}</td><td>{numberLabel(r.before)}</td><td>{numberLabel(r.after)}</td></tr>)}</tbody></table></div><p className="note">{t('optimize.comparisonNote')}</p></section>;
 }

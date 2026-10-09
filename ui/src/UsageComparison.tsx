@@ -1,3 +1,4 @@
+import { numberLabel } from '@wombat/client/locale';
 import {useState} from 'react';
 import type {UsageClient,UsageResult,UsageScope} from '@wombat/client';
 import {t} from '@wombat/client/locale';
@@ -7,7 +8,7 @@ import {scopeOf,shiftDate,type Route} from './state.js';
 import {useUsageQuery} from './useUsageQuery.js';
 type Change=NonNullable<UsageResult['comparison']>['delta'];
 function Delta({delta}:{delta:Change}){
- return <span>{delta.tokens==null?'—':`${delta.tokens>0?'+':''}${delta.tokens.toLocaleString()}`} Token · {delta.cost==null?'—':`${delta.cost.startsWith('-')?'':'+'}${delta.cost} USD`}</span>;
+ return <span>{delta.tokens==null?'—':`${delta.tokens>0?'+':''}${numberLabel(delta.tokens)}`} Token · {delta.cost==null?'—':`${delta.cost.startsWith('-')?'':'+'}${delta.cost} USD`}</span>;
 }
 export function PublicationChanges({result}:{result:UsageResult}){
  const c=result.freshness?.publicationChange;if(!c)return null;
