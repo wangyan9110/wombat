@@ -76,7 +76,7 @@
     "typescript": "^5.0.0"
   },
   "license": "MIT",
-  "description": "Analyze local Codex token usage, task history and API cost estimates. Use the Codex Skill to review AGENTS.md, Skills, MCP and Hooks, with a Web dashboard for evidence.",
+  "description": "Local Codex token usage analyzer and configuration review tool. Inspect tasks, AGENTS.md, Skills, MCP and Hooks through a Codex plugin, with a Web dashboard for details.",
   "keywords": [
     "codex",
     "codex-skill",
