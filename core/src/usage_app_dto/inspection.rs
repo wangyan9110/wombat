@@ -31,6 +31,7 @@ pub enum InspectionLimit {
     OperationOutcomesPartial,
     OperationModelAssociation,
     ContextMetadataUnavailable,
+    SelectedTurnOnly,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]

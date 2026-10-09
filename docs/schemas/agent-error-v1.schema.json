@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ErrorOutput",
+  "type": "object",
+  "properties": {
+    "outputVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "error": {
+      "$ref": "#/definitions/Error"
+    }
+  },
+  "required": [
+    "outputVersion",
+    "error"
+  ],
+  "definitions": {
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "recovery": {
+          "$ref": "#/definitions/Recovery"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "recovery"
+      ]
+    },
+    "Recovery": {
+      "type": "string",
+      "enum": [
+        "read_schema",
+        "reacquire_view",
+        "narrow_query",
+        "retry_same_scope",
+        "check_setup",
+        "inspect_state",
+        "none"
+      ]
+    }
+  }
+}

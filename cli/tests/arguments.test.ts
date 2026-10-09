@@ -60,3 +60,9 @@ test('operation evidence location is restricted to a full turn record query',()=
  assert.equal(parseUsageArgs(['steps','--thread','a','--turn','b','--locate-operation','op']).request.locateOperationId,'op');
  assert.throws(()=>parseUsageArgs(['threads','--locate-operation','op']));
 });
+
+test('compact JSON and selected-turn investigation preserve public scope',()=>{
+ const r=parseUsageArgs(['investigate','--snapshot','fixed','--project','/synthetic','--thread','a','--turn','b','--compact','--json']).request;
+ assert.equal(r.compact,true);assert.deepEqual(r.scope,{project:'/synthetic',threadId:'a',turnId:'b'});
+ for(const args of [['usage','--compact'],['refresh','--compact','--json'],['investigate','--turn','b','--json'],['trajectory','--thread','a','--turn','b'],['usage','--compact','--compact','--json']])assert.throws(()=>parseUsageArgs(args));
+});

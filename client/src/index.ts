@@ -19,3 +19,10 @@ export { allowanceStatus, type AllowanceAssessment } from './allowance.js';
 export type { ClientTransports, TimingRequest, TimingResult, TimingLocalResult, TimingShareResult, TimingTransport } from './client.js';
 export type { TimingErrorOutput } from './generated/timing-error-output.js';
 export {webViewSearch,shiftCalendarDate,validateWebViewRequest,type WebViewRequest} from './web-view.js';
+
+export type {Request as AgentRequest} from './generated/agent-request.js';
+export type {Description as AgentDescription} from './generated/agent-description.js';
+export {validate as validateAgentRequest} from './generated/validate-agent-request.js';
+export {schema as agentRequestSchema} from './generated/schema-agent-request.js';
+export {schemas as agentResultSchemas} from './generated/schema-agent-results.js';
+export type {ErrorOutput as AgentErrorOutput} from './generated/agent-error.js';

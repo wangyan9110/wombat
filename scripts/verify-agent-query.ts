@@ -60,7 +60,25 @@ async function qualify(outputDir:string,agentBin?:string,language:'zh'|'en'='en'
   const contexts=query(cli,env,['context',...common,'--thread',task.id]);const inventory=record(contexts.value.inspection)?contexts.value.inspection.context:null;if(!record(inventory)||inventory.injectedRecords!==1||inventory.modelWindowRecords!==1||!Array.isArray(inventory.records)||inventory.records.some(r=>!record(r)||r.bytes!==null||r.contentVersion!==null))throw new Error('Context physical-record truth failed');
   const trajectory=query(cli,env,['trajectory',...common,'--thread',task.id]);const points=record(trajectory.value.inspection)?trajectory.value.inspection.trajectory:null;if(!Array.isArray(points)||points.length!==3||!record(points[2])||points[2].inputDelta!==null||!record(points[2].compactionComparison)||points[2].compactionComparison.inputDifference!==300000)throw new Error('Compaction boundary truth failed');
   const review=query(cli,env,['review','--snapshot',ref.snapshotId,'--since','2026-09-02','--until','2026-09-03']);const concentration=record(review.value.inspection)&&record(review.value.inspection.review)?review.value.inspection.review.concentration:null;if(!record(concentration)||concentration.topTaskShare!==1||concentration.totalTokens!==1100000)throw new Error('Full-scope concentration truth failed');
+  const api=query(cli,env,['api']);
+  if(!Array.isArray(api.value.methods)||!api.value.methods.includes('usage')||api.value.inputSchema!==null)throw new Error('Installed Agent method discovery failed');
+  const method=query(cli,env,['api','--method','snapshot']);
+  if(!record(method.value.inputSchema)||method.value.selectedMethod!=='snapshot')throw new Error('Installed per-method schema failed');
+  const structured=spawnSync(process.execPath,[cli,'call'],{cwd:sandbox,env,input:JSON.stringify({method:'snapshot',params:{action:'investigate',snapshotId:ref.snapshotId,scope:{allTime:true},limit:3,compact:true}}),encoding:'utf8',timeout:15000,maxBuffer:2*1024*1024});
+  if(structured.error||![0,2].includes(structured.status??-1))throw new Error('Installed structured call failed');
+  const structuredResult:unknown=JSON.parse(structured.stdout);
+  if(!record(structuredResult)||!record(structuredResult.summary)||!record(structuredResult.summary.tokens)||structuredResult.summary.tokens.total!==1100000||!record(structuredResult.quality)||!record(structuredResult.quality.detailSummary)||structuredResult.facets!==undefined)throw new Error('Compact structured total/quality failed');
+  const compact=query(cli,env,['usage',...common,'--compact','--limit','1']);
+  const full=query(cli,env,['usage',...common,'--limit','1']);
+  if(JSON.stringify(compact.value.summary)!==JSON.stringify(full.value.summary)||JSON.stringify(compact.value.items)!==JSON.stringify(full.value.items))throw new Error('Installed compact conservation failed');
+  const turns=query(cli,env,['turns',...common,'--thread',task.id,'--matched-only']);
+  const turn=Array.isArray(turns.value.items)?turns.value.items.find(t=>record(t)&&t.ordinal!==null):null;
+  if(!record(turn)||typeof turn.id!=='string')throw new Error('Missing selected turn');
+  const selected=query(cli,env,['investigate',...common,'--thread',task.id,'--turn',turn.id,'--compact']);
+  const selectedInspection=selected.value.inspection;
+  if(!record(selectedInspection)||!Array.isArray(selectedInspection.limitations)||!selectedInspection.limitations.includes('selected_turn_only')||!record(selected.value.scope)||selected.value.scope.turnId!==turn.id)throw new Error('Installed exact-turn inspection failed');
   const invalid=spawnSync(process.execPath,[cli,'context','--snapshot','unsupported:synthetic','--all-time','--json'],{cwd:sandbox,env,encoding:'utf8',timeout:15000,maxBuffer:1024*1024});if(invalid.error||invalid.status!==1||!record(JSON.parse(invalid.stdout).error))throw new Error('Unknown snapshot failed closed incorrectly');
+  report.agentInterface={methods:api.value.methods.length,structured:true,compactBytes:compact.bytes,fullBytes:full.bytes,selectedTurn:true};
   report.queryMatrix=[{case:'context-physical-records',records:2,bytes:contexts.bytes,elapsedMs:contexts.elapsedMs},{case:'compaction-observation',inputDifference:300000,continuousDelta:null,bytes:trajectory.bytes,elapsedMs:trajectory.elapsedMs},{case:'full-scope-concentration',topTaskShare:1,bytes:review.bytes,elapsedMs:review.elapsedMs},{case:'unknown-snapshot',status:'rejected'}];
   report.runtime={staged:true,fixtureRequests:3,refresh:{bytes:refreshed.bytes,elapsedMs:refreshed.elapsedMs},cachedQueries:samples.map(s=>({bytes:s.bytes,elapsedMs:s.elapsedMs})),completeTokens:1_100_000,candidateCount:1};
   if(agentBin){

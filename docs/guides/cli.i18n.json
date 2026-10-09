@@ -5,6 +5,10 @@
       "zh": "d5533345e3363991fbad29a88716f36777ada20f888715cdd5c6e26252b9fce3",
       "en": "dbb4951e146470be3f18c724f7ead4580e411e8c40eeac4aff24d13c9fcaf0dc"
     },
+    "/cli-and-automation/agent-interface": {
+      "zh": "002bb6f1b9fe828fa1d3b85da6617cd81e4eb6f590ed49ada1a9f1f28e6be8af",
+      "en": "53cd662530f6bc7a96901ab4261bc535e66b7d57fdc8135212b0f31214a0cc9e"
+    },
     "/cli-and-automation/compare-usage": {
       "zh": "0ef92113af1e62fbf77782836dca87b852dabcd8ea7f7000b519401866a99346",
       "en": "7810d316bec33705390dc683d18fc11175bb22b58d44dd4f6a94e63085d5ff6f"
@@ -38,8 +42,8 @@
       "en": "91b096d08e7d12ff97bc2dea5e341d2f5dcca763cf9b255ee70bd512dc5e0898"
     },
     "/cli-and-automation/json": {
-      "zh": "29a8292fb718330e57a04a14056683250ee93304e67f99bba8006b83d3d6b7d7",
-      "en": "bdfac1125f0d5234a695b7b0c682fcce19458690bd1b6d8d0eb083adfd52e41c"
+      "zh": "eaf1a56db7c0fd50027d3be64999e552f67e6d636b05f33b69dfa7802d809719",
+      "en": "42785e5fbcf6cb9eb529a913a516addc6d6ccd430aef4e4ee29f78edd919a47c"
     },
     "/cli-and-automation/current-formats": {
       "zh": "f92657fbf8f7314612dab0b543449da68f57d9a6c91a146add409b20124445da",
@@ -62,8 +66,8 @@
       "en": "1474f7b3c897d75117a6975bb0e9a58793e642481100f8a22ec8a37e89115f81"
     },
     "/cli-and-automation/setup-and-collection": {
-      "zh": "98979813c56a749450df4b25c20ac479671756d141c0e14a13c6ca85099d29be",
-      "en": "246becb98fe82f364b19ae1e39b23f380a6ff40ddfd5094fc00ddd1134ec4fe4"
+      "zh": "c696af52c683b3405e3c154d198a10ecd1f91ce9480988ac3ef7aa66e8996643",
+      "en": "38ebf562b0efaf7cf6ff83b7a5b7c7e59a8490112fdf1f1004133752c0881e96"
     }
   }
 }

@@ -1,3 +1,4 @@
+import {directoriesExitCode} from './exit-codes.js';
 import path from 'node:path';
 import {CoreError,type DirectoriesRequest} from '@wombat/client';
 import {createNodeClient} from '@wombat/client/node';
@@ -29,6 +30,6 @@ export async function runDirectoriesCli(argv:string[]):Promise<number> {
   try{const result=await createNodeClient().directories!(request,{signal:controller.signal});
     if(json)process.stdout.write(JSON.stringify(result)+'\n');
     else for(const grant of result.grants)process.stdout.write(`${grant.id}\t${t(`directories.${grant.purpose}`)}\t${terminalText(grant.path)}\t${t(grant.status==='authorized'?'directories.authorized':'directories.unavailable')}\n`);
-    return result.grants.some(g=>g.status!=='authorized')?2:0;
+    return directoriesExitCode(result);
   }finally{process.off('SIGINT',stop);process.off('SIGTERM',stop);}
 }

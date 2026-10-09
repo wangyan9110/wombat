@@ -76,6 +76,9 @@ test('combined POSIX installation opens Web only after native plugin success', {
   symlinkSync(process.execPath, path.join(destination, 'runtime/node'));
   mkdirSync(path.join(destination, 'lib/skill/.agents/plugins'), {recursive: true});
   writeFileSync(path.join(destination, 'lib/skill/.agents/plugins/marketplace.json'), JSON.stringify({name:'wombat-local',plugins:['wombat','wombat-collection'].map(name=>({name,source:{source:'local',path:name==='wombat'?'./plugin':'./collection-plugin'}}))}));
+  const pluginDirectory=path.join(destination,'lib/skill/plugin');mkdirSync(pluginDirectory,{recursive:true});
+  writeFileSync(path.join(pluginDirectory,'wombat-runtime.json'),JSON.stringify({format:1,version:'1.2.3',skillContentHash:'a'.repeat(64)}));
+  writeFileSync(path.join(destination,'lib/wombat.js'),`const p=process.env.INSTALLED+'/skills/wombat/SKILL.md';console.log(JSON.stringify({outputVersion:1,discovery:{status:'available',instances:[{enabled:true,name:'wombat:wombat',path:p}]},runtimeChecks:[{path:p,status:'compatible',pluginVersion:'1.2.3',skillContentHash:'a'.repeat(64)}]}));`);
   writeFileSync(binary, `const a=process.argv.slice(2);if(process.env.FAIL_PLUGIN==='1')process.exit(3);if(a[1]==='list')console.log(JSON.stringify({installed:[]}));else if(a[2]==='list')console.log(JSON.stringify({marketplaces:[]}));else if(a[1]==='add')console.log(JSON.stringify({pluginId:a[2],installedPath:process.env.INSTALLED}));`);
   writeFileSync(launcher, '#!/bin/sh\nprintf web > "$WEB_MARKER"\n');chmodSync(launcher,0o755);
   const script = path.join(root, 'combined.sh');
@@ -87,4 +90,28 @@ test('combined POSIX installation opens Web only after native plugin success', {
   execFileSync('sh',[script],{env:{...env,FAIL_PLUGIN:'1',install_plugin_requested:'0'},stdio:'pipe'});assert.equal(existsSync(webMarker),true);
   assert.match(windowsInstaller,/\[switch\]\$Plugin/);
   assert.ok(windowsInstaller.indexOf('if ($Plugin)') < windowsInstaller.lastIndexOf('if ($Open)'));
+});
+
+test('plugin-only reuses a managed custom-prefix runtime without downloading or editing profiles',{skip:process.platform==='win32'},t=>{
+  const root=mkdtempSync(path.join(os.tmpdir(),'wombat-plugin-resume-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const prefix=path.join(root,'custom & 安装'),installRoot=path.join(prefix,'lib/wombat'),id='1.2.3-'+ 'a'.repeat(12)+'-'+ 'b'.repeat(12),destination=path.join(installRoot,'versions',id);
+  mkdirSync(path.join(destination,'runtime'),{recursive:true});symlinkSync(process.execPath,path.join(destination,'runtime/node'));
+  mkdirSync(path.join(destination,'lib/skill/.agents/plugins'),{recursive:true});
+  mkdirSync(path.join(destination,'lib/skill/plugin'),{recursive:true});
+  writeFileSync(path.join(installRoot,'.managed-by-wombat'),'managed GitHub installation');writeFileSync(path.join(installRoot,'current.txt'),id+'\n');
+  writeFileSync(path.join(destination,'release.json'),JSON.stringify({format:1,version:'1.2.3',source:'a'.repeat(40),sourceSha256:'b'.repeat(64)}));
+  writeFileSync(path.join(destination,'lib/skill/.agents/plugins/marketplace.json'),JSON.stringify({name:'wombat-local',plugins:['wombat','wombat-collection'].map(name=>({name,source:{source:'local',path:name==='wombat'?'./plugin':'./collection-plugin'}}))}));
+  writeFileSync(path.join(destination,'lib/skill/plugin/wombat-runtime.json'),JSON.stringify({format:1,version:'1.2.3',skillContentHash:'a'.repeat(64)}));
+  const installed=path.join(root,'installed'),native=path.join(root,'codex.mjs');
+  writeFileSync(native,`const a=process.argv.slice(2);console.log(JSON.stringify(a[1]==='list'?{installed:[]}:a[2]==='list'?{marketplaces:[]}:{pluginId:a[2],installedPath:process.env.INSTALLED}));`);
+  writeFileSync(path.join(destination,'lib/wombat.js'),`const p=process.env.INSTALLED+'/skills/wombat/SKILL.md';console.log(JSON.stringify({outputVersion:1,discovery:{status:'available',instances:[{enabled:true,name:'wombat:wombat',path:p}]},runtimeChecks:[{path:p,status:'compatible',pluginVersion:'1.2.3',skillContentHash:'a'.repeat(64)}]}));`);
+  const env={...process.env,HOME:root,WOMBAT_CODEX_BIN:native,INSTALLED:installed};
+  const output=execFileSync('sh',[new URL('./install/install.sh',import.meta.url).pathname,'--plugin-only','--prefix',prefix],{env,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+  assert.match(output,/Reusing the current/);assert.match(output,/Installed and verified wombat/);assert.equal(existsSync(path.join(root,'.zshrc')),false);
+  assert.equal(readFileSync(path.join(installRoot,'current.txt'),'utf8'),id+'\n');
+  for(const pointer of ['../outside','..','']){
+    writeFileSync(path.join(installRoot,'current.txt'),pointer+'\n');
+    assert.throws(()=>execFileSync('sh',[new URL('./install/install.sh',import.meta.url).pathname,'--plugin-only','--prefix',prefix],{env,stdio:'pipe'}));
+  }
+  assert.match(windowsInstaller,/\[switch\]\$PluginOnly/);
 });

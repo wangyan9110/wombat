@@ -36,9 +36,9 @@ function releaseReadme(content: string, version: string, chinese: boolean, file:
   let next = content.replace(statusPattern, status);
   next = next
     .replace(/^([ \t]*)curl -fsSL https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.sh.*$/m,
-      (_match, indent: string) => `${indent}curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s --${preview ? ` --version ${version}` : ''} --plugin --open`)
+      (_match, indent: string) => `${indent}curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s --${preview ? ` --version ${version}` : ''} --plugin`)
     .replace(/^([ \t]*)& \(\[scriptblock\]::Create\(\(irm https:\/\/raw\.githubusercontent\.com\/wangyan9110\/wombat\/main\/(?:scripts\/install\/)?install\.ps1\)\)\).*$/m,
-      (_match, indent: string) => `${indent}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1)))${preview ? ` -Version ${version}` : ''} -Plugin -Open`);
+      (_match, indent: string) => `${indent}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1)))${preview ? ` -Version ${version}` : ''} -Plugin`);
   const commands = preview ? `wombat update --check --version ${version}\nwombat update --version ${version}` : 'wombat update --check\nwombat update';
   const update = chinese
     ? `## 更新\n\n重新执行上面的安装命令，可以更新 Wombat 与 Codex 插件。检查更新，或只更新 Wombat 运行时：\n\n\`\`\`sh\n${commands}\n\`\`\`\n\n指定版本和自定义安装目录见[安装指南](docs/guides/installation.md)。`

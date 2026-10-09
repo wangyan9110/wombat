@@ -50,6 +50,16 @@ test('built CLI and Web share period drivers, family totals and durable refresh 
   assert.equal(value.comparison.delta.tokens,50);assert.deepEqual(value.freshness.publicationChange,restored.freshness.publicationChange);
   for(const action of ['investigate','resources','review','context'] as const){const q={action,snapshotId:restored.snapshotRef.snapshotId,scope:{since:'2026-09-08',until:'2026-09-15',timezone:'UTC'}};const response=(await call(q)).result;assert.equal(response.inspection.kind,action);assert.equal(response.summary.tokens.total,250);if(action==='review')assert.equal(response.inspection.review.comparison.delta.tokens,50);}
   const trajectoryValue=(await call({action:'trajectory',snapshotId:restored.snapshotRef.snapshotId,threadId:id('parent'),scope:{allTime:true}})).result;assert.deepEqual(trajectoryValue.inspection.trajectory.map((p:{input:number})=>p.input),[100,140,10]);assert.equal(trajectoryValue.inspection.trajectory[2].uncachedDelta,-130);
+  const parentTurns=run(['turns','--thread',id('parent'),'--all-time','--snapshot',restored.snapshotRef.snapshotId]);
+  const turn=parentTurns.items[0].id;
+  const exactCli=run(['investigate','--thread',id('parent'),'--turn',turn,'--all-time','--snapshot',restored.snapshotRef.snapshotId,'--compact']);
+  const exactWeb=(await call({action:'investigate',snapshotId:restored.snapshotRef.snapshotId,scope:{threadId:id('parent'),turnId:turn,allTime:true},compact:true})).result;
+  assert.deepEqual(exactWeb,exactCli);assert.equal(exactWeb.summary.tokens.total,250);
+  assert.equal(exactWeb.scope.turnId,turn);assert.ok(exactWeb.inspection.limitations.includes('selected_turn_only'));
+  const fullUsage=(await call({action:'usage',snapshotId:restored.snapshotRef.snapshotId,scope:{allTime:true},limit:1})).result;
+  const compactUsage=(await call({action:'usage',snapshotId:restored.snapshotRef.snapshotId,scope:{allTime:true},limit:1,compact:true})).result;
+  assert.deepEqual(compactUsage.summary,fullUsage.summary);assert.deepEqual(compactUsage.items,fullUsage.items);assert.deepEqual(compactUsage.page,fullUsage.page);
+  assert.equal(compactUsage.facets,undefined);assert.ok(compactUsage.quality.detailSummary);
 
   const bad=spawnSync(process.execPath,[cli,'compare','--since','2026-09-08','--until','2026-09-15','--baseline-since','2026-09-04','--baseline-until','2026-09-11','--json'],{env,encoding:'utf8',timeout:10_000});assert.equal(bad.status,1);assert.equal(JSON.parse(bad.stdout).error.code,'INVALID_ARGUMENT');
  }finally{await stop(web);await stop(service);await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100});}

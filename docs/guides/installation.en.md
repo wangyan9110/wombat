@@ -9,18 +9,18 @@ Wombat `v0.3.0` supports macOS arm64/x64, Linux glibc arm64/x64, and Windows x64
 On macOS or Linux, run:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin --open
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin
 ```
 
 On Windows PowerShell, run:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin -Open
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin
 ```
 
-Install a compatible local Codex first. The installer installs Wombat, registers its local marketplace and installs the plugin through Codex, then opens Web. Invoke `$wombat:wombat` in a new Codex project conversation. An existing enabled collection plugin keeps that mode and uses `$wombat-collection:wombat`. Installation does not change collection mode or Hook trust. The `wombat` command is available for later use.
+Install a compatible local Codex first. The installer installs Wombat, registers its local marketplace and installs the plugin through Codex, then verifies current-project discovery and runtime compatibility. Invoke `$wombat:wombat` in a new Codex project conversation. An existing enabled collection plugin keeps that mode and uses `$wombat-collection:wombat`. Installation does not change collection mode or Hook trust. The `wombat` command is available for later use.
 
-If plugin installation fails, Wombat remains installed and Web does not start automatically. Check Codex and rerun the same installation command. To view data first, run `wombat web --open`. Omit `--plugin` or `-Plugin` to install only the runtime and Web. If installation still fails, [report the problem](https://github.com/wangyan9110/wombat/issues). If the browser does not open, use the full URL printed in the terminal.
+If plugin installation fails, Wombat remains installed. Check the reported stage, then rerun the installer with `--plugin-only` on macOS/Linux or `-PluginOnly` on PowerShell. Keep any custom prefix option. This reuses the current runtime without downloading it or changing PATH; omit version and download-source options. A failed discovery check retains the installed plugin and data. To open Web, run `wombat web --open`, or add `--open` / `-Open` to the installer. Omit `--plugin` or `-Plugin` to install only the runtime and Web. If installation still fails, [report the problem](https://github.com/wangyan9110/wombat/issues). If the browser does not open, use the full URL printed in the terminal.
 
 ## Update
 

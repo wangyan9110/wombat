@@ -64,6 +64,10 @@ export interface Request1 {
   locateTurnId?: string | null;
   locateOperationId?: string | null;
   matchedOnly?: boolean | null;
+  /**
+   * Keep totals and the requested page, with bounded quality examples and no facets.
+   */
+  compact?: boolean | null;
 }
 export interface Scope {
   allTime?: boolean | null;
@@ -80,6 +84,10 @@ export interface Scope {
   project?: string | null;
   projectUnknown?: boolean | null;
   threadId?: string | null;
+  /**
+   * Exact turn inspection, always bound to a selected thread.
+   */
+  turnId?: string | null;
 }
 export interface Request2 {
   action?: Action2 & string;

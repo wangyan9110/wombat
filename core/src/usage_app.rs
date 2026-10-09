@@ -10,6 +10,7 @@ use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
+mod compact;
 mod comparison;
 mod conversations;
 mod inspection;
@@ -22,7 +23,9 @@ mod summary;
 use conversations::{step_items, thread_items, turn_items};
 use reports::{default_report_start, dimension_items, usage_items};
 pub(crate) use scope::validate;
-use scope::{available, date, dimensions, invalid, local_date, matches, quality, timezone};
+use scope::{
+    available, date, dimensions, ensure_ready, invalid, local_date, matches, quality, timezone,
+};
 pub use summary::summarize;
 use summary::{
     consumption_order, cost_share, known_cost, max_available_tokens, share, unpriced_tokens,
@@ -103,20 +106,7 @@ pub fn execute(request: Request) -> Result<Response> {
 }
 
 pub(crate) fn execute_snapshot(request: Request, snapshot: &Snapshot) -> Result<Response> {
-    if snapshot.project_loads.iter().any(|p| {
-        p.state != crate::live::ProjectLoadState::Ready
-            && (request
-                .scope
-                .project
-                .as_ref()
-                .is_some_and(|project| p.project.as_ref() == Some(project))
-                || request.scope.project_unknown == Some(true) && p.project.is_none())
-    }) {
-        return Err(operation_error(
-            "SYNC_PENDING",
-            "所选项目正在加载，已加载的项目可以查看",
-        ));
-    }
+    ensure_ready(&request, snapshot)?;
     let key = if snapshot.is_live() {
         // Default ranges roll over at midnight in the request timezone.
         Some(format!(
@@ -134,7 +124,11 @@ pub(crate) fn execute_snapshot(request: Request, snapshot: &Snapshot) -> Result<
     {
         return Ok(result);
     }
-    let result = execute_uncached(request, snapshot)?;
+    let compact = request.compact == Some(true);
+    let mut result = execute_uncached(request, snapshot)?;
+    if compact {
+        compact::apply(&mut result);
+    }
     if let Some(key) = key
         && let Some(bytes) = crate::query_cache::QueryCache::entry_size(&key, &result)
     {

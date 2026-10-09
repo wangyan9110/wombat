@@ -21,6 +21,22 @@ wombat steps --thread THREAD_ID --turn TURN_ID --sort time --json
 
 Hook清单JSON与Web详情提供同口径的项目注册观察及插件身份，文本输出也标明插件。注册不代表运行；支持的声明形式与未知状态见[配置契约](../development/contracts.md)。
 
+
+## Agent 接口
+
+用 `wombat api --json` 读取当前安装的方法、说明和预算，不扫描数据。用 `wombat api --method usage --json` 读取单个输入 Schema；需要响应字段时附加 `--output-schema`。两种 Schema 均从 Rust 生成，同一运行版本可以复用。
+
+```sh
+wombat api --method usage --json
+wombat call <<'JSON'
+{"method":"usage","params":{"mode":"auto","query":{"action":"threads","scope":{"project":"/absolute/project","since":"2026-10-01","until":"2026-10-08","timezone":"Asia/Shanghai"},"sort":"tokens","limit":3,"compact":true}}}
+JSON
+```
+
+`call` 从标准输入接收单个 JSON 对象，默认输出 JSON，不交互提问。只派发清单中的生成协议方法，参数以所选 Schema 为准。结果保留所属协议，包括 `usage` 实时包装中的 `result` 和 `freshness`。下钻时保留快照、读取版本、范围、分页位置和游标；修改动作继续使用既有授权和目标选择要求。
+
+输入上限为 1 MiB，标准输入时限为十秒；输出上限为 2 MiB，产品查询自身的预算仍然适用。错误返回 `{outputVersion:1,error:{code,message,recovery}}`，不回显原输入、路径或内部诊断。`recovery` 指示读取 Schema、重新取得原视图、缩小查询、重试同一范围、检查接入或核对状态，不代表可以自动重试写入。退出码为：完整结果 0、部分结果 2、错误 1、取消 130；对应的普通命令使用同一判断。Ctrl+C 取消本次调用，不停止共享扫描。
+
 ## 对比用量
 
 周期对比与会话对比均读取已提交数据，默认不刷新。先执行 `wombat usage --fresh`，再使用下列命令；结束日期不含当天，两个周期须等长且不重叠。
@@ -37,7 +53,8 @@ wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-
 先读取或更新用量，再用返回的 `snapshotRef.snapshotId` 固定以下查询；默认仅读取已提交数据，不主动同步。
 
 ```sh
-wombat investigate --snapshot SNAPSHOT_ID --all-time --limit 5 --json
+wombat investigate --snapshot SNAPSHOT_ID --all-time --limit 3 --compact --json
+wombat investigate --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --all-time --compact --json
 wombat context --snapshot SNAPSHOT_ID --all-time --json
 wombat trajectory --snapshot SNAPSHOT_ID --thread THREAD_ID --all-time --json
 wombat resources --snapshot SNAPSHOT_ID --project /absolute/project --all-time --json
@@ -121,6 +138,9 @@ wombat timing capabilities
 
 ## JSON
 
+`--compact --json` 将质量详情中保留的各列表限制为三个例子，并省略 facets；`quality.detailSummary` 保存完整问题数、来源数、分类计数及省略详情数。总量、请求行、分页、范围和快照保持不变；去掉 `--compact` 可读取完整详情。`--limit` 只控制返回分页，不减少整任务计算。遇到 RESOURCE_LIMIT 时，用 `turns --matched-only` 选择轮次，再以同一快照与筛选检查该轮。单轮发现不代表整任务排行。
+
+
 用量使用 `outputVersion: 5`。成功对象包含 action、snapshotRef、scope、availableRange、summary、items、page、quality。运行时对生成 Schema 校验，未知参数拒绝。普通查询 stdout 只有一个最终 JSON 对象，watch为NDJSON；状态说明写stderr。实时结果另有freshness，status区分current、syncing、stale、failed和fixed，checkedAt为最后成功检查时间；current只表示已处理本次观察到的日志范围。
 
 金额为十进制字符串；Token 为安全整数或 null。`price.cost=null` 表示金额不完整，`knownCost` 为已知小计，status 区分 priced、partial、unknown。缺失不是零，reportedCost 不与标准折算相加。不能从已显示的两位金额重新求和。
@@ -195,7 +215,7 @@ wombat account refresh --json
 
 ## 接入与采集
 
-`wombat setup --project /path/to/project --json` 检查原生发现与注册，分别保留各项状态；不安装、不信任、不读取账户凭据、不调用模型。`--root` 选择来源目录。缺少 Skill 不影响查看已有数据。
+`wombat setup --project /path/to/project --json` 检查原生发现与注册，分别保留各项状态。结果包含完整 Codex 版本、Wombat 运行版本，以及实际发现实例的能力声明和内容校验；文本输出也显示部分失败的错误码。查看日志无需信任 Hook；Skill 可用且兼容后，可在新的 Codex 对话中提问。此命令不安装、不信任、不读取账户凭据、不调用模型。`--root` 选择来源目录。缺少 Skill 不影响查看已有数据。
 
 ```sh
 wombat collection status --json

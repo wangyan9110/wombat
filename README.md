@@ -24,16 +24,16 @@ Wombat supports macOS, Linux, and Windows. Local analysis needs no API key or de
 On macOS or Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin --open
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin
 ```
 
 On Windows PowerShell:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin -Open
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin
 ```
 
-The installer installs Wombat and its Codex plugin, then opens the Web dashboard. During the initial read, you can inspect tasks that Wombat has already found.
+The installer installs Wombat and its Codex plugin, then checks discovery and runtime compatibility. Open Web when needed with `wombat web --open`; during the initial read, you can inspect tasks already found.
 
 Open your project in a new Codex conversation, invoke `$wombat:wombat`, and ask:
 
@@ -43,7 +43,7 @@ Open your project in a new Codex conversation, invoke `$wombat:wombat`, and ask:
 
 An existing enabled collection plugin keeps its mode; use `$wombat-collection:wombat` for that plugin. Use the invocation discovered for your project and select one explicitly if multiple instances exist. To use only Web, omit `--plugin` or `-Plugin` from the installation command. See the [plugin guide](plugin/README.en.md) for discovery, removal, and existing standalone copies.
 
-If plugin installation fails, Wombat remains installed. Check that Codex is available and rerun the installation command, or run `wombat web --open` to view data first. If the Skill is unavailable, open **Setup and collection** in Web for discovery status and plugin guidance. If installation still fails, [report the problem](https://github.com/wangyan9110/wombat/issues).
+If plugin installation fails, Wombat remains installed. Check the reported stage and retry only the plugin with the options in the [installation guide](docs/guides/installation.en.md), or run `wombat web --open` to view data first. If the Skill is unavailable, open **Setup and collection** in Web for discovery status and plugin guidance. If installation still fails, [report the problem](https://github.com/wangyan9110/wombat/issues).
 
 ## Start with a question
 

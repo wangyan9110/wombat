@@ -1,3 +1,4 @@
+import {accountExitCode} from './exit-codes.js';
 import { CoreError } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { t } from '@wombat/client/locale';
@@ -35,6 +36,6 @@ export async function runAccountCli(argv: string[]): Promise<number> {
       process.stdout.write(t('account.note') + '\n');
     }
     if(result.history)return 0;
-    return [result.account, result.allowance, result.activity].some(s => ['unavailable', 'partial', 'stale'].includes(s.status)) ? 2 : 0;
+    return accountExitCode(result);
   } finally { process.off('SIGINT', stop); process.off('SIGTERM', stop); }
 }

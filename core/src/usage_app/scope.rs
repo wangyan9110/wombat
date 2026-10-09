@@ -56,6 +56,13 @@ pub(super) fn matches(
 ) -> bool {
     let r = &row.fact;
     if scope
+        .turn_id
+        .as_ref()
+        .is_some_and(|id| r.turn_id.as_deref() != Some(id.as_str()))
+    {
+        return false;
+    }
+    if scope
         .agent_kind
         .as_ref()
         .is_some_and(|v| v.as_str() != r.agent_kind.as_ref())
@@ -150,12 +157,29 @@ pub(super) fn quality(snapshot: &Snapshot, count: usize) -> Quality {
         .into(),
         issues: snapshot.manifest.issues.clone(),
         sources: sources.clone(),
+        detail_summary: None,
     }
 }
 pub(crate) fn validate(request: &Request) -> Result<()> {
     timezone(&request.scope)?;
     super::comparison::validate_comparison(request)?;
     super::inspection::validate(request)?;
+    if request
+        .scope
+        .turn_id
+        .as_ref()
+        .is_some_and(|id| id.is_empty())
+        || request.scope.turn_id.is_some()
+            && (request.action != Action::Investigate
+                || request
+                    .scope
+                    .thread_id
+                    .as_ref()
+                    .or(request.thread_id.as_ref())
+                    .is_none_or(|id| id.is_empty()))
+    {
+        return Err(invalid("轮次检查需要investigate和完整threadId"));
+    }
     if request.scope.all_time == Some(true)
         && (request.scope.since.is_some()
             || request.scope.until.is_some()
@@ -192,7 +216,8 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
         return Err(invalid("来源根仅适用于更新"));
     }
     if request.action == Action::Refresh
-        && (request.snapshot_id.is_some()
+        && (request.compact == Some(true)
+            || request.snapshot_id.is_some()
             || request.thread_id.is_some()
             || request.turn_id.is_some()
             || request.group.is_some()
@@ -262,6 +287,42 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
         || request.scope.effort_unknown == Some(true) && request.scope.reasoning_effort.is_some()
     {
         return Err(invalid("未知维度与具体值冲突"));
+    }
+    Ok(())
+}
+
+/// A scoped query waits only for the selected recorded project, never unrelated loads.
+pub(super) fn ensure_ready(request: &Request, snapshot: &Snapshot) -> Result<()> {
+    let thread = request
+        .scope
+        .thread_id
+        .as_ref()
+        .or(request.thread_id.as_ref());
+    let recorded_project = thread
+        .and_then(|id| {
+            snapshot
+                .manifest
+                .threads
+                .iter()
+                .find(|t| &t.thread.id == id)
+        })
+        .map(|t| t.thread.project.as_ref());
+    if snapshot.project_loads.iter().any(|load| {
+        load.state != crate::live::ProjectLoadState::Ready
+            && if let Some(project) = &request.scope.project {
+                load.project.as_ref() == Some(project)
+            } else if request.scope.project_unknown == Some(true) {
+                load.project.is_none()
+            } else if let Some(project) = recorded_project {
+                load.project.as_ref() == project
+            } else {
+                super::inspection::is_action(&request.action)
+            }
+    }) {
+        return Err(operation_error(
+            "SYNC_PENDING",
+            "所选范围正在加载，已加载的项目可以查看",
+        ));
     }
     Ok(())
 }

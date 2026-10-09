@@ -41,6 +41,11 @@ export function parseUsageArgs(argv: string[]): Invocation {
       continue;
     }
     if (['--all-time', '--model-unknown', '--effort-unknown', '--undated', '--project-unknown', '--matched-only', '--family'].includes(arg)) { if (unknownFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", { p0: arg })); unknownFlags.add(arg); continue; }
+    if (arg === '--compact') {
+      if (liveFlags.has(arg)) invalid(t("common.value_cannot_be_repeated", {p0: arg}));
+      liveFlags.add(arg);
+      continue;
+    }
     if (arg === '--json') {
       if (json)
         invalid(t("cli.usage-app-cli.json_cannot_be_repeated"));
@@ -73,8 +78,12 @@ export function parseUsageArgs(argv: string[]): Invocation {
     invalid(t("cli.usage-app-cli.version_cannot_be_combined_with_query"));
   if (action === 'refresh' && unknownFlags.size) invalid(t("cli.usage-app-cli.refresh_does_not_support_query_filters"));
   const request: UsageRequest = { action };
+  if (liveFlags.has('--compact')) {
+    if (!json || action === 'refresh') invalid(t('cli.usage-app-cli.compactRequiresJson'));
+    request.compact = true;
+  }
   const scope: NonNullable<UsageRequest['scope']> = {};
-  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'compare' ? ['baseline-since', 'baseline-until', 'dimension', 'other-thread'] : []), ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search', 'locate-thread'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn','locate-operation'] : []), ...(action === 'turns' ? ['locate-turn'] : [])]);
+  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'compare' ? ['baseline-since', 'baseline-until', 'dimension', 'other-thread'] : []), ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search', 'locate-thread'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn','locate-operation'] : []), ...(action === 'investigate' ? ['turn'] : []), ...(action === 'turns' ? ['locate-turn'] : [])]);
   for (const name of [...values.keys(), ...(roots.length ? ['root'] : [])])
     if (!allowed.has(name))
       invalid(t("cli.usage-app-cli.value_does_not_support_value", { p0: action, p1: name }));
@@ -134,8 +143,12 @@ export function parseUsageArgs(argv: string[]): Invocation {
     }
   }
   const turn = values.get('turn');
-  if (turn)
-    request.turnId = turn;
+  if (turn) {
+    if (action === 'investigate') {
+      if (!thread) invalid(t('cli.usage-app-cli.value_requires_thread_id',{p0:action}));
+      scope.turnId = turn;
+    } else request.turnId = turn;
+  }
   if (!help && (action === 'turns' || action === 'steps') && !request.threadId)
     invalid(t("cli.usage-app-cli.value_requires_thread_id", { p0: action }));
   if(!help&&action==='trajectory'&&!thread)invalid(t('cli.usage-app-cli.value_requires_thread_id',{p0:action}));
@@ -191,6 +204,9 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
   if (argv[commandIndex] === 'timing') {
     return (await import('./timing-cli.js')).runTimingCli([...argv.slice(0, commandIndex), ...argv.slice(commandIndex + 1)]);
   }
+  if (argv[commandIndex] === 'api' || argv[commandIndex] === 'call') {
+    return (await import('./agent-cli.js')).runAgentCli(argv[commandIndex] as 'api'|'call', [...argv.slice(0, commandIndex), ...argv.slice(commandIndex + 1)]);
+  }
   const json = argv.includes('--json');
   try {
     argv = configureLanguage(argv);
@@ -211,7 +227,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context', 'skill', 'collection', 'hook', 'setup'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context', 'skill', 'collection', 'hook', 'setup', 'api', 'call'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     const client = createNodeClient();
@@ -244,7 +260,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
     const code = error instanceof CoreError ? error.code : error instanceof Error && ['ExitPromptError', 'AbortPromptError'].includes(error.name) ? 'CANCELLED' : 'INTERNAL_ERROR';
     const message = (error instanceof Error ? error.message : String(error));
     if (json)
-      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize', 'account', 'update', 'doctor', 'skill', 'web', 'collection', 'hook', 'setup'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
+      process.stdout.write(JSON.stringify({ outputVersion: ['prices', 'optimize', 'account', 'update', 'doctor', 'skill', 'web', 'collection', 'hook', 'setup', 'api', 'call'].includes(argv[0]) ? 1 : 3, error: { code, message } }) + '\n');
     else
       process.stderr.write(`Wombat · ${message}\n`);
     return code === 'CANCELLED' ? 130 : 1;

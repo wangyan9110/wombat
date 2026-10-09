@@ -4,6 +4,8 @@
 
 `@wombat/cli` 解析参数，输出文本或 JSON，并装配查询与本机 Web 启动。命令和参数以[CLI 使用说明](../docs/guides/cli.md)为准。
 
+Agent 通过 `api` 发现本机方法与 Schema，通过 `call` 从标准输入提交单个有界 JSON 请求。请求包装从 Rust 生成，派发复用公开类型化客户端，并与普通命令共享退出码判断。语法、预算和恢复方式见 CLI 指南。
+
 ## 公开入口
 
 - 包根入口提供参数解析与 `runUsageCli`；`./format` 提供结果文本格式化。
@@ -13,6 +15,23 @@
 - `skill install/status/uninstall` 管理独立本机副本；正式插件由 Codex 管理。`web --context FILE` 验证并打开同范围视图。
 
 - 展示语言使用 `@wombat/client/locale`，详见[产品语言与文案](../docs/i18n/product.md)。
+
+
+## Agent 接口设计原则
+
+接口借鉴 [Google Workspace CLI 的方法发现](https://github.com/googleworkspace/cli#why-gws)、[MCP 的结构化工具协议](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)与 [CLI Guidelines](https://clig.dev/#output)。新增方法时遵循以下原则：
+
+| 原则 | Wombat 实现 |
+|---|---|
+| 协议只有一个所有者 | Rust 定义产品参数与输出，生成类型、校验器和 Schema；CLI 不另建字段清单。 |
+| 先发现，再组合 | 先读取小型本机方法清单，再按需读取单个输入 Schema；输出 Schema 可选。发现不扫描数据，也不调用模型。 |
+| 上下文显式传入 | 使用准确的来源、项目、日期、时区和完整 ID；沿用返回的快照、读取版本和分页，避免隐藏会话默认值。 |
+| 结构化读写有界 | 从标准输入读取单个已校验 JSON 请求，输出所属协议的单个 JSON 结果；进度写 stderr，支持取消、输入输出上限及方法自身预算。 |
+| 能力完整开放 | 派发既有类型化客户端方法，允许使用全部生成参数；Skill 选择工作流，不替代完整业务接口。 |
+| 保留证据语义 | 完整总量、分页行、省略详情、部分覆盖、未知和观测到的零分别表达；紧凑输出由内核投影。 |
+| 恢复不靠猜测 | 稳定错误码与恢复提示指引下一次请求；视图过期须重新取得，参数变化须重新校验。超时或恢复提示不代表允许重试修改。 |
+
+Schema 校验只证明结构有效；产品校验仍检查参数组合、授权目标和绑定版本的选择。验收应覆盖无效与不支持请求、固定版本分页、部分结果、取消和安装后的入口；模拟成功不代表真实 Agent 流程已经通过。
 
 ## 限制与验证
 

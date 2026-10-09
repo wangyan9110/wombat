@@ -139,6 +139,10 @@ fn thread_events(
                 && (e.thread_id().is_some() || !e.gaps().is_empty())
         }));
     }
+    sort_events(&mut events);
+    Ok(events)
+}
+fn sort_events(events: &mut [Arc<crate::session_events::Event>]) {
     events.sort_by(|a, b| {
         let a = a.position();
         let b = b.position();
@@ -157,7 +161,6 @@ fn thread_events(
                 b.ordinal,
             ))
     });
-    Ok(events)
 }
 fn order_map(
     events: &[Arc<crate::session_events::Event>],
@@ -466,7 +469,13 @@ fn candidate(
         .iter()
         .filter_map(|r| r.uncached_delta.filter(|d| *d > 0).map(|v| v as u64))
         .max();
-    let mut proof = vec![evidence(s, scope, &thread.thread.id, None, None)];
+    let mut proof = vec![evidence(
+        s,
+        scope,
+        &thread.thread.id,
+        scope.turn_id.as_deref(),
+        None,
+    )];
     if let Some(point) = points
         .iter()
         .filter(|p| p.uncached_delta.is_some_and(|v| v > 0))
@@ -605,13 +614,7 @@ fn resources(
     Ok(missing)
 }
 pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Response> {
-    if snapshot
-        .project_loads
-        .iter()
-        .any(|p| p.state != crate::live::ProjectLoadState::Ready)
-    {
-        return Err(operation_error("SYNC_PENDING", "检查需要等待视图完整恢复"));
-    }
+    ensure_ready(&request, snapshot)?;
     let tz = timezone(&request.scope)?;
     request.scope.timezone = Some(tz.to_string());
     if let Some(id) = &request.thread_id {
@@ -626,7 +629,35 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
         request.scope.since = Some(start.to_string());
         request.scope.until = Some((start + Duration::days(7)).to_string());
     }
-    let rows = snapshot.ledger()?;
+    let mut selected_turn = if let Some(turn) = &request.scope.turn_id {
+        let thread = request
+            .scope
+            .thread_id
+            .as_deref()
+            .ok_or_else(|| invalid("轮次检查需要任务身份"))?;
+        let owner = snapshot
+            .manifest
+            .threads
+            .iter()
+            .find(|t| t.thread.id == thread)
+            .ok_or_else(|| operation_error("NOT_FOUND", "未找到任务"))?;
+        Some(snapshot.timing_evidence(
+            crate::usage_store::timing_evidence::TurnTarget {
+                source: &owner.thread.source_instance_id,
+                thread,
+                turn,
+            },
+            crate::usage_store::timing_evidence::TimingReadBudget::default(),
+            &AtomicBool::new(false),
+        )?)
+    } else {
+        None
+    };
+    let rows = if let Some(read) = &mut selected_turn {
+        std::mem::take(&mut read.priced_measurements)
+    } else {
+        snapshot.ledger()?
+    };
     if rows.len() > MAX_FACTS {
         return Err(limit());
     }
@@ -732,13 +763,17 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
         }
         let mut ops = vec![];
         if request.action != Action::Trajectory {
-            for turn in thread.turns.keys() {
-                let data = snapshot.turn(&t.id, turn)?;
-                operation_work += data.operations.len();
-                if operation_work > MAX_WORK {
-                    return Err(limit());
+            if let Some(read) = &selected_turn {
+                ops.extend(read.operations.iter().map(|op| op.as_ref().clone()));
+            } else {
+                for turn in thread.turns.keys() {
+                    let data = snapshot.turn(&t.id, turn)?;
+                    operation_work += data.operations.len();
+                    if operation_work > MAX_WORK {
+                        return Err(limit());
+                    }
+                    ops.extend(data.operations);
                 }
-                ops.extend(data.operations);
             }
             // Canonical operation identities are retained once, including unassigned turns.
             ops.sort_by(|a, b| a.id.cmp(&b.id));
@@ -768,7 +803,13 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
             || request.action == Action::Trajectory
             || !matching.is_empty()
         {
-            thread_events(snapshot, thread, &mut event_work)?
+            if let Some(read) = selected_turn.take() {
+                let mut events: Vec<_> = read.events.into_iter().chain(read.controls).collect();
+                sort_events(&mut events);
+                events
+            } else {
+                thread_events(snapshot, thread, &mut event_work)?
+            }
         } else {
             vec![]
         };
@@ -995,6 +1036,9 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
     };
     let partial = quality.status == "partial" || outcome_gaps || unknown_input_order;
     let mut limitations = vec![];
+    if request.scope.turn_id.is_some() {
+        limitations.push(InspectionLimit::SelectedTurnOnly);
+    }
     if quality.status == "partial" {
         limitations.push(InspectionLimit::SourcePartial);
     }
@@ -1036,7 +1080,8 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
         Action::Context => InspectionKind::Context,
         _ => unreachable!(),
     };
-    let response = Response {
+    let compact = request.compact == Some(true);
+    let mut response = Response {
         inspection: Some(Inspection {
             method_version: 3,
             kind,
@@ -1076,6 +1121,9 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
         },
         quality,
     };
+    if compact {
+        super::compact::apply(&mut response);
+    }
     if serde_json::to_vec(&response)?.len() > MAX_BYTES {
         return Err(limit());
     }
@@ -1083,4 +1131,4 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

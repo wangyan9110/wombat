@@ -53,6 +53,21 @@
       "items": {
         "type": "string"
       }
+    },
+    "runtimeVersion": {
+      "description": "Installed CLI bundle identity, separate from the native Codex version.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "runtimeChecks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RuntimeCheck"
+      },
+      "default": []
     }
   },
   "required": [
@@ -240,6 +255,63 @@
         "mcpTool",
         "prompt",
         "agent"
+      ]
+    },
+    "RuntimeCheck": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/RuntimeStatus"
+        },
+        "pluginVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skillContentHash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requiredCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missingCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errorCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path",
+        "status",
+        "requiredCapabilities",
+        "missingCapabilities"
+      ]
+    },
+    "RuntimeStatus": {
+      "type": "string",
+      "enum": [
+        "compatible",
+        "incompatible",
+        "modified",
+        "unavailable",
+        "unmanaged"
       ]
     }
   }

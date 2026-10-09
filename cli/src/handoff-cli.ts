@@ -1,3 +1,4 @@
+import {handoffExitCode} from './exit-codes.js';
 import path from 'node:path';
 import { allowanceStatus, CoreError, type HandoffRequest } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
@@ -47,6 +48,6 @@ export async function runHandoffCli(argv: string[]): Promise<number> {
       for (const d of result.deliveries) process.stdout.write(`${d.projectId}\t${terminalText(d.status)}\t${d.errorCode ?? ''}${d.threadId ? `\ncodex resume ${d.threadId}` : ''}\n`);
       process.stdout.write(`${result.selectionVersion}\n${result.readView}\n${result.decisionRevision}\n`);
     }
-    return result.deliveries.some(d => d.status !== 'accepted') ? 2 : 0;
+    return handoffExitCode(result);
   } finally { process.off('SIGINT', stop); process.off('SIGTERM', stop); }
 }

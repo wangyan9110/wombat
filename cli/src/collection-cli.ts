@@ -1,3 +1,4 @@
+import {collectionExitCode} from './exit-codes.js';
 import path from 'node:path';
 import { CoreError, type CollectionRequest } from '@wombat/client';
 import { createNodeClient, receiveCodexHook } from '@wombat/client/node';
@@ -32,7 +33,7 @@ export async function runCollectionCli(argv: string[]): Promise<number> {
     const result = await createNodeClient({ automaticPrices: false }).collection!(request, { signal: controller.signal });
     process.stdout.write(json ? JSON.stringify(result) + '\n' : t('collection.result', { state: t(states[result.state]), received: result.received, buffered: result.buffered, gaps: result.gaps, unknown: result.identityUnknown }) + '\n');
     if (!json) { if (result.lastReceivedAt) process.stdout.write(t('collection.lastReceipt', { time: result.lastReceivedAt }) + '\n'); for (const event of result.events) process.stdout.write(terminalText([event.sequence, event.observation.kind, event.observation.sessionId, event.observation.turnId ?? '', event.receivedAt].join(' · ')) + '\n'); if (result.nextAfter != null) process.stdout.write(t('collection.next', { after: result.nextAfter }) + '\n'); }
-    return result.gaps || result.buffered || result.state === 'paused' ? 2 : 0;
+    return collectionExitCode(result);
   } finally { process.off('SIGINT', stop); process.off('SIGTERM', stop); }
 }
 /** Advisory Hooks always exit successfully and emit no stdout, including failures. */

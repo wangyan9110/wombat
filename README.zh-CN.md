@@ -24,16 +24,16 @@ Wombat 支持 macOS、Linux 和 Windows。本机分析无需 API Key 或开发�
 macOS / Linux：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin --open
+curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin
 ```
 
 Windows PowerShell：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin -Open
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin
 ```
 
-安装器会安装 Wombat 与 Codex 插件，随后打开 Web 面板。首次读取期间，可以先查看已经发现的任务。
+安装器会安装 Wombat 与 Codex 插件，再检查发现状态和运行时兼容性。需要 Web 时执行 `wombat web --open`；首次读取期间，可以先查看已经发现的任务。
 
 在 Codex 中打开项目并新建对话，调用 `$wombat:wombat`，然后提问：
 
@@ -43,7 +43,7 @@ Windows PowerShell：
 
 已启用的采集插件会保留原模式，调用 `$wombat-collection:wombat`。以项目实际发现的名称为准；存在多个实例时，明确选择其中一个。仅使用 Web 时，省略安装命令中的 `--plugin` 或 `-Plugin`。发现、移除和已有独立副本的处理方式见[插件指南](plugin/README.md)。
 
-插件安装失败时，Wombat 会保留。确认 Codex 可用后，重新执行安装命令；也可以先执行 `wombat web --open` 查看数据。Skill 不可用时，打开 Web 中的「接入与采集」，查看发现状态和插件指引。安装仍然失败时，在 [Issues](https://github.com/wangyan9110/wombat/issues) 反馈问题。
+插件安装失败时，Wombat 会保留。检查报错步骤后，按[安装指南](docs/guides/installation.md)仅重试插件；也可以先执行 `wombat web --open` 查看数据。Skill 不可用时，打开 Web 中的「接入与采集」，查看发现状态和插件指引。安装仍然失败时，在 [Issues](https://github.com/wangyan9110/wombat/issues) 反馈问题。
 
 ## 从这些问题开始
 

@@ -1,21 +1,21 @@
 # Usage and tasks
 
-Use `usage --json` for the full selected scope. Resolve “today/yesterday” using the user's local date and timezone, not display language. CLI `--since` includes its date and `--until` excludes it. Filters include project, source, model and effort; a source root is not a project root. Respect explicit ranges and offline/fixed requests.
+Prefer `usage --compact --limit 3 --json` when installed help exposes `--compact`; otherwise use `usage --limit 3 --json` for the full selected scope. Resolve “today/yesterday” using the user's local date and timezone, not display language. CLI `--since` includes its date and `--until` excludes it. Filters include project, source, model and effort; a source root is not a project root. Respect explicit ranges and offline/fixed requests.
 
-For “where did it go”, use a relevant presentation (`--presentation projects|models|distribution|details`) and `threads --sort tokens|cost --limit 10 --json`. The returned overview covers the complete scope; a page of rows is not a complete total. Preserve unpriced coverage and Token categories; tool operations have no separately allocated cost.
+For “where did it go”, use a relevant presentation (`--presentation projects|models|distribution|details`) and `threads --sort tokens|cost --limit 3 --compact --json` (omit `--compact` if unsupported). The returned overview covers the complete scope; a page of rows is not a complete total. Preserve unpriced coverage and Token categories; tool operations have no separately allocated cost.
 
 Choose the analysis that answers the question. Read the installed command's help before using these capabilities:
 
 | Question | Query and follow-up |
 |---|---|
-| What is worth checking? | `investigate --snapshot ID --limit 10 --json`; select a few useful candidates and inspect their returned evidence. |
+| What is worth checking? | `investigate --snapshot ID --limit 3 --json`; select a few useful candidates and inspect their returned evidence. |
 | Which requests are slow, repeatedly failing or declined? | `investigate --snapshot ID --json`; read `inspection.activity` and its current-period evidence before choosing a fix. |
 | Did failures or durations increase? | `investigate --snapshot ID --since DATE --until DATE --json`; compare each exact request group with its returned preceding equal-length baseline. |
 | Which repeated workflows could become a script or Skill? | `investigate --snapshot ID --project PATH --json`; inspect `recurring_workflow` across the returned tasks and verify that the workflow is stable. |
 | Where did this week's increase come from? | `review --snapshot ID --since DATE --until DATE --json` for the period summary and contributions; use `compare` with explicit baseline dates for a different comparison. |
 | What about amount anomalies, cache creation, model choice, sensitive paths, risky requests, questions, permissions or polling? | `investigate --snapshot ID --json`; read `inspection.opportunities`, its status/gaps, metrics, current evidence and optional previous-period evidence. |
 | Why did this task's input grow? | `trajectory --snapshot ID --thread THREAD_ID --json`; inspect input changes and compaction boundaries. |
-| Which files or resources attracted repeated work? | `resources --snapshot ID --project PATH --limit 10 --json`; follow the operation evidence for reads, proposed changes and observed duration. |
+| Which files or resources attracted repeated work? | `resources --snapshot ID --project PATH --limit 3 --json`; follow the operation evidence for reads, proposed changes and observed duration. |
 | What happened around this turn's retries or repeated calls? | `optimize activity --snapshot ID --thread THREAD_ID --turn TURN_ID --json`; inspect the fixed turn's checks and suggested follow-up. |
 | What context records are available? | `context --snapshot ID --thread THREAD_ID --json`; explain the recorded context metadata and its limits. |
 
@@ -27,6 +27,10 @@ Activity checks group complete safe request identities within one source and rec
 
 Additional checks retain complete counts and at most three findings each. Positive findings can coexist with gaps. Follow returned current and previous-period evidence with their exact scopes. Native question results can identify omitted answers; missing responses remain unknown. Permission checks count explicit request_permissions calls, and request-to-response intervals do not isolate user waiting. Security results contain categories and locations only; consult original content only within the user’s authorized scope. Model and cache clues invite comparison, not automatic changes or savings claims.
 
-Locate named tasks with `threads --search TEXT`, or exact IDs with `--locate-thread ID`. Pin the returned snapshot using `--snapshot ID` for subsequent pages and `turns --thread ID --sort tokens --limit 10 --json`. Use `--locate-turn ID` for a selected turn and `steps --thread ID --turn ID --json` for its records. A pinned CLI query cannot combine `--snapshot` with `--root` or `--fresh`: its returned snapshot ID already binds the source set. Keep project/source-ID/date filters and selected IDs; omit source-root flags only on these pinned queries. Request `--matched-only` only when the question concerns matching turns.
+Locate named tasks with `threads --search TEXT`, or exact IDs with `--locate-thread ID`. Pin the returned snapshot using `--snapshot ID` for subsequent pages and `turns --thread ID --sort tokens --limit 3 --json`. Use `--locate-turn ID` for a selected turn and `steps --thread ID --turn ID --json` for its records. A pinned CLI query cannot combine `--snapshot` with `--root` or `--fresh`: its returned snapshot ID already binds the source set. Keep project/source-ID/date filters and selected IDs; omit source-root flags only on these pinned queries. Request `--matched-only` only when the question concerns matching turns.
 
 Use page.nextOffset for pagination, not guessed offsets or new rankings. Explain what evidence associates an operation with consumption without attributing an independent fee to it. Missing text or turn attribution stays unknown. A later “that project” uses the reliable cwd from the selected task. On expiration, disclose a new version before comparing results.
+
+Compact JSON retains the selected scope's totals, snapshot, requested page and coverage status. `quality.detailSummary` counts all quality issues and sources; `omitted*` fields mark omitted details. A few retained examples do not establish complete coverage. Request full detail only for a named issue. An exact project cwd excludes other worktrees; include related worktrees or task descendants only when requested, with their explicit identities.
+
+On RESOURCE_LIMIT, distinguish output size from computation: `--compact` bounds quality detail, and `--limit` bounds returned rows; neither reduces whole-task event work. At the same snapshot, use `turns --thread THREAD_ID --matched-only --sort tokens --limit 3 --compact --json`, then `investigate --thread THREAD_ID --turn TURN_ID --snapshot ID --compact --json` with the original filters. This reads one turn and relevant control evidence. Report selected-turn findings as examples, not whole-task rankings. If one turn also exceeds budget, use its public timing summary or `optimize activity` where supported and report the remaining gap. Stop repeated failing investigations; do not dump raw logs or reconstruct accounting in the conversation.

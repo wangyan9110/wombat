@@ -12,6 +12,12 @@ function fixture(t: {after: (fn: () => void) => void}, scenario = 'fresh') {
   const marketplace = path.join(root, '插件 & catalog'), binary = path.join(root, 'native.mjs'), trace = path.join(root, 'calls.jsonl');
   mkdirSync(path.join(marketplace, '.agents/plugins'), {recursive: true});
   writeFileSync(path.join(marketplace, '.agents/plugins/marketplace.json'), JSON.stringify({name: 'wombat-local', plugins: ['wombat', 'wombat-collection'].map(name => ({name, source: {source: 'local', path: name === 'wombat' ? './plugin' : './collection-plugin'}}))}));
+  const contentHash='a'.repeat(64);
+  for(const name of ['plugin','collection-plugin']){
+    mkdirSync(path.join(marketplace,name),{recursive:true});
+    writeFileSync(path.join(marketplace,name,'wombat-runtime.json'),JSON.stringify({format:1,version:'1.2.3',skillContentHash:contentHash}));
+  }
+  writeFileSync(path.join(marketplace,'../wombat.js'),`const scenario=process.env.SCENARIO,name=scenario==='collection'||scenario.startsWith('upgrade')?'wombat-collection':'wombat',p=process.env.INSTALLED+'/skills/wombat/SKILL.md';console.log(JSON.stringify({outputVersion:1,discovery:{status:scenario==='verify-missing'?'missing':'available',instances:[{name:name+':wombat',path:p,enabled:true}]},runtimeChecks:[{path:p,status:scenario==='verify-incompatible'?'incompatible':'compatible',pluginVersion:'1.2.3',skillContentHash:scenario==='verify-hash'?'b'.repeat(64):'a'.repeat(64)}],errorCodes:['HOOK_UNAVAILABLE']}));process.exit(2);`);
   writeFileSync(binary, `import{appendFileSync}from'node:fs';const args=process.argv.slice(2),scenario=process.env.SCENARIO;appendFileSync(process.env.TRACE,JSON.stringify(args)+'\\n');
 if(scenario==='timeout')setInterval(()=>{},1000);
 else if(scenario==='failure')process.exit(9);
@@ -94,4 +100,10 @@ test('failed upgrade restores the previous marketplace source', async t => {
   const f = fixture(t, 'upgrade-failure');
   await assert.rejects(installBundledPlugin(f.marketplace, f), /Wombat is installed/);
   assert.deepEqual(calls(f.trace).slice(-2), [['plugin', 'marketplace', 'remove', 'wombat-local'], ['plugin', 'marketplace', 'add', f.env.OLD_SOURCE]]);
+});
+
+for(const scenario of ['verify-missing','verify-incompatible','verify-hash']) test('post-install verification fails without rolling back installed files: '+scenario,async t=>{
+  const f=fixture(t,scenario);
+  await assert.rejects(installBundledPlugin(f.marketplace,f),/files are installed.*verification is incomplete/);
+  assert.equal(calls(f.trace).at(-1)?.[1],'add');
 });

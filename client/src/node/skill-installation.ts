@@ -7,11 +7,13 @@ import {createHash} from 'node:crypto';
 import {CoreError} from '../errors.js';
 import type {QueryOptions} from '../client.js';
 import type {Installation} from '../generated/skill-installation.js';
+import type {Discovery} from '../generated/skill-discovery.js';
+import type {RuntimeCheck} from '../generated/setup-response.js';
 import {discoverWombatSkill} from './codex/skills.js';
 import type {CodexOptions} from './codex/process.js';
 
 const MARKER='.wombat-install.json';
-export const skillCapabilities=['usage-json-v3','config-json-v1','account-json-v1','handoff-json-v1','web-context-v1','collection-json-v1','setup-json-v1'];
+export const skillCapabilities=['usage-json-v3','usage-json-v5','usage-compact-v1','inspection-json-v5','config-json-v1','account-json-v1','handoff-json-v1','web-context-v1','collection-json-v1','setup-json-v1','agent-api-v1'];
 interface File {path:string;size:number;sha256:string;executable:boolean}
 interface Manifest {format:number;name:string;version:string;source:string;requiredCapabilities:string[];files:File[];contentHash:string}
 export interface SkillInstallationOptions extends CodexOptions {resourcesPath?:string}
@@ -27,12 +29,14 @@ async function readResource(file:string,limit:number):Promise<Buffer>{
 const hash=(value:string|Buffer)=>createHash('sha256').update(value).digest('hex');
 const cancelled=(q:QueryOptions)=>{if(q.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');};
 async function exists(file:string){try{await lstat(file);return true;}catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return false;throw e;}}
-async function inventory(root:string):Promise<File[]>{
+async function inventory(root:string,query:QueryOptions={}):Promise<File[]>{
   const files:File[]=[];let entries=0,total=0;
   async function walk(relative=''){
+    cancelled(query);
     const directory=path.join(root,relative),stat=await lstat(directory);
     if(stat.isSymbolicLink()||!stat.isDirectory()||relative.split('/').length>16)throw new CoreError('SKILL_UNSAFE_RESOURCE','Invalid Skill directory');
     for(const name of (await readdir(directory)).sort()){
+      cancelled(query);
       if(!relative&&name===MARKER)continue;
       if(++entries>500)throw new CoreError('SKILL_UNSAFE_RESOURCE','Too many Skill files');
       const file=relative?relative+'/'+name:name,info=await lstat(path.join(root,file));
@@ -73,6 +77,34 @@ export async function skillMarketplace():Promise<string>{
   const catalog=await boundedJson(path.join(source.directory,'.agents/plugins/marketplace.json'));
   if(!object(catalog)||catalog.name!=='wombat-local'||!Array.isArray(catalog.plugins)||!catalog.plugins.some(p=>object(p)&&p.name==='wombat-collection'))throw new CoreError('SKILL_MANIFEST_INVALID','Collection marketplace unavailable');
   return source.directory;
+}
+/** Verify the discovered copy, not just the current bundled marketplace. No host mutations. */
+export async function skillRuntimeChecks(discovery:Discovery,query:QueryOptions={}):Promise<RuntimeCheck[]> {
+  const enabled=discovery.instances.filter(instance=>instance.enabled);
+  if(enabled.length>32)throw new CoreError('SKILL_UNSAFE_RESOURCE','Too many discovered Wombat instances');
+  const checks:RuntimeCheck[]=[];
+  for(const instance of enabled){
+    cancelled(query);
+    checks.push(await (async()=>{
+    const directory=path.dirname(instance.path),standalone=instance.name==='wombat';
+    const file=standalone?path.join(directory,MARKER):path.resolve(directory,'../../wombat-runtime.json');
+    const result:RuntimeCheck={path:instance.path,status:'unavailable',pluginVersion:null,skillContentHash:null,requiredCapabilities:[],missingCapabilities:[],errorCode:null};
+    try {
+      if(!await exists(file))return {...result,status:'unmanaged'};
+      const value=await boundedJson(file);
+      if(!object(value)||value.format!==1||typeof value.version!=='string'||!/^[0-9A-Za-z][0-9A-Za-z._-]{0,63}$/.test(value.version)||!Array.isArray(value.requiredCapabilities)||value.requiredCapabilities.length>32||value.requiredCapabilities.some(c=>typeof c!=='string'||!c.length||c.length>128)||new Set(value.requiredCapabilities).size!==value.requiredCapabilities.length)throw new CoreError('SKILL_MANIFEST_INVALID','Invalid runtime requirements');
+      const expected=standalone?value.contentHash:value.skillContentHash;
+      if(typeof expected!=='string'||!/^[0-9a-f]{64}$/.test(expected))throw new CoreError('SKILL_MANIFEST_INVALID','Invalid Skill identity');
+      result.pluginVersion=value.version;
+      result.skillContentHash=expected;
+      result.requiredCapabilities=value.requiredCapabilities;
+      result.missingCapabilities=result.requiredCapabilities.filter(c=>!skillCapabilities.includes(c));
+      if(hash(JSON.stringify(await inventory(directory,query)))!==expected)return {...result,status:'modified',errorCode:'SKILL_RESOURCE_CHANGED'};
+      return {...result,status:result.missingCapabilities.length?'incompatible':'compatible',errorCode:result.missingCapabilities.length?'SKILL_RUNTIME_MISMATCH':null};
+    }catch(error){if(query.signal?.aborted)throw error;return {...result,errorCode:error instanceof CoreError?error.code:'SKILL_UNAVAILABLE'};}
+    })());
+  }
+  return checks;
 }
 async function owned(directory:string):Promise<{status:Installation['status'];manifest?:Manifest}>{
   if(!await exists(directory))return {status:'absent'};

@@ -70,7 +70,8 @@
             "reasoningEffort": null,
             "project": null,
             "projectUnknown": null,
-            "threadId": null
+            "threadId": null,
+            "turnId": null
           },
           "allOf": [
             {
@@ -165,6 +166,14 @@
             "boolean",
             "null"
           ]
+        },
+        "compact": {
+          "description": "Keep totals and the requested page, with bounded quality examples and no facets.",
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
         }
       },
       "additionalProperties": false,
@@ -336,6 +345,14 @@
             "string",
             "null"
           ]
+        },
+        "turnId": {
+          "description": "Exact turn inspection, always bound to a selected thread.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
         }
       },
       "additionalProperties": false

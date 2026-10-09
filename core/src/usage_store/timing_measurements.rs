@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::{fmt, io};
 
 pub(super) struct CanonicalTurnFacts {
-    pub measurements: Vec<Arc<Measurement>>,
+    pub measurements: Vec<PricedMeasurement>,
     pub operations: Vec<Arc<Operation>>,
 }
 
@@ -61,7 +61,7 @@ struct Facts<'a, 'b> {
     target: TurnTarget<'a>,
 }
 impl<'de> DeserializeSeed<'de> for Facts<'_, '_> {
-    type Value = Vec<Arc<Measurement>>;
+    type Value = Vec<PricedMeasurement>;
     fn deserialize<D: serde::Deserializer<'de>>(
         self,
         d: D,
@@ -70,7 +70,7 @@ impl<'de> DeserializeSeed<'de> for Facts<'_, '_> {
     }
 }
 impl<'de> Visitor<'de> for Facts<'_, '_> {
-    type Value = Vec<Arc<Measurement>>;
+    type Value = Vec<PricedMeasurement>;
     fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("bounded canonical measurements")
     }
@@ -84,7 +84,7 @@ impl<'de> Visitor<'de> for Facts<'_, '_> {
             if !exact(&row.fact, self.target) {
                 return Err(serde::de::Error::custom("measurement attribution mismatch"));
             }
-            out.push(row.fact);
+            out.push(row);
         }
         Ok(out)
     }
@@ -244,7 +244,7 @@ impl Snapshot {
                 if !exact(&row.fact, target) {
                     return Err(corrupt("轮次计量归属不匹配"));
                 }
-                out.push(row.fact.clone());
+                out.push(row.as_ref().clone());
             }
             let mut operations = Vec::with_capacity(data.operations.len());
             for operation in &data.operations {

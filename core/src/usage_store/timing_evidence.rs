@@ -61,6 +61,8 @@ pub struct TimingEvidence<'a> {
     /// Existing generic parser capabilities; this does not invent timing support.
     pub source: Option<&'a SourceReport>,
     pub measurements: Vec<Arc<Measurement>>,
+    /// Snapshot-bound pricing retained from the same verified, budgeted turn read.
+    pub priced_measurements: Vec<PricedMeasurement>,
     /// Canonical adapter operations; storage never re-pairs events or deduplicates them.
     pub operations: Vec<Arc<Operation>>,
     /// Required same-generation writer observations; zero covers only collected records.
@@ -341,7 +343,12 @@ impl Snapshot {
             thread: &owner.thread,
             turn: turn.turn.as_ref(),
             source,
-            measurements: canonical.measurements,
+            measurements: canonical
+                .measurements
+                .iter()
+                .map(|row| row.fact.clone())
+                .collect(),
+            priced_measurements: canonical.measurements,
             operations: canonical.operations,
             unassigned_uses: &owner.unassigned_uses,
             events,

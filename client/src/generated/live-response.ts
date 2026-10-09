@@ -9,7 +9,8 @@ export type InspectionLimit =
   | "unknown_input_order"
   | "operation_outcomes_partial"
   | "operation_model_association"
-  | "context_metadata_unavailable";
+  | "context_metadata_unavailable"
+  | "selected_turn_only";
 export type InspectionSignal = "high_usage" | "low_cache_reuse" | "input_jump" | "failure_share" | "repeated_request";
 export type TokenAnalysisScope = "selected_canonical_measurements";
 export type InspectionEvidenceView = "task" | "turn" | "operation";
@@ -416,6 +417,10 @@ export interface Scope {
   project?: string | null;
   projectUnknown?: boolean | null;
   threadId?: string | null;
+  /**
+   * Exact turn inspection, always bound to a selected thread.
+   */
+  turnId?: string | null;
 }
 export interface InputPoint {
   measurementId: string;
@@ -766,6 +771,7 @@ export interface Quality {
   status: string;
   issues: Issue[];
   sources: SourceReport[];
+  detailSummary?: QualityDetailSummary | null;
 }
 export interface Issue {
   code: string;
@@ -803,4 +809,17 @@ export interface Capabilities {
   reasoningEffort: boolean;
   responseIdentity: boolean;
   measurementGrain: string[];
+}
+export interface QualityDetailSummary {
+  issueCount: number;
+  sourceCount: number;
+  issueCounts: {
+    [k: string]: number;
+  };
+  sourceStatusCounts: {
+    [k: string]: number;
+  };
+  omittedIssues: number;
+  omittedSources: number;
+  omittedSourceIssues: number;
 }

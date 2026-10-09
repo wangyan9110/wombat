@@ -1,3 +1,4 @@
+import {configExitCode} from './exit-codes.js';
 import { CoreError, type ConfigRequest, type ConfigItem } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { t, useBasisCount, useBasisPresentation, configEvidenceLabel, eventStatusLabel } from '@wombat/client/locale';
@@ -78,7 +79,7 @@ export async function runConfigCli(argv: string[]): Promise<number> {
       process.stdout.write(t('config.readVersion', { version: result.readView ?? '—' }) + '\n');
       process.stdout.write(t('config.coverageNote') + '\n');
     }
-    return result.coverage.status === 'partial' ? 2 : 0;
+    return configExitCode(result);
   } finally { process.off('SIGINT', stop); process.off('SIGTERM', stop); }
 }
 

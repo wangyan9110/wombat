@@ -4,7 +4,7 @@
 
 本目录保存面向用户的插件源码。`skills/` 存放 Skill 工作流，`hooks/` 存放 Hook 声明，`scripts/` 存放采集脚本。仓库开发工作流保留在 `.agents/skills/`。唯一 Skill 入口为 [skills/wombat/SKILL.md](skills/wombat/SKILL.md)，按需读取启动、用量、账户、配置、处理复查和 Web 参考。一个 Skill 同时服务中文和英文。维护规则见 [AGENTS.md](AGENTS.md)。
 
-构建从 `skills/wombat/` 提取 `dist/skill/wombat` 独立资源，生成 `dist/skill/plugin` 插件和本地 marketplace，并只向采集包加入采集资源。发行包继续将这些资源放在 `lib/skill` 下。`package.json` 维护插件元数据和所需能力，版本只由根清单维护。构建生成的 `plugin.json` 和 `.codex-plugin/plugin.json` 提供所支持的宿主格式；本源码目录需先构建再安装插件。独立清单绑定版本、来源提交、文件列表和哈希，`wombat-runtime.json` 绑定插件版本、内容哈希和所需能力。两个安装方式共享 Skill 内容哈希与所需运行能力。推荐使用[安装命令](../docs/guides/installation.md)，一并安装运行时与 Codex 插件，再打开 Web。已有已启用的采集插件会保留；首次安装选择基础插件。重新执行带插件选项的安装命令，可将本地 marketplace 更新到所选运行时版本。
+构建从 `skills/wombat/` 提取 `dist/skill/wombat` 独立资源，生成 `dist/skill/plugin` 插件和本地 marketplace，并只向采集包加入采集资源。发行包继续将这些资源放在 `lib/skill` 下。`package.json` 维护插件元数据和所需能力，版本只由根清单维护。构建生成的 `plugin.json` 和 `.codex-plugin/plugin.json` 提供所支持的宿主格式；本源码目录需先构建再安装插件。独立清单绑定版本、来源提交、文件列表和哈希，`wombat-runtime.json` 绑定插件版本、内容哈希和所需能力。两个安装方式共享 Skill 内容哈希与所需运行能力。推荐使用[安装命令](../docs/guides/installation.md)，一并安装运行时与 Codex 插件，再检查发现状态和运行时兼容性；是否打开 Web 可选。已有已启用的采集插件会保留；首次安装选择基础插件。重新执行带插件选项的安装命令，可将本地 marketplace 更新到所选运行时版本。仅重试插件时复用当前受管运行时，不下载发行包，也不修改 PATH；选项见安装指南。
 
 正式插件由 Codex 管理，当前本地试用入口为：
 

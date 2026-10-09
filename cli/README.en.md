@@ -4,6 +4,8 @@
 
 `@wombat/cli` parses arguments, emits text or JSON, and composes queries with local Web startup. The [CLI guide](../docs/guides/cli.en.md) owns user-facing commands and options.
 
+Agent calls use `api` for local method/Schema discovery and `call` for one bounded JSON request on stdin. The envelope derives from Rust; dispatch uses public typed clients and shares exit policies with human commands. See the CLI guide for syntax, budgets and recovery.
+
 ## Public entries
 
 - The package root exports argument parsing and `runUsageCli`; `./format` exports result text formatting.
@@ -13,6 +15,23 @@
 - `skill install/status/uninstall` manages independent local copies; Codex owns formal plugins. `web --context FILE` validates and opens a scoped view.
 
 - Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).
+
+
+## Agent interface principles
+
+The interface follows [Google Workspace CLI’s method discovery](https://github.com/googleworkspace/cli#why-gws), [MCP’s structured tool contracts](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), and [CLI Guidelines](https://clig.dev/#output). Apply these principles when adding a method:
+
+| Principle | Wombat implementation |
+|---|---|
+| One contract owner | Rust defines product params and output; generation supplies types, validators and schemas. The CLI does not maintain another field catalog. |
+| Discover before composing | A small local method list comes first. Read one input schema as needed; output schemas are optional. Discovery performs no scan or model call. |
+| Explicit context | Pass exact roots, projects, dates, timezone and full IDs. Preserve returned snapshots/read views and pagination instead of hidden session defaults. |
+| Bounded structured IO | Read one validated JSON request from stdin; emit one owning JSON result. Keep progress on stderr and support cancellation, input/output bounds and method-specific budgets. |
+| Complete capabilities | Dispatch existing typed client methods with all generated params. Skills select workflows; they do not substitute a narrower business API. |
+| Preserve evidence semantics | Complete totals, page rows, omitted detail, partial coverage, unknowns and observed zero remain distinct. Compact output is a core projection. |
+| Recover without guessing | Stable error codes and recovery hints guide the next request. Expired views require reacquisition; changed params require revalidation. A timeout or hint does not authorize repeating a mutation. |
+
+Schema validation proves structure only. Product validation still checks supported combinations, authorized targets and version-bound selection. Acceptance must test malformed and unsupported requests, fixed-view paging, partial results, cancellation and installed entries. A successful mock does not establish a real Agent journey.
 
 ## Limits and verification
 

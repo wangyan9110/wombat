@@ -1,3 +1,4 @@
+import {setupExitCode} from './exit-codes.js';
 import path from 'node:path';
 import {CoreError,type SetupRequest} from '@wombat/client';
 import {createNodeClient} from '@wombat/client/node';
@@ -11,7 +12,13 @@ export async function runSetupCli(argv:string[]):Promise<number>{
   }
   const controller=new AbortController(),stop=()=>controller.abort();process.once('SIGINT',stop);process.once('SIGTERM',stop);
   try{const result=await createNodeClient({automaticPrices:false}).setup!(r,{signal:controller.signal});
-    if(json)process.stdout.write(JSON.stringify(result)+'\n');else{process.stdout.write(t('setup.summary',{version:result.nativeVersion??'—',skill:t(`skill.${result.discovery.status==='selection_changed'?'unavailable':result.discovery.status}`)})+'\n');for(const instance of result.discovery.instances.filter(i=>i.enabled))process.stdout.write('$'+instance.name+'\n');process.stdout.write(t('setup.registrationNote')+'\n');}
-    return result.errorCodes.length||result.discovery.status!=='available'||result.hooks?.status==='partial'?2:0;
+    if(json)process.stdout.write(JSON.stringify(result)+'\n');else{
+      process.stdout.write(t('setup.runtimeVersion',{version:result.runtimeVersion??'—'})+'\n'+t('setup.summary',{version:result.nativeVersion??'—',skill:t(`skill.${result.discovery.status==='selection_changed'?'unavailable':result.discovery.status}`)})+'\n');
+      for(const instance of result.discovery.instances.filter(i=>i.enabled))process.stdout.write('$'+instance.name+'\n');
+      for(const check of result.runtimeChecks??[])process.stdout.write(t('setup.runtimeCheck',{version:check.pluginVersion??'—',status:t(`setup.runtime.${check.status}`)})+'\n');
+      for(const code of result.errorCodes)process.stdout.write(t('setup.errorLine',{code})+'\n');
+      process.stdout.write(t('setup.logsReadyNote')+'\n'+t('setup.registrationNote')+'\n');
+    }
+    return setupExitCode(result);
   }finally{process.off('SIGINT',stop);process.off('SIGTERM',stop);}
 }

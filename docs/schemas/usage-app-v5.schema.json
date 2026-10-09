@@ -292,7 +292,8 @@
         "unknown_input_order",
         "operation_outcomes_partial",
         "operation_model_association",
-        "context_metadata_unavailable"
+        "context_metadata_unavailable",
+        "selected_turn_only"
       ]
     },
     "InvestigationCandidate": {
@@ -971,6 +972,14 @@
             "string",
             "null"
           ]
+        },
+        "turnId": {
+          "description": "Exact turn inspection, always bound to a selected thread.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
         }
       },
       "additionalProperties": false
@@ -3215,6 +3224,16 @@
           "items": {
             "$ref": "#/definitions/SourceReport"
           }
+        },
+        "detailSummary": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/QualityDetailSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -3376,6 +3395,61 @@
         "reasoningEffort",
         "responseIdentity",
         "measurementGrain"
+      ]
+    },
+    "QualityDetailSummary": {
+      "type": "object",
+      "properties": {
+        "issueCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sourceCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "issueCounts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "sourceStatusCounts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "omittedIssues": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "omittedSources": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "omittedSourceIssues": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "issueCount",
+        "sourceCount",
+        "issueCounts",
+        "sourceStatusCounts",
+        "omittedIssues",
+        "omittedSources",
+        "omittedSourceIssues"
       ]
     }
   }

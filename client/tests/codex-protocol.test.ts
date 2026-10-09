@@ -4,6 +4,22 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { connectCodex } from '../src/node/codex/rpc.js';
+import { nativeVersion } from '../src/node/codex/process.js';
+
+test('native version preserves prerelease and build identity without accepting damaged output', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'wombat-native-version-'));
+  const binary = path.join(dir, 'codex.cjs');
+  try {
+    for (const version of ['0.160.1', '0.162.0-alpha.2', '0.162.0-beta.1+build.7']) {
+      await writeFile(binary, `console.log(${JSON.stringify('codex-cli '+version)});`);
+      assert.equal(await nativeVersion({}, {codexBinaryPath: binary}), version);
+    }
+    for (const output of ['other-cli 0.162.0', 'codex-cli 0.162.0-alpha..2', 'codex-cli 0.162.0\nprivate extra output', 'codex-cli '+'1'.repeat(257)]) {
+      await writeFile(binary, `console.log(${JSON.stringify(output)});`);
+      await assert.rejects(nativeVersion({}, {codexBinaryPath: binary}), {code: 'NATIVE_PROTOCOL_ERROR'});
+    }
+  } finally {await rm(dir, {recursive:true,force:true});}
+});
 
 async function fixture(body: string, run: (binary: string) => Promise<void>) {
   const dir = await mkdtemp(path.join(tmpdir(), 'wombat-native-protocol-'));

@@ -27,6 +27,9 @@ pub struct Scope {
     pub project: Option<String>,
     pub project_unknown: Option<bool>,
     pub thread_id: Option<String>,
+    /// Exact turn inspection, always bound to a selected thread.
+    #[serde(default)]
+    pub turn_id: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -88,6 +91,9 @@ pub struct Request {
     pub locate_turn_id: Option<String>,
     pub locate_operation_id: Option<String>,
     pub matched_only: Option<bool>,
+    /// Keep totals and the requested page, with bounded quality examples and no facets.
+    #[serde(default)]
+    pub compact: Option<bool>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -201,6 +207,19 @@ pub struct Quality {
     pub status: String,
     pub issues: Vec<Issue>,
     pub sources: Vec<SourceReport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail_summary: Option<QualityDetailSummary>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct QualityDetailSummary {
+    pub issue_count: usize,
+    pub source_count: usize,
+    pub issue_counts: std::collections::BTreeMap<String, usize>,
+    pub source_status_counts: std::collections::BTreeMap<String, usize>,
+    pub omitted_issues: usize,
+    pub omitted_sources: usize,
+    pub omitted_source_issues: usize,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]

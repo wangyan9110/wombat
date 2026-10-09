@@ -77,8 +77,8 @@ test('the root manifest repairs partially synchronized mirrors and preparation i
   assert.deepEqual(files.map(file => readFileSync(path.join(root, file), 'utf8')), before);
   const readme = readFileSync(path.join(root, 'README.md'), 'utf8');
   assert.match(readme, /\*\*Beta:/);
-  assert.match(readme, /--version 0\.2\.0-beta\.1 --plugin --open/);
-  assert.match(readme, /-Version 0\.2\.0-beta\.1 -Plugin -Open/);
+  assert.match(readme, /--version 0\.2\.0-beta\.1 --plugin/);
+  assert.match(readme, /-Version 0\.2\.0-beta\.1 -Plugin/);
   assert.equal(readme.match(/wombat update --check/g)?.length, 1);
   assert.match(readFileSync(path.join(root, 'docs/guides/installation.en.md'), 'utf8'), /Node 26\.4\.0/);
 });
@@ -110,8 +110,8 @@ test('promotes beta user copy to stable installation and update instructions', t
   const english = readFileSync(path.join(root, 'README.md'), 'utf8');
   const chinese = readFileSync(path.join(root, 'README.zh-CN.md'), 'utf8');
   assert.match(english, /\*\*Stable:/); assert.match(chinese, /\*\*正式版：/);
-  assert.match(english, /install\.sh \| sh -s -- --plugin --open\n/); assert.doesNotMatch(english, /--version 0\.1\.0/);
-  assert.match(english, /install\.ps1\)\)\) -Plugin -Open/); assert.match(chinese, /install\.ps1\)\)\) -Plugin -Open/);
+  assert.match(english, /install\.sh \| sh -s -- --plugin\n/); assert.doesNotMatch(english, /--version 0\.1\.0/);
+  assert.match(english, /install\.ps1\)\)\) -Plugin/); assert.match(chinese, /install\.ps1\)\)\) -Plugin/);
   assert.match(english, /wombat update --check\n+wombat update/);
   assert.match(chinese, /wombat update --check\n+wombat update/);
   assert.equal(english.match(/wombat update --check/g)?.length, 1);
@@ -128,18 +128,18 @@ test('release copy keeps relocated installer URLs through preview and stable pre
   for(const file of ['README.md','README.zh-CN.md'])writeFileSync(path.join(root,file),readFileSync(path.join(root,file),'utf8').replaceAll('/main/install.','/main/scripts/install/install.'));
   prepareVersionFiles(root,'0.2.0-beta.1');
   const preview=readFileSync(path.join(root,'README.md'),'utf8');
-  assert.match(preview,/main\/scripts\/install\/install\.sh \| sh -s -- --version 0\.2\.0-beta\.1 --plugin --open/);
+  assert.match(preview,/main\/scripts\/install\/install\.sh \| sh -s -- --version 0\.2\.0-beta\.1 --plugin/);
   prepareVersionFiles(root,'0.2.0');
-  assert.match(readFileSync(path.join(root,'README.md'),'utf8'),/main\/scripts\/install\/install\.sh \| sh -s -- --plugin --open/);
+  assert.match(readFileSync(path.join(root,'README.md'),'utf8'),/main\/scripts\/install\/install\.sh \| sh -s -- --plugin/);
 });
 
 test('release copy preserves installer fences and plugin update guidance in the question-led README', () => {
   for(const file of ['README.md','README.zh-CN.md']){
     const chinese=file.endsWith('zh-CN.md');
-    const original=`**${chinese?'正式版：':'Stable: '}[\`v0.3.0\`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.0)${chinese?'。':'.'}**\n\n\`\`\`sh\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin --open\n\`\`\`\n\n\`\`\`powershell\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin -Open\n\`\`\`\n\n## ${chinese?'更新':'Update'}\n\nOld update copy\n\n## ${chinese?'数据与使用范围':'Data and scope'}\n\nRetained scope.\n`;
+    const original=`**${chinese?'正式版：':'Stable: '}[\`v0.3.0\`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.0)${chinese?'。':'.'}**\n\n\`\`\`sh\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin\n\`\`\`\n\n\`\`\`powershell\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin\n\`\`\`\n\n## ${chinese?'更新':'Update'}\n\nOld update copy\n\n## ${chinese?'数据与使用范围':'Data and scope'}\n\nRetained scope.\n`;
     const preview=applyReleaseCopy(file,original,'0.4.0-beta.1');
-    assert.match(preview,/```sh\ncurl[^\n]+--version 0\.4\.0-beta\.1 --plugin --open\n```/);
-    assert.match(preview,/```powershell\n& [^\n]+-Version 0\.4\.0-beta\.1 -Plugin -Open\n```/);
+    assert.match(preview,/```sh\ncurl[^\n]+--version 0\.4\.0-beta\.1 --plugin\n```/);
+    assert.match(preview,/```powershell\n& [^\n]+-Version 0\.4\.0-beta\.1 -Plugin\n```/);
     assert.match(preview,/wombat update --check --version 0\.4\.0-beta\.1\nwombat update --version 0\.4\.0-beta\.1/);
     const stable=applyReleaseCopy(file,preview,'0.4.0');
     assert.doesNotMatch(stable,/--version|-Version|Old update copy/);

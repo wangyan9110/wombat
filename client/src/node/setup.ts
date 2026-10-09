@@ -8,7 +8,8 @@ import {discoverWombatSkill} from './codex/skills.js';
 import {nativeVersion,type CodexOptions} from './codex/process.js';
 import {queryLive} from './live.js';
 import type {CoreProcessOptions} from './core.js';
-import {skillCapabilities,skillMarketplace} from './skill-installation.js';
+import {skillCapabilities,skillMarketplace,skillRuntimeChecks} from './skill-installation.js';
+import packageMetadata from '../../package.json' with {type:'json'};
 /** Read-only checks, bounded independently; failures never hide usable stages. */
 export async function checkSetup(r:Request,q:QueryOptions,options:CoreProcessOptions&CodexOptions):Promise<Response> {
   if(r.project!=null&&(!path.isAbsolute(r.project)||r.project.length>4096)||r.roots!=null&&(!r.roots.length||r.roots.length>64)) throw new CoreError('INVALID_ARGUMENT','Invalid setup scope');
@@ -26,6 +27,11 @@ export async function checkSetup(r:Request,q:QueryOptions,options:CoreProcessOpt
     const failure=(r:PromiseRejectedResult)=> r.reason instanceof CoreError?r.reason.code:'SETUP_UNAVAILABLE';
     if(marketplace.status==='rejected')errorCodes.push(failure(marketplace));if(version.status==='rejected')errorCodes.push(failure(version));if(skills.status==='rejected')errorCodes.push(failure(skills));if(config.status==='rejected')errorCodes.push(failure(config));
     if(config.status==='fulfilled'&&config.value!=null&&!configResult(config.value))errorCodes.push('PROTOCOL_ERROR');
-    return {outputVersion:1,checkedAt:new Date().toISOString(),project:r.project??null,nativeVersion:version.status==='fulfilled'?version.value:null,discovery:skills.status==='fulfilled'?skills.value:{status:'unavailable',instances:[],errorCode:failure(skills)},hooks:config.status==='fulfilled'&&configResult(config.value)?config.value.hookRegistry:null,runtimeCapabilities:[...skillCapabilities],marketplacePath:marketplace.status==='fulfilled'?marketplace.value:null,errorCodes:[...new Set(errorCodes)]};
+    const discovery=skills.status==='fulfilled'?skills.value:{status:'unavailable' as const,instances:[],errorCode:failure(skills)};
+    if(discovery.errorCode)errorCodes.push(discovery.errorCode);
+    let runtimeChecks:Response['runtimeChecks']=[];
+    try{runtimeChecks=await skillRuntimeChecks(discovery,query);}catch(error){if(q.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');errorCodes.push(error instanceof CoreError?error.code:'SKILL_UNAVAILABLE');}
+    for(const check of runtimeChecks)if(check.errorCode)errorCodes.push(check.errorCode);
+    return {outputVersion:1,checkedAt:new Date().toISOString(),project:r.project??null,nativeVersion:version.status==='fulfilled'?version.value:null,discovery,hooks:config.status==='fulfilled'&&configResult(config.value)?config.value.hookRegistry:null,runtimeCapabilities:[...skillCapabilities],runtimeVersion:packageMetadata.version,runtimeChecks,marketplacePath:marketplace.status==='fulfilled'?marketplace.value:null,errorCodes:[...new Set(errorCodes)]};
   } finally {clearTimeout(timer);}
 }

@@ -1,6 +1,7 @@
 mod account;
 pub mod account_dto;
 pub mod adapters;
+pub mod agent_dto;
 pub mod collection;
 mod config;
 pub mod config_dto;
@@ -71,6 +72,21 @@ pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
 
 pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
     match op {
+        "schema_agent_error" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<agent_dto::ErrorOutput>(),
+        )?),
+        "schema_agent_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<agent_dto::Request>(),
+        )?),
+        "schema_agent_description" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<agent_dto::Description>(),
+        )?),
         "schema_setup_request" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()
                 .into_generator()

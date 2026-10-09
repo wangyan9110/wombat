@@ -2,7 +2,10 @@ use super::*;
 use crate::session_events::{Event, Position, Time};
 use std::sync::Arc;
 
-pub(super) fn snapshot(records: &[(&str, &str, &str, u64)], suffix: &str) -> Snapshot {
+pub(in crate::usage_app) fn snapshot(
+    records: &[(&str, &str, &str, u64)],
+    suffix: &str,
+) -> Snapshot {
     let root = tempfile::tempdir().unwrap();
     let source = SourceInstance {
         id: "synthetic".into(),
@@ -800,4 +803,153 @@ fn concentration_keeps_unassigned_measurements_in_the_denominator_and_remainder(
     assert_eq!(c.top_task_share, Some(100.0 / 150.0));
     assert_eq!(c.remaining_task_usage.complete_token_total(), Some(50));
     assert_eq!(c.measured_tasks, 1);
+}
+
+#[test]
+fn selected_turn_avoids_unrelated_event_partitions_and_preserves_exact_measurements() {
+    let original = positioned_with(
+        snapshot(
+            &[
+                ("small", "a", "2026-09-02T00:00:00Z", 1_000_000),
+                ("large", "a", "2026-09-02T00:00:01Z", 200),
+            ],
+            "selected-turn",
+        ),
+        false,
+        false,
+        |m, _| m.turn_id = Some(if m.id == "small" { "small" } else { "large" }.into()),
+    );
+    let mut collected = Collected {
+        sources: original.manifest.sources.clone(),
+        threads: original
+            .manifest
+            .threads
+            .iter()
+            .map(|t| t.thread.clone())
+            .collect(),
+        measurements: original
+            .ledger()
+            .unwrap()
+            .into_iter()
+            .map(|r| r.fact)
+            .collect(),
+        events: original.events().unwrap(),
+        ..Default::default()
+    };
+    for n in 0..100_001 {
+        collected.events.push(Arc::new(
+            Event::new(
+                Position {
+                    source_instance_id: "synthetic".into(),
+                    file_id: "unrelated".into(),
+                    generation: "one".into(),
+                    byte_offset: n,
+                    ordinal: 0,
+                },
+                Some("a".into()),
+                Some("large".into()),
+                Time::from_source(Some("2026-09-02T00:00:01Z")).0,
+                vec![],
+                Payload::ContextWindow {
+                    model: Some("gpt-5.4".into()),
+                    tokens: 128_000,
+                },
+            )
+            .unwrap(),
+        ));
+    }
+    let root = tempfile::tempdir().unwrap();
+    let s = crate::usage_store::memory(
+        collected,
+        "live:synthetic:turn-budget".into(),
+        crate::pricing_sync::current_at(root.path()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let full = request(
+        serde_json::json!({"action":"investigate","scope":{"threadId":"a","allTime":true},"compact":true}),
+    );
+    assert!(
+        execute_snapshot(full, &s)
+            .unwrap_err()
+            .downcast_ref::<crate::dto::OperationError>()
+            .is_some_and(|e| e.code == "RESOURCE_LIMIT")
+    );
+    let r=execute_snapshot(request(serde_json::json!({"action":"investigate","scope":{"threadId":"a","turnId":"small","allTime":true},"compact":true})),&s).unwrap();
+    assert_eq!(r.summary.complete_token_total(), Some(1_000_000));
+    let i = r.inspection.unwrap();
+    assert!(i.limitations.contains(&InspectionLimit::SelectedTurnOnly));
+    assert_eq!(
+        i.candidates[0].evidence[0].turn_id.as_deref(),
+        Some("small")
+    );
+    assert_eq!(
+        i.candidates[0].evidence[0].snapshot_id,
+        s.manifest.snapshot_ref.snapshot_id
+    );
+    assert!(execute_snapshot(request(serde_json::json!({"action":"investigate","scope":{"threadId":"a","turnId":"missing"}})),&s).unwrap_err().downcast_ref::<crate::dto::OperationError>().is_some_and(|e| e.code == "NOT_FOUND"));
+    for value in [
+        serde_json::json!({"action":"investigate","scope":{"turnId":"small"}}),
+        serde_json::json!({"action":"usage","scope":{"threadId":"a","turnId":"small"}}),
+    ] {
+        assert!(execute_snapshot(request(value), &s).is_err());
+    }
+}
+
+#[test]
+fn inspection_waits_only_for_selected_recorded_project_and_keeps_global_usage_preview() {
+    use crate::live::{ProjectLoad, ProjectLoadState};
+    let mut s = snapshot(
+        &[
+            ("a", "a", "2026-09-02T00:00:00Z", 100),
+            ("b", "b", "2026-09-02T00:00:00Z", 200),
+        ],
+        "scoped-ready",
+    );
+    s.project_loads = vec![
+        ProjectLoad {
+            project: Some("/a".into()),
+            state: ProjectLoadState::Ready,
+        },
+        ProjectLoad {
+            project: Some("/b".into()),
+            state: ProjectLoadState::Loading,
+        },
+    ];
+    for scope in [
+        serde_json::json!({"project":"/a","allTime":true}),
+        serde_json::json!({"threadId":"a","allTime":true}),
+    ] {
+        assert_eq!(
+            execute_snapshot(
+                request(serde_json::json!({"action":"investigate","scope":scope})),
+                &s
+            )
+            .unwrap()
+            .summary
+            .complete_token_total(),
+            Some(100)
+        );
+    }
+    for scope in [
+        serde_json::json!({"project":"/b"}),
+        serde_json::json!({"allTime":true}),
+    ] {
+        assert!(
+            execute_snapshot(
+                request(serde_json::json!({"action":"investigate","scope":scope})),
+                &s
+            )
+            .unwrap_err()
+            .downcast_ref::<crate::dto::OperationError>()
+            .is_some_and(|e| e.code == "SYNC_PENDING")
+        );
+    }
+    assert!(
+        execute_snapshot(
+            request(serde_json::json!({"action":"usage","scope":{"allTime":true}})),
+            &s
+        )
+        .is_ok()
+    );
 }

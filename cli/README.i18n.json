@@ -2,12 +2,16 @@
   "version": 2,
   "sections": {
     "/cli-command-entry": {
-      "zh": "badb8bf90c33a29a36acc3b0996679ab64e350f15de2f4a022eadda488d0aca4",
-      "en": "1d9f713783917de37796f2a3e6834a5a23ce195b9282ac9f0e41b33f69dcc9b5"
+      "zh": "caea7baa011f93d31c64b7f5907b9c18b9ff5eb4b9282e667d8cdd7c40e71910",
+      "en": "c421a3ed9cc9c808a28866e0dfcc7191d9e35cfec75e2706c3bfed17acc4659d"
     },
     "/cli-command-entry/public-entries": {
       "zh": "63d523aaf15b2884ecbd0f4107abe43b7a3adbc5999ed79dee2b7c6522490767",
       "en": "01c943d6d56c0ccb71171d38a16e2e46aabe207efc25d18b67f0ff48cfd7df08"
+    },
+    "/cli-command-entry/agent-interface-principles": {
+      "zh": "dff05c9fcd973aa87bbc4c85da84b3a24385a662b7a3c8a30ec44722faeb481e",
+      "en": "02ef784b530ab6419839db232cf4778a468307139e3aae7b54f1871442ce34d6"
     },
     "/cli-command-entry/limits-and-verification": {
       "zh": "4d22c403db0c58cd1a13d443840d9b5fffdaefdd21ab3eca751b5fec36596918",

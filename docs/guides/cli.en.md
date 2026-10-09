@@ -21,6 +21,22 @@ Repeat `--root` to include multiple roots. Without it, use CODEX_HOME or `~/.cod
 
 Hook inventory JSON exposes the same per-project native registration and plugin identity as Web detail; text output also names the plugin. Registration does not establish execution. See the [configuration contract](../development/contracts.en.md) for supported declaration forms and unknown states.
 
+
+## Agent interface
+
+Use `wombat api --json` to read the installed method names, descriptions and limits without scanning data. Use `wombat api --method usage --json` for one input Schema; add `--output-schema` when response fields are needed. Both schemas derive from Rust. Reuse them for the same runtime version.
+
+```sh
+wombat api --method usage --json
+wombat call <<'JSON'
+{"method":"usage","params":{"mode":"auto","query":{"action":"threads","scope":{"project":"/absolute/project","since":"2026-10-01","until":"2026-10-08","timezone":"Asia/Shanghai"},"sort":"tokens","limit":3,"compact":true}}}
+JSON
+```
+
+`call` accepts one JSON object on stdin and defaults to JSON output without prompts. It dispatches only the listed generated product methods; use exact params from the selected Schema. The result retains its owning protocol, including the `usage` live wrapper's `result` and `freshness`. Keep snapshot/read-view identities, scope, page offsets and cursors for drill-down. Mutating actions retain existing authorization and selection requirements.
+
+Input is limited to 1 MiB with a ten-second stdin deadline; output is limited to 2 MiB. Product query budgets still apply. Errors return `{outputVersion:1,error:{code,message,recovery}}` without raw input, paths or internal diagnostics. `recovery` tells the caller to read the Schema, reacquire the original view, narrow the query, retry the same scope, check setup or inspect state; it does not authorize an automatic retry of a write. Exit codes are 0 for a complete result, 2 for partial results, 1 for errors and 130 for cancellation. The same policies apply to corresponding human commands. Ctrl+C cancels this call without stopping shared scanning.
+
 ## Compare usage
 
 Period and session comparisons read committed data without refreshing by default. Run `wombat usage --fresh` first, then use these commands. End dates are exclusive; periods must be equal-length and non-overlapping.
@@ -37,7 +53,8 @@ wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-
 Read or refresh usage first, then pin these queries with the returned `snapshotRef.snapshotId`. They read committed data without synchronization by default.
 
 ```sh
-wombat investigate --snapshot SNAPSHOT_ID --all-time --limit 5 --json
+wombat investigate --snapshot SNAPSHOT_ID --all-time --limit 3 --compact --json
+wombat investigate --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --all-time --compact --json
 wombat context --snapshot SNAPSHOT_ID --all-time --json
 wombat trajectory --snapshot SNAPSHOT_ID --thread THREAD_ID --all-time --json
 wombat resources --snapshot SNAPSHOT_ID --project /absolute/project --all-time --json
@@ -121,6 +138,9 @@ After a successful update, the next live synchronization creates a complete read
 
 ## JSON
 
+`--compact --json` bounds quality detail to three examples per retained list and omits facets; `quality.detailSummary` retains full issue/source counts, grouped counts and omitted-detail counts. Totals, requested rows, pagination, scope and snapshot remain unchanged. Remove `--compact` for full detail. `--limit` changes returned pages, not whole-task computation. On RESOURCE_LIMIT, select a turn with `turns --matched-only`, then investigate that exact turn at the same snapshot and filters. Selected-turn findings do not establish whole-task rankings.
+
+
 Usage uses `outputVersion: 5`. Success includes action, snapshotRef, scope, availableRange, summary, items, page, and quality. Generated schemas validate runtime data; unknown arguments are rejected. Ordinary queries emit exactly one final JSON object on stdout, while watch emits NDJSON. Status goes to stderr. Live results also contain freshness; status distinguishes current, syncing, stale, failed, and fixed, and checkedAt is the last successful check. Current only means the observed log range has been processed.
 
 Amounts are decimal strings; tokens are safe integers or null. `price.cost=null` means an incomplete amount; `knownCost` is the known subtotal, with priced, partial, and unknown statuses. Missing is not zero, and reportedCost is not added to the standard equivalent. Never sum amounts already rounded to two display decimals.
@@ -195,7 +215,7 @@ The account v1 response has independent identity, allowance and activity status/
 
 ## Setup and collection
 
-`wombat setup --project /path/to/project --json` checks native discovery and registration, preserving each state independently. It does not install, trust, scan account credentials or invoke a model. `--root` selects source directories. A missing Skill does not block viewing existing data.
+`wombat setup --project /path/to/project --json` checks native discovery and registration, preserving each state independently. It reports the full Codex version, Wombat bundle version, and each discovered copy’s declared capabilities and content verification. Text output includes partial error codes. Log queries need no Hook trust; an available and compatible Skill can be used in a new Codex conversation. It does not install, trust, scan account credentials or invoke a model. `--root` selects source directories. A missing Skill does not block viewing existing data.
 
 ```sh
 wombat collection status --json

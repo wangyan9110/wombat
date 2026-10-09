@@ -4,6 +4,7 @@ export type DiscoveryStatus = "available" | "ambiguous" | "disabled" | "missing"
 export type HookRegistryStatus = "unavailable" | "partial" | "observed";
 export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
 export type HookHandler = "command" | "mcpTool" | "prompt" | "agent";
+export type RuntimeStatus = "compatible" | "incompatible" | "modified" | "unavailable" | "unmanaged";
 
 export interface Response {
   outputVersion: number;
@@ -15,6 +16,11 @@ export interface Response {
   runtimeCapabilities: string[];
   marketplacePath?: string | null;
   errorCodes: string[];
+  /**
+   * Installed CLI bundle identity, separate from the native Codex version.
+   */
+  runtimeVersion?: string | null;
+  runtimeChecks?: RuntimeCheck[];
 }
 export interface Discovery {
   status: DiscoveryStatus;
@@ -50,4 +56,13 @@ export interface HookRegistration {
   handler: HookHandler;
   source: string;
   pluginId?: string | null;
+}
+export interface RuntimeCheck {
+  path: string;
+  status: RuntimeStatus;
+  pluginVersion?: string | null;
+  skillContentHash?: string | null;
+  requiredCapabilities: string[];
+  missingCapabilities: string[];
+  errorCode?: string | null;
 }

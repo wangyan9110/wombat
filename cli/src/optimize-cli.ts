@@ -1,3 +1,4 @@
+import {optimizeExitCode} from './exit-codes.js';
 import path from 'node:path';
 import { CoreError, type OptimizeRequest, type OptimizeResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
@@ -60,7 +61,7 @@ export async function runOptimizeCli(argv:string[]):Promise<number>{
     const result=await createNodeClient().optimize!(request,{signal:controller.signal});
     if(json)process.stdout.write(JSON.stringify(result)+'\n');
     else process.stdout.write(formatOptimizeText(result));
-    return result.resultStatus==='partial'?2:0;
+    return optimizeExitCode(result);
   }finally{process.off('SIGINT',stop);process.off('SIGTERM',stop);}
 }
 

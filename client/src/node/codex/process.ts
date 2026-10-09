@@ -36,7 +36,9 @@ export async function runCodex(args: string[], query: QueryOptions, config: Code
   });
 }
 export async function nativeVersion(query: QueryOptions, config: CodexOptions): Promise<string> {
-  const version=(await runCodex(['--version'],query,config)).trim().match(/^codex-cli (\d+\.\d+\.\d+)(?:\s|$)/)?.[1];
+  const text=(await runCodex(['--version'],query,config)).trim();
+  // Preserve the complete host identity; recognizing a version grants no capabilities.
+  const version=text.length<=256?text.match(/^codex-cli (\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$/)?.[1]:undefined;
   if(!version)throw new CoreError('NATIVE_PROTOCOL_ERROR','Unrecognized Codex version');
   return version;
 }
