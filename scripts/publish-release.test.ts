@@ -14,8 +14,25 @@ import {
   installSourceArgs,
   assertHostedVerificationJobs,
   readPublicInstaller,
+  archiveAttestationArgs,
 } from './publish-release.ts';
 import {nativeTargets} from './native-platforms.ts';
+
+test('archive attestations retain immutable source identity through repository renames', () => {
+  const source = 'a'.repeat(40);
+  const metadata = {version: '1.0.0', repository: {url: 'git+https://github.com/original-owner/project.git'}};
+  assert.deepEqual(archiveAttestationArgs('archive.tar.gz', 'current-repo.jsonl', metadata, '1.0.0', source), [
+    'attestation', 'verify', 'archive.tar.gz', '--bundle', 'current-repo.jsonl', '--repo', 'original-owner/project',
+    '--cert-identity', 'https://github.com/original-owner/project/.github/workflows/release.yml@refs/tags/v1.0.0',
+    '--source-digest', source, '--source-ref', 'refs/tags/v1.0.0', '--deny-self-hosted-runners',
+  ]);
+  assert.ok(archiveAttestationArgs('archive', 'bundle', {...metadata, repository: 'https://github.com/current-owner/project'}, '1.0.0', source).includes('current-owner/project'));
+  for (const invalid of [undefined, {...metadata, version: '2.0.0'}, {...metadata, repository: undefined},
+    {...metadata, repository: 'https://untrusted.example/project'}]) {
+    assert.throws(() => archiveAttestationArgs('archive', 'bundle', invalid, '1.0.0', source));
+  }
+  assert.throws(() => archiveAttestationArgs('archive', 'bundle', metadata, '1.0.0', 'invalid-source'));
+});
 
 test('public installers bind to the current verification source after a repository rename', async () => {
   const expected = '#!/bin/sh\nrepo="new-owner/wombat"\n';

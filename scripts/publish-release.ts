@@ -304,6 +304,18 @@ export async function readPublicInstaller(repository: string, installer: 'instal
   return content;
 }
 
+export function archiveAttestationArgs(archive: string, bundle: string, metadata: unknown, version: string, source: string): string[] {
+  validateVersion(version);
+  if (!/^[0-9a-f]{40}$/.test(source) || !record(metadata) || metadata.version !== version) throw new Error('Attestation source metadata differs from the immutable release');
+  const repository = typeof metadata.repository === 'string' ? metadata.repository
+    : record(metadata.repository) && typeof metadata.repository.url === 'string' ? metadata.repository.url : undefined;
+  if (!repository) throw new Error('Attestation source repository is missing');
+  const signer = repositorySlug(repository);
+  return ['attestation', 'verify', archive, '--bundle', bundle, '--repo', signer,
+    '--cert-identity', `https://github.com/${signer}/.github/workflows/release.yml@refs/tags/v${version}`,
+    '--source-digest', source, '--source-ref', `refs/tags/v${version}`, '--deny-self-hosted-runners'];
+}
+
 async function cleanInstall(version: string, source: string, repository: string, scratch: string, releaseDirectory: string, publicDownload: boolean): Promise<void> {
   const prefix = path.join(scratch, 'install');
   const baseUrl = pathToFileURL(releaseDirectory).href.replace(/\/$/, '');
@@ -513,11 +525,20 @@ export async function verifyPublishedRelease(repository: string, version: string
   }, file => run('gh', ['release', 'verify-asset', tag, file, '--repo', repository], 5 * 60_000));
   for (const result of cached) console.log(`${path.basename(result.file)}: ${result.reused ? 'verified cache' : 'verified download'}`);
   const archives = verifyReleaseAssets(download, version, source, {target, assets: view.assets});
-  for (const archive of archives) {
-    run('gh', ['attestation', 'verify', archive, '--repo', repository], 5 * 60_000);
-  }
+  const sourceMetadata = parsedJson('git', ['show', `${source}:package.json`]);
   const scratch = mkdtempSync(path.join(os.tmpdir(), `wombat-${tag}-`));
   try {
+    for (const archive of archives) {
+      const asset = view.assets.find(item => item.name === path.basename(archive));
+      if (!asset) throw new Error('Archive is missing from the signed release');
+      // Fetch from the current repository; verify the historical signing identity without following an old namespace.
+      const response = parsedJson('gh', ['api', `repos/${repository}/attestations/${asset.digest}`]);
+      if (!record(response) || !Array.isArray(response.attestations) || !response.attestations.length
+        || !response.attestations.every(item => record(item) && record(item.bundle))) throw new Error('GitHub returned invalid archive attestations');
+      const bundle = path.join(scratch, `${asset.name}.attestations.jsonl`);
+      writeFileSync(bundle, response.attestations.map(item => JSON.stringify(item.bundle)).join('\n') + '\n');
+      run('gh', archiveAttestationArgs(archive, bundle, sourceMetadata, version, source), 5 * 60_000);
+    }
     stage('Clean install and update check');
     await cleanInstall(version, source, repository, scratch, download, publicDownload);
   } finally {
