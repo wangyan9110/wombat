@@ -75,16 +75,11 @@ wombat update
 
 ## 范围与限制
 
-- 当前分析本机 Codex 记录，其他 Agent 尚在计划中。
-- 本机分析不上传日志。缺价时可能下载官方价表，见[隐私说明](docs/reference/privacy.md)。
+- 分析本机 Codex 记录。发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。
+- 本机分析不上传日志、不调用模型。缺价时可能下载官方价表，见[隐私说明](docs/reference/privacy.md)。
 - Token、API 等价估算金额和账户额度分别展示。估算金额不是订阅账单，见[计价说明](docs/reference/pricing.md)。
-- 缺失与未计价的数据会明确标出。Wombat 不为操作分摊费用。
-- 已记录的耗时不能证明推理时间、原因、浪费、质量或节省。
-- 当前文件不能证明历史加载或使用。观察缺失不能成为删除扩展的理由。
-- 本机查询不调用模型。Codex 对话与授权修改会产生模型用量。
-- 交接接收成功不代表执行完成或问题已解决。修改后需复查原问题。
 
-发行包支持 macOS arm64/x64、Linux glibc arm64/x64 和 Windows x64。部分旧数据格式不受支持。请保留原数据与用户决定；选择其他数据目录前，先阅读[格式恢复说明](docs/reference/cli.md)。
+不受支持的数据格式如何处理，见[格式恢复说明](docs/reference/cli.md)。
 
 ## 帮助与贡献
 

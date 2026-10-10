@@ -75,16 +75,11 @@ See the [installation guide](docs/guides/installation.en.md) for specific versio
 
 ## Scope and limits
 
-- Wombat currently analyzes local Codex records. Other agents are planned.
-- Local analysis does not upload logs. Missing prices can trigger an official price download; see [privacy](docs/reference/privacy.en.md).
-- Tokens, API-equivalent estimates, and account allowance are separate. Estimates are not subscription charges; see [pricing](docs/reference/pricing.en.md).
-- Missing and unpriced values remain explicit. Wombat allocates no costs to operations.
-- Recorded timing does not establish reasoning time, causes, waste, quality, or savings.
-- Current files do not prove historical loading or use. Missing observations do not justify deleting extensions.
-- Local queries make no model calls. Codex conversations and authorized changes use model tokens.
-- Handoff acceptance does not prove execution or resolution. Recheck the original issue after changes.
+- Analyzes local Codex records. Release packages support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64.
+- Local analysis uploads no logs and makes no model calls. Missing prices can trigger an official price download; see [privacy](docs/reference/privacy.en.md).
+- Tokens, API-equivalent estimates, and account allowance remain separate. Estimates are not subscription charges; see [pricing](docs/reference/pricing.en.md).
 
-Release packages support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64. Some older data formats are unsupported. Preserve original data and decisions; read [format recovery](docs/reference/cli.en.md) before selecting another store.
+For unsupported data formats, see [format recovery](docs/reference/cli.en.md).
 
 ## Help and contribution
 
