@@ -24,7 +24,7 @@ wombat timing capabilities [--share]
 
 摘要支持重复 `--root`、`--source`、`--fresh` / `--cached`、`--snapshot`、`--lang` 与取消。只接受完整 Wombat 身份，不默认转用上游 ID；目标不匹配或不存在明确报错。`--turn` 必填，任务级汇总后续独立交付。拒绝日期/Token/金额筛选和分页对摘要整轮窗口的切碎。证据要求相同固定目标、版本和范围，默认50/最大200条，通过不透明游标分页，仅支持本机投影且不接受刷新模式。能力查询不接受目标或来源路径，不执行扫描。默认最终单个 JSON，状态写 stderr；显式 `--text` 与 `--json` 互斥。分享请求 Rust 独立投影。耗时查询绕过自动补价、配置扫描、Hook 采集和账户观察。错误保留独立 v1 安全信封；取消退出130，不终止共享同步。
 
-Rust 定义 summary/evidence/capabilities 窄请求、本机/分享响应及独立版本错误；字段以生成 Schema、TypeScript 和校验器为准，见[内核说明](../../../../core/README.md)。响应、方法、存储和适配器独立升版。数值保留原生、派生、代理或缺失依据，零必须有证据。分享使用独立白名单投影及新别名，不由前端删除部分本机字段冒充脱敏。[分析修订](2026-10-05-analysis-first-events.md)保留可用部分统计和具体说明。
+Rust 定义 summary/evidence/capabilities 窄请求、本机/分享响应及独立版本错误；字段以生成 Schema、TypeScript 和校验器为准，见[内核说明](../../../reference/core.md)。响应、方法、存储和适配器独立升版。数值保留原生、派生、代理或缺失依据，零必须有证据。分享使用独立白名单投影及新别名，不由前端删除部分本机字段冒充脱敏。[分析修订](2026-10-05-analysis-first-events.md)保留可用部分统计和具体说明。
 
 退出码沿用 0 成功（包括完整读取但不能归属因果的情况）、2 部分读取/关键证据缺失/运行中暂定、1 参数或操作错误、130 取消。缺某个可选能力仍返回结果与 unavailable；当前格式但来源字段缺失时返回 unavailable，旧格式明确拒绝，不能读当前日志补成固定历史。错误对象为 `{outputVersion:1,error:{code,message}}`，消息使用安全模板。沿用 INVALID_ARGUMENT、VIEW_EXPIRED、SNAPSHOT_CORRUPT、SOURCE_UNREADABLE、RESOURCE_LIMIT、CANCELLED，耗时分析 quality 原因码增加 TIMING_DETAIL_UNAVAILABLE（来源未记录必要耗时事实；必需分片或信封缺失报 SNAPSHOT_CORRUPT）和 TIMING_BOUNDARY_CONFLICT（显式边界互相矛盾）；仍返回可用的原生标量，相关派生值为 null，不因一个指标缺失丢弃全部结果。
 

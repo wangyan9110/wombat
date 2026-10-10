@@ -46,7 +46,7 @@ wombat compare --since 2026-09-08 --until 2026-09-15 --baseline-since 2026-09-01
 wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-time --json
 ```
 
-`--dimension` accepts `project`, `model` or `thread`; `--limit` and `--offset` page contributions. Session IDs use field `id` from `threads --json`; `--family` includes explicit descendants. Both comparisons retain date and dimension filters and accept `--snapshot`. Only explicit `--fresh` requests synchronization. Expired views return an error; read the list again before comparing. Live results expose `freshness.publicationChange` for the latest successful publication; text also shows change counts. No complete baseline means no summary. The [core reference](../../core/README.en.md) owns calculation and limits.
+`--dimension` accepts `project`, `model` or `thread`; `--limit` and `--offset` page contributions. Session IDs use field `id` from `threads --json`; `--family` includes explicit descendants. Both comparisons retain date and dimension filters and accept `--snapshot`. Only explicit `--fresh` requests synchronization. Expired views return an error; read the list again before comparing. Live results expose `freshness.publicationChange` for the latest successful publication; text also shows change counts. No complete baseline means no summary. The [core reference](../reference/core.en.md) owns calculation and limits.
 
 ## Task distributions and budgets
 
@@ -64,7 +64,7 @@ wombat monitor acknowledge --notification NOTIFICATION_ID --json
 wombat monitor remove --id project-week --json
 ```
 
-Statistics defaults to the last thirty calendar days; `--all-time` selects all available dates. Project/model groups accept `--limit` and `--offset`; the population covers the full scope. A selected `--thread` is ranked against that population. Complete task totals provide the mean, median and P90; incomplete tasks and unassigned measurements remain separate. Model populations can overlap when a task used multiple models. Equal-length, disjoint comparison periods retain all other filters. The [core reference](../../core/README.en.md) owns calculation methods and limits.
+Statistics defaults to the last thirty calendar days; `--all-time` selects all available dates. Project/model groups accept `--limit` and `--offset`; the population covers the full scope. A selected `--thread` is ranked against that population. Complete task totals provide the mean, median and P90; incomplete tasks and unassigned measurements remain separate. Model populations can overlap when a task used multiple models. Equal-length, disjoint comparison periods retain all other filters. The [core reference](../reference/core.en.md) owns calculation methods and limits.
 
 A monitor plan saves its identity filters, timezone, calendar period and optional Token threshold. `--review` also requests the most recently closed period's statistics. Add `--disabled` to save a paused plan; reuse its ID to change settings. Default warning is 80% of the threshold, configurable with `--warning 0.9`. These are user budgets, separate from account allowances. `check` checks all enabled plans unless `--id` selects one; repeated `--root` selects sources. A recent pinned check uses `--snapshot ID --id PLAN_ID` without source roots. An expired view requires a fresh check of the original scope.
 
@@ -85,11 +85,11 @@ wombat steps --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --locate-o
 wombat account history --json
 ```
 
-Review does not accept pagination. Without dates, it selects the fixed view cutoff's week, starting Monday. Other inspections accept `--limit` and `--offset` while retaining scope. Drill with returned complete evidence identities. An absent operation returns `NOT_FOUND`; after view expiry, reacquire the original scope and locate identities again. Allowance history needs no native process and reads stored observations only. The [core reference](../../core/README.en.md) owns thresholds, calculation and budgets. Signals do not establish waste, input is not context occupancy, and change reports are not verified file changes.
+Review does not accept pagination. Without dates, it selects the fixed view cutoff's week, starting Monday. Other inspections accept `--limit` and `--offset` while retaining scope. Drill with returned complete evidence identities. An absent operation returns `NOT_FOUND`; after view expiry, reacquire the original scope and locate identities again. Allowance history needs no native process and reads stored observations only. The [core reference](../reference/core.en.md) owns thresholds, calculation and budgets. Signals do not establish waste, input is not context occupancy, and change reports are not verified file changes.
 
 ## Codex Skill
 
-The redesigned [user Skill](../../plugin/README.en.md) starts from conversational tasks and can use Web to inspect evidence. Processing continues in the current Codex conversation; Web retains viewing and rechecks. The Skill consumes existing CLI JSON and bounded index restoration/synchronization; account reads do not wait for logs.
+The redesigned [user Skill](plugin.en.md) starts from conversational tasks and can use Web to inspect evidence. Processing continues in the current Codex conversation; Web retains viewing and rechecks. The Skill consumes existing CLI JSON and bounded index restoration/synchronization; account reads do not wait for logs.
 
 Codex manages the formal plugin, whose invocation name on verified Codex 0.160.0 is $wombat:wombat. Standalone local trials use $wombat:
 
@@ -249,7 +249,7 @@ wombat collection mode logs --json
 wombat usage --watch --json
 ```
 
-Preferences are machine-wide; `--project` and repeated `--root` filter status and events only. Mode `logs` ignores new Hook input and preserves data. Mode `hooks` permits safe receipt but establishes neither registration nor trust. Install the [local collection package](../../plugin/README.en.md), then review its declarations in Codex `/hooks`. The POSIX bridge resolves the managed launcher or Codex PATH; Windows remains unaccepted. Plugin removal does not delete observations.
+Preferences are machine-wide; `--project` and repeated `--root` filter status and events only. Mode `logs` ignores new Hook input and preserves data. Mode `hooks` permits safe receipt but establishes neither registration nor trust. Install the [local collection package](plugin.en.md), then review its declarations in Codex `/hooks`. The POSIX bridge resolves the managed launcher or Codex PATH; Windows remains unaccepted. Plugin removal does not delete observations.
 
 Pause retains up to 4,096 safe observations; resume makes them available. History viewing continues. Total retained observations are bounded to 100,000; known overflow or conflicting identities contribute to gaps. Missing native identity stays unknown, and rejected input or runtime failures are not reflected in persisted gaps. No lossless delivery or complete coverage is claimed. Source event time may be absent and differs from receipt time. Verified log associations use the current committed source epoch; obtain a normal fixed query view before further comparisons.
 

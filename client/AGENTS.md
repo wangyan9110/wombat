@@ -1,6 +1,6 @@
 # Client Instructions
 
-Follow [root instructions](../AGENTS.md) and the [delivery workflow](../docs/development/workflow.en.md). Public entries and limitations belong in the [module README](README.en.md).
+Follow [root instructions](../AGENTS.md) and the [delivery workflow](../docs/development/workflow.en.md). Public entries and limitations belong in the [module README](../docs/reference/client.en.md).
 
 - Generate src/generated/ TS types, schemas, and validators from Rust DTOs. Change the source, never generated files to alter public semantics.
 - Keep src/index.ts injectable and free of Node/terminal dependencies. src/node/ owns core paths, subprocess cancellation, timeouts, output bounds, and cleanup.

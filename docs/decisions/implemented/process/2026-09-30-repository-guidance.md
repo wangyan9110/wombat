@@ -18,7 +18,7 @@ Status: implemented
 
 文档结构检查复用双语与篇幅清单，校验标题和段落；代码、表格、引用及页首 HTML 品牌图保留格式。架构仅维护跨模块关系，Web 限制与内核持久化细节回到所属模块。代码规范归属开发流程，明确区分语义审阅/行为测试和机械检查。
 
-决策目录替代手写索引；替代审阅保留仍有效的理由和验收缺口，不维护过时运行清单。Wombat 保留现有状态与类别，当前目录不需要额外维护清单，因此不引入冻结归档或独立元数据目录。维护规则见[决策说明](../../README.md)，参考上游 [Agent Note 原则](https://github.com/deepseek-ai/deepseek-harness/blob/master/.agents/notes/README.md)。
+决策目录替代手写索引；替代审阅保留仍有效的理由和验收缺口，不维护过时运行清单。Wombat 保留现有状态与类别，当前目录不需要额外维护清单，因此不引入冻结归档或独立元数据目录。维护规则见[决策说明](../../../development/decision-maintenance.md)，参考上游 [Agent Note 原则](https://github.com/deepseek-ai/deepseek-harness/blob/master/.agents/notes/README.md)。
 
 ## 考虑过的方案
 

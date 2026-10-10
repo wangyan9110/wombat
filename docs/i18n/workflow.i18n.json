@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/wombat-bilingual-documentation-workflow": {
+      "zh": "6e2d8f91732f32f0fbea8e74a29893b792acbc0f82d5876ffc9c283d854341df",
+      "en": "07409707fea21347521f4fb423342303a5ef60834b6757578581284f1d38fb59"
+    },
+    "/wombat-bilingual-documentation-workflow/files-and-scope": {
+      "zh": "7404b92c6af79b3964899a609376997349023b01fa465bda12a15959e453a068",
+      "en": "59d188212f7a8ae222187aa8ca474590ccc18aa51caa2349f503e836ddc497b2"
+    },
+    "/wombat-bilingual-documentation-workflow/update-workflow": {
+      "zh": "cfcfd22a02d30df0b70fdfba3d873eccf45865e6e3537b92bd92db6c3f4da75d",
+      "en": "0a4d28c1ff299449f781564b53b6c1cf012a493be25796ef0f9f341ab974fff7"
+    },
+    "/wombat-bilingual-documentation-workflow/language-review": {
+      "zh": "6e6d8ee5005c4634271ff54ff7e9ced6135fb5041735f5cdc04efb1c989db029",
+      "en": "b48822b4517ee03b105311ef899deec6fdb16402887d67b890b138b9407fc718"
+    },
+    "/wombat-bilingual-documentation-workflow/incremental-maintenance": {
+      "zh": "0789f8722975720d5fe84c1ce6c370b1384caa4e9a43c45d48faeab2f6e92328",
+      "en": "6854c45a33826addf75f435e1073da69cf69946f642f7ac0326ab26343ceb141"
+    }
+  }
+}

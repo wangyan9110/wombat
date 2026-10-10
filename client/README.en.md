@@ -2,43 +2,21 @@
 
 [中文](README.md) | English
 
-`@wombat/client` validates requests and results and gives the CLI and Web one `UsageClient`. Business DTOs come from Rust-generated contracts; the [architecture](../docs/development/architecture.en.md) shows the cross-module data flow.
+`@wombat/client` supplies one `UsageClient` to CLI and Web callers. Rust defines the business contracts; the client validates requests and results.
 
 ## Public entries
 
-- The package root exports `createUsageClient({ query, ...transports })`, types, and `CoreError`. Named optional transports include `timing`, `account`, and `handoff`; the root loads no Node or terminal library.
-- `createNodeClient` from `@wombat/client/node` manages the local core subprocess, cancellation, timeouts, and response limits.
-- `UsageClient.live` provides auto/fresh/cached queries and freshness; the Node host manages a shared local service, while `query` retains the fixed-snapshot interface.
-- Optional `UsageClient.timing` provides whole-turn summaries, fixed-snapshot evidence pages, and offline capabilities through Rust-generated contracts. Node selects a live view when no snapshot is supplied; an explicit stored snapshot stays fixed. Timing does not trigger price downloads, Hook capture, configuration scans, or account observations.
-- `UsageClient.prices` provides offline inspection, explicit updates, and `auto_update` checks for missing prices. The Node live client triggers fixed-HTTPS downloads; Rust owns eligibility, persistent throttling, validation, storage, and pricing.
-- Generated files live in `src/generated/`; field and version authority remains with the Rust DTO and [contracts](../docs/development/contracts.en.md).
+- `@wombat/client` exports `createUsageClient`, types, and `CoreError`. This entry loads no Node or terminal libraries.
+- `@wombat/client/node` exports `createNodeClient` for the local core process and shared service.
+- `@wombat/client/http` exports `createHttpClient` for the local Web host.
+- `@wombat/client/locale` supplies presentation language support.
 
-- Presentation language uses `@wombat/client/locale`; see [product language and copy](../docs/i18n/product.en.md).
+## Limits
 
-## Limits and verification
+The client exposes only generated operations. It provides no arbitrary shell execution or generic file writes. A cancelled wait does not prove that a write did not occur.
 
-The client allows only operations in the generated request union; it exposes no arbitrary shell, file write, or generic dispatch. It validates requests and results at the process boundary; build and run focused tests after changes, following the [client rules](AGENTS.md).
+## Read next
 
-The Node client and local service use protocol 2 with a separate endpoint and service lock; protocol 1 is rejected. Ordinary live reads wait up to 12 seconds by default. Explicit `refresh` also writes and syncs a fixed snapshot, so it waits up to 120 seconds by default. `timeoutMs` overrides either client deadline; core synchronization still waits up to 10 seconds. Timing validates the response action, privacy profile, method, and local target and fixed snapshot identity. Share output omits local identities, so Rust owns its target binding. Live cancellation closes only the caller's connection and rejects late results; shared synchronization continues, and disconnects do not yet cancel the server's query computation.
-
-Read operations reject late transport results with `CANCELLED` when their signal has been cancelled. When a transport returns a completed preference write, directory authorization change, price update, or handoff send result, the client retains that result even if cancellation arrived late. A cancelled wait does not prove that a write did not occur.
-
-## HTTP Transport
-
-`@wombat/client/http` exports `createHttpClient({ origin, token })`, implementing the same `UsageClient`, validating results and preserving progress, cancellation, and errors. The browser sends narrow operations to the local host rather than accessing the core directly.
-
-The local Web host implements `/api/timing`; see the [Web host](../web/README.en.md) for scope and version authorization. The CLI exposes timing summary, evidence, and capabilities; see the [CLI guide](../docs/guides/cli.en.md). The shared timing UI is connected. Use `corepack pnpm verify:e2e` for real-core and browser acceptance; results cover only the selected platform and scope.
-
-`UsageClient.config` provides measurements/evidence, `optimize` static suggestions, user records and manual rechecks, and `preferences` only gets/sets zh/en. Configuration objects and follow-up observations carry the shared typed `useBasis`, preserving fixed scope, method, source completeness, five coverage dimensions, and unavailable versus known-zero observations. `@wombat/client/locale` explains these fields for CLI/UI without deriving counts or historical adoption. Rust generates all three v1 contracts with peer Node/HTTP implementations; see [public contracts](../docs/development/contracts.en.md).
-
-`createNodeClient({automaticPrices:false})` disables only the client’s automatic-price decorator; explicit prices operations remain available. CLI live queries retain their existing default behavior; Web uses this raw client and owns background price lifetime.
-
-User workflows reuse the portable WebViewRequest, validateWebViewRequest, and webViewSearch. Node also exposes manageSkill for standalone copies and discoverWombatSkill for native instances. Rust defines public states; installation does not query logs. See [contracts](../docs/development/contracts.en.md).
-
-## Setup and runtime observations
-
-Optional `UsageClient.setup` and `UsageClient.collection` use Rust-generated version 1 contracts and validate both boundaries. Node setup checks runtime capabilities, cwd-scoped native Skill discovery and Rust-bound Hook registration independently, with an eight-second overall bound and partial error codes. It does not install, trust, read account credentials or start a model task. Node `receiveCodexHook` sends bounded raw input only through the private core process boundary; HTTP does not expose it. Collection calls have a five-second process bound and 2 MiB output budget. The Web host owns source/project authorization; the core owns safe facts and associations.
-
-Setup returns the complete native Codex version, including prerelease/build identifiers, the running Wombat bundle version, and checks of each enabled discovered copy against its content hash and declared capabilities. Different plugin/runtime versions can be compatible; matching versions alone do not establish compatibility. Missing declarations remain unmanaged, and modified or unsupported copies have separate error codes. Setup also returns the validated bundled marketplace path for explicit native installation commands. Missing resources remain a partial setup error; native discovery and collection facts remain independently readable.
-
-`UsageClient.monitor` provides typed budget settings, explicit checks, notifications and acknowledgement over Node/HTTP. Live checks stay in the shared service with their selected snapshot. Statistical queries use `action: statistics` through existing usage/snapshot methods. See the [core](../core/README.en.md) for populations and persistence, and the [CLI guide](../docs/guides/cli.en.md) for procedures.
+- [Client reference](../docs/reference/client.en.md): transports, deadlines, cancellation, setup, and collection.
+- [Public contracts](../docs/development/contracts.en.md): generated types and independent versions.
+- [Client instructions](AGENTS.md): maintenance and verification rules.

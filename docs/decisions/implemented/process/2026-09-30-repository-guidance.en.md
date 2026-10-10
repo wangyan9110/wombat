@@ -18,7 +18,7 @@ A separate CI job checks source rules before platform builds. Isolated valid and
 
 Documentation checks reuse the pairing and budget manifests for title and paragraph structure; code, tables, quotations, and leading HTML branding keep their formatting. Architecture retains cross-module relationships, while Web limits and core persistence live beside their modules. The delivery workflow owns code conventions and distinguishes semantic review/behavior tests from mechanically checked rules.
 
-Decision directories replace the hand-maintained index. Supersession review preserves applicable rationale and coverage gaps without maintaining obsolete runtime inventories. Wombat keeps its existing lifecycle and classes; no frozen archive or separate metadata catalog is introduced because the current tree does not need another maintained inventory. See [decision maintenance](../../README.en.md) and the upstream [Agent Note principles](https://github.com/deepseek-ai/deepseek-harness/blob/master/.agents/notes/README.md).
+Decision directories replace the hand-maintained index. Supersession review preserves applicable rationale and coverage gaps without maintaining obsolete runtime inventories. Wombat keeps its existing lifecycle and classes; no frozen archive or separate metadata catalog is introduced because the current tree does not need another maintained inventory. See [decision maintenance](../../../development/decision-maintenance.en.md) and the upstream [Agent Note principles](https://github.com/deepseek-ai/deepseek-harness/blob/master/.agents/notes/README.md).
 
 ## Alternatives considered
 

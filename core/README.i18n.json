@@ -2,32 +2,20 @@
   "version": 2,
   "sections": {
     "/rust-core": {
-      "zh": "1360f5c32bf4db05625e913920f492a569ca64a671351e3913188f74c8cb167b",
-      "en": "4e6842de3eb4c41a6892a9dca12aad37ce0c8a4dfdec89bdba92f05782a71021"
+      "zh": "bd20312c912cbe558a1d8c861239fedd2baec1181adeebd498a73190c2460800",
+      "en": "b014244022265200779ce095e00fe80dd3066ec158782e165a17d01c75f20236"
     },
-    "/rust-core/entry-points-and-responsibilities": {
-      "zh": "4c81c07132665e55f52ceb409af297e175cf7f486302dd4efa79c6cad020684d",
-      "en": "90cc03e7bd56b26dbec2b6cf073457ef31c3032a0b1aec2f54b7700681a4445f"
+    "/rust-core/entry-points": {
+      "zh": "1974d7fff3087bcba498ebdf15b6ebb91888ae22942d042a3d841b29d1dc09ea",
+      "en": "60c4656aefa9b417bfe18a23f769633424533caaf1b3820328d64aeab468cf3f"
     },
-    "/rust-core/internal-business-modules": {
-      "zh": "76f73d3dc4cc22114310947b79bc80808e108df1cfb40dfff8789369a06e34c3",
-      "en": "dae3e41de20969539364aee3c8069f55933c3b0f58d651aea6eda7fce26217e1"
+    "/rust-core/limits": {
+      "zh": "9dc0ba000b878a0da762cceb35c595e0b3a7fef88464b571b5903584b89b2316",
+      "en": "5d01bd5c1e294b1aef0446012e0bca02159ddd52f26d6d7106005f623a1c91b6"
     },
-    "/rust-core/limits-and-verification": {
-      "zh": "22e652558a8bd85d77706b2d68be9a12c03428f25fd661dc500ab8bd2bac6b62",
-      "en": "63c05cf83c6fed59af17109b69a676029821b9a1ee38bdb8f70f62e9e2ea1946"
-    },
-    "/rust-core/storage-and-service-lifecycle": {
-      "zh": "b6cc9b6977ec98656b29d6c40efdb8a5ae1ebfee991ba4598e70c2151dc2cb84",
-      "en": "b1a85cff365fd51d87d1ec6b5bba3fed647c66a6298a0c7c39e743089d913adf"
-    },
-    "/rust-core/runtime-collection": {
-      "zh": "1682a7a522f79ea35e1e54ec89701c25a4e13adedece3302a9b13ffd18ee087d",
-      "en": "8c0516d8d857cfd36d923cd690cac7f540551834e73740ea4735c45a579e89d3"
-    },
-    "/rust-core/task-statistics-and-monitoring": {
-      "zh": "1357d2ff127ead003471e777147b9105b2961d4544a4c05225cc409b824d1e92",
-      "en": "455271ed7a1e4ba2465deb8ef14c4f23b2dbb45cb03b841974e5eb50b3c00451"
+    "/rust-core/read-next": {
+      "zh": "941b6931b2d63ba07f50341e58363a7008fcac547b7e3a00cf65b33ef36ab381",
+      "en": "4726cf908b704bd5744740e2369444b7ec781033c959848aac50a4c13d99eaba"
     }
   }
 }

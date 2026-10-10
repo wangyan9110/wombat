@@ -10,7 +10,7 @@ Status: proposed
 
 ## 方案
 
-当前来源发现、增量索引、恢复与提交由[内核说明](../../../../core/README.md)维护，当前 Web 查询生命周期由 [UI README](../../../../ui/README.md)维护，项目授权理由见[项目发现决定](../../implemented/architecture/2026-10-04-observed-project-discovery.md)。继续在现有流程上增加项目级读取事件、渐进提交、独立失败与重试，不能另建一次性导入状态或从是否点过按钮判断初始化完成。
+当前来源发现、增量索引、恢复与提交由[内核说明](../../../reference/core.md)维护，当前 Web 查询生命周期由 [UI README](../../../development/frontend.md)维护，项目授权理由见[项目发现决定](../../implemented/architecture/2026-10-04-observed-project-discovery.md)。继续在现有流程上增加项目级读取事件、渐进提交、独立失败与重试，不能另建一次性导入状态或从是否点过按钮判断初始化完成。
 
 ### 真实事件与项目身份
 

@@ -6,59 +6,35 @@
       "en": "57c39562c0f0f77cc65fa463f23b454371719cbbd2f408731a722d2d6e928562"
     },
     "/wombat-codex-token-usage-analysis-configuration-review": {
-      "zh": "2985343b99c20bf731ec9015b7e658788c4d96814d24aa5a9baae8462c6bb1a0",
-      "en": "d40846c80357f7db91f5844a1ed4d1ca175ed61b528ee399d50852929f280f8d"
+      "zh": "47f8a1b04d12f6fd544f901ff147e01335f6ee2cf438c0978f5de2746aa3ab36",
+      "en": "be85814667db77b82fa2c9424ba76c6bc3ea57a7dc3ca9b72560adac6347349e"
     },
     "/wombat-codex-token-usage-analysis-configuration-review/get-started": {
-      "zh": "2fb3b2c9787b29d74e493de452b6a7fe1f70105110c563a10d161117ae8af2bf",
-      "en": "90951bcd882e43c6dfbb6364ed1f5329706741b9038f1c3184226edd37fe8a2b"
+      "zh": "50dda6b4785bfbd758fc4d81f9c70a9b173c8fca7d74a9a4e0dea7ff40094fd2",
+      "en": "4b36110d6c40cb10c2ff7a157bf1ef24b2af68dd9de86067b030f28ebf5c3ac2"
     },
-    "/wombat-codex-token-usage-analysis-configuration-review/start-with-a-question": {
-      "zh": "be6569c27497f5274c4ffd65c3cac9419afad409c5ca6e7cb321944b718c19d7",
-      "en": "22359824337cb07cf576366819e4965d50948c88add72124a8bb525c2b3e7acb"
+    "/wombat-codex-token-usage-analysis-configuration-review/main-uses": {
+      "zh": "84e53d07ca77188473a251aa653f4186af027874fc544268d358447e2001d27a",
+      "en": "e0cce93715dab3d12abe2a1138752035d21170ae425b73312ba87c25c1693937"
     },
-    "/wombat-codex-token-usage-analysis-configuration-review/start-with-a-question/task-statistics-and-token-budget-monitoring": {
-      "zh": "d00b96fc0eaf482a71e761aad9f8361fc02398d90f0194952252795ec062c187",
-      "en": "e990bd56e678f4c333b39356a619379ae2c6e21243790614c3ce1f3857e36c9b"
-    },
-    "/wombat-codex-token-usage-analysis-configuration-review/why-use-wombat-with-codex": {
-      "zh": "9326480e473218eb5c6c7f6329570ea824ec4bc37d9efc13f43709946ea3af1a",
-      "en": "91611923582c88f67c2a4078b048289963636102f31ce478455407e9578d45bc"
-    },
-    "/wombat-codex-token-usage-analysis-configuration-review/turn-findings-into-changes": {
-      "zh": "9977a3e5b05634ce8ed424ba7f9ad165ba9fd1e34489f0d5ff603dcdadf5f4ef",
-      "en": "58cd80dc917186edc5b9188dccb79138b6f5e9835f234997fb2c644af32de11e"
-    },
-    "/wombat-codex-token-usage-analysis-configuration-review/explore-charts-and-detailed-records": {
-      "zh": "f46d6cc412e441b0648bd3440781c12aa4886bd8c683e0ec07521c986844fb3d",
-      "en": "24ce8956266468446f557ec4f0b506c29ad29ddf83f0875638c1dab654326ef3"
+    "/wombat-codex-token-usage-analysis-configuration-review/open-web": {
+      "zh": "046ad45ddf6583d42d3ca4707bc2882c38a12cb736c63b607abd7eb29b49cd80",
+      "en": "4ea47ad62686c18eabcdf9d6abaed8f93fe5d9ee4c2ac4c9fdc3949ef0ff25c2"
     },
     "/wombat-codex-token-usage-analysis-configuration-review/update": {
       "zh": "db3b0b730796d179dcc315189c7ca7adc35ca0a444681ccdcaac010fdc87412e",
       "en": "8582e594d80456980adaae6d7565bfac7064a71a5c65f51fd8bda67a1b889ca7"
     },
-    "/wombat-codex-token-usage-analysis-configuration-review/data-and-scope": {
-      "zh": "00519bd4648d286fc48a8f00e34893cef89e736235d53dc93113ef97382d943c",
-      "en": "8589feaa511132d5f84e70a5956acd95c90144ee43eb4c66f42f52b51c8a2f41"
+    "/wombat-codex-token-usage-analysis-configuration-review/scope-and-limits": {
+      "zh": "aed4ff20e3acb07aeb90c5616472914e1d858c7acc58b15da3589c7b9493612f",
+      "en": "addb99feb25c64d38aa8646dc4f895abac0ac0a922fb7f249ca5201c9bc0751d"
     },
-    "/wombat-codex-token-usage-analysis-configuration-review/data-and-scope/optional-hook-collection": {
-      "zh": "00e12ffa00e4a4a000bcf09134e08cb68b4467f388b8fb5f947076ba51f453d4",
-      "en": "1594f037d575fe44ba8cb1c867446fdde13971935ff97374a4d2e4f32b54177c"
-    },
-    "/wombat-codex-token-usage-analysis-configuration-review/compatibility": {
-      "zh": "29fa202821e89047343c46b6a67a40942429710d6fa01ce3ca524dfbf1163fd0",
-      "en": "c7724e11c63712542dffd1570993828abd0f450e8c29be3c34b4efdb311cfcd8"
-    },
-    "/wombat-codex-token-usage-analysis-configuration-review/cli-and-source-development": {
-      "zh": "c350fe0d06a59daf4f0e29618482619750ae4c8921f87a16634f731e9e31024d",
-      "en": "d569e75e8c636bf1dc12d516a67b5381040895a5ce7d2e4da33ebde7fdf03d0c"
-    },
-    "/wombat-codex-token-usage-analysis-configuration-review/help-shape-wombat": {
-      "zh": "f50952e959e1c01b79f8768f16e61010d14d9de94553c84d9908ceda1cb0d22b",
-      "en": "bccf00900404fe0d77788008d34c198098a2feafabc83278fbab932efd60d354"
+    "/wombat-codex-token-usage-analysis-configuration-review/help-and-contribution": {
+      "zh": "7307cb18a9db3ee72f43a6c41797d7dbc0881c16f44cd05f451ab5069a914548",
+      "en": "8ed7675fe48cdd286c5b33ae4a20615ae6a73f5e1153183c17aae6e3248b8acb"
     },
     "/wombat-codex-token-usage-analysis-configuration-review/license": {
-      "zh": "a2caf972c349fe80462bf726ebe66df4add42809d5cf25dc2329edc1be825de9",
+      "zh": "3ae9b43b0b2ab0253c26742d9a180634319a002755081eaed0bdb18ba4a3c29d",
       "en": "1a044ed47f1540e7d83b3f35501b9a3475aa043c07bf24dbfd4d6cd9fabba51d"
     }
   }

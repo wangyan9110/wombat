@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/use-the-codex-plugin": {
+      "zh": "f4f613c335ac0dcf39727ab6a9ab7e4233e135cd6df8c9b35c5341ddab7b535b",
+      "en": "b3dcc8e2cdbe3458d78a58fab75ac7ce85d0f6da0376a09541bdee8634ca3557"
+    },
+    "/use-the-codex-plugin/select-an-invocation": {
+      "zh": "62ce788ff7d1b0d66986e8be5e7815e898d10bac6209d42627cab1d2b53e161d",
+      "en": "b389c360fb16d056cd45c31fde0a5dd47f44c99ee6bdd5cf144dffebd18d4691"
+    },
+    "/use-the-codex-plugin/optional-collection": {
+      "zh": "b50e6756716ac651d52cc6e4eafcae08f4481b34259c200d02fc18e7fdfbedf1",
+      "en": "3ec63f3331ca4d63ae1138ee230dc9a2b0478518326bf0a07b5bc657fcdf7855"
+    },
+    "/use-the-codex-plugin/update-and-remove": {
+      "zh": "27b0a9bbffb8a04273c3ecb2dada40413200f32ab40773440256c0d4f8606e87",
+      "en": "7486e11c61ca34db27a2e0b4472a2a056ff28780b441ea42816f1d65188ac99a"
+    },
+    "/use-the-codex-plugin/limits": {
+      "zh": "6b3383e96f4f3eb6d74691799b548b4b9be7ca5e76802cb44f22272d05138a64",
+      "en": "832a849baccc28410c82eba8ef1c18b2b6d0f7fb7903bd16e13b2653e9dd5ddc"
+    }
+  }
+}

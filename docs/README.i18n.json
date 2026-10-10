@@ -2,24 +2,20 @@
   "version": 2,
   "sections": {
     "/wombat-documentation": {
-      "zh": "16e2eea057f5c68832c5cfbe9ec3ff70b110961ce03660d34b64775c59b1ad54",
-      "en": "fa5e739b30094adaca178bf33bc6bcbcb9b5d5bc168b6500c0e9e6e4ec9e3258"
+      "zh": "e38e62fa02805099989b0526cccb87b6ef6a7f59e71a619dcedefdc98ea1db5e",
+      "en": "cf65b2a9fc4aaf9741c78b6e43facd901fde38501cf2bacd68345a4831f7a77b"
     },
-    "/wombat-documentation/user-guides-guides": {
-      "zh": "157e2c8398623e0c2288ba055a538309eb31d32dc98b0222f3fd9df32f28ecb5",
-      "en": "560c53fa793da12c06f004a8b4418015bcd53b7c58827dc2e1aff168660fe44c"
+    "/wombat-documentation/use-wombat": {
+      "zh": "89b5e2dadb803e86233933a298e556049a5ddad5677cdd6bdc627e4a66d2e72e",
+      "en": "dcdffdfcc81449dd81ca9cfd2a59d97edcc4b099e01dbbb11be64b0632845c71"
     },
-    "/wombat-documentation/technical-references-reference": {
-      "zh": "4127231275353939366a8293d9fe7d6de829c4aab125001fb3ef2ca63cb2187f",
-      "en": "0178a8a64ee2a7f60451eaf2b838b885dbf5ae65d52ad3a41f1f308ac5e8217b"
+    "/wombat-documentation/look-up-behavior": {
+      "zh": "4926f421226cf2cdfea632a148383a2efd10cbd1dbaad956640a29cb0042babe",
+      "en": "a83d8ca00ac8829b7a9b8ffd7069a698027219dbd2ed65672b8355d5017f200f"
     },
-    "/wombat-documentation/developer-documentation-development": {
-      "zh": "7ad5248f1808a1beba9c0c56f6219d4c35d1b06077edae3d69dbd8178c2f4bd0",
-      "en": "32a714dfc9ce0682d1ddb47bd58f99b3bc940b539e962d444629a2c071ddd478"
-    },
-    "/wombat-documentation/decisions-and-documentation-maintenance": {
-      "zh": "f0d173ec2837db98ff64b543d8314e47d22d2ba9579684c3502309a9b6aa290f",
-      "en": "3c4e07d81e3eba33b509c57a621b38c680fcb8fab08ec7032fed0d9955573960"
+    "/wombat-documentation/develop-and-maintain": {
+      "zh": "c6d78ea9d14c00c251ce8b39079fbb3ba5eac5f158d81a089111f01015b80a64",
+      "en": "720ba2e815e05ab95e71a7d7ccc0a4f05944fc9ee62403a10891ab8f508814ef"
     }
   }
 }

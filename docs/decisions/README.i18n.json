@@ -1,25 +1,17 @@
 {
   "version": 2,
   "sections": {
-    "/wombat-decision-notes": {
-      "zh": "2b3ae5e4f9c30339c96a06c848ccd84cdac21c22553e3e1740529896dee6eef9",
-      "en": "3d3e1d228eebee2bf77c10e030f8cb66b9d5e76533b3b0a2d2a2767a6b0a8a5c"
+    "/decision-notes": {
+      "zh": "65e54acf56882af4fc687ecf35550fa37f11f69a768288aa8f4338d8232c3331",
+      "en": "41a8891c93a1ebf766fa771740dd138550ccadc0b0da8e26fff63afa88ff7cd3"
     },
-    "/wombat-decision-notes/when-to-record": {
-      "zh": "daa77a074ebd4802416f2de652dc65c2b53b1fc2ffd1385c76121e4dc7c7eb4b",
-      "en": "bff4e4453eaa6f5ad2c85bd716cb76e27a048e9e834862bc6555b35bc49d195d"
+    "/decision-notes/find-a-decision": {
+      "zh": "f70950d741b45d85127ec31952067b809673df4ef9d27540d2af5f0c63746bc5",
+      "en": "72ca1aebabba2d348af2ea0d81a40ebdb8f74051a1378fb7936a1f1784e27846"
     },
-    "/wombat-decision-notes/status-and-discovery": {
-      "zh": "5fd6ee6aafca70f5c27b9b0080570741ecadbe61cd7aa7cb56ed44bf00d2ea85",
-      "en": "1f5a8d0b3e60d3935fb188764d2014fb4dee1c27e71afb641a037830a49b9d8a"
-    },
-    "/wombat-decision-notes/consolidation-and-deletion": {
-      "zh": "f4f79b343b8545c8a2b6ff75bf7c90ee31ac50412758652b4813bfe1169ed3f0",
-      "en": "ad1aceabdc5998692fca872ddc7d8c8bb6eceffa0c179e49f4b4ae7ba5ce68aa"
-    },
-    "/wombat-decision-notes/content-and-verification": {
-      "zh": "3fd3899f91f0691441e65890728434054b1b5a98099309461fd4ef7254e4c7b6",
-      "en": "57cc3f26970983d2a79d4b474fd44291d88772e815bb00e7561f67d511776956"
+    "/decision-notes/maintain-a-decision": {
+      "zh": "2a4308c8704389df69ef9600f2413c2d716be81643a9ecb78568996e6eef67df",
+      "en": "7a67f57ab9c2533de017fc1edad332a31da2eeaf5e34fe7e5cacfc60e31a1b17"
     }
   }
 }

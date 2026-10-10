@@ -2,7 +2,7 @@
 
 中文 | [English](privacy.en.md)
 
-本页说明当前隐私边界；数据目录与存储机制见[内核说明](../../core/README.md)。
+本页说明当前隐私边界；数据目录与存储机制见[内核说明](core.md)。
 
 Wombat 无需 API Key，只读本地 Codex rollout 日志和标题索引，不修改 Codex 日志、配置、登录和安装。实时查询发现符合条件的用量缺价时，默认向固定的 OpenAI 官方地址下载价表；显式 `prices update` 也会联网。请求不携带本地日志、标题、路径、用量或凭据，但服务方可看到连接 IP 和 Wombat User-Agent；下载拒绝重定向并限制超时与响应大小。
 

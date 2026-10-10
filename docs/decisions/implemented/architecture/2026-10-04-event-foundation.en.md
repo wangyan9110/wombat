@@ -107,9 +107,9 @@ Add field-level capabilities and versioned type mappings. Preserve borrowed raw 
 
 ### 14. Current format, index, and snapshots
 
-Follow [current-format-only storage](../../implemented/architecture/2026-10-03-current-format-only.en.md): remove the prior v1/v2/v3 read compatibility, missing-envelope fallback, and old-reader acceptance. Supported historical Codex log formats remain adapter responsibilities; they are separate from Wombat storage compatibility.
+Follow [current-format-only storage](2026-10-03-current-format-only.en.md): remove the prior v1/v2/v3 read compatibility, missing-envelope fallback, and old-reader acceptance. Supported historical Codex log formats remain adapter responsibilities; they are separate from Wombat storage compatibility.
 
-Storage, adapters, event payloads, projections, and transports have independent versions owned by the [core reference](../../../../core/README.en.md) and contracts. New directories/endpoints read current formats only. Preserve old directories without conversion, clearing, or mixed reads. User decisions remain independent. Explicit old snapshots and unknown formats return UNSUPPORTED_VERSION. Cached reads without committed indexes return NO_SNAPSHOT and require synchronization.
+Storage, adapters, event payloads, projections, and transports have independent versions owned by the [core reference](../../../reference/core.en.md) and contracts. New directories/endpoints read current formats only. Preserve old directories without conversion, clearing, or mixed reads. User decisions remain independent. Explicit old snapshots and unknown formats return UNSUPPORTED_VERSION. Cached reads without committed indexes return NO_SNAPSHOT and require synchronization.
 
 This upgrade is unpublished. Intermediate development states converge on the target versions above without promising snapshot interoperability between intermediate commits. For example, after the development schema 4 single-file event reference becomes a partition index, the temporary old structure is not current schema 4 and is rejected as structural corruption while preserving its files. Unknown schema or event-index versions still return UNSUPPORTED_VERSION. Do not add compatibility readers, migration, or automatic deletion for temporary structures; acceptance recollects into the current format.
 
@@ -164,6 +164,6 @@ Domain code currently handles interval identity conflicts, window clipping, equa
 
 ## Consequences and verification
 
-Field observations, shared operation association, and version dependencies converge through the [analysis architecture revision](2026-10-05-analysis-first-events.en.md). Context-conflict and tiered-pricing protections remain regression cases. Independent modules and final cross-entry/resource acceptance verify these semantics; the [core reference](../../../../core/README.en.md) owns behavior.
+Field observations, shared operation association, and version dependencies converge through the [analysis architecture revision](2026-10-05-analysis-first-events.en.md). Context-conflict and tiered-pricing protections remain regression cases. Independent modules and final cross-entry/resource acceptance verify these semantics; the [core reference](../../../reference/core.en.md) owns behavior.
 
 The consequences of this decision are verified through independent synthetic module tests and final real-chain acceptance. Current behavior belongs to module references; the [overview](2026-10-04-codex-task-timing.en.md) owns scope and platform/resource limits. Missing source evidence does not become zero or a successful check.

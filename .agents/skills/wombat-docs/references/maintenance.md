@@ -1,6 +1,6 @@
 # Documentation maintenance
 
-Use [documentation instructions](../../../../docs/AGENTS.md) for ownership and [pairing](../../../../docs/i18n/README.en.md) for language mechanics. This workflow does not define product behavior.
+Use [documentation instructions](../../../../docs/AGENTS.md) for ownership and [pairing](../../../../docs/i18n/workflow.en.md) for language mechanics. This workflow does not define product behavior.
 
 1. Identify the reader's task and existing owner. Classify the work as a user tutorial, technical reference, module contract, requirement, acceptance item, instruction, or decision. Read only the relevant owner, source, tests, and incoming navigation.
 2. Set the page's audience and scope before drafting. Put product-user operations in root READMEs and docs/guides, contributor implementation in docs/development, durable rationale in decisions, and repeatable agent procedures in .agents/skills. User pages must not link internal procedures. Keep cross-module relationships in architecture, module behavior beside code, unfinished requirements in owning proposals, and field inventories generated. Tutorials introduce prerequisites before actions, observable results, and recovery; references organize lookup topics. Do not add template sections or pages without a reader need.

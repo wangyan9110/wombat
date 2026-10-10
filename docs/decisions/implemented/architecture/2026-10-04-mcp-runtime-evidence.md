@@ -30,6 +30,6 @@ Status: implemented
 
 ## 影响与验证
 
-适配器版本为 `codex-rollout-3`；配置计数增加资源读取，使用次数为已观察工具调用与资源读取之和，缺完整覆盖不补零。当时处理库选择 `user_version=3`，旧布局拒绝且保留，不迁移；当前记录格式和版本见 [core README](../../../../core/README.md)，本记录不将当时验收延伸到新格式。
+适配器版本为 `codex-rollout-3`；配置计数增加资源读取，使用次数为已观察工具调用与资源读取之和，缺完整覆盖不补零。当时处理库选择 `user_version=3`，旧布局拒绝且保留，不迁移；当前记录格式和版本见 [core README](../../../reference/core.md)，本记录不将当时验收延伸到新格式。
 
 已按 Codex 0.160.0 的[协议](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/protocol/src/protocol.rs)、[持久项](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/protocol/src/items.rs)、[写入策略](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/rollout/src/policy.rs)和[资源请求处理](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/core/src/tools/handlers/mcp_resource/read_mcp_resource.rs)核对。Hook 运行通知不是这些日志的持久事件，Skill 调用主要在遥测/扩展通知中；本改动不从文本内容重建缺失事件，也不代表 MCP 提示词、完整运行覆盖或自然采用已完成。合成真值、跨入口、追加/重启和浏览器验证见 Git 历史中的验证记录。

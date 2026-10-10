@@ -10,7 +10,7 @@ Status: proposed
 
 ## 方案
 
-本机此前已实现双入口、根级唯一 Skill 源码、插件资源与受管独立副本；已核验 Codex 0.160.0 发现及持久 Skill 队列接收、合成跨模块测试和中英文浏览器流程。这不代表已完成约定的真实任务和平台验收。当前操作归属 [CLI 指南](../../../guides/cli.md)与[用户 Skill](../../../../plugin/README.md)；本提案承载理由与未完成验收。当前交付收敛为日志与 Hooks 采集、Skill 对话处理及 Web 展示解释。Web 选中对象后交给 Codex 的扩展与完整验收暂缓，不阻塞交付；已有实现和技术证据保留，后续评估是否取消支持。
+本机此前已实现双入口、根级唯一 Skill 源码、插件资源与受管独立副本；已核验 Codex 0.160.0 发现及持久 Skill 队列接收、合成跨模块测试和中英文浏览器流程。这不代表已完成约定的真实任务和平台验收。当前操作归属 [CLI 指南](../../../guides/cli.md)与[用户 Skill](../../../development/plugin.md)；本提案承载理由与未完成验收。当前交付收敛为日志与 Hooks 采集、Skill 对话处理及 Web 展示解释。Web 选中对象后交给 Codex 的扩展与完整验收暂缓，不阻塞交付；已有实现和技术证据保留，后续评估是否取消支持。
 
 ### 产品定位
 
@@ -108,7 +108,7 @@ Web 打开前，本机 Wombat 运行时须已安装并能启动；安装说明�
 
 从 Web 开始时，用户可直接查看数据，也可打开“配合 Skill 使用”学习调用方式。提供按当前页面主题组织的通用问题，例如“解释今天用量的主要贡献者”“检查当前项目的配置建议并说明依据”。只有确认可用实例后才展示其准确调用名。可复制通用示例，不生成绑定页面选中对象的处理任务，不发送到 Codex，也不创建新对话。
 
-建议页的当前操作与展示由 [UI README](../../../../ui/README.md)维护。处理主线使用当前对话，Web 保留查看与复查；旧派发接口与记录暂时保留，是否删除支持另行评估。详情继续展示问题、位置、证据、检查口径、用户决定和复查结果，不推定已经修改成功。指令和扩展页保留筛选与详情，任务页保留轮次、事件和同版本下钻。
+建议页的当前操作与展示由 [UI README](../../../development/frontend.md)维护。处理主线使用当前对话，Web 保留查看与复查；旧派发接口与记录暂时保留，是否删除支持另行评估。详情继续展示问题、位置、证据、检查口径、用户决定和复查结果，不推定已经修改成功。指令和扩展页保留筛选与详情，任务页保留轮次、事件和同版本下钻。
 
 #### 中英文、失败与设计验收
 
@@ -218,7 +218,7 @@ Web 已发送的任务应继续在接收的 Codex 任务中处理。Skill 不再
 
 研究后的建议是“用 Skill 编写任务流程，用仅含 Skill 的插件正式分发”。官方支持这种最小插件形态，MCP 仍按需求评估。本机采集版另增加已核验的 Hooks 资源；当前官方仅支持手动安装的 Codex 桌面 Hooks 插件，含 Hooks 的插件不具备公开目录资格，不能宣称两种包可用同一发布渠道。用户本机安装 Wombat 发行包，随后通过 Codex 插件安装界面安装轻量工作流包；本地 marketplace 用于首版试用，公开目录需要后续提交与审查。[官方插件打包](https://developers.openai.com/plugins/build/plugins)
 
-用户插件资源的唯一源码归属为根级 [plugin/](../../../../plugin/README.md)，Wombat Skill 放在 plugin/skills/wombat/。仓库 .agents/skills/ 继续只放开发工作流。独立安装和插件打包复用该源码，插件生成宿主标准的 skills/wombat/ 资源布局，不另维护一份 Skill。构建已从该源码生成独立资源、插件及本地 marketplace。按当前标准使用根 plugin.json；所支持的 Codex 版本若需要 .codex-plugin/plugin.json，构建从同一元数据生成兼容清单，不能手工维护两套描述。[官方格式](https://developers.openai.com/plugins/build/plugins)
+用户插件资源的唯一源码归属为根级 [plugin/](../../../development/plugin.md)，Wombat Skill 放在 plugin/skills/wombat/。仓库 .agents/skills/ 继续只放开发工作流。独立安装和插件打包复用该源码，插件生成宿主标准的 skills/wombat/ 资源布局，不另维护一份 Skill。构建已从该源码生成独立资源、插件及本地 marketplace。按当前标准使用根 plugin.json；所支持的 Codex 版本若需要 .codex-plugin/plugin.json，构建从同一元数据生成兼容清单，不能手工维护两套描述。[官方格式](https://developers.openai.com/plugins/build/plugins)
 
 Skill 使用短入口加按需参考：入口负责意图、运行入口和必要上下文；启动/初始化、用量/任务、账户、配置证据、处理/复查及 Web 解释有对应参考，相关任务才读取。辅助脚本只用于可重复且需要确定性的机械步骤；正文不复制整个 CLI 手册。[官方 Skill 组织](https://learn.chatgpt.com/docs/build-skills)
 

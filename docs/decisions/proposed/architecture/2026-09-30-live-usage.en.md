@@ -4,7 +4,7 @@
 
 Status: proposed
 
-This page retains only unfinished persistent MVCC, dependency-closure reconciliation, database aggregation, and scale acceptance. The [live-query](../../implemented/architecture/2026-10-01-rust-live-query.en.md) and [compact-index](../../implemented/architecture/2026-10-02-compact-live-index.en.md) decisions cover delivered on-demand services, incremental cursors, SQLite transactions, and fixed in-memory views. The [core](../../../../core/README.en.md), [contract](../../../development/contracts.en.md), and [CLI guide](../../../guides/cli.en.md) own current operations and lifecycle without repetition here. Retired TUI behavior, old-protocol compatibility, and old-snapshot migration are no longer proposed.
+This page retains only unfinished persistent MVCC, dependency-closure reconciliation, database aggregation, and scale acceptance. The [live-query](../../implemented/architecture/2026-10-01-rust-live-query.en.md) and [compact-index](../../implemented/architecture/2026-10-02-compact-live-index.en.md) decisions cover delivered on-demand services, incremental cursors, SQLite transactions, and fixed in-memory views. The [core](../../../reference/core.en.md), [contract](../../../development/contracts.en.md), and [CLI guide](../../../guides/cli.en.md) own current operations and lifecycle without repetition here. Retired TUI behavior, old-protocol compatibility, and old-snapshot migration are no longer proposed.
 
 ## Problem
 

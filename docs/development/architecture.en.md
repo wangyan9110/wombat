@@ -43,11 +43,11 @@ Dependencies point from `cli → web + client/node`, `web → client`, `ui → c
 
 Business rules stay in Rust: adapters own source semantics and identity; `pricing.rs` / `pricing_sync.rs` own amounts and catalog eligibility; `live.rs` / `live_index.rs` own incremental indexes and versions; `usage_store.rs` owns immutable snapshots; `usage_app.rs` / `usage_app_dto.rs` own operations, filters, sorting, full-scope totals, and pagination. Lists never recompute totals, shares, or pricing from the current page.
 
-The frontend query coordinator owns version observation, a consistent main view and a bounded query cache. Turns, events and period details load independently on demand, with filters included in query identity. Business sorting and full-scope totals remain in the core; see the [frontend guide](../../ui/README.en.md) for pagination and cancellation.
+The frontend query coordinator owns version observation, a consistent main view and a bounded query cache. Turns, events and period details load independently on demand, with filters included in query identity. Business sorting and full-scope totals remain in the core; see the [frontend guide](frontend.en.md) for pagination and cancellation.
 
 ## Host and service responsibilities
 
-The Web host adapts authenticated loopback requests to UsageClient. The core owns directory grants, version-bound selections, user decisions, and check facts; Node sends native Codex tasks and reads account facts. Codex acceptance does not establish resolution, and rechecks do not revoke user decisions. HTTP limits and connection ownership belong in the [Web reference](../../web/README.en.md); transport contracts belong in the [client reference](../../client/README.en.md).
+The Web host adapts authenticated loopback requests to UsageClient. The core owns directory grants, version-bound selections, user decisions, and check facts; Node sends native Codex tasks and reads account facts. Codex acceptance does not establish resolution, and rechecks do not revoke user decisions. HTTP limits and connection ownership belong in the [Web reference](../reference/web-host.en.md); transport contracts belong in the [client reference](../reference/client.en.md).
 
 ## Domain and persistence
 
@@ -100,7 +100,7 @@ Handoff selection binds the read view, decision revision, and target content ver
 
 ### Persistence boundaries and current model limits
 
-Snapshot publication and incremental indexing commit facts before exposing new results. Failure preserves previously committed data; rebuildable indexes and durable user decisions have separate lifetimes. The [core reference](../../core/README.en.md) owns storage, service lifecycle, and failure details. [Contracts](contracts.en.md) owns generated fields and version semantics; [privacy](../reference/privacy.en.md) owns data retention and networking limits.
+Snapshot publication and incremental indexing commit facts before exposing new results. Failure preserves previously committed data; rebuildable indexes and durable user decisions have separate lifetimes. The [core reference](../reference/core.en.md) owns storage, service lifecycle, and failure details. [Contracts](contracts.en.md) owns generated fields and version semantics; [privacy](../reference/privacy.en.md) owns data retention and networking limits.
 
 Parent relationships use events and a shared relationship index. Lifecycle uses phases and shared association. Neither has a unified public entity. A project is an evidenced directory attribution. Resource targets remain mainly attached to operations. `Collected` is a fact collection; `Snapshot` is a read view. Types with the same name must be read in their module context. A new entity needs an explicit query consumer.
 

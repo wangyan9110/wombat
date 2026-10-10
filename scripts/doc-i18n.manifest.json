@@ -279,6 +279,56 @@
       "zh": "docs/decisions/implemented/product/2026-10-09-task-statistics-monitoring.md",
       "en": "docs/decisions/implemented/product/2026-10-09-task-statistics-monitoring.en.md",
       "record": "docs/decisions/implemented/product/2026-10-09-task-statistics-monitoring.i18n.json"
+    },
+    {
+      "zh": "docs/reference/core.md",
+      "en": "docs/reference/core.en.md",
+      "record": "docs/reference/core.i18n.json"
+    },
+    {
+      "zh": "docs/reference/client.md",
+      "en": "docs/reference/client.en.md",
+      "record": "docs/reference/client.i18n.json"
+    },
+    {
+      "zh": "docs/reference/cli.md",
+      "en": "docs/reference/cli.en.md",
+      "record": "docs/reference/cli.i18n.json"
+    },
+    {
+      "zh": "docs/reference/web-host.md",
+      "en": "docs/reference/web-host.en.md",
+      "record": "docs/reference/web-host.i18n.json"
+    },
+    {
+      "zh": "docs/development/frontend.md",
+      "en": "docs/development/frontend.en.md",
+      "record": "docs/development/frontend.i18n.json"
+    },
+    {
+      "zh": "docs/development/plugin.md",
+      "en": "docs/development/plugin.en.md",
+      "record": "docs/development/plugin.i18n.json"
+    },
+    {
+      "zh": "docs/i18n/workflow.md",
+      "en": "docs/i18n/workflow.en.md",
+      "record": "docs/i18n/workflow.i18n.json"
+    },
+    {
+      "zh": "docs/development/decision-maintenance.md",
+      "en": "docs/development/decision-maintenance.en.md",
+      "record": "docs/development/decision-maintenance.i18n.json"
+    },
+    {
+      "zh": "docs/guides/web.md",
+      "en": "docs/guides/web.en.md",
+      "record": "docs/guides/web.i18n.json"
+    },
+    {
+      "zh": "docs/guides/plugin.md",
+      "en": "docs/guides/plugin.en.md",
+      "record": "docs/guides/plugin.i18n.json"
     }
   ],
   "legacyUnpaired": [],

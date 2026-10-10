@@ -10,12 +10,12 @@
       "en": "28a598b035fcef6728d9b87dab8fe37d1d5bb1264f7b5ece72420c53628ed6fa"
     },
     "/wombat-architecture/modules": {
-      "zh": "9d43affa3b844e036bbdc1030cc1a0ac51e78b93e2ae9b26d0a128218df4b54c",
-      "en": "4a2e5dc8e4d351e25c37a80002a9dfbf5f18595fb3270637c3a51053842e6571"
+      "zh": "d251a77743c84558ea3f5390c811a933a3d6465d7e822f6a321d6a0e7b01c279",
+      "en": "f5497264e856fef781df866ecaf1a27f2129b34085bd135354c2025d93a2c7eb"
     },
     "/wombat-architecture/host-and-service-responsibilities": {
-      "zh": "0d6d5dcf9da4813e7cc7f60bc9017eafe2599b72612d4970837527e7e09900da",
-      "en": "89b21205284ad477db509f062a9decf25f60beac4588628ca69757ff3f728967"
+      "zh": "168ed8584910d1be043198c92dbd2dc681a0496a5181719497c931bac0a15b18",
+      "en": "9207e90f963625b4c12cc8db018e37cdc1f1e69f00eddcda21d4615e95edb65f"
     },
     "/wombat-architecture/domain-and-persistence": {
       "zh": "239ef154c5b483c2b69f8848c880e10aaf2a7add23507822000f14f6b2a901da",
@@ -34,8 +34,8 @@
       "en": "a84c5d62a4e7195d0b88d673e40827c80de17e08b3c184d5a48498353b1fd777"
     },
     "/wombat-architecture/domain-and-persistence/persistence-boundaries-and-current-model-limits": {
-      "zh": "a527e27a3b617e22da57ff494751e2673a056a33468077f8d652dc738bf878da",
-      "en": "fd0fe662277b4c570b7c291b4a206a6e53d5b366c4d13f2186d0d0c48cc9f493"
+      "zh": "535201e32469b3411678ffc630f880932c21f460d867f1282a36bd28e2c603be",
+      "en": "d80440bf306209ef7870ec93617f880f85f99063250d9943b2a02caec26b92af"
     },
     "/wombat-architecture/development-entry-points": {
       "zh": "fb51011cdd7281ec7ba51281d8a4c39cf9b570926ba547029de6b9083274dae9",

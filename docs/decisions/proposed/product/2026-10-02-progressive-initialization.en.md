@@ -10,7 +10,7 @@ First reads of large histories may lack complete results. Existing provisional t
 
 ## Proposal
 
-The [core guide](../../../../core/README.en.md) owns current discovery, incremental indexing, recovery, and commits. The [UI README](../../../../ui/README.en.md) owns current Web query lifecycle, and the [project-discovery decision](../../implemented/architecture/2026-10-04-observed-project-discovery.en.md) owns authorization rationale. Extend this flow with project events, progressive commits, independent failures, and retries, without a separate one-time import state or button-click completion heuristic.
+The [core guide](../../../reference/core.en.md) owns current discovery, incremental indexing, recovery, and commits. The [UI README](../../../development/frontend.en.md) owns current Web query lifecycle, and the [project-discovery decision](../../implemented/architecture/2026-10-04-observed-project-discovery.en.md) owns authorization rationale. Extend this flow with project events, progressive commits, independent failures, and retries, without a separate one-time import state or button-click completion heuristic.
 
 ### Real events and project identity
 

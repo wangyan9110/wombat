@@ -2,8 +2,8 @@
   "version": 2,
   "sections": {
     "/decision-note-codex-task-timing-research-and-technical-design": {
-      "zh": "4138d088143ce61e7b7303b71eeeea0832535f0d94bfb8dbc9e71f207edd553a",
-      "en": "7ce6d96730d6d609aac2b397a2c715da872f619f821c0ba3ac0fb1476964dce7"
+      "zh": "ec8ff885a61cb93cc4906649093689de114317b5bd3b30a7947046700137bef8",
+      "en": "df945dab46f297b3f7420922db6425ed4335c5f6b82db3e114b28e4801422bdc"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/problem": {
       "zh": "7d70e57f90e4732b7a903796692be49641e554dbb912d2ce324e66a782faf466",
@@ -130,8 +130,8 @@
       "en": "4f067800fcc02d667b4787f2c8f1eabc3f2b899ea72dbbaa10e38fa241d65b5f"
     },
     "/decision-note-codex-task-timing-research-and-technical-design/consequences-and-verification/delivery-scope-and-actual-limits/frozen-input-contracts": {
-      "zh": "04892e984e70aef72130efacc422727cc4dca9e1971c24820f7fd511ea36e03c",
-      "en": "98aa7ca89e21f10ee270562515127782f27670826149e5425e4616affa000e94"
+      "zh": "3d7e42dff790f930964c996632fd9c60857ac6bf7d18b77961b4cab944c9a35c",
+      "en": "c41471dad63cf48b4e5939337a2f63af254f8ab4ff10f052d1aae283f2720374"
     }
   }
 }

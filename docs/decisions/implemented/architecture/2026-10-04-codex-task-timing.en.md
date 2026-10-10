@@ -4,7 +4,7 @@
 
 Status: implemented
 
-Research date: 2026-10-04. This decision adopts unified safe events, fixed evidence views, and shared analysis for Codex turn timing, Tokens, Skill/MCP use, and rule queries. Public examples are synthetic. The [core reference](../../../../core/README.en.md), [CLI guide](../../../guides/cli.en.md), and source own current entries and limits. Historical baselines below explain the choice, not current gaps.
+Research date: 2026-10-04. This decision adopts unified safe events, fixed evidence views, and shared analysis for Codex turn timing, Tokens, Skill/MCP use, and rule queries. Public examples are synthetic. The [core reference](../../../reference/core.en.md), [CLI guide](../../../guides/cli.en.md), and source own current entries and limits. Historical baselines below explain the choice, not current gaps.
 
 ## Problem
 
@@ -208,4 +208,4 @@ The fixed resource corpus contains 500 tasks, 100,000 measurements, and 100,000 
 - Operation keys prefer source, reliable session/turn, and native call identity; starts, results, and streaming updates share the key. Without native identity, retain event-level candidates; do not merge by name, nearby time, or equal output. Existing accounting deduplication handles proven fork inheritance; independent calls stay separate.
 - Each commit fixes source generations, complete-line end offsets, and parser/projection versions. Incomplete trailing lines do not advance watermarks. Events, cursors, and projections commit together; cancellation or failure cannot publish half a version. Per-file watermarks do not prove a simultaneous directory-wide observation.
 - Occurrence time, observation time, native duration, and precision remain separate; missing values stay unknown. Rule inputs bind configuration content version, event projection version, host observation scope/time, method version, parameters, and evaluation cutoff; invalidate only related dependencies.
-- The [core reference](../../../../core/README.en.md) and source contracts own current independent versions. Preserve old index directories and explicit old snapshots while rejecting mixed reads. User decisions, reasons, and review baselines are separate; rebuilding does not clear them.
+- The [core reference](../../../reference/core.en.md) and source contracts own current independent versions. Preserve old index directories and explicit old snapshots while rejecting mixed reads. User decisions, reasons, and review baselines are separate; rebuilding does not clear them.

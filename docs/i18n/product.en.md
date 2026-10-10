@@ -2,7 +2,7 @@
 
 [中文](product.md) | English
 
-This page defines the CLI/Web presentation language and the rules for user-facing pages and copy. The [bilingual documentation workflow](README.en.md) owns document pairing.
+This page defines the CLI/Web presentation language and the rules for user-facing pages and copy. The [bilingual documentation workflow](workflow.en.md) owns document pairing.
 
 ## Usage
 
@@ -19,7 +19,7 @@ Web switches through the header or detail language button while retaining page, 
 
 ## User-facing pages and copy
 
-Use these rules to write and review pages, dialogs, forms, notices, CLI help, and error messages. They are maintenance requirements, not a claim that all existing pages have passed acceptance checks. Apply ASD-STE100 to technical explanations as described in the [language review rules](README.en.md). Use familiar language and interface conventions for buttons, menus, and short labels. Do not add words only to make a label a complete sentence.
+Use these rules to write and review pages, dialogs, forms, notices, CLI help, and error messages. They are maintenance requirements, not a claim that all existing pages have passed acceptance checks. Apply ASD-STE100 to technical explanations as described in the [language review rules](workflow.en.md). Use familiar language and interface conventions for buttons, menus, and short labels. Do not add words only to make a label a complete sentence.
 
 - Organize information around the user's task. First explain what the user is viewing, what the result means, and what they can do next. Provide methods and technical evidence as needed. Use familiar product terms by default. Show implementation details when they help users locate a problem, check evidence, or make a decision. Do not explain product actions with internal module names, protocol terms, or development status.
 - Use page titles to name the object or task, buttons to name the action and its target when needed, and links to name the destination. Use the same name for the same action. Prefer specific labels such as “View details,” “Retry,” and “Clear filters” to vague labels such as “Process,” “OK,” or “Click here.” Distinguish viewing, saving, rechecking, and handing work to Codex according to their actual behavior. Do not present a recommendation as a completed action.

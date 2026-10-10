@@ -10,20 +10,20 @@
       "en": "53cd662530f6bc7a96901ab4261bc535e66b7d57fdc8135212b0f31214a0cc9e"
     },
     "/cli-and-automation/compare-usage": {
-      "zh": "0ef92113af1e62fbf77782836dca87b852dabcd8ea7f7000b519401866a99346",
-      "en": "7810d316bec33705390dc683d18fc11175bb22b58d44dd4f6a94e63085d5ff6f"
+      "zh": "823628d17a8231c0e936a537bd12be95fb5d372de3f3e3ba208725004f9e5943",
+      "en": "b8ef5c57c92d7177d3fe243d43ee2813586d1137ca434b35629e197559436ad6"
     },
     "/cli-and-automation/task-distributions-and-budgets": {
-      "zh": "5bde7e6bc60f2a56e2be5a58cc1f98a298c3089e13cd95a085e9721563b8937f",
-      "en": "bc3f94b42e83cd491daea5c5b5fb16e74fc3f9585b417607817997e7c0139a2b"
+      "zh": "5b53ac41645ccbee38e3746cd77821a1118ccda742a1452a414637fba3c2747e",
+      "en": "95fe0e14209d137afe45d1390be651d744f71871ff0885fd91ebbc80eee0080d"
     },
     "/cli-and-automation/usage-inspection-and-review": {
-      "zh": "7ab08930af1c259d371dcbc16b727cb92bc7341497f6a2b6540f772d54526eec",
-      "en": "3ce516f5f581c0b6a38e818cee16a7928e73752beb461b8be3e9e58f963df5eb"
+      "zh": "dc8648b38e3ed98bd7b603f8bb5ad3fc9bac7e6bf62fb019e16944e97272e53b",
+      "en": "c1b12424b00b4a0b82bf8f93763709a1a80528502fe8b23fd94abbc6c4c5ba0c"
     },
     "/cli-and-automation/codex-skill": {
-      "zh": "0ce820da854835d06e3a10e388d2f275e3d3a73f199d93c88c1b66f81193f1e5",
-      "en": "28bd77e0ae4e56eb9c79586eebcbd930058ca80e48ed2d0d24cbdc0326a74221"
+      "zh": "773f52b96b07df473afba2c860672a79ebea4cc062e0a7aa668daa5ac8fd899f",
+      "en": "963df6b0ab89f2ef98ccd49ec0fee123959082508deca9409c09e31f95c1cd2f"
     },
     "/cli-and-automation/language": {
       "zh": "cfeb3518580569b9e18e81faff0c4e1c5c22c77d25820978f49c8948d44e0b14",
@@ -70,8 +70,8 @@
       "en": "1474f7b3c897d75117a6975bb0e9a58793e642481100f8a22ec8a37e89115f81"
     },
     "/cli-and-automation/setup-and-collection": {
-      "zh": "c696af52c683b3405e3c154d198a10ecd1f91ce9480988ac3ef7aa66e8996643",
-      "en": "38ebf562b0efaf7cf6ff83b7a5b7c7e59a8490112fdf1f1004133752c0881e96"
+      "zh": "daea5f9fb44d82048e6b7aac17659ef05d5097c38ed6051650176f8a23e321df",
+      "en": "13d544eb71609e404c4bd69feba63b015a2617784353816fa75f10cd1a228958"
     }
   }
 }

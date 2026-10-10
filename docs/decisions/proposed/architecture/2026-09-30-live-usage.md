@@ -4,7 +4,7 @@
 
 Status: proposed
 
-本页仅保留尚未完成的持久 MVCC、依赖闭包局部归并、数据库聚合和规模验收目标。按需服务、增量游标、SQLite 事务及固定内存视图已由[实时查询](../../implemented/architecture/2026-10-01-rust-live-query.md)与[紧凑索引](../../implemented/architecture/2026-10-02-compact-live-index.md)决定承接；当前操作和生命周期归属[内核](../../../../core/README.md)、[契约](../../../development/contracts.md)与 [CLI 指南](../../../guides/cli.md)，不在此重复。旧 TUI、旧协议兼容和旧快照迁移不再属于提案。
+本页仅保留尚未完成的持久 MVCC、依赖闭包局部归并、数据库聚合和规模验收目标。按需服务、增量游标、SQLite 事务及固定内存视图已由[实时查询](../../implemented/architecture/2026-10-01-rust-live-query.md)与[紧凑索引](../../implemented/architecture/2026-10-02-compact-live-index.md)决定承接；当前操作和生命周期归属[内核](../../../reference/core.md)、[契约](../../../development/contracts.md)与 [CLI 指南](../../../guides/cli.md)，不在此重复。旧 TUI、旧协议兼容和旧快照迁移不再属于提案。
 
 ## 问题
 

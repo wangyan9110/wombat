@@ -1,13 +1,21 @@
 {
   "version": 2,
   "sections": {
-    "/wombat-user-plugin": {
-      "zh": "d98034a6e4d1692f2ecc06302c0b530f342131041e22ae2c50fd697dbdc10e6e",
-      "en": "2d00685dd5e0c7d3ac8b479ca65729babb18785fbff1321d3720b05f4c4388c9"
+    "/wombat-plugin-source": {
+      "zh": "08fa5d81d374c00c75e1f7fa1acb97b0c323c7cb47d53d8b44e84b230e19afb2",
+      "en": "13a6e296389f129a65153318ee0ce16ed4e85e715b22f891f6f8c8bb44c15c53"
     },
-    "/wombat-user-plugin/local-collection-package": {
-      "zh": "b577ad1fbd94e97a19876aff5d1e6ebb8a483f0533d910cd507268945340581f",
-      "en": "71fbb0560a42b4c7c6a1608e436a697de9fde564e9ba637c412948b64a5a2a93"
+    "/wombat-plugin-source/source-entries": {
+      "zh": "dc0816a3e3a305e3db477b1864b8f598e79937f7cf75bb482876cff13af0fbc8",
+      "en": "737774a5e5b2c386053f4cae6484c417f0422e7ca234ca55b8a126835608d145"
+    },
+    "/wombat-plugin-source/limits": {
+      "zh": "ea58007309edd86879aa85aef2542248f54523c64ff381a883084da92be956c9",
+      "en": "d63096bcd343962803f40c55cb98eb6eb00bf0974554462ea122bb3f1290095a"
+    },
+    "/wombat-plugin-source/read-next": {
+      "zh": "cd383ed469840a8ace160f48d722f63f2f8441f091ffd9fbc7e6206d69636d57",
+      "en": "e00f8b6553d576ffc27fa5ad5db74d5d4d50216c15f868ccaa0c2ca9f9cc7919"
     }
   }
 }

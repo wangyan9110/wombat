@@ -4,7 +4,7 @@
 
 Status: implemented
 
-The [contract](../../../development/contracts.en.md) owns field semantics; the [frontend guide](../../../../ui/README.en.md) owns current Web navigation.
+The [contract](../../../development/contracts.en.md) owns field semantics; the [frontend guide](../../../development/frontend.en.md) owns current Web navigation.
 
 ## Problem
 

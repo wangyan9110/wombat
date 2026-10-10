@@ -2,32 +2,20 @@
   "version": 2,
   "sections": {
     "/local-web-host": {
-      "zh": "69cd4bc58e55de1b80b09488f3445f026302a74d1100a96a8471760faf1aa7ca",
-      "en": "169cf79696785facfc8465c836025e0f78f6fb00232d92ca710bf974456401a3"
+      "zh": "1294a8d76979b341f85f6dd18701443aa3751c7ee0a76fcb5d66abf9d558bd16",
+      "en": "f05fd9f7a9585cff3fdcd8d6b48aea2f1cbaa987731269dd22fee2861238354d"
     },
-    "/local-web-host/access-and-resource-limits": {
-      "zh": "99de1b5b639f63238a647598b82d2887b1df44f6c69f4fd776ff29ccba8fcf10",
-      "en": "a19880948d5822d7726fd52ac6f9396f3d018bb93805579d364b443524491185"
+    "/local-web-host/public-entry": {
+      "zh": "3180039b211c804fbaa2c43a8305bdbad4a2cfa5f753b67a6ce4c31de91b9022",
+      "en": "80b6406ba6994e57a71edd61615866ccfcbb0b4b7688f91d23e811eaa8a31023"
     },
-    "/local-web-host/timing-reads": {
-      "zh": "f00a5d6f3b28455d9a341014b9a8da889e8b761275a915255f291e3ed2ce474d",
-      "en": "f030f730c3269835991f44adebf5419d192060df169333970b16d4c0cb016834"
+    "/local-web-host/limits": {
+      "zh": "803d28add6a36b96ff59fd72c8b28931bfbbdba11c4fb0e3c1f23ee892601f41",
+      "en": "9911dce24539980112e907a3a58270f55959704b9df2027ed581cf7606178c65"
     },
-    "/local-web-host/context-opening": {
-      "zh": "064e515dd2843cbb53ca509e689398084da75e133f31b813cfc98b0a1cbc658b",
-      "en": "938eade39f9cd5685999c96df9a0270418ec72e8ecce1d7d0e16baf1de43f665"
-    },
-    "/local-web-host/background-prices": {
-      "zh": "da98a6cebf0b81c4e5155b84b5a063e9efdea635a161216f28cee0b792d76c4b",
-      "en": "aadf222a61491af4f09cf6703d19993b3cb7f4a5bfae28fa0815d8cb47030a7b"
-    },
-    "/local-web-host/verification": {
-      "zh": "9623065101c63a47eb24a38bfb628fcc38e68c1ffb14a787a65b6d28e84f4e88",
-      "en": "7b6e047342634a9074f3a7da64232f0446060382f9c9d3c229c6f1dc82cdaeda"
-    },
-    "/local-web-host/setup-and-collection": {
-      "zh": "366f456d246dd6b7eefdaa23d0f444e46c85a79a29fc313f55d49208006a7a55",
-      "en": "effaa62dad32db944b26593a31709d4e777271670d29e7b472ce878518c5109c"
+    "/local-web-host/read-next": {
+      "zh": "8bc0e08f059fac1d595c123b6b175429c79933882dfa36c93ce09e24fd7ee1be",
+      "en": "6111cfbad67c86a3d52d7fe9f0834c803f902bc94e8bd5d4b5e20d342329b238"
     }
   }
 }

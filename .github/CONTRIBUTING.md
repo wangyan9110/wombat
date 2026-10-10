@@ -4,9 +4,9 @@ English | [中文](CONTRIBUTING.zh-CN.md)
 
 Wombat uses a shared Rust core with a Node.js CLI and local Web host. Before you start, read [AGENTS.md](../AGENTS.md), [architecture](../docs/development/architecture.en.md), and the [development workflow](../docs/development/workflow.en.md).
 
-Install the locked dependencies and build the project. Then run type checks, generated contract checks, and tests. Cross-language tests use `dist` and must run after a build. For Rust changes, check formatting and run clippy with warnings treated as errors.
+Source builds require Node.js 26.4.0 or newer, Corepack, pnpm, and the Rust version in `rust-toolchain.toml`. Clone the repository. Install the locked dependencies and build the project. Then run type checks, generated contract checks, and tests. Cross-language tests use `dist` and must run after a build. For Rust changes, check formatting and run clippy with warnings treated as errors.
 
-For documentation or Skill changes, update both versions of paired pages and run `corepack pnpm docs:check`. Follow the [language review rules](../docs/i18n/README.en.md) for ASD-STE100 technical writing and translation review.
+For documentation or Skill changes, update both versions of paired pages and run `corepack pnpm docs:check`. Follow the [language review rules](../docs/i18n/workflow.en.md) for ASD-STE100 technical writing and translation review.
 
 ```sh
 corepack pnpm install --frozen-lockfile

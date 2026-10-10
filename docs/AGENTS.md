@@ -20,7 +20,7 @@ Apply the [one fact, one home rule](../AGENTS.md#standing-constraints) with the 
 
 ## Editing
 
-- Public prose follows the [bilingual workflow](i18n/README.en.md): update both languages, review technical prose under ASD-STE100, and confirm only reviewed pairs. AGENTS.md files use English and are exempt from pairing.
+- Public prose follows the [bilingual workflow](i18n/workflow.en.md): update both languages, review technical prose under ASD-STE100, and confirm only reviewed pairs. AGENTS.md files use English and are exempt from pairing.
 - User docs exclude release internals; docs:structure checks this.
 - Tutorials follow prerequisites, steps, observable results, and failure recovery. References describe current behavior by topic. Split substantial mixed content.
 - Use one Markdown title and one physical line per prose paragraph; preserve code, tables, and quotes. docs:structure checks paired prose and budgeted instructions; leading HTML branding is allowed.

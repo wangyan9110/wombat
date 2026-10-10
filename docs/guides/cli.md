@@ -46,7 +46,7 @@ wombat compare --since 2026-09-08 --until 2026-09-15 --baseline-since 2026-09-01
 wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-time --json
 ```
 
-`--dimension` 可选 `project`、`model` 或 `thread`；`--limit` 和 `--offset` 控制贡献分页。会话 ID 使用 `threads --json` 的 `id`；`--family` 加入明确关联的后代。两种比较均保留日期和维度筛选，并支持 `--snapshot` 固定版本；显式 `--fresh` 才请求同步。过期版本返回错误，重新读取列表后再比较。实时结果中的 `freshness.publicationChange` 说明最近成功发布的变化，文本也显示变化计数；没有完整基准时不提供摘要。[核心参考](../../core/README.md) 定义计算与限制。
+`--dimension` 可选 `project`、`model` 或 `thread`；`--limit` 和 `--offset` 控制贡献分页。会话 ID 使用 `threads --json` 的 `id`；`--family` 加入明确关联的后代。两种比较均保留日期和维度筛选，并支持 `--snapshot` 固定版本；显式 `--fresh` 才请求同步。过期版本返回错误，重新读取列表后再比较。实时结果中的 `freshness.publicationChange` 说明最近成功发布的变化，文本也显示变化计数；没有完整基准时不提供摘要。[核心参考](../reference/core.md) 定义计算与限制。
 
 ## 任务分布与预算
 
@@ -64,7 +64,7 @@ wombat monitor acknowledge --notification NOTIFICATION_ID --json
 wombat monitor remove --id project-week --json
 ```
 
-任务统计默认选择最近30个自然日；`--all-time` 选择全部可用日期。项目或模型分组接受 `--limit` 与 `--offset`，总体覆盖完整范围。`--thread` 选择的任务与该总体比较。完整任务总量用于均值、中位数和 P90；不完整任务及未归属计量单独保留。一个任务使用多个模型时，各模型总体可以重叠。等长且不重叠的比较周期保留其他筛选。[核心参考](../../core/README.md)拥有计算方法与限制。
+任务统计默认选择最近30个自然日；`--all-time` 选择全部可用日期。项目或模型分组接受 `--limit` 与 `--offset`，总体覆盖完整范围。`--thread` 选择的任务与该总体比较。完整任务总量用于均值、中位数和 P90；不完整任务及未归属计量单独保留。一个任务使用多个模型时，各模型总体可以重叠。等长且不重叠的比较周期保留其他筛选。[核心参考](../reference/core.md)拥有计算方法与限制。
 
 监控计划保存身份筛选、时区、自然周期及可选 Token 阈值。`--review` 同时请求最近一个已结束周期的统计。`--disabled` 保存暂停的计划；重复使用其 ID 可修改设置。预警默认在阈值的80%触发，可用 `--warning 0.9` 调整。这是用户预算，与账户额度独立。`check` 检查全部启用计划，`--id` 可选择一个；重复 `--root` 可选择来源。检查近期固定视图时使用 `--snapshot ID --id PLAN_ID`，不附加来源根目录。视图过期后，按原范围重新检查。
 
@@ -85,11 +85,11 @@ wombat steps --snapshot SNAPSHOT_ID --thread THREAD_ID --turn TURN_ID --locate-o
 wombat account history --json
 ```
 
-复盘不接受分页；省略日期时选择固定视图截止日期所在周，周一开始。其他检查可用 `--limit` 和 `--offset`，并保留同一范围。使用返回的完整证据身份下钻；操作不存在时返回 `NOT_FOUND`，视图过期时重新取得原范围并按身份定位。额度历史无需原生进程，只读取已保存的观测。阈值、统计口径及预算由[核心参考](../../core/README.md)维护；检查线索不能证明浪费，输入不是上下文占用，变更报告不是已验证的文件变化。
+复盘不接受分页；省略日期时选择固定视图截止日期所在周，周一开始。其他检查可用 `--limit` 和 `--offset`，并保留同一范围。使用返回的完整证据身份下钻；操作不存在时返回 `NOT_FOUND`，视图过期时重新取得原范围并按身份定位。额度历史无需原生进程，只读取已保存的观测。阈值、统计口径及预算由[核心参考](../reference/core.md)维护；检查线索不能证明浪费，输入不是上下文占用，变更报告不是已验证的文件变化。
 
 ## Codex Skill
 
-新版[用户 Skill](../../plugin/README.md)以对话任务为入口，可结合 Web 查看证据；处理继续在当前 Codex 对话中完成，Web 保留查看与复查。Skill 使用已有 CLI JSON，初始化复用有界索引恢复和同步，账户不等待日志。
+新版[用户 Skill](plugin.md)以对话任务为入口，可结合 Web 查看证据；处理继续在当前 Codex 对话中完成，Web 保留查看与复查。Skill 使用已有 CLI JSON，初始化复用有界索引恢复和同步，账户不等待日志。
 
 正式插件由 Codex 管理，插件调用名在已核验的 Codex 0.160.0 中为 $wombat:wombat。独立本机试用调用名为 $wombat：
 
@@ -249,7 +249,7 @@ wombat collection mode logs --json
 wombat usage --watch --json
 ```
 
-偏好作用于本机；`--project` 和可重复的 `--root` 只筛选状态与事件。logs 模式忽略新 Hook 输入并保留数据；hooks 模式允许安全接收，不证明注册或信任。安装[本地采集插件](../../plugin/README.md)，再在 Codex `/hooks` 中审查声明。POSIX 桥接使用受管启动器或 Codex PATH；Windows 仍未验收。移除插件不删除观察。
+偏好作用于本机；`--project` 和可重复的 `--root` 只筛选状态与事件。logs 模式忽略新 Hook 输入并保留数据；hooks 模式允许安全接收，不证明注册或信任。安装[本地采集插件](plugin.md)，再在 Codex `/hooks` 中审查声明。POSIX 桥接使用受管启动器或 Codex PATH；Windows 仍未验收。移除插件不删除观察。
 
 暂停最多保留 4,096 条安全观察，恢复后可用；历史仍可查看。最多保留 100,000 条观察，已知溢出和身份冲突计入缺口。缺少原生身份时保持未知；输入拒绝和运行时失败不计入已存缺口，不声称无损投递或完整覆盖。来源事件时间可能缺失，与接收时间分开。已验证日志关联使用当前已提交的来源版本；后续比较前仍需获取普通固定查询视图。
 

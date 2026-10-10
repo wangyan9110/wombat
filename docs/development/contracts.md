@@ -87,7 +87,7 @@ currentItems 不计明确缺失的路径，清单仍公开缺失行；显式读�
 
 `core/src/preferences.rs` 生成[偏好请求](../schemas/preferences-request-v1.schema.json)与[响应](../schemas/preferences-response-v1.schema.json)，`UsageClient.preferences` 仅 get/set zh/en；私有原子文件为 `user-v1/language.json`，不接受任意路径或内容。Web 的语言优先级见[语言契约](../i18n/product.md)。
 
-`optimize` 响应版本 2 增加固定轮次的活动检查；请求版本 1 和持久复查格式保持原版本。`action: activity` 必须选择一个快照、任务和轮次，不接受配置视图或处理记录参数。它消费共用轮次分析，不采集配置、宿主钩子或价格，也不写复查历史。行为见[内核说明](../../core/README.md)，操作见[CLI 指南](../guides/cli.md)。无法识别的响应版本或字段会被拒绝。
+`optimize` 响应版本 2 增加固定轮次的活动检查；请求版本 1 和持久复查格式保持原版本。`action: activity` 必须选择一个快照、任务和轮次，不接受配置视图或处理记录参数。它消费共用轮次分析，不采集配置、宿主钩子或价格，也不写复查历史。行为见[内核说明](../reference/core.md)，操作见[CLI 指南](../guides/cli.md)。无法识别的响应版本或字段会被拒绝。
 
 当前规则使用static-config-v7。bodyTokenEstimate独立分词精确正文，payload=skillBody，含tokenizerVersion、method/contentHash及referenceEncodingOnly，所在configRevision/readView固定快照。bodyEstimateStatus公开未知/解析/资源缺口，旧缓存默认unknown；解析失败不写零。全文/正文各≤1MiB，两者输入都计入单轮8MiB预算。AGENTS.md>16,384B为产品提醒，Skill正文≥5,000为参考提醒，description501—1,024为产品提醒，>1,024为规范问题且不重复500提醒。ruleOverrides只允许agentsBytes正安全整数及descriptionCharacters 0..1024，ruleParameters返回默认/覆盖/固定线及授权当前配置适用边界；记录保留原规则，recheckRuleParameters保存复查规则。规范约束不可覆盖，正文未知不能复查通过。加载预算诊断/闲置/空间能力仍关闭，边界见[优化闭环提案](../decisions/proposed/product/2026-10-03-optimization-lifecycle.md)。
 

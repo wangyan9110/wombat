@@ -1,41 +1,21 @@
 {
   "version": 2,
   "sections": {
-    "/cli-command-entry": {
-      "zh": "caea7baa011f93d31c64b7f5907b9c18b9ff5eb4b9282e667d8cdd7c40e71910",
-      "en": "c421a3ed9cc9c808a28866e0dfcc7191d9e35cfec75e2706c3bfed17acc4659d"
+    "/cli-entry": {
+      "zh": "d5f1247c6d11c4c44ed58a6e43e3d55458fce664ebe60e1345350f6737f1ded0",
+      "en": "e848b047d24f2d6be5486b5fa3ebe151e34eb420ac08575bd2942c7c4406cac4"
     },
-    "/cli-command-entry/public-entries": {
-      "zh": "63d523aaf15b2884ecbd0f4107abe43b7a3adbc5999ed79dee2b7c6522490767",
-      "en": "01c943d6d56c0ccb71171d38a16e2e46aabe207efc25d18b67f0ff48cfd7df08"
+    "/cli-entry/public-entries": {
+      "zh": "2e3b0e243cf7d8ea655df32f8547998baa87bf2c84df12651c9110d5c2103f97",
+      "en": "2573a7328ae3bf526616e3678e21141f2c6a1d40ce39799527ee3eb45c3f42cd"
     },
-    "/cli-command-entry/agent-interface-principles": {
-      "zh": "dff05c9fcd973aa87bbc4c85da84b3a24385a662b7a3c8a30ec44722faeb481e",
-      "en": "02ef784b530ab6419839db232cf4778a468307139e3aae7b54f1871442ce34d6"
+    "/cli-entry/limits": {
+      "zh": "b01626eb4792a95ea776ce7b0548e691269c939a8a2a97df8140de202ec5e419",
+      "en": "8d47eb0057c87ea550cd904fa13dd03a7ebf8fe0ebc3d5656e3f4c94100bd9e7"
     },
-    "/cli-command-entry/limits-and-verification": {
-      "zh": "4d22c403db0c58cd1a13d443840d9b5fffdaefdd21ab3eca751b5fec36596918",
-      "en": "535b620373f1d4256826fb1b4c43b2a93be0771d200cae9ba172108b78e6904e"
-    },
-    "/cli-command-entry/whole-turn-timing": {
-      "zh": "97e13fc56f4038e0835bd772cfc371aee79713840cfcf01a4d99bfd7b9105592",
-      "en": "fe65230efece54b07a5933159ed184fb5c2c7cc1805cef4976211f8541b78c49"
-    },
-    "/cli-command-entry/unsupported-formats-and-recovery": {
-      "zh": "8c4255c4fb41850b23728b2c1f01b8d18c7476f53a58338202b2cf2d084a542a",
-      "en": "16d9589ba677728120c234673a3004f5b44889723d9fa169bc8d02a65e75fb58"
-    },
-    "/cli-command-entry/web-assembly": {
-      "zh": "11b1964de0058e1fd95d6a77c53f880119f73819feeec8cb2a9be8f6afeaf2bd",
-      "en": "f072210e742055d4c76b5bfc109183c8cc221366b3aaa09a5f44a3d0ec727bbd"
-    },
-    "/cli-command-entry/collection-entries": {
-      "zh": "af7c591f27142c1482e7f3b41117d0fb6bcd11125de859d4e97762b0c05cdd0e",
-      "en": "9b1d33a260fbc58ad3ce98106c9442ab5c216f952d773ede0aa8068b7cf0f162"
-    },
-    "/cli-command-entry/release-updates": {
-      "zh": "c58a2d90bcf91a6db795aa2a76b17e5fa81b70169a1d0f601b6954c491186e4f",
-      "en": "4de1a7af725b7fe16da86063bcb7573ad6f34a60f789dbbd8cb6ae6eb070dcbf"
+    "/cli-entry/read-next": {
+      "zh": "825200811ba16c7c8f711feb03c59f8537497b5e5dd2476b429ae0f69aed9b34",
+      "en": "d53eccb08b7de72b99601cfe6d2ab36be98d69fe1e66bb06372f6841c8858afd"
     }
   }
 }

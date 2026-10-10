@@ -6,7 +6,7 @@ Wombat 使用共享 Rust 内核、Node.js CLI 和本机 Web 宿主。开始前�
 
 安装锁定版本的依赖并构建项目，再执行类型检查、生成契约检查和测试。跨语言测试使用 `dist`，必须在构建后运行。修改 Rust 代码时，还须检查格式，并运行 clippy，将警告视为错误。
 
-修改文档或 Skill 时，同步更新已配对页面的两个版本，并执行 `corepack pnpm docs:check`。技术文档的 ASD-STE100 写作要求和翻译审校要求见[语言审校规则](../docs/i18n/README.md)。
+修改文档或 Skill 时，同步更新已配对页面的两个版本，并执行 `corepack pnpm docs:check`。技术文档的 ASD-STE100 写作要求和翻译审校要求见[语言审校规则](../docs/i18n/workflow.md)。
 
 ```sh
 corepack pnpm install --frozen-lockfile

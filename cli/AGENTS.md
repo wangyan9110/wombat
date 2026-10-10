@@ -1,6 +1,6 @@
 # CLI Instructions
 
-Follow [root rules](../AGENTS.md) and the [delivery workflow](../docs/development/workflow.en.md). Public behavior and [Agent principles](README.en.md#agent-interface-principles) belong in the module README.
+Follow [root rules](../AGENTS.md) and the [delivery workflow](../docs/development/workflow.en.md). Public behavior and [Agent principles](../docs/reference/cli.en.md#agent-interface-principles) belong in the module README.
 
 - Own arguments, help, JSON/text, progress and exits; use public typed clients for business rules. Agent and human entries share contracts and exit policies.
 - Default to usage text; start Web explicitly. Web startup fixes host scope; cancellation stops this caller, not shared scanning. No terminal renderer or FFI.

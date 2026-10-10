@@ -2,7 +2,7 @@
 
 [中文](privacy.md) | English
 
-This page describes current privacy boundaries. See [core guide](../../core/README.en.md) for data directories and storage mechanisms.
+This page describes current privacy boundaries. See [core guide](core.en.md) for data directories and storage mechanisms.
 
 Wombat needs no API key and reads local Codex rollout logs and the title index without modifying Codex logs, configuration, authentication, or installation. Live queries download a catalog from a fixed official OpenAI address by default when eligible usage lacks a price; explicit `prices update` also accesses the network. Requests contain no local logs, titles, paths, usage, or credentials, but the server can observe the connection IP and Wombat User-Agent. Downloads reject redirects and enforce timeout and response-size limits.
 
