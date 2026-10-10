@@ -99,10 +99,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wangyan9110/wombat.git"
+    "url": "git+https://github.com/YannByte/wombat.git"
   },
-  "homepage": "https://github.com/wangyan9110/wombat#readme",
+  "homepage": "https://github.com/YannByte/wombat#readme",
   "bugs": {
-    "url": "https://github.com/wangyan9110/wombat/issues"
+    "url": "https://github.com/YannByte/wombat/issues"
   }
 }

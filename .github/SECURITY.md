@@ -8,7 +8,7 @@ Security fixes target the current main branch and the next GitHub Release. Older
 
 ## Reporting a vulnerability
 
-Use **Report a vulnerability** on the repository's [Security page](https://github.com/wangyan9110/wombat/security) when available. If it is unavailable, open an issue requesting a private reporting channel without describing the vulnerability or attaching evidence. The maintainer must establish that channel before requesting details. Never post credentials, exploit details, real conversations, titles, or personal paths publicly.
+Use **Report a vulnerability** on the repository's [Security page](https://github.com/YannByte/wombat/security) when available. If it is unavailable, open an issue requesting a private reporting channel without describing the vulnerability or attaching evidence. The maintainer must establish that channel before requesting details. Never post credentials, exploit details, real conversations, titles, or personal paths publicly.
 
 In private, provide the affected version or commit, platform, impact, and a minimal synthetic reproduction. For source builds, include the Node version. Do not test against other people's data. There is no guaranteed response time or bounty program. Coordinate disclosure after a fix is available.
 

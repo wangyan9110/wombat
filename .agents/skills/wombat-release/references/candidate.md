@@ -3,6 +3,7 @@
 - Distinguish local builds, development candidates, five-platform candidates, and public Releases. Candidate preparation does not authorize tags, publication, or repository visibility changes. Continue under existing explicit authorization; otherwise finish the reviewable candidate before requesting approval of its version, commit, and archives.
 - Inspect branch, commit, staged and unstaged changes. Use isolation when the shared checkout is changing and record the baseline and patches. Preserve user changes and exclude real logs, credentials, and private material.
 - Read source Node requirements from engines.node, bundled runtime identity from scripts/github-release.ts, and Rust from rust-toolchain.toml. Install using the lockfile.
+- After a GitHub account or repository rename, verify the canonical remote identity and align origin, package metadata, installers, updater, plugin metadata, release-copy generation, and public links before the next candidate. Check existing immutable Releases and public install/update routes under the new identity; redirects alone do not establish raw-file access or attestation validity. Preserve historical evidence and never rewrite published assets.
 - Use release:prepare for version changes across manifests, current release docs, bilingual records, and license inventory. Preparation, commits, tags, Releases, and repository visibility are separate actions.
 
 ## Existing entries

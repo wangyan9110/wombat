@@ -13,8 +13,26 @@ import {
   verificationDownloads,
   installSourceArgs,
   assertHostedVerificationJobs,
+  readPublicInstaller,
 } from './publish-release.ts';
 import {nativeTargets} from './native-platforms.ts';
+
+test('public installers bind to the current verification source after a repository rename', async () => {
+  const expected = '#!/bin/sh\nrepo="new-owner/wombat"\n';
+  const old = '#!/bin/sh\nrepo="old-owner/wombat"\n';
+  const fetcher: typeof fetch = async (url, options) => {
+    assert.equal(url, 'https://raw.githubusercontent.com/new-owner/wombat/main/scripts/install/install.sh');
+    assert.ok(options?.signal);
+    return new Response(expected);
+  };
+  assert.equal(await readPublicInstaller('new-owner/wombat', 'install.sh', expected, fetcher), expected);
+  await assert.rejects(readPublicInstaller('new-owner/wombat', 'install.sh', old, fetcher), /differs from the verification source/);
+  await assert.rejects(readPublicInstaller('new-owner/wombat', 'install.sh', expected,
+    async () => new Response('missing', {status: 404})), /Public installer URL failed.*404/);
+  const large = 'x'.repeat(1024 * 1024 + 1);
+  await assert.rejects(readPublicInstaller('new-owner/wombat', 'install.sh', large,
+    async () => new Response(large)), /differs from the verification source/);
+});
 
 test('hosted recovery requires complete evidence and the dedicated public installation job to pass', () => {
   const job = {name: 'Verify public installation and update', status: 'completed', conclusion: 'success'};
@@ -71,11 +89,11 @@ test('preliminary status and verification checks never publish missing releases 
         const key = program + ' ' + args.join(' ');
         const ok = stdout => ({status: 0, stdout, stderr: '', error: undefined});
         if (key === 'git symbolic-ref --quiet --short HEAD') return ok('main');
-        if (key === 'git remote get-url origin') return ok('https://github.com/wangyan9110/wombat.git');
+        if (key === 'git remote get-url origin') return ok('https://github.com/YannByte/wombat.git');
         if (key === 'git rev-parse HEAD') return ok('a'.repeat(40));
         if (['git diff --name-only -z', 'git diff --cached --name-only -z', 'git ls-files --others --exclude-standard -z'].includes(key)) return ok('');
         if (key === 'gh auth status') return ok('authenticated');
-        if (program === 'gh' && args[0] === 'api' && /^(?:--silent )?repos\\/wangyan9110\\/wombat\\/(?:git\\/ref\\/tags|releases\\/tags)\\/v/.test(args.slice(1).join(' '))) {
+        if (program === 'gh' && args[0] === 'api' && /^(?:--silent )?repos\\/YannByte\\/wombat\\/(?:git\\/ref\\/tags|releases\\/tags)\\/v/.test(args.slice(1).join(' '))) {
           return {status: 1, stdout: '', stderr: ${networkFailure ? "'network unavailable'" : "'HTTP 404'"}};
         }
         throw new Error('Forbidden status operation: ' + key);

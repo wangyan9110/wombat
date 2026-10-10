@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repo="wangyan9110/wombat"
+repo="YannByte/wombat"
 version="latest"
 prefix="${WOMBAT_INSTALL_PREFIX:-$HOME/.local}"
 base_url=""

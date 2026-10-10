@@ -26,7 +26,7 @@ function fixture(): string {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     const chinese = file === 'README.zh-CN.md';
     writeFileSync(path.join(root, file), file.startsWith('README')
-      ? `**${chinese ? '开发者预览版：' : 'Development Preview: '}[\`v0.1.0-dev.1\`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-dev.1)${chinese ? '。' : '.'}**\n\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1\n\n### ${chinese ? '更新 Wombat' : 'Update Wombat'}\n\nold\n\n## Uses\n`
+      ? `**${chinese ? '开发者预览版：' : 'Development Preview: '}[\`v0.1.0-dev.1\`](https://github.com/YannByte/wombat/releases/tag/v0.1.0-dev.1)${chinese ? '。' : '.'}**\n\ncurl -fsSL https://raw.githubusercontent.com/YannByte/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YannByte/wombat/main/install.ps1))) -Version 0.1.0-dev.1\n\n### ${chinese ? '更新 Wombat' : 'Update Wombat'}\n\nold\n\n## Uses\n`
       : 'Wombat `v0.1.0-dev.1` supports these platforms. Node 26.4.0 remains independent.\n');
   }
   return root;
@@ -104,8 +104,8 @@ test('release preparation leaves proposal and historical acceptance text unchang
 test('promotes beta user copy to stable installation and update instructions', t => {
   const root = fixture();
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  writeFileSync(path.join(root, 'README.md'), `## Get started\n\n**Beta: [\`v0.1.0-dev.1\`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-dev.1).** Beta.\n\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1\n\n### Update a pre-release\n\nold\n\n## Uses\n`);
-  writeFileSync(path.join(root, 'README.zh-CN.md'), `## 开始使用\n\n**Beta 测试版：[\`v0.1.0-dev.1\`](https://github.com/wangyan9110/wombat/releases/tag/v0.1.0-dev.1)。** Beta。\n\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/install.ps1))) -Version 0.1.0-dev.1\n\n### 更新预发行版本\n\n旧文案\n\n## 用途\n`);
+  writeFileSync(path.join(root, 'README.md'), `## Get started\n\n**Beta: [\`v0.1.0-dev.1\`](https://github.com/YannByte/wombat/releases/tag/v0.1.0-dev.1).** Beta.\n\ncurl -fsSL https://raw.githubusercontent.com/YannByte/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YannByte/wombat/main/install.ps1))) -Version 0.1.0-dev.1\n\n### Update a pre-release\n\nold\n\n## Uses\n`);
+  writeFileSync(path.join(root, 'README.zh-CN.md'), `## 开始使用\n\n**Beta 测试版：[\`v0.1.0-dev.1\`](https://github.com/YannByte/wombat/releases/tag/v0.1.0-dev.1)。** Beta。\n\ncurl -fsSL https://raw.githubusercontent.com/YannByte/wombat/main/install.sh | sh -s -- --version 0.1.0-dev.1\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YannByte/wombat/main/install.ps1))) -Version 0.1.0-dev.1\n\n### 更新预发行版本\n\n旧文案\n\n## 用途\n`);
   prepareVersionFiles(root, '0.1.0');
   const english = readFileSync(path.join(root, 'README.md'), 'utf8');
   const chinese = readFileSync(path.join(root, 'README.zh-CN.md'), 'utf8');
@@ -136,7 +136,7 @@ test('release copy keeps relocated installer URLs through preview and stable pre
 test('release copy preserves installer fences and plugin update guidance in the question-led README', () => {
   for(const file of ['README.md','README.zh-CN.md']){
     const chinese=file.endsWith('zh-CN.md');
-    const original=`**${chinese?'正式版：':'Stable: '}[\`v0.3.0\`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.0)${chinese?'。':'.'}**\n\n\`\`\`sh\ncurl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin\n\`\`\`\n\n\`\`\`powershell\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin\n\`\`\`\n\n## ${chinese?'更新':'Update'}\n\nOld update copy\n\n## ${chinese?'数据与使用范围':'Data and scope'}\n\nRetained scope.\n`;
+    const original=`**${chinese?'正式版：':'Stable: '}[\`v0.3.0\`](https://github.com/YannByte/wombat/releases/tag/v0.3.0)${chinese?'。':'.'}**\n\n\`\`\`sh\ncurl -fsSL https://raw.githubusercontent.com/YannByte/wombat/main/scripts/install/install.sh | sh -s -- --plugin\n\`\`\`\n\n\`\`\`powershell\n& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YannByte/wombat/main/scripts/install/install.ps1))) -Plugin\n\`\`\`\n\n## ${chinese?'更新':'Update'}\n\nOld update copy\n\n## ${chinese?'数据与使用范围':'Data and scope'}\n\nRetained scope.\n`;
     const preview=applyReleaseCopy(file,original,'0.4.0-beta.1');
     assert.match(preview,/```sh\ncurl[^\n]+--version 0\.4\.0-beta\.1 --plugin\n```/);
     assert.match(preview,/```powershell\n& [^\n]+-Version 0\.4\.0-beta\.1 -Plugin\n```/);

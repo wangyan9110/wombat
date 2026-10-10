@@ -18,10 +18,10 @@ test('parses an explicit release identity and rejects ambiguous arguments', () =
 
 test('normalizes supported GitHub repository URLs', () => {
   for (const value of [
-    'git+https://github.com/wangyan9110/wombat.git',
-    'https://github.com/wangyan9110/wombat',
-    'git@github.com:wangyan9110/wombat.git',
-  ]) assert.equal(repositorySlug(value), 'wangyan9110/wombat');
+    'git+https://github.com/YannByte/wombat.git',
+    'https://github.com/YannByte/wombat',
+    'git@github.com:YannByte/wombat.git',
+  ]) assert.equal(repositorySlug(value), 'YannByte/wombat');
   assert.throws(() => repositorySlug('https://example.com/wombat.git'), /not a GitHub repository/);
   assert.throws(() => repositorySlug('https://evilgithub.com/owner/project.git'), /not a GitHub repository/);
 });

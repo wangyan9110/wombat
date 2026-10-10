@@ -28,7 +28,7 @@ if ($PluginOnly) {
 if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [Runtime.InteropServices.Architecture]::X64) { throw "This release supports Windows x64" }
 $tar = Join-Path $env:SystemRoot "System32\tar.exe"
 if (-not (Test-Path -LiteralPath $tar -PathType Leaf)) { throw "Windows tar.exe is required" }
-$repo = "wangyan9110/wombat"
+$repo = "YannByte/wombat"
 $target = "win32-x64"
 $archive = "wombat-$target.tar.gz"
 if ($Version -eq "latest") { $base = "https://github.com/$repo/releases/latest/download" }

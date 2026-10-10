@@ -2,7 +2,7 @@
   "name": "wombat",
   "description": "Analyze Codex token usage and review configuration with local evidence",
   "license": "MIT",
-  "homepage": "https://github.com/wangyan9110/wombat",
+  "homepage": "https://github.com/YannByte/wombat",
   "requiredCapabilities": [
     "usage-json-v3",
     "usage-json-v5",

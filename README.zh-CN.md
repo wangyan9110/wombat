@@ -15,20 +15,20 @@ Wombat 分析本机 Codex 记录，找出推高 Token 用量的任务，查看�
 
 ## 开始使用
 
-**正式版：[`v0.3.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.1)。**
+**正式版：[`v0.3.1`](https://github.com/YannByte/wombat/releases/tag/v0.3.1)。**
 
 本机分析无需 API Key 或开发工具。使用插件前，先安装兼容的本机 Codex。
 
 在 macOS 或 Linux 上安装 Wombat 与插件：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin
+curl -fsSL https://raw.githubusercontent.com/YannByte/wombat/main/scripts/install/install.sh | sh -s -- --plugin
 ```
 
 Windows PowerShell：
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YannByte/wombat/main/scripts/install/install.ps1))) -Plugin
 ```
 
 1. 在 Codex 中打开项目。
@@ -90,7 +90,7 @@ wombat update
 
 JSON 查询与预算控制见 [CLI 指南](docs/guides/cli.md)。源码环境配置见[贡献指南](.github/CONTRIBUTING.zh-CN.md)。
 
-[反馈问题或需求](https://github.com/wangyan9110/wombat/issues)时，描述现象与所用工具，无需提供私有日志。安全问题请按[安全政策](.github/SECURITY.zh-CN.md)报告。
+[反馈问题或需求](https://github.com/YannByte/wombat/issues)时，描述现象与所用工具，无需提供私有日志。安全问题请按[安全政策](.github/SECURITY.zh-CN.md)报告。
 
 ## 许可证
 

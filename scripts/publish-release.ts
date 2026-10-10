@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -294,13 +294,31 @@ export function installSourceArgs(version: string, baseUrl: string, publicDownlo
   return version.includes('-') ? (windows ? ['-Version', version] : ['--version', version]) : [];
 }
 
+export async function readPublicInstaller(repository: string, installer: 'install.sh' | 'install.ps1', expected: string, fetcher = fetch): Promise<string> {
+  const response = await fetcher(`https://raw.githubusercontent.com/${repository}/main/scripts/install/${installer}`, { signal: AbortSignal.timeout(60_000) });
+  if (!response.ok) throw new Error(`Public installer URL failed: ${installer} (${response.status})`);
+  const content = await response.text();
+  if (Buffer.byteLength(content) > 1024 * 1024 || content !== expected) {
+    throw new Error(`Public installer differs from the verification source: ${installer}`);
+  }
+  return content;
+}
+
 async function cleanInstall(version: string, source: string, repository: string, scratch: string, releaseDirectory: string, publicDownload: boolean): Promise<void> {
   const prefix = path.join(scratch, 'install');
   const baseUrl = pathToFileURL(releaseDirectory).href.replace(/\/$/, '');
+  // The maintained main-branch installers can change after an immutable release.
+  const publicInstallers = path.join(scratch, 'public-installers');
+  mkdirSync(publicInstallers);
+  for (const installer of ['install.sh', 'install.ps1'] as const) {
+    const expected = readFileSync(path.join(root, 'scripts', 'install', installer), 'utf8');
+    writeFileSync(path.join(publicInstallers, installer), await readPublicInstaller(repository, installer, expected));
+  }
+  const installerDirectory = publicDownload ? publicInstallers : releaseDirectory;
   let entryFile: string;
   let runtime: string;
   if (process.platform === 'win32') {
-    run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(releaseDirectory, 'install.ps1'),
+    run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(installerDirectory, 'install.ps1'),
       ...installSourceArgs(version, baseUrl, publicDownload, true), '-Prefix', prefix, '-NoModifyPath'], 10 * 60_000);
     const installRoot = path.join(prefix, 'lib', 'wombat');
     const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
@@ -310,7 +328,7 @@ async function cleanInstall(version: string, source: string, repository: string,
     entryFile = path.join(installed, 'lib', 'wombat.js');
 
   } else {
-    run('sh', [path.join(releaseDirectory, 'install.sh'), ...installSourceArgs(version, baseUrl, publicDownload, false), '--prefix', prefix, '--no-modify-path'], 10 * 60_000);
+    run('sh', [path.join(installerDirectory, 'install.sh'), ...installSourceArgs(version, baseUrl, publicDownload, false), '--prefix', prefix, '--no-modify-path'], 10 * 60_000);
 
     const installRoot = path.join(prefix, 'lib', 'wombat');
     const releaseId = readFileSync(path.join(installRoot, 'current.txt'), 'utf8').trim();
@@ -323,15 +341,6 @@ async function cleanInstall(version: string, source: string, repository: string,
   const installedRelease: unknown = JSON.parse(readFileSync(path.join(path.dirname(path.dirname(entryFile)), 'release.json'), 'utf8'));
   if (!record(installedRelease) || installedRelease.version !== version || installedRelease.source !== source) {
     throw new Error('Clean installation differs from the published release identity');
-  }
-  // The documented raw URLs must work without authentication and match this source.
-  for (const installer of ['install.sh', 'install.ps1']) {
-    const response = await fetch(`https://raw.githubusercontent.com/${repository}/main/scripts/install/${installer}`, { signal: AbortSignal.timeout(60_000) });
-    if (!response.ok) throw new Error(`Public installer URL failed: ${installer} (${response.status})`);
-    const content = await response.text();
-    if (Buffer.byteLength(content) > 1024 * 1024 || content !== readFileSync(path.join(releaseDirectory, installer), 'utf8')) {
-      throw new Error(`Public installer differs from the published source: ${installer}`);
-    }
   }
   const update = parsedJson(runtime, [entryFile, 'update', '--check', '--json', ...(version.includes('-') ? ['--version', version] : [])]);
   if (!record(update)) throw new Error('Installed updater returned an invalid response');
@@ -365,8 +374,8 @@ async function main(): Promise<void> {
     const errors = publishedReleaseErrors(existingRelease, options.version);
     if (errors.length) throw new Error(errors.join('\n'));
     if (command('git', ['merge-base', '--is-ancestor', existingTag, head]).status !== 0) throw new Error('Published source is not an ancestor of this branch');
+    if (changedFiles().length || readRemoteRef(repository, `refs/heads/${options.branch}`) !== head) throw new Error('Published verification requires a clean checkout matching the pushed branch');
     if (options.hosted) {
-      if (changedFiles().length || readRemoteRef(repository, `refs/heads/${options.branch}`) !== head) throw new Error('Hosted verification requires a clean checkout matching the pushed branch');
       const prior = Math.max(0, ...workflowRuns(repository, 'ci.yml', head).map(item => item.databaseId));
       run('gh', ['workflow', 'run', 'ci.yml', '--repo', repository, '--ref', options.branch, '-f', 'target=published-release']);
       const verification = waitForRun(repository, 'ci.yml', head, options.branch, 'workflow_dispatch', prior);

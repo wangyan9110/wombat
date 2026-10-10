@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { CoreError } from '@wombat/client';
 import { t } from '@wombat/client/locale';
 
-const repository = 'wangyan9110/wombat';
+const repository = 'YannByte/wombat';
 const maximumArchiveBytes = 400 * 1024 * 1024;
 const maximumMetadataBytes = 4 * 1024 * 1024;
 

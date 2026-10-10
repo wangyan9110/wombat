@@ -15,20 +15,20 @@ Use the Codex plugin to ask questions. Open the local Web dashboard for charts a
 
 ## Get started
 
-**Stable: [`v0.3.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.1).**
+**Stable: [`v0.3.1`](https://github.com/YannByte/wombat/releases/tag/v0.3.1).**
 
 Local analysis needs no API key or development tools. Install a compatible local Codex before using the plugin.
 
 On macOS or Linux, install Wombat and its plugin:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.sh | sh -s -- --plugin
+curl -fsSL https://raw.githubusercontent.com/YannByte/wombat/main/scripts/install/install.sh | sh -s -- --plugin
 ```
 
 On Windows PowerShell:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wangyan9110/wombat/main/scripts/install/install.ps1))) -Plugin
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/YannByte/wombat/main/scripts/install/install.ps1))) -Plugin
 ```
 
 1. Open your project in Codex.
@@ -90,7 +90,7 @@ Release packages support macOS arm64/x64, Linux glibc arm64/x64, and Windows x64
 
 See the [CLI guide](docs/guides/cli.en.md) for JSON queries and budget controls. See [Contributing](.github/CONTRIBUTING.md) for source setup.
 
-[Report a problem or request](https://github.com/wangyan9110/wombat/issues). Describe what happens and the tools involved; no private logs are needed. Use the [security policy](.github/SECURITY.md) for security reports.
+[Report a problem or request](https://github.com/YannByte/wombat/issues). Describe what happens and the tools involved; no private logs are needed. Use the [security policy](.github/SECURITY.md) for security reports.
 
 ## License
 
