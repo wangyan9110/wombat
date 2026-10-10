@@ -2,20 +2,20 @@
   "version": 2,
   "sections": {
     "/development-and-delivery-rules": {
-      "zh": "c36157367b3e698b5870b0003eb5852b10032d694cad7fba310b357a9e61bc8a",
-      "en": "bf7e9d8d8a309643feca242eac21f5fd1c0a9bbe7efdcdb4c838c7476356f347"
+      "zh": "42de0a88d5211b96daabad760966a20c816baef5c5455459e9811e2f909a7889",
+      "en": "bf7999f6c2b752683e710311e8b3c07d8446e818ac9d3754a5ceee35bf3ce37a"
     },
     "/development-and-delivery-rules/code-conventions": {
-      "zh": "d7b76e169b7ec6f6f831be6b0e6c094d737c108b324b0fec2196e0b035ffca3f",
-      "en": "b3b9d74facd22f273733c16127705cac2185ae6d1404c8ebb61a7030f6801cf5"
+      "zh": "e01ad9364553afce324e9d8e54c32ccff3c1de199010d899d52f04612145e58f",
+      "en": "ee06af019b4de546c89479d61cb1a47e75362f124b0a551e16a25977ff933228"
     },
     "/development-and-delivery-rules/verification": {
-      "zh": "c4a83f6663d6aecf52cbaaf9f7bef4b515055718b30b9c1e02d473a408813b02",
+      "zh": "f00b3edbea4560baeaedb83afd37d19cbc774e06afbb68c2073db2225cd2bfc3",
       "en": "c5ab10558f67d52702aa390431a55aa9fa51c8fa6f935de5b5fd689adc1ca628"
     },
     "/development-and-delivery-rules/verification/failure-investigation": {
-      "zh": "184828f71ae4066628157c2084d71cb20294101905315915a78c4f4570266cb5",
-      "en": "c04ad37918101a1b630a2a5a214f5076753b25b746e08208856a5e4fb0bcf03b"
+      "zh": "6d5e35d38984aa5348b8386e3375d11319fa1dee457cb27b1af618feca73c328",
+      "en": "faaae4db6f4a20e459718067e12994eb162fd0630d8a7d721d0c372d8d0c2c45"
     }
   }
 }

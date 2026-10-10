@@ -3,6 +3,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { connect } from 'node:net';
 import path from 'node:path';
 
+function cleanupUnconfirmed(message = 'Synthetic native processes did not exit after product cleanup') {
+  return Object.assign(new Error(message), { code: 'NATIVE_CLEANUP_UNCONFIRMED' });
+}
+
 /** A PID or port can be reused; only the fixture's own random identity establishes liveness. */
 function fixtureAlive(port: number, identity: string, remainingMs: number): Promise<boolean> {
   return new Promise((resolve, reject) => {
@@ -15,7 +19,7 @@ function fixtureAlive(port: number, identity: string, remainingMs: number): Prom
       socket.destroy();
       if (error) reject(error); else resolve(result === identity);
     };
-    const timer = setTimeout(() => finish(new Error('Synthetic lifecycle probe timed out')), remainingMs);
+    const timer = setTimeout(() => finish(cleanupUnconfirmed('Synthetic lifecycle probe timed out')), remainingMs);
     socket.setEncoding('utf8');
     socket.on('data', chunk => {
       result += chunk;
@@ -77,15 +81,17 @@ if(process.argv.includes('proxy')){
     const deadline = Date.now() + 3000;
     for (;;) {
       const remainingMs = deadline - Date.now();
-      if (remainingMs <= 0) throw new Error('Synthetic native processes did not exit after product cleanup');
+      if (remainingMs <= 0) throw cleanupUnconfirmed();
       const events = (await readFile(lifecycle, 'utf8')).trim().split('\n').filter(Boolean).map(row => JSON.parse(row));
+      const probeRemainingMs = deadline - Date.now();
+      if (probeRemainingMs <= 0) throw cleanupUnconfirmed();
       const alive = await Promise.all(events.filter(e => e.event === 'spawn').map(e => {
         if (!Number.isInteger(e.port) || e.port < 1 || e.port > 65535 || typeof e.identity !== 'string' || !e.identity) throw new Error('Invalid synthetic lifecycle identity');
-        return fixtureAlive(e.port, e.identity, remainingMs);
+        return fixtureAlive(e.port, e.identity, probeRemainingMs);
       }));
       const running = alive.some(Boolean);
       if (!running) return;
-      if (Date.now() >= deadline) throw new Error('Synthetic native processes did not exit after product cleanup');
+      if (Date.now() >= deadline) throw cleanupUnconfirmed();
       await new Promise(resolve => setTimeout(resolve, 20));
     }
   };

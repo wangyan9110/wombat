@@ -4,6 +4,7 @@ import { mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { withLocalProduct, row, measurement } from '../helpers/local-product.ts';
+import { rfc3339Nanos } from '../helpers/rfc3339.ts';
 
 test('follow-up confirms exact read and loaded versions while preserving review history and private content', { timeout: 40_000 }, async () => {
   await withLocalProduct(async f => {
@@ -33,8 +34,7 @@ test('follow-up confirms exact read and loaded versions while preserving review 
     const compared = readResult.followUps[0].usageComparison!; assert.ok(compared);
     assert.equal(compared.baselineUsage.tokens.total, 30); assert.equal(compared.currentUsage.tokens.total, 80);
     // Core cutoffs can retain nanoseconds; truncating to microseconds changes interval lengths.
-    const nanos = (time: string) => BigInt(Date.parse(time)) * 1_000_000n + BigInt((time.match(/\.(\d+)/)?.[1] ?? '').padEnd(9, '0').slice(3, 9));
-    assert.equal(nanos(compared.changeAt) - nanos(compared.baselineStart), nanos(compared.observedThrough) - nanos(compared.changeAt));
+    assert.equal(rfc3339Nanos(compared.changeAt) - rfc3339Nanos(compared.baselineStart), rfc3339Nanos(compared.observedThrough) - rfc3339Nanos(compared.changeAt));
     assert.equal(compared.partial, false);
     await writeFile(file, 'Synthetic later current version.');
     assert.equal((await history()).followUps[0].status, 'read_content_matched', 'Follow-up binds the saved recheck version even after another edit');

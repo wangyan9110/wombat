@@ -56,6 +56,8 @@ Failure/cancellation retains the last complete main view and allows drill-down f
 
 ## Development and verification
 
+UI and Web hand-written TypeScript sources use the locked Prettier dependency. Run `corepack pnpm format:write` to format them and `corepack pnpm format:check` to check without edits. `repo:check` includes the check. Generated contracts remain generator-owned.
+
 Only public client interfaces and locale services are imported, without Node, Tauri, terminal or raw source access. A full build copies static assets into `dist/web/`; rebuild and restart after edits. The desktop host remains unimplemented; see [architecture](architecture.en.md).
 
 `corepack pnpm --filter @wombat/ui test` covers URL round trips, date conversion, fixed-version transport, automatic version updates, scope invalidation, late responses, expiry recovery, cancellation and hidden-page suspension. Integration/end-to-end tests cover cross-language truth and the main flow. See verification records retained in Git history for browser coverage and unverified platforms. Builds and static checks do not replace real interaction or pixel comparison.

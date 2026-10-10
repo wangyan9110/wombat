@@ -2,12 +2,11 @@
 
 [中文](workflow.md) | English
 
-This page defines code-change and verification procedures. Module responsibilities belong in [architecture](architecture.en.md), product fields in [contracts](contracts.en.md), and repository constraints in [AGENTS.md](../../AGENTS.md).
+Module responsibilities belong in [architecture](architecture.en.md), product fields in [contracts](contracts.en.md), and repository constraints in [AGENTS.md](../../AGENTS.md).
 
 ## Code conventions
 
-- Identify the domain owner and current consumers before choosing an implementation. New abstractions, options, and compatibility paths need a present requirement. Cross-module access uses public exports or protocols.
-- Deliver new capabilities through Web and non-TTY interfaces. Generate public DTOs from Rust; check all consumers and cancellation, error, and state semantics when changing them.
+- Deliver new capabilities through Web and non-TTY interfaces. Check all consumers and cancellation, error, and state semantics when changing public DTOs.
 - Validate untrusted data at configuration, file, process, and network entries; do not repeatedly validate typed same-process values. Keep TypeScript strict. Explain why narrowing is infeasible for new any or assertions; never use double assertions to bypass validation.
 - Exhaust closed unions by their discriminants; open source values need an explicit unknown branch. Resolve defaults once at the owning entry and report invalid configuration at the earliest reliable point.
 - Enforce authorization and version checks in the operation itself, not solely through disabled UI or wrapper filters. Verify that direct and alternate callers cannot bypass them.
@@ -17,7 +16,7 @@ This page defines code-change and verification procedures. Module responsibiliti
 - Limit catch blocks to the expected failing operation. Explain ignored errors and preserve observable failure. Callback exceptions must not break unrelated requests or cleanup.
 - Comments describe caller-relevant behavior, failures, timing, and ownership. Link decision rationale instead of narrating code or review. Update the owning documentation with the change; local edits need no new decision.
 
-UI and Web hand-written TypeScript sources use the locked Prettier dependency. Run `corepack pnpm format:write` to format them and `corepack pnpm format:check` to check without edits. `repo:check` includes the check. Generated contracts remain generator-owned.
+For UI and Web formatting, see [frontend rules](frontend.en.md).
 
 ## Verification
 
@@ -40,6 +39,9 @@ For dependency changes run `corepack pnpm licenses:generate` and `corepack pnpm 
 
 ### Failure investigation
 
+- Run `corepack pnpm test:prebuild` for source-only platform assumptions. CI requires these checks on Linux, macOS, and Windows before the five platform builds. The local release gate runs them before Rust compilation. These checks do not replace product, browser, or installation acceptance.
+- Preserve source timestamp precision in test arithmetic. Test process ownership with an instance identity; PIDs and ports can be reused. Use a stable failure code when either a probe or its enclosing deadline can expire first. An unconfirmed probe must not establish successful cleanup.
+- Treat process startup, data readiness, and acceptance as separate states. A first read can return a syncing preview. Tests that require final counts must request a completed read and bind subsequent queries to its version. Do not use arbitrary sleeps to establish readiness.
 - Stop retries and preserve the failing stage, logs, source revision, and environment. Trace the root cause. Check upstream documentation for unfamiliar behavior; reruns, parameter changes, and longer timeouts cannot replace analysis.
 - Inspect callers, platforms, build prerequisites, and CI/release workflows that share the assumption. Batch the fixes and regression coverage before verification.
 - Reproduce the whole failure class first, then run aggregate checks on settled changes before costly platform or release tasks. Reuse only passing evidence that remains valid.

@@ -12,6 +12,7 @@ const localCargo = path.join(os.homedir(), '.cargo', 'bin', executable);
 const cargo = process.env.WOMBAT_CARGO || (existsSync(localCargo) ? localCargo : executable);
 const steps = [
   ['Whitespace', 'git', ['diff', '--check']],
+  ['Source-only platform assumptions', 'corepack', ['pnpm', 'test:prebuild']],
   ['Rust formatting', cargo, ['fmt', '--manifest-path', 'core/Cargo.toml', '--', '--check']],
   ['Rust lint', cargo, ['clippy', '--locked', '--manifest-path', 'core/Cargo.toml', '--all-targets', '--', '-D', 'warnings']],
   ['Build', 'corepack', ['pnpm', 'build']],

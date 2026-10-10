@@ -56,6 +56,8 @@ URL 保存范围、筛选、搜索、排序、趋势/对话/轮次分页及选�
 
 ## 开发与验证
 
+UI/Web 手写 TypeScript 用锁定的 Prettier：`corepack pnpm format:write` 格式化，`corepack pnpm format:check` 只读检查，纳入 `repo:check`。契约由生成器维护。
+
 只依赖客户端公开接口和语言服务，不导入 Node、Tauri、终端或原始来源。静态资产由完整构建复制到 `dist/web/`；修改后重新构建并重启服务。桌面宿主尚未交付，见[架构](architecture.md)。
 
 `corepack pnpm --filter @wombat/ui test` 验证 URL 往返、日期转换、固定版本传输、自动版本跟进、范围失效、过时响应、过期恢复、取消和隐藏暂停；跨语言真值与主链路由集成/端到端测试覆盖。浏览器验收范围及未验收平台见 Git 历史中的验证记录。构建、静态检查不替代真实交互或逐像素比较。
