@@ -12,6 +12,8 @@ const localCargo = path.join(os.homedir(), '.cargo', 'bin', executable);
 const cargo = process.env.WOMBAT_CARGO || (existsSync(localCargo) ? localCargo : executable);
 const steps = [
   ['Whitespace', 'git', ['diff', '--check']],
+  // Source-only gates must fail before compiling; repo:check includes the single history scan.
+  ['Repository and public-source rules', 'corepack', ['pnpm', 'repo:check']],
   ['Source-only platform assumptions', 'corepack', ['pnpm', 'test:prebuild']],
   ['Rust formatting', cargo, ['fmt', '--manifest-path', 'core/Cargo.toml', '--', '--check']],
   ['Rust lint', cargo, ['clippy', '--locked', '--manifest-path', 'core/Cargo.toml', '--all-targets', '--', '-D', 'warnings']],
@@ -21,8 +23,6 @@ const steps = [
   ['Generated contracts', 'corepack', ['pnpm', 'contracts:check']],
   ['Tests', 'corepack', ['pnpm', 'test']],
   ['Dependency licenses', 'corepack', ['pnpm', 'licenses:check']],
-  // repo:check already includes public:check; keep this scan single-pass because it walks reachable history.
-  ['Repository and public-source rules', 'corepack', ['pnpm', 'repo:check']],
 ];
 for (const [label, program, args] of steps) {
   console.log(`\n=== ${label} ===`);

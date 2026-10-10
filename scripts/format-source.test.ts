@@ -17,7 +17,10 @@ test('source format check is read-only and fixes only adopted handwritten module
     const input = 'export const value=1;\n';
     writeFileSync(ui, 'export const App=()=> <main><p>Hello</p><p>World</p></main>;\n');
     for (const file of [web, generated, outside]) writeFileSync(file, input);
-    assert.deepEqual(await formatSources(root), ['ui/src/App.tsx', 'web/src/index.ts']);
+    assert.deepEqual(await formatSources(root), [
+      path.join('ui', 'src', 'App.tsx'),
+      path.join('web', 'src', 'index.ts'),
+    ]);
     assert.equal(readFileSync(web, 'utf8'), input);
     await formatSources(root, true);
     assert.deepEqual(await formatSources(root), []);

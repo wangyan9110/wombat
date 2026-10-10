@@ -82,6 +82,7 @@ jobs:
         run: |
           npm install --global corepack@0.33.0 --force
           corepack pnpm install --frozen-lockfile
+          corepack pnpm test:repo
           corepack pnpm test:prebuild
 
   verify:

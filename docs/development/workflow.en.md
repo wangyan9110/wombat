@@ -39,7 +39,7 @@ For dependency changes run `corepack pnpm licenses:generate` and `corepack pnpm 
 
 ### Failure investigation
 
-- Run `corepack pnpm test:prebuild` for source-only platform assumptions. CI requires these checks on Linux, macOS, and Windows before the five platform builds. The local release gate runs them before Rust compilation. These checks do not replace product, browser, or installation acceptance.
+- Run `corepack pnpm test:repo` and `corepack pnpm test:prebuild` for source-only script tests and platform assumptions. CI requires these checks on Linux, macOS, and Windows before the five platform builds. The local release gate runs source checks before Rust compilation. These checks do not replace product, browser, or installation acceptance.
 - Preserve source timestamp precision in test arithmetic. Test process ownership with an instance identity; PIDs and ports can be reused. Use a stable failure code when either a probe or its enclosing deadline can expire first. An unconfirmed probe must not establish successful cleanup.
 - Treat process startup, data readiness, and acceptance as separate states. A first read can return a syncing preview. Tests that require final counts must request a completed read and bind subsequent queries to its version. Do not use arbitrary sleeps to establish readiness.
 - Stop retries and preserve the failing stage, logs, source revision, and environment. Trace the root cause. Check upstream documentation for unfamiliar behavior; reruns, parameter changes, and longer timeouts cannot replace analysis.
