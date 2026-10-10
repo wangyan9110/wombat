@@ -78,7 +78,11 @@ test('extension activity reports full filtered counts before pagination and sepa
     await f.write('task', [row('session_meta', { id: 'task', cwd: f.project }, at), row('turn_context', { turn_id: 'turn', model: 'gpt-5.4' }, at), row('response_item', { type: 'function_call', call_id: 'used', name: 'read_file', arguments: JSON.stringify({ path: skill('used') }) }, at), row('response_item', { type: 'function_call_output', call_id: 'used', output: 'Synthetic instructions.' }, at)]);
     const browser = await f.browser();
     const scope = { project: f.project, since: day(-4), until: day(1), timezone: 'UTC' };
-    const full = await browser.config!({ action: 'list', scope, kinds: ['skill', 'mcp'], sort: 'name' });
+    // Automatic first reads may return a syncing preview; final counts need a completed view.
+    const usage = await browser.live!({ query: { action: 'usage', scope }, mode: 'fresh' });
+    assert.equal(usage.freshness.status, 'current');
+    assert.equal(usage.freshness.initialScan, false);
+    const full = await browser.config!({ action: 'list', snapshotId: usage.result.snapshotRef.snapshotId, scope, kinds: ['skill', 'mcp'], sort: 'name' });
     assert.equal(full.items.length, 3);
     assert.deepEqual([full.extensionActivity!.observedUse, full.extensionActivity!.noObservedUse, full.extensionActivity!.unavailable], [1, 2, 0]);
     const used = full.items.find(item => item.name === 'used')!, idle = full.items.find(item => item.name === 'idle')!;
