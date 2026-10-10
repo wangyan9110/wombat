@@ -1,12 +1,12 @@
 {
-  "summary": "This stable release brings local Codex usage analysis and configuration review into your existing conversation through a Codex plugin, with a Web dashboard for detailed evidence.",
+  "summary": "This maintenance release improves Codex plugin compatibility, configuration evidence, cancellation, and update reliability.",
   "highlights": [
-    "Install Wombat and its Codex plugin together, then ask questions about usage and project configuration in your existing Codex conversation. Open a Web view for the same project and data version.",
-    "Investigate usage increases through task and period comparisons, input trajectories, cache reuse, repeated requests, compaction comparisons and resource records.",
-    "Review AGENTS.md, Skills, MCP entries and Hooks for format issues, local references, Hook targets, duplicate instruction blocks and other supported checks. Review recommendations, authorize selected changes and rerun the same checks.",
-    "Read native Codex allowance observations and stored history separately from local token usage and estimated API costs.",
-    "Optionally collect native Hook observations through the collection plugin. Inspect project-scoped event receipts and pause or resume collection; historical log reading remains available without it.",
-    "Keep displayed numbers aligned with the selected Chinese or English language, including compact Token values. English count labels now use singular wording for one task, suggestion, session, operation or response."
+    "Use compatible local Codex versions through native plugin discovery and validated Hook registration, without a fixed version allowlist.",
+    "Follow configuration changes with content-version evidence. Replayed native AGENTS.md loads count once per document, while different documents remain distinct.",
+    "Read queries return CANCELLED when cancellation arrives before the result is delivered. Confirmed preference, directory authorization, price-update, and handoff-send results remain available.",
+    "Token budget watch reloads configuration and resumes checks after a concurrent monitor change; invalid arguments still return errors.",
+    "Update downloads enforce metadata and archive size limits while streaming, including responses without a reliable Content-Length header. Failed downloads retain the active installation.",
+    "Find the installation command and a copyable first question earlier in the README. See task timing, project statistics, budget monitoring, and recurring operations across tasks in one project."
   ],
   "knownLimitations": [
     "Codex is the only production data source in this release; support for other agents is planned.",

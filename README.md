@@ -17,7 +17,7 @@ Ask through the Codex plugin. Open the local Web dashboard when you need charts,
 
 ## Get started
 
-**Stable: [`v0.3.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.0).**
+**Stable: [`v0.3.1`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.1).**
 
 Local analysis needs no API key or development tools. Install a compatible local Codex first to use the plugin.
 
