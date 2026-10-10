@@ -1,5 +1,31 @@
 //! Route typed usage and configuration queries against selected immutable revisions.
 use super::*;
+pub(super) fn monitor_query(
+    request: crate::monitor::Request,
+    shared: &Shared,
+    jobs: &mpsc::SyncSender<Job>,
+    configs: &Mutex<crate::config::Store>,
+) -> Result<crate::monitor::Response> {
+    let crate::monitor::Request::Check { snapshot_id, .. } = &request else {
+        return crate::monitor::dispatch(request);
+    };
+    let selector = selection::ReadViewSelector::new(
+        vec![],
+        Some(snapshot_id.clone()),
+        Mode::Cached,
+        false,
+        false,
+    )?;
+    let cancelled = std::sync::atomic::AtomicBool::new(false);
+    let (snapshot, freshness) = select_with_retained(&selector, shared, jobs, configs, &cancelled)?;
+    if freshness.error_code.is_some() || freshness.initial_scan || freshness.status == "syncing" {
+        return Err(operation_error(
+            "SYNC_PENDING",
+            "Monitor requires a ready source check",
+        ));
+    }
+    crate::monitor::dispatch_snapshot(request, &snapshot, freshness.checked_at.as_deref())
+}
 pub(super) fn query(
     request: Request,
     shared: &Shared,

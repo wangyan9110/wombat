@@ -15,6 +15,7 @@ export interface NodeClientOptions extends CoreProcessOptions,CodexOptions { aut
 export function createNodeClient(options: NodeClientOptions = {}): UsageClient {
   let account: Promise<AccountTransport> | undefined, handoff: Promise<HandoffTransport> | undefined;
   const client = createUsageClient({
+    monitor: (r,q) => r.action==='check' && r.snapshotId.startsWith('live:') ? queryLive({monitor:r},q,options) : invokeOperation('monitor',r,q,options),
     setup: (r,q) => checkSetup(r,q,options),
     collection: (r, q) => invokeOperation('collection', r, q, {...options,timeoutMs:5000,maxResponseBytes:2*1024*1024}),
     query: (request, queryOptions) => invokeCore(request, queryOptions, options),

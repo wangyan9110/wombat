@@ -1,9 +1,5 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
-export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
-export type Kind = "rule" | "skill" | "mcp" | "hook";
-export type TokenAnalysisScope = "selected_canonical_measurements";
-export type Observation = "used" | "loaded_only" | "unknown";
 export type UseBasisStatus = ("observed" | "unavailable") | "partial";
 export type UseUnit = "object_use" | "rule_read" | "rule_load_or_read";
 export type UseWindow =
@@ -23,11 +19,16 @@ export type UseWindow =
     };
 export type UseTimeBasis = "source_operation_time";
 export type UseSourceCompleteness = "complete" | "partial" | "unknown";
+export type Action = "list" | "detail" | "evidence" | "related_scopes" | "capabilities";
+export type Kind = "rule" | "skill" | "mcp" | "hook";
+export type TokenAnalysisScope = "selected_canonical_measurements";
+export type Observation = "used" | "loaded_only" | "unknown";
 export type HookRegistryStatus = "unavailable" | "partial" | "observed";
 export type HookTrust = "managed" | "untrusted" | "trusted" | "modified";
 export type HookHandler = "command" | "mcpTool" | "prompt" | "agent";
 
 export interface Response {
+  extensionActivity?: ExtensionActivityStatistics | null;
   outputVersion: number;
   action: Action;
   capabilities: Capabilities;
@@ -50,13 +51,17 @@ export interface Response {
   coverage: Coverage;
   hookRegistry: HookRegistry;
 }
-export interface Capabilities {
-  kinds: Kind[];
-  evidenceTypes: string[];
-  tokenEstimates: boolean;
-  historicalContent: boolean;
-  writes: boolean;
-  projectRegistry: boolean;
+export interface ExtensionActivityStatistics {
+  methodVersion: number;
+  observedUse: number;
+  noObservedUse: number;
+  unavailable: number;
+  scope: Scope;
+  checkedAt: string;
+  /**
+   * Same page as inventory items; summary counts are computed before pagination.
+   */
+  items: ExtensionActivity[];
 }
 export interface Scope {
   allTime?: boolean | null;
@@ -67,6 +72,58 @@ export interface Scope {
   agentKind?: string | null;
   sourceInstanceId?: string | null;
   threadId?: string | null;
+}
+export interface ExtensionActivity {
+  itemId: string;
+  observedRecords?: number | null;
+  /**
+   * Whole elapsed 24-hour periods without a recorded use in the selected window.
+   * Does not establish continuous enablement, loading, or complete observation.
+   */
+  noObservedUseDays?: number | null;
+  lastRecordAt?: string | null;
+  absenceObservable: boolean;
+  useBasis?: UseBasis | null;
+}
+export interface UseBasis {
+  methodVersion: number;
+  status: UseBasisStatus;
+  unit: UseUnit;
+  /**
+   * Observer cutoff, distinct from individual event times and source dispatch.
+   */
+  capturedAt: string;
+  snapshotId?: string | null;
+  scope: UseScope;
+  timeBasis: UseTimeBasis;
+  coverage: UseCoverage;
+  /**
+   * Completeness of selected source reports, not proof of all native use mechanisms.
+   */
+  sourceCompleteness: UseSourceCompleteness;
+}
+export interface UseScope {
+  sourceInstanceIds: string[];
+  project?: string | null;
+  threadId?: string | null;
+  agentKind?: string | null;
+  window: UseWindow;
+}
+export interface UseCoverage {
+  dispatchGaps?: number | null;
+  identityGaps?: number | null;
+  targetGaps?: number | null;
+  timeGaps?: number | null;
+  turnGaps?: number | null;
+}
+export interface Capabilities {
+  historicalContentHashes: boolean;
+  kinds: Kind[];
+  evidenceTypes: string[];
+  tokenEstimates: boolean;
+  historicalContent: boolean;
+  writes: boolean;
+  projectRegistry: boolean;
 }
 export interface Summary {
   currentItems: number;
@@ -276,37 +333,6 @@ export interface SkillDiagnostic {
   column?: number | null;
   current?: string | null;
   expected?: string | null;
-}
-export interface UseBasis {
-  methodVersion: number;
-  status: UseBasisStatus;
-  unit: UseUnit;
-  /**
-   * Observer cutoff, distinct from individual event times and source dispatch.
-   */
-  capturedAt: string;
-  snapshotId?: string | null;
-  scope: UseScope;
-  timeBasis: UseTimeBasis;
-  coverage: UseCoverage;
-  /**
-   * Completeness of selected source reports, not proof of all native use mechanisms.
-   */
-  sourceCompleteness: UseSourceCompleteness;
-}
-export interface UseScope {
-  sourceInstanceIds: string[];
-  project?: string | null;
-  threadId?: string | null;
-  agentKind?: string | null;
-  window: UseWindow;
-}
-export interface UseCoverage {
-  dispatchGaps?: number | null;
-  identityGaps?: number | null;
-  targetGaps?: number | null;
-  timeGaps?: number | null;
-  turnGaps?: number | null;
 }
 export interface Evidence {
   id: string;

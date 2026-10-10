@@ -10,11 +10,12 @@ Generated files:
 - [Request schema](../schemas/usage-request-v3.schema.json)
 - [Response schema](../schemas/usage-app-v5.schema.json)
 - [Price request schema](../schemas/pricing-request-v1.schema.json) and [price response schema](../schemas/pricing-response-v1.schema.json), sourced from `core/src/pricing_sync.rs`
+- [Monitor request](../schemas/monitor-request-v1.schema.json) and [response](../schemas/monitor-response-v1.schema.json) derive from `core/src/monitor.rs`. Plans, notifications and acknowledgements use an independent protocol.
 - `client/src/generated/usage-request.ts`, `usage-app.ts`, and validators
 
 Run `corepack pnpm contracts:generate` to regenerate; `contracts:check` rejects drift. The portable client validates requests and responses and exposes no general shell, arbitrary file writes, or arbitrary dispatch.
 
-`outputVersion=6` versions public results; `schemaVersion=4` versions internal snapshots. Source adapters and prices have separate versions. Core messages use `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` or `{ok:false,error,code,details}`. Usage operations are refresh, usage, threads, turns, and steps. The separate `prices` interface provides status/update with `outputVersion=1`.
+`outputVersion=5` versions public results; `schemaVersion=4` versions internal snapshots. Source adapters and prices have separate versions. Core messages use `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` or `{ok:false,error,code,details}`. Usage operations are refresh, usage, threads, turns, and steps. The separate `prices` interface provides status/update with `outputVersion=1`.
 
 See [CLI](../guides/cli.en.md) for operations, enums, pagination, and errors. Measurement integers cannot exceed JavaScript's safe integer range; amounts remain decimal strings. New fields and rules require checking generated types, Web, JSON, and current snapshots together.
 
@@ -40,7 +41,7 @@ Node's price transport downloads only the fixed official HTTPS document. The hos
 
 `core/src/timing_dto.rs` defines the typed `timing` operation. Generated contracts include [requests](../schemas/timing-request-v1.schema.json), the [response union](../schemas/timing-response-v6.schema.json), [local](../schemas/timing-local-response-v6.schema.json) and [share](../schemas/timing-share-response-v6.schema.json) projections, and [safe errors](../schemas/timing-error-output-v1.schema.json). The client exports `TimingRequest` and `TimingResult`; do not maintain field lists separately from the Rust DTO and generated schemas.
 
-The request actions are `summary`, `evidence`, and `capabilities`. Summary requires full thread and turn identities and accepts an optional snapshot, source scope, `auto`/`fresh`/`cached` mode, and `local`/`share-v1` privacy profile. Evidence requires the same target and a fixed snapshot; its `turn_events`, `use_objects`, and `use_records` pages use opaque cursors bound to the view and scope. Capabilities performs no source scan. Summary uses `outputVersion=6` and analysis method `safe_event_turn_v7`. Operation endpoint reduction is versioned separately; older responses are rejected. Local output may include local identities and paths, while `share-v1` is a separate whitelist that omits them. Timing does not trigger price downloads, configuration, Hooks, or account observations. See the [CLI guide](../guides/cli.en.md) for invocation and error handling.
+The request actions are `summary`, `evidence`, and `capabilities`. Summary requires full thread and turn identities and accepts an optional snapshot, source scope, `auto`/`fresh`/`cached` mode, and `local`/`share-v1` privacy profile. Evidence requires the same target and a fixed snapshot; its `turn_events`, `use_objects`, and `use_records` pages use opaque cursors bound to the view and scope. Capabilities performs no source scan. Summary uses `outputVersion=5` and analysis method `safe_event_turn_v7`. Operation endpoint reduction is versioned separately; older responses are rejected. Local output may include local identities and paths, while `share-v1` is a separate whitelist that omits them. Timing does not trigger price downloads, configuration, Hooks, or account observations. See the [CLI guide](../guides/cli.en.md) for invocation and error handling.
 
 ## Read-only configuration contract v1
 

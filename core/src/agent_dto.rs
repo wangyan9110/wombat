@@ -35,6 +35,8 @@ pub enum Request {
     Collection(crate::collection::Request),
     /// Review selected targets or explicitly send an authorized native Codex request.
     Handoff(crate::handoff_dto::Request),
+    /// Save token budgets and review schedules, inspect notifications, or check selected plans at a recent usage view.
+    Monitor(crate::monitor::Request),
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]

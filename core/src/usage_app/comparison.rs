@@ -29,6 +29,16 @@ pub(super) fn delta(before: &UsageSummary, after: &UsageSummary) -> UsageDelta {
 }
 
 pub(super) fn validate_comparison(request: &Request) -> Result<()> {
+    if request.action == Action::Statistics {
+        if request.comparison.is_none() {
+            return Ok(());
+        }
+        let mut comparison = request.clone();
+        comparison.action = Action::Compare;
+        comparison.presentation = None;
+        comparison.thread_id = None;
+        return validate_comparison(&comparison);
+    }
     if request.action != Action::Compare {
         if request.comparison.is_some() {
             return Err(invalid("comparison仅适用于compare"));
@@ -374,6 +384,7 @@ pub(super) fn execute(request: Request, snapshot: &Snapshot) -> Result<Response>
         }
     };
     Ok(Response {
+        statistics: None,
         inspection: None,
         comparison: Some(comparison),
         facets: None,

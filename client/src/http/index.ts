@@ -43,6 +43,7 @@ export function createHttpClient(options: { origin: string; token: string; fetch
   };
   return createUsageClient({
     setup:(r,q)=>send('setup',r,q),
+    monitor: (r,q) => send('monitor',r,q),
     collection: (r,q) => send('collection',r,q),
     query: (r, q) => send('query', r, q),
     prices: (r, q) => send('prices', r, q),

@@ -1,3 +1,4 @@
+import {UsageStatistics} from './UsageStatistics.js';
 import {UsageInspection} from './UsageInspection.js';
 import {SessionComparison,PublicationChanges} from './UsageComparison.js';
 import { useEffect,useRef,useState,type ReactNode } from 'react';
@@ -54,6 +55,7 @@ export function ThreadsView({empty,client,data,route,navigate,basis,usage,refres
      <details className="provenance"><summary>{t('webui.provenance')}</summary><dl className="facts"><dt>{t('webui.sourceInstance')}</dt><dd><code>{selected.sourceInstanceId}</code></dd><dt>{t('webui.directoryPath')}</dt><dd><code>{selected.project??t('webui.unknown')}</code></dd><dt>{t('webui.threadId')}</dt><dd><code>{selected.upstreamId??selected.id}</code></dd></dl><p className="note">{t('webui.scopeNote')}</p></details>
      <div className="task-actions"><button className="link" onClick={()=>navigate({returnTo:linkedReturn(route),page:'instructions',configThread:selected.id,snapshot:data.list.snapshotRef.snapshotId,configView:undefined,configId:undefined,configOffset:0,instructionSearch:undefined})}>{t('config.relatedConfig')}</button><button className="link" onClick={()=>usage({summary:selected.threadUsage,scope:{allTime:true,timezone:route.timezone,threadId:selected.id},snapshotId:data.list.snapshotRef.snapshotId})}>{t('webui.usageDetail')}</button></div>
      {!data.freshness?.initialScan&&<Composition summary={selected.threadUsage}/>}<CostComposition summary={selected.threadUsage}/><CostNote onBasis={()=>basis(selected.threadUsage)}/>
+     <UsageStatistics client={client} snapshotId={data.list.snapshotRef.snapshotId} route={route} threadId={selected.id} refresh={refresh}/>
      <UsageInspection client={client} snapshotId={data.list.snapshotRef.snapshotId} route={route} navigate={navigate} refresh={refresh} threadId={selected.id}/>
      <SessionComparison choices={rows} key={selected.id} client={client} snapshotId={data.list.snapshotRef.snapshotId} threadId={selected.id} route={route} refresh={refresh} openThread={thread=>navigate({thread,snapshot:data.list.snapshotRef.snapshotId,turn:undefined,offset:0})}/>
      <Turns key={JSON.stringify([selected.id,scopeOf(route),route.turnSort,route.turnView])} client={client} snapshotId={data.list.snapshotRef.snapshotId} thread={selected.id} route={route} navigate={navigate} basis={basis} refresh={refresh}/>

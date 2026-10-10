@@ -153,9 +153,11 @@ export function eventStatusLabel(status: string): string {
   switch(status){case 'completed':case 'succeeded':return t('event.completed');case 'observed':return t('config.skillUsed');case 'failed':return t('event.failed');case 'cancelled':case 'canceled':return t('event.cancelled');case 'running':return t('common.running');case 'interrupted':return t('common.interrupted');case 'unknown':return t('webui.unknown');default:return status;}
 }
 export function followUpText(observation: import('../client.js').OptimizeResult['followUps'][number]): string {
-  if(observation.useBasis?.status==='partial'&&observation.observedRecords!=null)return t('optimize.followUp.partialRecords',{count:observation.observedRecords});
+  if(observation.status!=='read_content_matched'&&observation.status!=='loaded_content_matched'&&observation.useBasis?.status==='partial'&&observation.observedRecords!=null)return t('optimize.followUp.partialRecords',{count:observation.observedRecords});
   switch(observation.status){
     case 'no_observed_records':return t('optimize.followUp.noRecords');
+    case 'loaded_content_matched':return t('optimize.followUp.loadedContentMatched',{count:observation.matchingLoadRecords??0});
+    case 'read_content_matched':return t('optimize.followUp.readContentMatched',{count:observation.matchingReadRecords??0});
     case 'version_unknown':return observation.observedRecords!=null&&observation.observedRecords>0?t('optimize.followUp.versionUnknown',{count:observation.observedRecords}):t('optimize.followUp.unavailable');
     case 'unavailable':return t('optimize.followUp.unavailable');
   }

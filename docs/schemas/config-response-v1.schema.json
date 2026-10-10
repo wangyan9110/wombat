@@ -3,6 +3,16 @@
   "title": "Response",
   "type": "object",
   "properties": {
+    "extensionActivity": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ExtensionActivityStatistics"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "outputVersion": {
       "type": "integer",
       "minimum": 0,
@@ -103,60 +113,51 @@
     "hookRegistry"
   ],
   "definitions": {
-    "Action": {
-      "type": "string",
-      "enum": [
-        "list",
-        "detail",
-        "evidence",
-        "related_scopes",
-        "capabilities"
-      ]
-    },
-    "Capabilities": {
+    "ExtensionActivityStatistics": {
       "type": "object",
       "properties": {
-        "kinds": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "observedUse": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "noObservedUse": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unavailable": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "checkedAt": {
+          "type": "string"
+        },
+        "items": {
+          "description": "Same page as inventory items; summary counts are computed before pagination.",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Kind"
+            "$ref": "#/definitions/ExtensionActivity"
           }
-        },
-        "evidenceTypes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tokenEstimates": {
-          "type": "boolean"
-        },
-        "historicalContent": {
-          "type": "boolean"
-        },
-        "writes": {
-          "type": "boolean"
-        },
-        "projectRegistry": {
-          "type": "boolean"
         }
       },
       "required": [
-        "kinds",
-        "evidenceTypes",
-        "tokenEstimates",
-        "historicalContent",
-        "writes",
-        "projectRegistry"
-      ]
-    },
-    "Kind": {
-      "type": "string",
-      "enum": [
-        "rule",
-        "skill",
-        "mcp",
-        "hook"
+        "methodVersion",
+        "observedUse",
+        "noObservedUse",
+        "unavailable",
+        "scope",
+        "checkedAt",
+        "items"
       ]
     },
     "Scope": {
@@ -212,6 +213,354 @@
         }
       },
       "additionalProperties": false
+    },
+    "ExtensionActivity": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string"
+        },
+        "observedRecords": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "noObservedUseDays": {
+          "description": "Whole elapsed 24-hour periods without a recorded use in the selected window.\nDoes not establish continuous enablement, loading, or complete observation.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lastRecordAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "absenceObservable": {
+          "type": "boolean"
+        },
+        "useBasis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UseBasis"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "itemId",
+        "absenceObservable"
+      ]
+    },
+    "UseBasis": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "status": {
+          "$ref": "#/definitions/UseBasisStatus"
+        },
+        "unit": {
+          "$ref": "#/definitions/UseUnit"
+        },
+        "capturedAt": {
+          "description": "Observer cutoff, distinct from individual event times and source dispatch.",
+          "type": "string"
+        },
+        "snapshotId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "$ref": "#/definitions/UseScope"
+        },
+        "timeBasis": {
+          "$ref": "#/definitions/UseTimeBasis"
+        },
+        "coverage": {
+          "$ref": "#/definitions/UseCoverage"
+        },
+        "sourceCompleteness": {
+          "description": "Completeness of selected source reports, not proof of all native use mechanisms.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/UseSourceCompleteness"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "status",
+        "unit",
+        "capturedAt",
+        "scope",
+        "timeBasis",
+        "coverage",
+        "sourceCompleteness"
+      ]
+    },
+    "UseBasisStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "observed",
+            "unavailable"
+          ]
+        },
+        {
+          "description": "Canonical observed counts remain usable; gaps prevent a complete count.",
+          "type": "string",
+          "const": "partial"
+        }
+      ]
+    },
+    "UseUnit": {
+      "type": "string",
+      "enum": [
+        "object_use",
+        "rule_read",
+        "rule_load_or_read"
+      ]
+    },
+    "UseScope": {
+      "type": "object",
+      "properties": {
+        "sourceInstanceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "threadId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agentKind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "window": {
+          "$ref": "#/definitions/UseWindow"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sourceInstanceIds",
+        "window"
+      ]
+    },
+    "UseWindow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all_history"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "Inclusive local date since, exclusive local date until, in the recorded timezone.",
+          "type": "object",
+          "properties": {
+            "since": {
+              "type": "string"
+            },
+            "until": {
+              "type": "string"
+            },
+            "timezone": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "date_window"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "since",
+            "until",
+            "timezone"
+          ]
+        },
+        {
+          "description": "Exclusive source-operation time after, inclusive captured observer time through.",
+          "type": "object",
+          "properties": {
+            "after": {
+              "type": "string"
+            },
+            "through": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "follow_up"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "after",
+            "through"
+          ]
+        }
+      ]
+    },
+    "UseTimeBasis": {
+      "type": "string",
+      "enum": [
+        "source_operation_time"
+      ]
+    },
+    "UseCoverage": {
+      "type": "object",
+      "properties": {
+        "dispatchGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "identityGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "targetGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "turnGaps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    },
+    "UseSourceCompleteness": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "unknown"
+      ]
+    },
+    "Action": {
+      "type": "string",
+      "enum": [
+        "list",
+        "detail",
+        "evidence",
+        "related_scopes",
+        "capabilities"
+      ]
+    },
+    "Capabilities": {
+      "type": "object",
+      "properties": {
+        "historicalContentHashes": {
+          "type": "boolean"
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Kind"
+          }
+        },
+        "evidenceTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tokenEstimates": {
+          "type": "boolean"
+        },
+        "historicalContent": {
+          "type": "boolean"
+        },
+        "writes": {
+          "type": "boolean"
+        },
+        "projectRegistry": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "historicalContentHashes",
+        "kinds",
+        "evidenceTypes",
+        "tokenEstimates",
+        "historicalContent",
+        "writes",
+        "projectRegistry"
+      ]
+    },
+    "Kind": {
+      "type": "string",
+      "enum": [
+        "rule",
+        "skill",
+        "mcp",
+        "hook"
+      ]
     },
     "Summary": {
       "type": "object",
@@ -1106,246 +1455,6 @@
       },
       "required": [
         "code"
-      ]
-    },
-    "UseBasis": {
-      "type": "object",
-      "properties": {
-        "methodVersion": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4294967295
-        },
-        "status": {
-          "$ref": "#/definitions/UseBasisStatus"
-        },
-        "unit": {
-          "$ref": "#/definitions/UseUnit"
-        },
-        "capturedAt": {
-          "description": "Observer cutoff, distinct from individual event times and source dispatch.",
-          "type": "string"
-        },
-        "snapshotId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "scope": {
-          "$ref": "#/definitions/UseScope"
-        },
-        "timeBasis": {
-          "$ref": "#/definitions/UseTimeBasis"
-        },
-        "coverage": {
-          "$ref": "#/definitions/UseCoverage"
-        },
-        "sourceCompleteness": {
-          "description": "Completeness of selected source reports, not proof of all native use mechanisms.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/UseSourceCompleteness"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "methodVersion",
-        "status",
-        "unit",
-        "capturedAt",
-        "scope",
-        "timeBasis",
-        "coverage",
-        "sourceCompleteness"
-      ]
-    },
-    "UseBasisStatus": {
-      "oneOf": [
-        {
-          "type": "string",
-          "enum": [
-            "observed",
-            "unavailable"
-          ]
-        },
-        {
-          "description": "Canonical observed counts remain usable; gaps prevent a complete count.",
-          "type": "string",
-          "const": "partial"
-        }
-      ]
-    },
-    "UseUnit": {
-      "type": "string",
-      "enum": [
-        "object_use",
-        "rule_read",
-        "rule_load_or_read"
-      ]
-    },
-    "UseScope": {
-      "type": "object",
-      "properties": {
-        "sourceInstanceIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "project": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "threadId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "agentKind": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "window": {
-          "$ref": "#/definitions/UseWindow"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "sourceInstanceIds",
-        "window"
-      ]
-    },
-    "UseWindow": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "all_history"
-            }
-          },
-          "required": [
-            "kind"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "description": "Inclusive local date since, exclusive local date until, in the recorded timezone.",
-          "type": "object",
-          "properties": {
-            "since": {
-              "type": "string"
-            },
-            "until": {
-              "type": "string"
-            },
-            "timezone": {
-              "type": "string"
-            },
-            "kind": {
-              "type": "string",
-              "const": "date_window"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "kind",
-            "since",
-            "until",
-            "timezone"
-          ]
-        },
-        {
-          "description": "Exclusive source-operation time after, inclusive captured observer time through.",
-          "type": "object",
-          "properties": {
-            "after": {
-              "type": "string"
-            },
-            "through": {
-              "type": "string"
-            },
-            "kind": {
-              "type": "string",
-              "const": "follow_up"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "kind",
-            "after",
-            "through"
-          ]
-        }
-      ]
-    },
-    "UseTimeBasis": {
-      "type": "string",
-      "enum": [
-        "source_operation_time"
-      ]
-    },
-    "UseCoverage": {
-      "type": "object",
-      "properties": {
-        "dispatchGaps": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "identityGaps": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "targetGaps": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "timeGaps": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "turnGaps": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 9007199254740991
-        }
-      },
-      "additionalProperties": false
-    },
-    "UseSourceCompleteness": {
-      "type": "string",
-      "enum": [
-        "complete",
-        "partial",
-        "unknown"
       ]
     },
     "Evidence": {

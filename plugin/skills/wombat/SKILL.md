@@ -1,6 +1,6 @@
 ---
 name: wombat
-description: Query local Codex token usage and task history with Wombat, explain allowance and configuration evidence, and process selected Wombat recommendations with deterministic rechecks. Use for Wombat usage, setup and collection questions; not general project development.
+description: Query local Codex usage, task distributions and growth; set or check Wombat Token budgets and period reviews; inspect allowance and configuration evidence, and recheck authorized fixes. Use for Wombat setup and collection too; not general project development.
 ---
 
 # Wombat
@@ -13,7 +13,7 @@ Determine the requested task before preparing data. Read only the applicable ref
 
 - Installation, collection setup, pause/resume or receipt checks: [collection](references/collection.md).
 - Executable discovery, missing runtime, first scan, partial results or bounded waiting: [startup](references/startup.md).
-- Usage, high consumption, task investigation, input growth, resource hotspots or period reviews: [usage](references/usage.md).
+- Usage, high consumption, task investigation, input growth, resource hotspots, task distributions, growth breakdowns, budgets or period reviews: [usage](references/usage.md).
 - Account allowance and reset windows: [account](references/account.md).
 - Current project configuration, AGENTS, Skills, MCP or Hooks: [configuration](references/configuration.md).
 - Authorized fixes, Web handoffs, keep/not-applicable decisions or rechecks: [processing](references/processing.md).

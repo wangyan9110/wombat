@@ -236,6 +236,23 @@ pub fn serve() -> Result<()> {
                         }
                         let value: Value = serde_json::from_str(&input)
                             .map_err(|_| operation_error("INVALID_ARGUMENT", "查询参数无效"))?;
+                        if value.get("monitor").is_some() {
+                            #[derive(Deserialize)]
+                            #[serde(deny_unknown_fields)]
+                            struct MonitorMessage {
+                                monitor: crate::monitor::Request,
+                            }
+                            let request: MonitorMessage =
+                                serde_json::from_value(value).map_err(|_| {
+                                    operation_error("INVALID_ARGUMENT", "Invalid monitor request")
+                                })?;
+                            return Ok(serde_json::to_value(query::monitor_query(
+                                request.monitor,
+                                &state,
+                                &jobs,
+                                &configs,
+                            )?)?);
+                        }
                         if value.get("timing").is_some() {
                             let request: TimingMessage =
                                 serde_json::from_value(value).map_err(|_| {

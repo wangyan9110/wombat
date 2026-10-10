@@ -6,7 +6,7 @@ import packageMetadata from '../package.json' with { type: 'json' };
 import { CoreError, type UsageRequest, type UsageResult } from '@wombat/client';
 import { createNodeClient } from '@wombat/client/node';
 import { renderUsageResult } from './format.js';
-export function usageHelp(): string { return (t("cli.usage-app-cli.help") + "\n" + t("comparison.help") + "\n" + t("inspection.help") + "\n").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('skill.summary')}\n${t('setup.summaryHelp')}\n${t('collection.summaryHelp')}\n${t('cli.doctor.summary')}\n${t('cli.timing.summary')}\n  wombat optimize`); }
+export function usageHelp(): string { return (t("statistics.help") + "\n" + t("monitor.help") + "\n" + t("cli.usage-app-cli.help") + "\n" + t("comparison.help") + "\n" + t("inspection.help") + "\n").replace('  wombat optimize', `${t('cli.update.summary')}\n${t('skill.summary')}\n${t('setup.summaryHelp')}\n${t('collection.summaryHelp')}\n${t('cli.doctor.summary')}\n${t('cli.timing.summary')}\n  wombat optimize`); }
 export interface Invocation {
   request: UsageRequest;
   json: boolean;
@@ -16,7 +16,7 @@ export interface Invocation {
   watch: boolean;
   verify: boolean;
 }
-const actions = new Set(['refresh', 'usage', 'threads', 'turns', 'steps', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context']);
+const actions = new Set(['refresh', 'usage', 'threads', 'turns', 'steps', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context', 'statistics']);
 const valued = new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'turn', 'group', 'presentation', 'sort', 'search', 'limit', 'offset', 'locate-thread', 'locate-turn', 'locate-operation', 'baseline-since', 'baseline-until', 'dimension', 'other-thread']);
 function invalid(message: string): never { throw new CoreError('INVALID_ARGUMENT', message); }
 export function parseUsageArgs(argv: string[]): Invocation {
@@ -83,7 +83,7 @@ export function parseUsageArgs(argv: string[]): Invocation {
     request.compact = true;
   }
   const scope: NonNullable<UsageRequest['scope']> = {};
-  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'compare' ? ['baseline-since', 'baseline-until', 'dimension', 'other-thread'] : []), ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'threads' ? ['sort', 'search', 'locate-thread'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn','locate-operation'] : []), ...(action === 'investigate' ? ['turn'] : []), ...(action === 'turns' ? ['locate-turn'] : [])]);
+  const allowed = action === 'refresh' ? new Set(['root']) : new Set(['root', 'snapshot', 'agent', 'source', 'timezone', 'since', 'until', 'model', 'effort', 'project', 'thread', 'limit', 'offset', ...(action === 'compare' ? ['baseline-since', 'baseline-until', 'dimension', 'other-thread'] : []), ...(action === 'usage' ? ['group', 'presentation', 'sort'] : []), ...(action === 'statistics' ? ['presentation','baseline-since','baseline-until'] : []), ...(action === 'threads' ? ['sort', 'search', 'locate-thread'] : []), ...(action === 'turns' || action === 'steps' ? ['sort'] : []), ...(action === 'steps' ? ['turn','locate-operation'] : []), ...(action === 'investigate' ? ['turn'] : []), ...(action === 'turns' ? ['locate-turn'] : [])]);
   for (const name of [...values.keys(), ...(roots.length ? ['root'] : [])])
     if (!allowed.has(name))
       invalid(t("cli.usage-app-cli.value_does_not_support_value", { p0: action, p1: name }));
@@ -126,7 +126,7 @@ export function parseUsageArgs(argv: string[]): Invocation {
   }
   const thread = values.get('thread');
   if (thread && action !== 'compare') {
-    if (action === 'turns' || action === 'steps')
+    if (action === 'turns' || action === 'steps' || action === 'statistics')
       request.threadId = thread;
     else
       scope.threadId = thread;
@@ -141,6 +141,11 @@ export function parseUsageArgs(argv: string[]): Invocation {
       if (!help && (!baselineSince || !baselineUntil || !scope.since || !scope.until) || !['project','model','thread'].includes(dimension) || unknownFlags.has('--family')) invalid(t('comparison.invalid'));
       if (baselineSince && baselineUntil) request.comparison={kind:'periods',baselineSince,baselineUntil,dimension:dimension as 'project'|'model'|'thread'};
     }
+  }
+  if(action==='statistics' && (values.has('baseline-since') || values.has('baseline-until'))) {
+    const baselineSince=values.get('baseline-since'),baselineUntil=values.get('baseline-until');
+    if(!baselineSince||!baselineUntil||!scope.since||!scope.until)invalid(t('comparison.invalid'));
+    request.comparison={kind:'periods',baselineSince,baselineUntil,dimension:'thread'};
   }
   const turn = values.get('turn');
   if (turn) {
@@ -210,6 +215,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
   const json = argv.includes('--json');
   try {
     argv = configureLanguage(argv);
+    if (argv[0] === 'monitor') return await (await import('./monitor-cli.js')).runMonitorCli(argv.slice(1));
     if (argv[0] === 'setup') return await (await import('./setup-cli.js')).runSetupCli(argv.slice(1));
     if (argv[0] === 'collection') return await (await import('./collection-cli.js')).runCollectionCli(argv.slice(1));
     if (argv[0] === 'hook') return await (await import('./collection-cli.js')).runHookCli(argv.slice(1));
@@ -227,7 +233,7 @@ export async function runUsageCli(argv = process.argv.slice(2)): Promise<number>
       return 0;
     }
     if (invocation.help) {
-      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context', 'skill', 'collection', 'hook', 'setup', 'api', 'call'], help: usageHelp() }) + '\n' : usageHelp());
+      process.stdout.write(invocation.json ? JSON.stringify({ outputVersion: 5, name: 'Wombat', commands: ['refresh', 'usage', 'threads', 'turns', 'steps', 'prices', 'web', 'optimize', 'directories', 'account', 'update', 'doctor', 'timing', 'compare', 'investigate', 'trajectory', 'resources', 'review', 'context', 'skill', 'collection', 'hook', 'setup', 'api', 'call', 'statistics', 'monitor'], help: usageHelp() }) + '\n' : usageHelp());
       return 0;
     }
     const client = createNodeClient();

@@ -18,12 +18,16 @@
       "en": "63c05cf83c6fed59af17109b69a676029821b9a1ee38bdb8f70f62e9e2ea1946"
     },
     "/rust-core/storage-and-service-lifecycle": {
-      "zh": "a6ab5318bd5834d97f4242875aa34e16dad83aa2e90962b26e865ade37628452",
-      "en": "d55d118a6432ce4e6a3faba6469ba8052b4931b2477c52a6e5c6bcbffb446357"
+      "zh": "aac584b60e8d283d2a1c0ca86ca227f56b246baa76e39f335e75b84b8a7e8af9",
+      "en": "19aa53ca8f75abbe05a81b02afb2d348e5d52c9c383b893d14654f1a6ba789fd"
     },
     "/rust-core/runtime-collection": {
       "zh": "1682a7a522f79ea35e1e54ec89701c25a4e13adedece3302a9b13ffd18ee087d",
       "en": "8c0516d8d857cfd36d923cd690cac7f540551834e73740ea4735c45a579e89d3"
+    },
+    "/rust-core/task-statistics-and-monitoring": {
+      "zh": "ea28b602f0aaba97948dc92a1a42ba38cc5ad06c7dae2ebf54151e4844b8424d",
+      "en": "a68380b4a0adf963908990d81a055b6077260faf7a7756181f90da2eed17addb"
     }
   }
 }

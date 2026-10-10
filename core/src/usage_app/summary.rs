@@ -80,6 +80,17 @@ fn token_analysis(rows: &[&PricedMeasurement]) -> Result<TokenAnalysis> {
     })
 }
 
+pub(super) fn complete_total(rows: &[&PricedMeasurement]) -> Result<Option<u64>> {
+    checked_sum(rows, |tokens| tokens.total)?;
+    let analysis = analyzed_total(rows)?;
+    Ok(if rows.is_empty() {
+        Some(0)
+    } else if analysis.unavailable_records == 0 {
+        analysis.subtotal
+    } else {
+        None
+    })
+}
 fn analyzed_total(rows: &[&PricedMeasurement]) -> Result<AnalyzedTokenTotal> {
     let mut total = AnalyzedTokenTotal {
         method_version: 1,

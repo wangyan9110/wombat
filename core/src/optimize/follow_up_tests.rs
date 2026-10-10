@@ -12,6 +12,72 @@ use std::sync::Arc;
 const AFTER: &str = "2026-10-01T00:00:00Z";
 const AT: &str = "2026-10-01T01:00:00Z";
 const CUTOFF: &str = "2026-10-02T00:00:00Z";
+#[test]
+fn native_revision_matches_distinguish_read_loading_and_current_inventory() {
+    use crate::adapters::contract::TextResultObservation;
+    for (kind, operation_kind, status) in [
+        (Kind::Skill, "skillRead", FollowUpStatus::ReadContentMatched),
+        (
+            Kind::Rule,
+            "instructionLoad",
+            FollowUpStatus::LoadedContentMatched,
+        ),
+    ] {
+        let mut object = item("target", kind);
+        object.content_hash = crate::hash("observed content\n");
+        let mut op = operation("versioned", operation_kind, &object);
+        op.text_result = Some(TextResultObservation {
+            method_version: 1,
+            hash: Some(object.content_hash.clone()),
+            observed_at: Some(AT.into()),
+            conflicting: false,
+        });
+        let out = observe(
+            &[suggestion(&object)],
+            &single(&object, vec![op.clone()]),
+            None,
+        );
+        assert_eq!(out[0].status, status);
+        assert!(!out[0].absence_observable);
+        op.text_result.as_mut().unwrap().hash = Some(crate::hash("old content\n"));
+        let out = observe(&[suggestion(&object)], &single(&object, vec![op]), None);
+        assert_ne!(out[0].status, FollowUpStatus::ReadContentMatched);
+        assert_ne!(out[0].status, FollowUpStatus::LoadedContentMatched);
+    }
+}
+
+#[test]
+fn version_matches_bind_saved_recheck_not_new_current_content_and_reject_conflicts() {
+    use crate::adapters::contract::TextResultObservation;
+    let mut checked = item("skill", Kind::Skill);
+    checked.content_hash = crate::hash("checked");
+    let mut current = checked.clone();
+    current.content_hash = crate::hash("changed again");
+    let mut op = operation("read", "skillRead", &checked);
+    op.text_result = Some(TextResultObservation {
+        method_version: 1,
+        hash: Some(checked.content_hash.clone()),
+        observed_at: Some(AT.into()),
+        conflicting: false,
+    });
+    let result = observe(
+        &[suggestion(&checked)],
+        &single(&current, vec![op.clone()]),
+        None,
+    );
+    assert_eq!(result[0].status, FollowUpStatus::ReadContentMatched);
+    op.text_result.as_mut().unwrap().conflicting = true;
+    let result = observe(
+        &[suggestion(&checked)],
+        &single(&current, vec![op.clone()]),
+        None,
+    );
+    assert_eq!(result[0].status, FollowUpStatus::VersionUnknown);
+    op.text_result.as_mut().unwrap().conflicting = false;
+    op.text_result.as_mut().unwrap().observed_at = Some(AFTER.into());
+    let result = observe(&[suggestion(&checked)], &single(&current, vec![op]), None);
+    assert_eq!(result[0].status, FollowUpStatus::VersionUnknown);
+}
 
 fn item(id: &str, kind: Kind) -> Item {
     let kind_name = match kind {
@@ -567,4 +633,123 @@ fn partial_follow_up_keeps_two_uses_and_one_unassigned_record_without_claiming_a
     // are separate dimensions rather than an additive unassigned-record total.
     assert_eq!(basis.coverage.time_gaps, Some(1));
     assert!(!out[0].absence_observable);
+}
+
+#[test]
+fn elapsed_comparison_keeps_exact_bounds_sources_projects_and_unassigned_usage() {
+    use crate::adapters::contract::{Measurement, ModelRef, TokenUnavailableReason, TokenUsage};
+    let object = item("rule", Kind::Rule);
+    let mut v = single(&object, vec![]);
+    let temp = tempfile::tempdir().unwrap();
+    let entries = [
+        (
+            "start",
+            Some("before"),
+            "source",
+            Some("2026-09-30T00:00:00Z"),
+            1000,
+        ),
+        (
+            "baseline",
+            Some("before"),
+            "source",
+            Some("2026-09-30T12:00:00Z"),
+            50,
+        ),
+        ("change", Some("before"), "source", Some(AFTER), 100),
+        ("current", Some("after"), "source", Some(AT), 80),
+        ("end", Some("after"), "source", Some(CUTOFF), 120),
+        (
+            "outside",
+            Some("after"),
+            "source",
+            Some("2026-10-02T00:00:01Z"),
+            999,
+        ),
+        ("foreign-source", Some("foreign"), "foreign", Some(AT), 999),
+        (
+            "foreign-project",
+            Some("other-project"),
+            "source",
+            Some(AT),
+            999,
+        ),
+        ("undated", Some("after"), "source", None, 25),
+        ("unassigned", None, "source", Some(AT), 5),
+    ];
+    let measurements = entries
+        .into_iter()
+        .map(|(id, task, source, at, n)| {
+            let tokens = TokenUsage {
+                input: Some(n),
+                cache_read: Some(0),
+                cache_create: Some(0),
+                output: Some(0),
+                reasoning: Some(0),
+                total: Some(n),
+                raw_input: Some(n),
+            };
+            Arc::new(Measurement {
+                id: id.into(),
+                agent_kind: "codex".into(),
+                source_instance_id: source.into(),
+                thread_id: task.map(Into::into),
+                turn_id: None,
+                response_id: Some(id.into()),
+                timestamp: at.map(str::to_owned),
+                interval_end: None,
+                grain: "response".into(),
+                time_precision: "second".into(),
+                model: ModelRef {
+                    raw: Some("gpt-5.4".into()),
+                    ..Default::default()
+                },
+                reasoning_effort: None,
+                token_unavailable_reasons: tokens
+                    .unavailable_reasons(TokenUnavailableReason::Missing),
+                tokens,
+                pricing_context_conflict: false,
+                request_scoped: true,
+                reported_cost: None,
+                service_tier: None,
+                sequence: 0,
+                evidence: vec![],
+            })
+        })
+        .collect();
+    v.snapshot = Some(Arc::new(
+        crate::usage_store::memory(
+            Collected {
+                measurements,
+                threads: vec![
+                    thread("before", "source", Some("/project")),
+                    thread("after", "source", Some("/project")),
+                    thread("foreign", "foreign", Some("/project")),
+                    thread("other-project", "source", Some("/other")),
+                ],
+                ..Default::default()
+            },
+            "live:independent:compare".into(),
+            crate::pricing_sync::current_at(temp.path()).unwrap(),
+            None,
+        )
+        .unwrap(),
+    ));
+    let mut checked = suggestion(&object);
+    checked.scope_project = Some("/project".into());
+    let result = observe(&[checked.clone()], &v, Some("source"));
+    let c = result[0].usage_comparison.as_ref().unwrap();
+    assert_eq!(c.source_instance_ids, ["source"]);
+    assert_eq!(c.baseline_start, "2026-09-30T00:00:00+00:00");
+    assert_eq!(c.baseline.complete_task_tokens, Some(150));
+    assert_eq!(c.current.complete_task_tokens, Some(200));
+    assert_eq!(c.baseline.measured_tasks, 1);
+    assert_eq!(c.current.measured_tasks, 1);
+    assert_eq!(c.undated_records, 1);
+    assert!(c.partial);
+    checked.scope_project = None;
+    let result = observe(&[checked], &v, Some("source"));
+    let c = result[0].usage_comparison.as_ref().unwrap();
+    assert_eq!(c.current.unassigned_usage.complete_token_total(), Some(5));
+    assert_eq!(c.current_usage.complete_token_total(), Some(1204));
 }

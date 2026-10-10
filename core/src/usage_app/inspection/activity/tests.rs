@@ -96,6 +96,7 @@ fn fixture() -> Snapshot {
     for i in 0..27 {
         let thread = if i >= 25 { "b" } else { "a" };
         collected.operations.push(Arc::new(Operation {
+            text_result: None,
             id: format!("op{i:02}"),
             thread_id: thread.into(),
             turn_id: Some("turn".into()),

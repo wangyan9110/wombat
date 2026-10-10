@@ -134,6 +134,16 @@ pub(super) fn process(
                 &identity,
             );
             operation.status = "completed".into();
+            operation.text_result =
+                loads
+                    .content_hashes
+                    .get(&path)
+                    .map(|hash| TextResultObservation {
+                        method_version: 1,
+                        hash: Some(hash.clone()),
+                        observed_at: time.clone(),
+                        conflicting: false,
+                    });
             operation.path = Some(path);
             facts.operation(operation, report);
         }

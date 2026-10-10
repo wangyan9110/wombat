@@ -93,6 +93,7 @@ async function call(request:AgentRequest,client:Partial<UsageClient>,options:Que
   case 'collection': {const r=await (client.collection?.(request.params,options)??unavailable());return {result:r,exitCode:collectionExitCode(r)};}
   case 'handoff': {const r=await (client.handoff?.(request.params,options)??unavailable());return {result:r,exitCode:handoffExitCode(r)};}
   case 'prices': return {result:await (client.prices?.(request.params,options)??unavailable()),exitCode:0};
+  case 'monitor': {const r=await (client.monitor?.(request.params,options)??unavailable());return {result:r,exitCode:r.notifications.some(n=>n.partial)?2:0};}
   case 'preferences': return {result:await (client.preferences?.(request.params,options)??unavailable()),exitCode:0};
  }
 }

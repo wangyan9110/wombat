@@ -818,6 +818,7 @@ fn canonical_turn_reads_ignore_unrelated_turn_and_ledger_damage() {
         .get_mut(&("thread".into(), "other-turn".into()))
         .unwrap()
         .operations = vec![Arc::new(Operation {
+        text_result: None,
         thread_id: "foreign".into(),
         ..expected.as_ref().clone()
     })];

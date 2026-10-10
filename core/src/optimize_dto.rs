@@ -497,11 +497,17 @@ pub enum FollowUpStatus {
     NoObservedRecords,
     VersionUnknown,
     Unavailable,
+    ReadContentMatched,
+    LoadedContentMatched,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FollowUpObservation {
+    pub matching_read_records: Option<u64>,
+    pub matching_load_records: Option<u64>,
+    pub usage_comparison: Option<FollowUpUsage>,
+    pub usage_comparison_unavailable: Option<String>,
     pub record_id: String,
     pub suggestion_id: String,
     pub status: FollowUpStatus,
@@ -512,6 +518,24 @@ pub struct FollowUpObservation {
     pub last_record_at: Option<String>,
     pub usage_revision: Option<String>,
     pub absence_observable: bool,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FollowUpUsage {
+    /// Exact authorized sources shared by the compared windows.
+    pub source_instance_ids: Vec<String>,
+    #[schemars(range(min = 1, max = 1))]
+    pub method_version: u32,
+    pub scope: crate::usage_app_dto::Scope,
+    pub baseline_start: String,
+    pub change_at: String,
+    pub observed_through: String,
+    pub baseline: crate::usage_app_dto::TaskPopulation,
+    pub current: crate::usage_app_dto::TaskPopulation,
+    pub baseline_usage: crate::usage_app_dto::UsageSummary,
+    pub current_usage: crate::usage_app_dto::UsageSummary,
+    pub undated_records: usize,
+    pub partial: bool,
 }
 
 /// Fixed turn analysis, separate from configuration identities and durable handling decisions.

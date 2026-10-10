@@ -14,6 +14,9 @@
     "web-context-v1",
     "collection-json-v1",
     "setup-json-v1",
-    "agent-api-v1"
+    "agent-api-v1",
+    "usage-statistics-v1",
+    "monitor-v1",
+    "config-content-hashes-v1"
   ]
 }

@@ -91,6 +91,16 @@ function usage(environment: NodeJS.ProcessEnv, snapshotId?: string): { elapsedMs
   }
 }
 
+function taskStatistics(environment:NodeJS.ProcessEnv,snapshotId:string,extras:number) {
+  const response=invokeCli(environment,['statistics','--snapshot',snapshotId,'--all-time','--json','--compact']);
+  assert.equal(response.status,0);const p=response.value.statistics.population;
+  const totals=Array.from({length:threads},(_,i)=>{let n=0;for(let j=i;j<measurements;j+=threads)n+=110+2*(j%priceGroups);return n+(i===0?extras*110:0);}).sort((a,b)=>a-b);
+  const total=totals.reduce((a,b)=>a+b,0),percentile=(q:number)=>{const h=(threads-1)*q,lo=Math.floor(h),hi=Math.ceil(h);return totals[lo]+(totals[hi]-totals[lo])*(h-lo);};
+  assert.equal(p.measuredTasks,threads);assert.equal(p.completeTasks,threads);assert.equal(p.completeTaskTokens,total);
+  assert.equal(p.meanTokens,total/threads);assert.equal(p.medianTokens,percentile(0.5));assert.equal(p.p90Tokens,percentile(0.9));
+  return {elapsedMs:response.elapsedMs,responseBytes:Buffer.byteLength(JSON.stringify(response.value)),population:p,scope:'all recorded tasks; no operation-body investigation',cache:'first statistics query against an already loaded immutable live view'};
+}
+
 function threadsPage(environment: NodeJS.ProcessEnv, offset: number, snapshotId?: string): { elapsedMs: number; value: any } {
   const args = ['threads', ...(snapshotId ? ['--snapshot', snapshotId] : ['--fresh']), '--sort', 'tokens', '--limit', '200', '--offset', String(offset), '--timezone', 'UTC', '--json'];
   const start = performance.now();
@@ -233,6 +243,7 @@ try {
   const appendedUsage = usage(firstService.environment);
   assertUsageHierarchy(appendedUsage.value, totalTokens, totalCost);
   const liveThreads = assertThreadHierarchy(firstService.environment, totalTokens, totalCost);
+  const statistics=taskStatistics(firstService.environment,appendedUsage.value.snapshotRef.snapshotId,appends);
   const finalOracle = {
     usage: normalizeUsageOracle(appendedUsage.value),
     threads: liveThreads.pages.map(normalizeUsageOracle),
@@ -321,6 +332,7 @@ try {
   assert.deepEqual({ coreSha256: fileSha256(core), cliSha256: fileSha256(cli) }, { coreSha256: build.coreSha256, cliSha256: build.cliSha256 }, 'Build changed during benchmark');
   const result = {
     benchmark: 'live-index-cold-append-rebuild',
+    statistics,
     generatedAt: new Date().toISOString(),
     platform: `${os.type()} ${os.arch()}`,
     nodeVersion: process.version,
@@ -394,6 +406,10 @@ try {
   mkdirSync(path.dirname(output), { recursive: true });
   writeFileSync(output, JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify({ output, build, corpus: result.corpus, expectedTruth: result.expectedTruth, coldInitial: result.coldInitial, append: result.append, fixedSnapshot: result.fixedSnapshot, coldRebuild: result.coldRebuild }));
+} catch(error) {
+  const failure={measurements,threads,projects,appends,priceGroups,error:error instanceof Error?error.message:String(error),sourceBytes:directoryBytes(source),dataHomes:services.map(service=>({bytes:existsSync(service.environment.WOMBAT_DATA_HOME!)?directoryBytes(service.environment.WOMBAT_DATA_HOME!):null,stderr:service.stderr}))};
+  mkdirSync(path.dirname(output),{recursive:true});writeFileSync(output+'.failure.json',JSON.stringify(failure,null,2)+'\n');
+  throw error;
 } finally {
   const cleanup = await Promise.allSettled(services.map(stopService));
   const failures = cleanup.filter(result => result.status === 'rejected');

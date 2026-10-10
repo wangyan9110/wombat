@@ -1,3 +1,8 @@
+import type {Request as MonitorRequest} from './generated/monitor-request.js';
+import type {Response as MonitorResult} from './generated/monitor-response.js';
+export type {Request as MonitorRequest} from './generated/monitor-request.js';
+export type {Response as MonitorResult} from './generated/monitor-response.js';
+export type MonitorTransport=(request:MonitorRequest,options:QueryOptions)=>Promise<unknown>;
 import type {Request as SetupRequest} from './generated/setup-request.js';
 import type {Response as SetupResult} from './generated/setup-response.js';
 export type {Request as SetupRequest} from './generated/setup-request.js';
@@ -75,6 +80,7 @@ export type PricingTransport = (request: PricingRequest, options: QueryOptions) 
 export type LiveTransport = (request: LiveRequest, options: QueryOptions) => Promise<unknown>;
 
 export interface UsageClient {
+  monitor?(request:MonitorRequest,options?:QueryOptions):Promise<MonitorResult>;
   setup?(request:SetupRequest,options?:QueryOptions):Promise<SetupResult>;
   collection?(request: CollectionRequest, options?: QueryOptions): Promise<CollectionResult>;
   timing?(request: TimingRequest, options?: QueryOptions): Promise<TimingResult>;
@@ -90,6 +96,7 @@ export interface UsageClient {
 }
 
 export interface ClientTransports extends HostTransports {
+  monitor?:MonitorTransport;
   setup?:SetupTransport;
   collection?: CollectionTransport;
   query: UsageTransport;
@@ -108,6 +115,15 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
     directories: directoriesTransport } = transports;
   const hosts = transports;
   return {
+    ...(transports.monitor ? {async monitor(request:MonitorRequest,options:QueryOptions={}):Promise<MonitorResult>{
+      const [{validate:input},{validate:output}]=await Promise.all([import('./generated/validate-monitor-request.js'),import('./generated/validate-monitor-response.js')]);
+      if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+      if(!input(request))throw new CoreError('INVALID_ARGUMENT','Invalid monitor request');
+      const result=await transports.monitor!(request,options);
+      if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
+      if(!output(result)||result.outputVersion!==1||result.action!==request.action||(request.action==='check'?result.snapshotId!==request.snapshotId:result.snapshotId!=null))throw new CoreError('PROTOCOL_ERROR','Invalid monitor response');
+      return result;
+    }}:{}),
     ...(transports.setup ? {async setup(request:SetupRequest,options:QueryOptions={}):Promise<SetupResult>{
       const [{validate:input},{validate:output}]=await Promise.all([import('./generated/validate-setup-request.js'),import('./generated/validate-setup-response.js')]);
       if(options.signal?.aborted)throw new CoreError('CANCELLED','Cancelled');
@@ -193,7 +209,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateLiveRequest(request)) throw new CoreError('INVALID_ARGUMENT', '实时查询参数不符合数据协议');
       const result = await liveTransport(request, options);
-      if (!validateLiveResult(result) || result.outputVersion !== 1 || result.result.action !== request.query.action || (!matchesComparison(request.query,result.result)||!matchesInspection(request.query,result.result)))
+      if (!validateLiveResult(result) || result.outputVersion !== 1 || result.result.action !== request.query.action || (!matchesComparison(request.query,result.result)||!matchesInspection(request.query,result.result)||!matchesStatistics(request.query,result.result)))
         throw new CoreError('PROTOCOL_ERROR', '实时用量数据格式不正确');
       return result;
     } } : {}),
@@ -212,7 +228,7 @@ export function createUsageClient(transports: ClientTransports): UsageClient {
       if (options.signal?.aborted) throw new CoreError('CANCELLED', '已取消');
       if (!validateRequest(request)) throw new CoreError('INVALID_ARGUMENT', '查询参数不符合数据协议');
       const result = await transport(request, options);
-      if (!validateResponse(result) || result.outputVersion !== 5 || result.action !== request.action || (!matchesComparison(request,result)||!matchesInspection(request,result))) {
+      if (!validateResponse(result) || result.outputVersion !== 5 || result.action !== request.action || (!matchesComparison(request,result)||!matchesInspection(request,result)||!matchesStatistics(request,result))) {
         throw new CoreError('PROTOCOL_ERROR', '用量数据格式不正确');
       }
       return result;
@@ -463,4 +479,14 @@ function matchesInspection(request:Request,result:Response):boolean {
   &&(activity.baselineScope!=null)===(f.baseline!=null)&&f.evidence.length>0
   &&f.evidence.every(p=>proofMatches(p,result.scope))
   &&f.baselineEvidence.every(p=>activity.baselineScope!=null&&proofMatches(p,activity.baselineScope)));
+}
+
+function matchesStatistics(request:Request,result:Response):boolean {
+ if(request.action!=='statistics')return result.statistics==null;
+ const s=result.statistics;if(!s||s.methodVersion!==1||s.quantileMethod!=='type_7'||s.dimension!==(request.presentation??null))return false;
+ if(request.snapshotId!=null&&request.snapshotId!==result.snapshotRef.snapshotId)return false;
+ if((request.threadId!=null)!==(s.selectedTask!=null)||s.selectedTask&&s.selectedTask.threadId!==request.threadId)return false;
+ if((request.comparison!=null)!==(s.growth!=null))return false;
+ if(request.comparison?.kind==='periods'&&s.growth&&(s.growth.baselineScope.since!==request.comparison.baselineSince||s.growth.baselineScope.until!==request.comparison.baselineUntil))return false;
+ return s.groups.length<=result.page.limit&&[s.population,...s.groups.map(g=>g.population)].every(p=>p.completeTasks+p.incompleteTasks===p.measuredTasks);
 }

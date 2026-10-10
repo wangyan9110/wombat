@@ -89,6 +89,7 @@ pub(crate) use scope::validate;
 use scope::{applicable, in_time, matches_row, normalize_at, usage};
 pub(crate) fn capabilities() -> Response {
     Response {
+        extension_activity: None,
         hook_registry: HookRegistry::default(),
         output_version: 1,
         action: Action::Capabilities,

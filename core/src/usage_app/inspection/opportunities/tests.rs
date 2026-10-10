@@ -27,6 +27,7 @@ fn event(n: u64, seconds: u64, payload: Payload) -> Arc<Event> {
 }
 fn op(id: &str, status: &str) -> Operation {
     Operation {
+        text_result: None,
         id: id.into(),
         thread_id: "a".into(),
         turn_id: Some("u".into()),

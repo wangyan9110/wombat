@@ -78,6 +78,7 @@ pub struct Request {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Capabilities {
+    pub historical_content_hashes: bool,
     pub kinds: Vec<Kind>,
     pub evidence_types: Vec<String>,
     pub token_estimates: bool,
@@ -88,6 +89,7 @@ pub struct Capabilities {
 impl Default for Capabilities {
     fn default() -> Self {
         Self {
+            historical_content_hashes: true,
             kinds: vec![Kind::Rule, Kind::Skill, Kind::Mcp, Kind::Hook],
             evidence_types: vec![
                 "file_read".into(),
@@ -269,6 +271,8 @@ pub struct RelatedScope {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extension_activity: Option<ExtensionActivityStatistics>,
     pub output_version: u32,
     pub action: Action,
     pub capabilities: Capabilities,
@@ -290,6 +294,31 @@ pub struct Response {
     pub page: Page,
     pub coverage: Coverage,
     pub hook_registry: HookRegistry,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionActivity {
+    pub item_id: String,
+    pub observed_records: Option<u64>,
+    /// Whole elapsed 24-hour periods without a recorded use in the selected window.
+    /// Does not establish continuous enablement, loading, or complete observation.
+    pub no_observed_use_days: Option<u64>,
+    pub last_record_at: Option<String>,
+    pub absence_observable: bool,
+    pub use_basis: Option<UseBasis>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionActivityStatistics {
+    #[schemars(range(min = 1, max = 1))]
+    pub method_version: u32,
+    pub observed_use: usize,
+    pub no_observed_use: usize,
+    pub unavailable: usize,
+    pub scope: Scope,
+    pub checked_at: String,
+    /// Same page as inventory items; summary counts are computed before pagination.
+    pub items: Vec<ExtensionActivity>,
 }
 
 /// A current native registry observation; it never proves that a Hook ran.

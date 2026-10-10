@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "sections": {
+    "/decision-note-task-statistics-and-host-driven-monitoring": {
+      "zh": "eb6242fa38f7e47c38cf304510ebe7c90199785f5429e96ab84aa5058b97835d",
+      "en": "6b51ac74d48e96ace57a205efea9cac435353caed40868e3799ac8a6bf93a35b"
+    },
+    "/decision-note-task-statistics-and-host-driven-monitoring/problem": {
+      "zh": "a1524da30aacc11100be5a5a1f0a29d883fb1a462c71f15f2a361a97ec9f1a5f",
+      "en": "29794c49a2a683f3da3059726024fcf5bd82a0cd657add30472df37c7035a45c"
+    },
+    "/decision-note-task-statistics-and-host-driven-monitoring/decision": {
+      "zh": "480d499e00d46807b2e06bdb35656dd399d3794c01ad2d185949e7e44a671deb",
+      "en": "f09983e29823f59ed17b2264eaaa11c7e0e993e5b82f59a1ff12311ee283989b"
+    },
+    "/decision-note-task-statistics-and-host-driven-monitoring/alternatives-considered": {
+      "zh": "ab0086b803dbc8bbcf1127e0376395f8c26c56ca06a445bb2251e20a3f78d2c7",
+      "en": "0bd19b94e54a732a0a0697760d7b1059c9ddc4bd6e606b8ddc15fbf431b90840"
+    },
+    "/decision-note-task-statistics-and-host-driven-monitoring/consequences-and-verification": {
+      "zh": "b4cfe3b5c6a62b9708d05cd7789f732db5d17afe4397a71013fd4fd9f0af4130",
+      "en": "3abebb05cd1fc8a7bf3e1190ee907eeab5c9ccea82f85713b04b8973dae6e9ea"
+    }
+  }
+}

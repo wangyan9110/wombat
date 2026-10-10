@@ -591,7 +591,25 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
                         timestamp: op.timestamp.clone(),
                         event_type: typ.into(),
                         outcome: op.status.to_string(),
-                        association: "identityOnlyVersionUnknown".into(),
+                        association: if op.text_result.as_ref().is_some_and(|r| {
+                            !r.conflicting
+                                && r.method_version == 1
+                                && r.hash.as_deref() == Some(item.content_hash.as_str())
+                        }) && reads
+                            .as_ref()
+                            .is_none_or(|reads| !reads.unbound && reads.paths.len() == 1)
+                        {
+                            if instruction_load {
+                                "loadedContentMatchesCurrent"
+                            } else if file_read {
+                                "readContentMatchesCurrent"
+                            } else {
+                                "identityOnlyVersionUnknown"
+                            }
+                        } else {
+                            "identityOnlyVersionUnknown"
+                        }
+                        .into(),
                         usage: usage(&indices.iter().map(|i| ledger[*i]).collect::<Vec<_>>())?,
                     });
                 }
@@ -742,6 +760,21 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
         };
         order.then(a.id.cmp(&b.id))
     });
+    let all_activity = extension_activity_items(&items, &scope, &view.checked)?;
+    let activity_counts = (
+        all_activity
+            .iter()
+            .filter(|i| i.observed_records.is_some_and(|n| n > 0))
+            .count(),
+        all_activity
+            .iter()
+            .filter(|i| i.observed_records == Some(0))
+            .count(),
+        all_activity
+            .iter()
+            .filter(|i| i.observed_records.is_none())
+            .count(),
+    );
     let offset = r.offset.unwrap_or(0);
     let limit = r.limit.unwrap_or(50);
     if r.action != Action::List {
@@ -783,6 +816,35 @@ pub(crate) fn execute(r: Request, id: String, view: &View) -> Result<Response> {
             .skip(offset)
             .take(limit)
             .collect();
+    }
+    if matches!(r.action, Action::List | Action::Detail) {
+        let mut activity = ExtensionActivityStatistics {
+            method_version: 1,
+            observed_use: activity_counts.0,
+            no_observed_use: activity_counts.1,
+            unavailable: activity_counts.2,
+            scope: scope.clone(),
+            checked_at: view.checked.clone(),
+            items: extension_activity_items(&result.items, &scope, &view.checked)?,
+        };
+        if r.action == Action::Detail {
+            activity.observed_use = activity
+                .items
+                .iter()
+                .filter(|i| i.observed_records.is_some_and(|n| n > 0))
+                .count();
+            activity.no_observed_use = activity
+                .items
+                .iter()
+                .filter(|i| i.observed_records == Some(0))
+                .count();
+            activity.unavailable = activity
+                .items
+                .iter()
+                .filter(|i| i.observed_records.is_none())
+                .count();
+        }
+        result.extension_activity = Some(activity);
     }
     Ok(result)
 }
@@ -828,4 +890,46 @@ fn use_scope(item: &Item, scope: &Scope) -> UseScope {
             }
         },
     }
+}
+
+fn extension_activity_items(
+    items: &[Item],
+    scope: &Scope,
+    checked: &str,
+) -> Result<Vec<ExtensionActivity>> {
+    use chrono::TimeZone;
+    let tz: Tz = scope.timezone.as_deref().unwrap_or("UTC").parse()?;
+    let cutoff = DateTime::parse_from_rfc3339(checked)?.with_timezone(&Utc);
+    let boundary = |value: &Option<String>| {
+        value
+            .as_deref()
+            .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+            .and_then(|d| tz.from_local_datetime(&d.and_hms_opt(0, 0, 0)?).earliest())
+            .map(|d| d.with_timezone(&Utc))
+    };
+    let end = boundary(&scope.until).map_or(cutoff, |end| end.min(cutoff));
+    Ok(items
+        .iter()
+        .filter(|item| matches!(item.kind, Kind::Skill | Kind::Mcp))
+        .map(|item| {
+            let last = item
+                .last_record_at
+                .as_deref()
+                .and_then(|at| DateTime::parse_from_rfc3339(at).ok())
+                .map(|at| at.with_timezone(&Utc));
+            let start = last.or_else(|| boundary(&scope.since));
+            ExtensionActivity {
+                item_id: item.id.clone(),
+                observed_records: item.usage_count,
+                no_observed_use_days: item
+                    .usage_count
+                    .and(start)
+                    .filter(|start| *start <= end)
+                    .map(|start| (end - start).num_seconds() as u64 / 86400),
+                last_record_at: item.last_record_at.clone(),
+                absence_observable: false,
+                use_basis: item.use_basis.clone(),
+            }
+        })
+        .collect())
 }

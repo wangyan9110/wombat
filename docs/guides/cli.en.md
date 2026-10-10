@@ -48,6 +48,28 @@ wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-
 
 `--dimension` accepts `project`, `model` or `thread`; `--limit` and `--offset` page contributions. Session IDs use field `id` from `threads --json`; `--family` includes explicit descendants. Both comparisons retain date and dimension filters and accept `--snapshot`. Only explicit `--fresh` requests synchronization. Expired views return an error; read the list again before comparing. Live results expose `freshness.publicationChange` for the latest successful publication; text also shows change counts. No complete baseline means no summary. The [core reference](../../core/README.en.md) owns calculation and limits.
 
+## Task distributions and budgets
+
+Use task statistics to judge a task against a selected population or separate task-count growth from per-task growth. Keep a returned snapshot for follow-up pages and comparisons.
+
+```sh
+wombat statistics --project /absolute/project --since 2026-10-01 --until 2026-10-08 --presentation projects --json
+wombat statistics --snapshot SNAPSHOT_ID --thread THREAD_ID --since 2026-10-01 --until 2026-10-08 --json
+wombat statistics --snapshot SNAPSHOT_ID --since 2026-10-01 --until 2026-10-08 --baseline-since 2026-09-24 --baseline-until 2026-10-01 --presentation models --json
+wombat monitor set --id project-week --period week --tokens 1000000 --review --project /absolute/project --timezone Asia/Shanghai --json
+wombat monitor check --id project-week --json
+wombat monitor watch --id project-week --interval 60 --json
+wombat monitor list --json
+wombat monitor acknowledge --notification NOTIFICATION_ID --json
+wombat monitor remove --id project-week --json
+```
+
+Statistics defaults to the last thirty calendar days; `--all-time` selects all available dates. Project/model groups accept `--limit` and `--offset`; the population covers the full scope. A selected `--thread` is ranked against that population. Complete task totals provide the mean, median and P90; incomplete tasks and unassigned measurements remain separate. Model populations can overlap when a task used multiple models. Equal-length, disjoint comparison periods retain all other filters. The [core reference](../../core/README.en.md) owns calculation methods and limits.
+
+A monitor plan saves its identity filters, timezone, calendar period and optional Token threshold. `--review` also requests the most recently closed period's statistics. Add `--disabled` to save a paused plan; reuse its ID to change settings. Default warning is 80% of the threshold, configurable with `--warning 0.9`. These are user budgets, separate from account allowances. `check` checks all enabled plans unless `--id` selects one; repeated `--root` selects sources. A recent pinned check uses `--snapshot ID --id PLAN_ID` without source roots. An expired view requires a fresh check of the original scope.
+
+`watch` checks while this command runs and emits only new notifications. It does not install a background service or send messages; Ctrl+C stops it with exit130. `--interval` accepts 5–3600 seconds. Web has the same plans, manual checks and an optional sixty-second loop while its budget panel stays open. Monitoring needs an active host, and source logs must record usage before thresholds can be detected. Partial facts can prove a threshold crossing but cannot prove remaining budget. Acknowledgement is stored separately from the original facts. Period reviews cover the latest closed period, without catching up every missed period.
+
 ## Usage inspection and review
 
 Read or refresh usage first, then pin these queries with the returned `snapshotRef.snapshotId`. They read committed data without synchronization by default.

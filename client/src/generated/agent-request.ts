@@ -48,6 +48,10 @@ export type Request =
   | {
       method: "handoff";
       params: Request12;
+    }
+  | {
+      method: "monitor";
+      params: Request13;
     };
 export type ComparisonRequest =
   | {
@@ -74,7 +78,8 @@ export type Action =
   | "trajectory"
   | "resources"
   | "review"
-  | "context";
+  | "context"
+  | "statistics";
 export type Group = "day" | "week" | "month";
 export type Sort = "tokens" | "cost" | "recent" | "time";
 export type Presentation = "distribution" | "details" | "projects" | "models";
@@ -128,6 +133,28 @@ export type Action7 = "status" | "update" | "auto_update";
 export type Action8 = "status" | "events" | "configure" | "pause" | "resume";
 export type Mode3 = "logs" | "hooks";
 export type Action9 = "preview" | "send";
+export type Request13 =
+  | {
+      action: "list";
+    }
+  | {
+      plan: Plan;
+      action: "upsert";
+    }
+  | {
+      id: string;
+      action: "remove";
+    }
+  | {
+      snapshotId: string;
+      ids: string[];
+      action: "check";
+    }
+  | {
+      notificationId: string;
+      action: "acknowledge";
+    };
+export type Period = "day" | "week" | "month";
 
 export interface Request1 {
   query: Request2;
@@ -288,4 +315,22 @@ export interface Request12 {
 export interface Selection {
   projectId: string;
   path: string;
+}
+export interface Plan {
+  id: string;
+  enabled: boolean;
+  period: Period;
+  /**
+   * Identity filters and timezone only; date, undated, thread and turn filters are rejected.
+   */
+  scope?: Scope;
+  /**
+   * Token budget, not an account allowance or money allocation to tools.
+   */
+  tokenLimit?: number | null;
+  /**
+   * Fraction in (0,1]; 0.8 by default.
+   */
+  warningRatio?: number | null;
+  review: boolean;
 }

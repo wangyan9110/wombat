@@ -34,16 +34,18 @@ export async function followInventory(client: UsageClient, request: ConfigReques
     signal.throwIfAborted();
     if (allPages) {
       const items = [...first.items];
+      const activityItems=[...(first.extensionActivity?.items??[])];
       let offset = first.page.nextOffset;
       while (offset != null) {
         if (items.length >= 20_000) throw new Error(t('webui.partial'));
         const next = await client.config({...current, readView: first.readView, snapshotId: undefined, offset, limit: 200}, {signal});
         signal.throwIfAborted();
         items.push(...next.items);
+        activityItems.push(...(next.extensionActivity?.items??[]));
         if (next.page.nextOffset != null && next.page.nextOffset <= offset) throw new Error(t('webui.failed'));
         offset = next.page.nextOffset;
       }
-      first = {...first, items, page: {...first.page, offset: 0, total: items.length, limit: items.length, nextOffset: null}};
+      first = {...first, items, ...(first.extensionActivity?{extensionActivity:{...first.extensionActivity,items:activityItems}}:{}), page: {...first.page, offset: 0, total: items.length, limit: items.length, nextOffset: null}};
     }
     publish(first);
     // An old URL may pin a view captured before history was available. Try a new

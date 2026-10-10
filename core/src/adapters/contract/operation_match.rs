@@ -119,6 +119,20 @@ impl OperationMatchObservation {
 
 impl Operation {
     pub(crate) fn validate_matching(&self) -> anyhow::Result<()> {
+        if let Some(result) = &self.text_result {
+            if result.method_version != 1 {
+                return Err(crate::dto::operation_error(
+                    "UNSUPPORTED_VERSION",
+                    "Unknown text result observation format",
+                ));
+            }
+            anyhow::ensure!(
+                result.hash.as_ref().is_none_or(
+                    |hash| hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit())
+                ) && (!result.conflicting || result.hash.is_none()),
+                "invalid text result digest"
+            );
+        }
         let Some(m) = &self.matching else {
             return Ok(());
         };

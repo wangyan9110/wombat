@@ -13,6 +13,7 @@ const requests=[
  {method:'timing',params:{action:'capabilities'}},{method:'setup',params:{project:'/synthetic'}},
  {method:'account',params:{action:'read'}},{method:'directories',params:{action:'list'}},
  {method:'preferences',params:{action:'get'}},{method:'prices',params:{action:'status'}},
+ {method:'monitor',params:{action:'list'}},
  {method:'collection',params:{action:'status'}},{method:'handoff',params:{action:'preview'}},
 ];
 function capture(){const out:string[]=[];return {out,stdout:(s:string)=>{out.push(s);}};}

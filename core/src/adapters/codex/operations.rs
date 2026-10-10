@@ -23,6 +23,7 @@ pub(super) fn empty_operation(
     identity: &str,
 ) -> Operation {
     Operation {
+        text_result: None,
         id: operation_id(thread, turn.as_deref(), identity),
         thread_id: thread.into(),
         turn_id: turn.map(Into::into),
@@ -232,6 +233,20 @@ pub(super) fn operation(
         }
     }
     outcome::apply(&mut op, item, completed, operation_kind == "mcp", report);
+    if matches!(
+        kind,
+        "function_call_output" | "custom_tool_call_output" | "FunctionCallOutput"
+    ) && let Some(text) = item
+        .output
+        .and_then(|raw| serde_json::from_str::<String>(raw.get()).ok())
+    {
+        op.text_result = Some(TextResultObservation {
+            method_version: 1,
+            hash: Some(crate::hash(&text)),
+            observed_at: op.timestamp.clone(),
+            conflicting: false,
+        });
+    }
     runtime_review::operation(item, &op, facts, report, &evidence);
     facts.operation(op, report);
 }

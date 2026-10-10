@@ -53,6 +53,7 @@ export function ConfigView({ client, route, navigate, pin, projects, refresh }: 
         <form className="search-form" onSubmit={event => { event.preventDefault(); update({ search: search || undefined }); }}><input aria-label={t('config.search')} placeholder={t('config.search')} value={search} onChange={event => setSearch(event.target.value)} /><button aria-label={t('webui.searchAction')}>⌕</button></form>
         <button aria-pressed={onlySuggestions} onClick={() => navigate({ [instructions ? 'instructionSuggestions' : 'extensionSuggestions']: !onlySuggestions, configOffset: 0 })}>{t('config.suggestionsOnly')}</button>
       </div>
+      {!instructions&&result.extensionActivity&&<details className="panel"><summary>{t('config.activity.title')}</summary><p>{t('config.activity.counts',{used:result.extensionActivity.observedUse,quiet:result.extensionActivity.noObservedUse,unknown:result.extensionActivity.unavailable})}</p>{result.extensionActivity.items.map(a=><p key={a.itemId}>{result.items.find(i=>i.id===a.itemId)?.name} · {a.noObservedUseDays==null?'—':t('config.activity.days',{days:a.noObservedUseDays})}</p>)}<p className="note">{t('config.activity.note')}</p></details>}
       <div className="config-layout">
         <section className="panel config-list" data-view-scroll data-view-key="config-list" aria-label={t('webui.config')}>
           <div className="list-meta">{t('config.count', { count: result.page.total })}</div>

@@ -15,6 +15,7 @@ mod live_index;
 #[cfg(windows)]
 mod live_windows;
 mod log_io;
+pub mod monitor;
 pub(crate) mod observation_versions;
 pub(crate) mod operation_association;
 mod optimize;
@@ -28,6 +29,7 @@ pub(crate) mod session_relations;
 pub mod setup_dto;
 mod shared_text;
 pub mod skill_dto;
+mod statistics;
 pub mod storage;
 pub mod timing;
 pub mod timing_dto;
@@ -72,6 +74,20 @@ pub fn absolute(path: impl AsRef<Path>) -> Result<PathBuf> {
 
 pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
     match op {
+        "monitor" => Ok(serde_json::to_value(monitor::dispatch(
+            serde_json::from_value(args.clone())
+                .map_err(|_| dto::operation_error("INVALID_ARGUMENT", "Invalid monitor request"))?,
+        )?)?),
+        "schema_monitor_request" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<monitor::Request>(),
+        )?),
+        "schema_monitor_response" => Ok(serde_json::to_value(
+            schemars::generate::SchemaSettings::draft07()
+                .into_generator()
+                .into_root_schema_for::<monitor::Response>(),
+        )?),
         "schema_agent_error" => Ok(serde_json::to_value(
             schemars::generate::SchemaSettings::draft07()
                 .into_generator()

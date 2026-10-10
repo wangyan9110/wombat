@@ -6,6 +6,45 @@ fn start(call: &str) -> Value {
 fn output(call: &str, output: Value) -> Value {
     json!({"type":"response_item","payload":{"type":"function_call_output","call_id":call,"output":output}})
 }
+#[test]
+fn read_result_hashes_bind_native_bytes_without_retaining_bodies_and_conflicts_are_sticky() {
+    let dir = tempfile::tempdir().unwrap();
+    write(
+        dir.path(),
+        "sessions/read.jsonl",
+        &[
+            meta("t"),
+            start("call"),
+            output("call", json!("PRIVATE_READ_BODY\n")),
+        ],
+    );
+    let result = collect(dir.path());
+    let observed = result.operations[0].text_result.as_ref().unwrap();
+    assert_eq!(
+        observed.hash.as_deref(),
+        Some(crate::hash("PRIVATE_READ_BODY\n").as_str())
+    );
+    assert!(
+        !serde_json::to_string(&result)
+            .unwrap()
+            .contains("PRIVATE_READ_BODY")
+    );
+    write(
+        dir.path(),
+        "sessions/read.jsonl",
+        &[
+            meta("t"),
+            start("call"),
+            output("call", json!("PRIVATE_READ_BODY\n")),
+            output("call", json!("DIFFERENT_BODY")),
+            output("call", json!("PRIVATE_READ_BODY\n")),
+        ],
+    );
+    let result = collect(dir.path());
+    let observed = result.operations[0].text_result.as_ref().unwrap();
+    assert!(observed.conflicting);
+    assert_eq!(observed.hash, None);
+}
 
 #[test]
 fn native_agents_metadata_records_load_without_retaining_or_trusting_user_text() {

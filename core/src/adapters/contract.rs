@@ -171,6 +171,9 @@ pub struct Measurement {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Operation {
+    /// Hash of an exact native text result, never inferred from current filesystem content.
+    #[serde(default)]
+    pub text_result: Option<TextResultObservation>,
     pub id: String,
     pub thread_id: Arc<str>,
     pub turn_id: Option<Arc<str>>,
@@ -196,6 +199,14 @@ pub struct Operation {
     pub server: Option<Arc<str>>,
     pub tool: Option<Arc<str>>,
     pub evidence: Vec<EvidenceRef>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TextResultObservation {
+    pub method_version: u32,
+    pub hash: Option<String>,
+    pub observed_at: Option<String>,
+    pub conflicting: bool,
 }
 
 // Internal collection, not a public query DTO or generated transport schema.

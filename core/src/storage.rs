@@ -31,6 +31,42 @@ pub fn atomic_write(file: &Path, content: &[u8]) -> Result<()> {
         Ok(())
     })
 }
+/// Create a private product file before a database opens it; reject existing links/non-files.
+pub(crate) fn private_file(file: &Path) -> Result<()> {
+    let parent = file
+        .parent()
+        .ok_or_else(|| crate::dto::operation_error("INVALID_ARGUMENT", "Missing data parent"))?;
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        builder.mode(0o700);
+    }
+    builder.create(parent)?;
+    match fs::symlink_metadata(file) {
+        Ok(m) if m.is_file() && !m.file_type().is_symlink() => Ok(()),
+        Ok(_) => Err(crate::dto::operation_error(
+            "STORAGE_UNAVAILABLE",
+            "Unsafe product file",
+        )),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            let mut options = fs::OpenOptions::new();
+            options.write(true).create_new(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.mode(0o600);
+            }
+            match options.open(file) {
+                Ok(_) => Ok(()),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => private_file(file),
+                Err(e) => Err(e.into()),
+            }
+        }
+        Err(e) => Err(e.into()),
+    }
+}
 /// Write a new file in a caller-owned unpublished generation. The caller must
 /// sync that directory before publishing it; existing files are never replaced.
 pub(crate) fn write_unpublished(file: &Path, content: &[u8]) -> Result<()> {

@@ -110,6 +110,7 @@ export function formatOptimizeText(result: OptimizeResult): string {
     const followUp = result.followUps.find(o => o.recordId === s.recordId && o.suggestionId === s.id);
     if (followUp) {
       const basis = useBasisPresentation(followUp.useBasis);
+      if(followUp.usageComparison){const c=followUp.usageComparison;add(t('optimize.followUp.usageComparison'),`${c.baselineStart} — ${c.changeAt}: ${c.baseline.measuredTasks} · ${c.baseline.meanTokens??'—'} / ${c.baseline.medianTokens??'—'} / ${c.baseline.p90Tokens??'—'}`,`${c.changeAt} — ${c.observedThrough}: ${c.current.measuredTasks} · ${c.current.meanTokens??'—'} / ${c.current.medianTokens??'—'} / ${c.current.p90Tokens??'—'}`,t('optimize.followUp.usageComparisonNote'));}
       add(...[basis.summary, ...basis.notes, ...basis.details].map(line => `  ${line}`),
         `  ${t('optimize.awaitingFollowUp')}`, `  ${followUpText(followUp)}`, `  ${t('optimize.followUp.note')}`);
     }

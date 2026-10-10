@@ -10,11 +10,12 @@ Rust 的 `core/src/usage_app_dto.rs` 定义请求与响应，`adapters/contract.
 - [请求 Schema](../schemas/usage-request-v3.schema.json)
 - [响应 Schema](../schemas/usage-app-v5.schema.json)
 - [价表请求 Schema](../schemas/pricing-request-v1.schema.json)和[价表响应 Schema](../schemas/pricing-response-v1.schema.json)，源头为 `core/src/pricing_sync.rs`
+- [监控请求](../schemas/monitor-request-v1.schema.json)与[响应](../schemas/monitor-response-v1.schema.json)来自 `core/src/monitor.rs`；计划、提醒和确认使用独立协议。
 - `client/src/generated/usage-request.ts`、`usage-app.ts` 和校验器
 
 运行 `corepack pnpm contracts:generate` 重生，`contracts:check` 拒绝漂移。通用客户端校验请求与响应，不提供通用 shell、任意文件写入或任意操作分派。
 
-`outputVersion=6` 是公共结果版本，`schemaVersion=4` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
+`outputVersion=5` 是公共结果版本，`schemaVersion=4` 是内部快照版本；来源适配器和价格各有独立版本。内核通信封装为 `{op:"usage_app",args:Request}` → `{ok:true,value:Response}` 或 `{ok:false,error,code,details}`。用量操作为刷新、用量、对话、轮次、步骤；独立价表接口为 `prices`，提供 status/update，响应 `outputVersion=1`。
 
 公开操作、枚举、分页和错误详见[CLI](../guides/cli.md)。计量整数不能超过 JavaScript 安全整数；金额始终为十进制字符串。新字段及规则必须同时检查生成类型、Web、JSON 和当前快照。
 
@@ -40,7 +41,7 @@ Node价表传输只下载固定官方HTTPS文档；内核`prices`操作的宿主
 
 `core/src/timing_dto.rs` 定义类型化 `timing` 操作。生成契约包括[请求](../schemas/timing-request-v1.schema.json)、[响应联合](../schemas/timing-response-v6.schema.json)、[本地](../schemas/timing-local-response-v6.schema.json)与[分享](../schemas/timing-share-response-v6.schema.json)投影，以及[安全错误](../schemas/timing-error-output-v1.schema.json)。客户端导出 `TimingRequest` 和 `TimingResult`；字段以 Rust DTO 和生成 Schema 为准，不在此重复维护字段清单。
 
-请求操作为 `summary`、`evidence` 和 `capabilities`。摘要要求完整任务与轮次身份，可选固定快照、来源范围、`auto`/`fresh`/`cached` 模式及 `local`/`share-v1` 隐私配置。证据页要求相同目标和固定快照；`turn_events`、`use_objects` 与 `use_records` 使用绑定视图和范围的不透明游标。capabilities 不扫描来源。摘要使用 `outputVersion=6` 和分析方法 `safe_event_turn_v7`；操作起止归并方法单独版本化，旧响应版本明确拒绝。本地结果可含本地身份与路径，`share-v1` 是单独的白名单投影，不包含这些信息。耗时查询不触发价表下载、配置扫描、Hook 或账户观察。命令及错误处理见 [CLI 指南](../guides/cli.md)。
+请求操作为 `summary`、`evidence` 和 `capabilities`。摘要要求完整任务与轮次身份，可选固定快照、来源范围、`auto`/`fresh`/`cached` 模式及 `local`/`share-v1` 隐私配置。证据页要求相同目标和固定快照；`turn_events`、`use_objects` 与 `use_records` 使用绑定视图和范围的不透明游标。capabilities 不扫描来源。摘要使用 `outputVersion=5` 和分析方法 `safe_event_turn_v7`；操作起止归并方法单独版本化，旧响应版本明确拒绝。本地结果可含本地身份与路径，`share-v1` 是单独的白名单投影，不包含这些信息。耗时查询不触发价表下载、配置扫描、Hook 或账户观察。命令及错误处理见 [CLI 指南](../guides/cli.md)。
 
 ## 只读配置契约 v1
 

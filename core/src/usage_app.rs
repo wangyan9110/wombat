@@ -19,6 +19,7 @@ pub(crate) use comparison::publication_change;
 mod report_tests;
 mod reports;
 mod scope;
+pub(crate) mod statistics;
 mod summary;
 use conversations::{step_items, thread_items, turn_items};
 use reports::{default_report_start, dimension_items, usage_items};
@@ -41,6 +42,7 @@ pub(crate) fn refresh_response(
     rows: &[&PricedMeasurement],
 ) -> Result<Response> {
     Ok(Response {
+        statistics: None,
         inspection: None,
         comparison: None,
         facets: None,
@@ -143,6 +145,9 @@ pub(crate) fn execute_snapshot(request: Request, snapshot: &Snapshot) -> Result<
 
 fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Response> {
     validate(&request)?;
+    if request.action == Action::Statistics {
+        return statistics::execute(request, snapshot);
+    }
     if request.action == Action::Compare {
         return comparison::execute(request, snapshot);
     }
@@ -303,7 +308,8 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         | Action::Trajectory
         | Action::Resources
         | Action::Review
-        | Action::Context => unreachable!(),
+        | Action::Context
+        | Action::Statistics => unreachable!(),
     };
     let limit = request.limit.unwrap_or(50);
     let located_turn = request.locate_turn_id.as_ref().and_then(|id| {
@@ -413,6 +419,7 @@ fn execute_uncached(mut request: Request, snapshot: &Snapshot) -> Result<Respons
         items.len()
     });
     Ok(Response {
+        statistics: None,
         inspection: None,
         comparison: None,
         facets: (request.action == Action::Usage).then(|| {

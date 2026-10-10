@@ -217,6 +217,24 @@
         "params"
       ],
       "additionalProperties": false
+    },
+    {
+      "description": "Save token budgets and review schedules, inspect notifications, or check selected plans at a recent usage view.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "monitor"
+        },
+        "params": {
+          "$ref": "#/definitions/Request13"
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ],
+      "additionalProperties": false
     }
   ],
   "definitions": {
@@ -476,7 +494,8 @@
         "trajectory",
         "resources",
         "review",
-        "context"
+        "context",
+        "statistics"
       ]
     },
     "Scope": {
@@ -1627,6 +1646,173 @@
       "required": [
         "projectId",
         "path"
+      ]
+    },
+    "Request13": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "list"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "plan": {
+              "$ref": "#/definitions/Plan"
+            },
+            "action": {
+              "type": "string",
+              "const": "upsert"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "plan"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string",
+              "const": "remove"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "snapshotId": {
+              "type": "string"
+            },
+            "ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "action": {
+              "type": "string",
+              "const": "check"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "snapshotId",
+            "ids"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "notificationId": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string",
+              "const": "acknowledge"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "notificationId"
+          ]
+        }
+      ]
+    },
+    "Plan": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "period": {
+          "$ref": "#/definitions/Period"
+        },
+        "scope": {
+          "description": "Identity filters and timezone only; date, undated, thread and turn filters are rejected.",
+          "default": {
+            "allTime": null,
+            "timezone": null,
+            "since": null,
+            "until": null,
+            "agentKind": null,
+            "sourceInstanceId": null,
+            "model": null,
+            "modelUnknown": null,
+            "effortUnknown": null,
+            "undated": null,
+            "reasoningEffort": null,
+            "project": null,
+            "projectUnknown": null,
+            "threadId": null,
+            "turnId": null
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/Scope"
+            }
+          ]
+        },
+        "tokenLimit": {
+          "description": "Token budget, not an account allowance or money allocation to tools.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "warningRatio": {
+          "description": "Fraction in (0,1]; 0.8 by default.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "review": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "enabled",
+        "period",
+        "review"
+      ]
+    },
+    "Period": {
+      "type": "string",
+      "enum": [
+        "day",
+        "week",
+        "month"
       ]
     }
   }

@@ -64,6 +64,7 @@ export async function runConfigCli(argv: string[]): Promise<number> {
     if (json) process.stdout.write(JSON.stringify(result) + '\n');
     else {
       process.stdout.write(t('config.scopeNote') + '\n');
+      if(result.extensionActivity){const a=result.extensionActivity;process.stdout.write(t('config.activity.counts',{used:a.observedUse,quiet:a.noObservedUse,unknown:a.unavailable})+'\n');for(const item of a.items)if(item.noObservedUseDays!=null)process.stdout.write(`${terminalText(result.items.find(i=>i.id===item.itemId)?.name??item.itemId)} · ${t('config.activity.days',{days:item.noObservedUseDays})}\n`);process.stdout.write(t('config.activity.note')+'\n');}
       for (const item of result.items) {
         process.stdout.write(`${item.kind}\t${terminalText(item.name)}\t${t(`config.${item.observation}`)}\t${terminalText(item.path)}\n`);
         if (item.kind !== 'hook') {

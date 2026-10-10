@@ -284,7 +284,8 @@
         "trajectory",
         "resources",
         "review",
-        "context"
+        "context",
+        "statistics"
       ]
     },
     "Scope": {

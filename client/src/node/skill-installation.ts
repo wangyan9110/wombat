@@ -13,7 +13,7 @@ import {discoverWombatSkill} from './codex/skills.js';
 import type {CodexOptions} from './codex/process.js';
 
 const MARKER='.wombat-install.json';
-export const skillCapabilities=['usage-json-v3','usage-json-v5','usage-compact-v1','inspection-json-v5','config-json-v1','account-json-v1','handoff-json-v1','web-context-v1','collection-json-v1','setup-json-v1','agent-api-v1'];
+export const skillCapabilities=['usage-json-v3','usage-json-v5','usage-compact-v1','inspection-json-v5','config-json-v1','account-json-v1','handoff-json-v1','web-context-v1','collection-json-v1','setup-json-v1','agent-api-v1','usage-statistics-v1','monitor-v1','config-content-hashes-v1'];
 interface File {path:string;size:number;sha256:string;executable:boolean}
 interface Manifest {format:number;name:string;version:string;source:string;requiredCapabilities:string[];files:File[];contentHash:string}
 export interface SkillInstallationOptions extends CodexOptions {resourcesPath?:string}

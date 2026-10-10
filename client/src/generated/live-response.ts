@@ -1,5 +1,7 @@
 /* Generated from Rust. Run pnpm contracts:generate. */
 
+export type TokenAnalysisScope = "selected_canonical_measurements";
+export type Presentation = "distribution" | "details" | "projects" | "models";
 export type InspectionKind = "investigate" | "trajectory" | "resources" | "review" | "context";
 export type InspectionLimit =
   | "source_partial"
@@ -12,7 +14,6 @@ export type InspectionLimit =
   | "context_metadata_unavailable"
   | "selected_turn_only";
 export type InspectionSignal = "high_usage" | "low_cache_reuse" | "input_jump" | "failure_share" | "repeated_request";
-export type TokenAnalysisScope = "selected_canonical_measurements";
 export type InspectionEvidenceView = "task" | "turn" | "operation";
 export type InputBoundary =
   | "first"
@@ -118,7 +119,8 @@ export type Action =
   | "trajectory"
   | "resources"
   | "review"
-  | "context";
+  | "context"
+  | "statistics";
 export type Item =
   | {
       date?: string | null;
@@ -214,6 +216,7 @@ export interface Response {
   freshness: Freshness;
 }
 export interface Response1 {
+  statistics?: TaskStatistics | null;
   inspection?: Inspection | null;
   comparison?: Comparison | null;
   facets?: Facets | null;
@@ -230,49 +233,40 @@ export interface Response1 {
   page: Page;
   quality: Quality;
 }
-export interface Inspection {
+export interface TaskStatistics {
+  selectedTask?: TaskTypicality | null;
   methodVersion: number;
-  kind: InspectionKind;
-  policy: InspectionPolicy;
-  partial: boolean;
-  limitations: InspectionLimit[];
-  candidates: InvestigationCandidate[];
-  trajectory: InputPoint[];
-  resources: ResourceHotspot[];
-  review?: PeriodReview | null;
-  candidateCount: number;
-  resourceCount: number;
-  unlocatedOperations: number;
-  context?: ContextInventory | null;
-  activity?: ActivityReview | null;
-  opportunities?: OpportunityReview | null;
-}
-export interface InspectionPolicy {
-  minimumTokens: number;
-  minimumInput: number;
-  maximumCacheShare: number;
-  minimumInputJump: number;
-  minimumDeterminateOperations: number;
-  minimumFailures: number;
-  minimumFailureShare: number;
-  minimumRepeatedRequests: number;
-}
-export interface InvestigationCandidate {
-  threadId: string;
-  title?: string | null;
-  signals: InspectionSignal[];
-  usage: UsageSummary;
-  input?: number | null;
-  cacheShare?: number | null;
-  largestUncachedJump?: number | null;
-  determinateOperations: number;
-  failedOperations: number;
-  outcomeGaps: number;
   /**
-   * Identical callable/argument observations inside one exact turn/receiver.
+   * Linear interpolation at (n-1)p, shared with timing distributions.
    */
-  repeatedRequests: number;
-  evidence: InspectionEvidence[];
+  quantileMethod: string;
+  population: TaskPopulation;
+  dimension?: Presentation | null;
+  /**
+   * A task using several models occurs in each model population; counts are not additive.
+   */
+  groups: TaskStatisticsGroup[];
+  growth?: TaskGrowth | null;
+}
+export interface TaskTypicality {
+  threadId: string;
+  tokens?: number | null;
+  completePopulationTasks: number;
+  /**
+   * Midrank: (number below + half of ties) / complete sample size.
+   */
+  percentileRank?: number | null;
+  aboveP90?: boolean | null;
+}
+export interface TaskPopulation {
+  measuredTasks: number;
+  completeTasks: number;
+  incompleteTasks: number;
+  completeTaskTokens?: number | null;
+  meanTokens?: number | null;
+  medianTokens?: number | null;
+  p90Tokens?: number | null;
+  unassignedUsage: UsageSummary;
 }
 export interface UsageSummary {
   /**
@@ -393,14 +387,26 @@ export interface PriceBasis {
   requestInputTokens?: number | null;
   requestScoped: boolean;
 }
-export interface InspectionEvidence {
-  view: InspectionEvidenceView;
-  methodVersion: number;
-  snapshotId: string;
-  scope: Scope;
-  threadId: string;
-  turnId?: string | null;
-  operationId?: string | null;
+export interface TaskStatisticsGroup {
+  key?: string | null;
+  population: TaskPopulation;
+}
+export interface TaskGrowth {
+  baselineScope: Scope;
+  baseline: TaskPopulation;
+  taskCountDelta: number;
+  meanTokensDelta?: number | null;
+  /**
+   * Symmetric arithmetic decomposition: ΔN × (μ0+μ1)/2.
+   * Only available for complete, nonempty populations; never a causal attribution.
+   */
+  taskCountContribution?: number | null;
+  /**
+   * Δμ × (N0+N1)/2; sums with count contribution to attributed token growth.
+   */
+  perTaskContribution?: number | null;
+  attributedTokenDelta?: number | null;
+  unassignedTokenDelta?: number | null;
 }
 export interface Scope {
   allTime?: boolean | null;
@@ -421,6 +427,59 @@ export interface Scope {
    * Exact turn inspection, always bound to a selected thread.
    */
   turnId?: string | null;
+}
+export interface Inspection {
+  methodVersion: number;
+  kind: InspectionKind;
+  policy: InspectionPolicy;
+  partial: boolean;
+  limitations: InspectionLimit[];
+  candidates: InvestigationCandidate[];
+  trajectory: InputPoint[];
+  resources: ResourceHotspot[];
+  review?: PeriodReview | null;
+  candidateCount: number;
+  resourceCount: number;
+  unlocatedOperations: number;
+  context?: ContextInventory | null;
+  activity?: ActivityReview | null;
+  opportunities?: OpportunityReview | null;
+}
+export interface InspectionPolicy {
+  minimumTokens: number;
+  minimumInput: number;
+  maximumCacheShare: number;
+  minimumInputJump: number;
+  minimumDeterminateOperations: number;
+  minimumFailures: number;
+  minimumFailureShare: number;
+  minimumRepeatedRequests: number;
+}
+export interface InvestigationCandidate {
+  threadId: string;
+  title?: string | null;
+  signals: InspectionSignal[];
+  usage: UsageSummary;
+  input?: number | null;
+  cacheShare?: number | null;
+  largestUncachedJump?: number | null;
+  determinateOperations: number;
+  failedOperations: number;
+  outcomeGaps: number;
+  /**
+   * Identical callable/argument observations inside one exact turn/receiver.
+   */
+  repeatedRequests: number;
+  evidence: InspectionEvidence[];
+}
+export interface InspectionEvidence {
+  view: InspectionEvidenceView;
+  methodVersion: number;
+  snapshotId: string;
+  scope: Scope;
+  threadId: string;
+  turnId?: string | null;
+  operationId?: string | null;
 }
 export interface InputPoint {
   measurementId: string;

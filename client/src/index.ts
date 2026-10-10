@@ -1,3 +1,4 @@
+export type {MonitorRequest,MonitorResult,MonitorTransport} from './client.js';
 export type { SetupRequest,SetupResult,SetupTransport } from './client.js';
 export type { CollectionRequest, CollectionResult, CollectionTransport } from './client.js';
 export { CoreError } from './errors.js';

@@ -163,6 +163,7 @@ pub(super) fn quality(snapshot: &Snapshot, count: usize) -> Quality {
 pub(crate) fn validate(request: &Request) -> Result<()> {
     timezone(&request.scope)?;
     super::comparison::validate_comparison(request)?;
+    super::statistics::validate(request)?;
     super::inspection::validate(request)?;
     if request
         .scope
@@ -239,7 +240,9 @@ pub(crate) fn validate(request: &Request) -> Result<()> {
     if request.group.is_some() && request.action != Action::Usage {
         return Err(invalid("分组仅适用于用量"));
     }
-    if request.presentation.is_some() && request.action != Action::Usage {
+    if request.presentation.is_some()
+        && !matches!(request.action, Action::Usage | Action::Statistics)
+    {
         return Err(invalid("展示分组仅适用于用量"));
     }
     if request.locate_operation_id.is_some() && request.action != Action::Steps {
@@ -317,6 +320,7 @@ pub(super) fn ensure_ready(request: &Request, snapshot: &Snapshot) -> Result<()>
                 load.project.as_ref() == project
             } else {
                 super::inspection::is_action(&request.action)
+                    || request.action == Action::Statistics
             }
     }) {
         return Err(operation_error(

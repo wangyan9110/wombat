@@ -60,3 +60,5 @@ Timing text renders repeated-behavior aggregates with duration provenance, reque
 ## Collection entries
 
 `setup` reports separate runtime, discovery and registration observations without installation or model execution. `collection` exposes core preferences, status, safe event pages and pause/resume; JSON is the generated version 1 response. Machine-wide preference changes are distinct from project-filtered reads. `hook codex` is a bounded advisory stdin entry: it emits no stdout and exits 0 even when receipt fails, so it cannot supply model context or permission decisions. The [CLI guide](../docs/guides/cli.en.md) owns commands and limits.
+
+`statistics` queries task distributions and period growth; `monitor` manages budgets and drives explicit periodic checks. The generated Agent API exposes monitoring as its own method. The [CLI guide](../docs/guides/cli.en.md) owns commands and running requirements; the [core](../core/README.en.md) owns calculations.

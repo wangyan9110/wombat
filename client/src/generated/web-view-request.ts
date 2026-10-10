@@ -26,7 +26,8 @@ export type Action =
   | "trajectory"
   | "resources"
   | "review"
-  | "context";
+  | "context"
+  | "statistics";
 export type Group = "day" | "week" | "month";
 export type Sort = "tokens" | "cost" | "recent" | "time";
 export type Presentation = "distribution" | "details" | "projects" | "models";

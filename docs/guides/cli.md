@@ -48,6 +48,28 @@ wombat compare --thread THREAD_ID --other-thread OTHER_THREAD_ID --family --all-
 
 `--dimension` 可选 `project`、`model` 或 `thread`；`--limit` 和 `--offset` 控制贡献分页。会话 ID 使用 `threads --json` 的 `id`；`--family` 加入明确关联的后代。两种比较均保留日期和维度筛选，并支持 `--snapshot` 固定版本；显式 `--fresh` 才请求同步。过期版本返回错误，重新读取列表后再比较。实时结果中的 `freshness.publicationChange` 说明最近成功发布的变化，文本也显示变化计数；没有完整基准时不提供摘要。[核心参考](../../core/README.md) 定义计算与限制。
 
+## 任务分布与预算
+
+用任务统计判断某个任务在所选总体中的位置，或把用量增长拆成任务数量变化与单任务用量变化。后续分页和比较保留返回的快照。
+
+```sh
+wombat statistics --project /absolute/project --since 2026-10-01 --until 2026-10-08 --presentation projects --json
+wombat statistics --snapshot SNAPSHOT_ID --thread THREAD_ID --since 2026-10-01 --until 2026-10-08 --json
+wombat statistics --snapshot SNAPSHOT_ID --since 2026-10-01 --until 2026-10-08 --baseline-since 2026-09-24 --baseline-until 2026-10-01 --presentation models --json
+wombat monitor set --id project-week --period week --tokens 1000000 --review --project /absolute/project --timezone Asia/Shanghai --json
+wombat monitor check --id project-week --json
+wombat monitor watch --id project-week --interval 60 --json
+wombat monitor list --json
+wombat monitor acknowledge --notification NOTIFICATION_ID --json
+wombat monitor remove --id project-week --json
+```
+
+任务统计默认选择最近30个自然日；`--all-time` 选择全部可用日期。项目或模型分组接受 `--limit` 与 `--offset`，总体覆盖完整范围。`--thread` 选择的任务与该总体比较。完整任务总量用于均值、中位数和 P90；不完整任务及未归属计量单独保留。一个任务使用多个模型时，各模型总体可以重叠。等长且不重叠的比较周期保留其他筛选。[核心参考](../../core/README.md)拥有计算方法与限制。
+
+监控计划保存身份筛选、时区、自然周期及可选 Token 阈值。`--review` 同时请求最近一个已结束周期的统计。`--disabled` 保存暂停的计划；重复使用其 ID 可修改设置。预警默认在阈值的80%触发，可用 `--warning 0.9` 调整。这是用户预算，与账户额度独立。`check` 检查全部启用计划，`--id` 可选择一个；重复 `--root` 可选择来源。检查近期固定视图时使用 `--snapshot ID --id PLAN_ID`，不附加来源根目录。视图过期后，按原范围重新检查。
+
+`watch` 在命令运行期间检查，只输出新提醒。它不安装后台服务或发送消息；Ctrl+C 以退出码130结束。`--interval` 接受5—3600秒。Web 使用同一组计划，支持手动检查，以及预算面板保持打开期间可选的60秒检查循环。监控需要运行中的宿主，来源日志记录用量后才能检测阈值。不完整事实可以证明越过阈值，不能证明剩余预算。确认状态与原始事实分开保存。周期复盘覆盖最近一个已结束周期，不补齐所有错过的周期。
+
 ## 使用检查与复盘
 
 先读取或更新用量，再用返回的 `snapshotRef.snapshotId` 固定以下查询；默认仅读取已提交数据，不主动同步。

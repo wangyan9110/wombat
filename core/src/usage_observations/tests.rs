@@ -73,6 +73,7 @@ fn historical_paths_use_recorded_grammar_on_every_host() {
 
 fn operation(id: &str, kind: &str) -> Operation {
     Operation {
+        text_result: None,
         id: id.into(),
         thread_id: "thread".into(),
         turn_id: Some("turn".into()),

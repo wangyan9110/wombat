@@ -1082,6 +1082,7 @@ pub(super) fn execute(mut request: Request, snapshot: &Snapshot) -> Result<Respo
     };
     let compact = request.compact == Some(true);
     let mut response = Response {
+        statistics: None,
         inspection: Some(Inspection {
             method_version: 3,
             kind,

@@ -11,7 +11,7 @@ const label = (key: PlainKey) => t(key);
 const region = (page: Page, key: PlainKey) => page.getByRole('region', { name: label(key), exact: true });
 const execution = (page: Page) => region(page, 'execution.title');
 const uses = (page: Page) => region(page, 'execution.uses');
-async function activate(item: Locator) { await item.waitFor(); await item.focus(); await item.press('Enter'); }
+async function activate(item: Locator) { await item.waitFor(); const deadline=Date.now()+15_000;while(!await item.isEnabled()){assert.ok(Date.now()<deadline,'Button remained disabled');await new Promise(resolve=>setTimeout(resolve,25));}await item.focus(); await item.press('Enter'); }
 async function details(page: Page, key: PlainKey) { await activate(page.locator('summary').filter({ hasText: label(key) }).first()); }
 async function text(item: Locator, expected: string) { await item.filter({ hasText: expected }).waitFor(); assert.ok((await item.innerText()).includes(expected), `Expected DOM text ${expected}`); }
 async function overflow(page: Page) { assert.equal(await page.evaluate<boolean>('document.documentElement.scrollWidth > innerWidth + 1'), false, 'Horizontal document overflow'); }
@@ -134,8 +134,40 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   const afterIndex = requests.indexOf(latest); bound(requests.slice(afterIndex), String(latest.snapshotId), thread, turn, next.scope.sourceInstanceId);
   await comparisons(page,fixture,language,width);
   await setupJourney(page,fixture,language,width,next.scope.sourceInstanceId);
+  await statisticsMonitoring(page,fixture,language,width);
   assert.deepEqual(errors, []); await overflow(page);
-  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group','period-contributions-fixed-evidence','session-family-comparison','publication-changes','setup-scoped-receipts-pagination-keyboard-reload'] };
+  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group','period-contributions-fixed-evidence','session-family-comparison','publication-changes','setup-scoped-receipts-pagination-keyboard-reload','task-distribution-model-groups-budget-save-pause-acknowledge'] };
+}
+
+async function statisticsMonitoring(page:Page,fixture:Fixture,language:Language,width:number) {
+  const url=new URL(fixture.product);url.search=new URLSearchParams({page:'usage',allTime:'1',timezone:'UTC',project:fixture.project}).toString();
+  const fragment=new URLSearchParams(url.hash.slice(1));fragment.set('lang',language);url.hash=fragment.toString();
+  await page.goto(url.href);await settled(page);await details(page,'statistics.title');
+  const statistics=page.locator('details').filter({hasText:label('statistics.title')}).first();
+  await statistics.locator('tbody tr').first().waitFor();await text(statistics,t('statistics.population',{complete:2,total:2}));
+  await statistics.getByRole('combobox',{name:label('webui.dimension'),exact:true}).selectOption('models');
+  await statistics.locator('tbody tr').filter({hasText:'gpt-5.4'}).waitFor();await overflow(page);
+  await details(page,'monitor.title');
+  const monitor=page.locator('details').filter({hasText:label('monitor.title')}).first();
+  const id=`browser-${language}-${width}`;
+  await monitor.getByRole('textbox',{name:label('monitor.id'),exact:true}).fill(id);
+  await monitor.getByRole('spinbutton',{name:label('monitor.tokens'),exact:true}).fill('100');
+  await monitor.getByRole('combobox',{name:label('webui.period'),exact:true}).selectOption('month');
+  await activate(monitor.getByRole('button',{name:label('monitor.save'),exact:true}));
+  const plan=monitor.locator('p > span').filter({hasText:id});await plan.waitFor();
+  await activate(monitor.getByRole('button',{name:label('monitor.check'),exact:true}));
+  const notices=monitor.locator('article').filter({hasText:id});await notices.filter({hasText:label('monitor.budget_exceeded')}).waitFor();
+  assert.equal(await notices.count(),2);
+  await activate(monitor.getByRole('button',{name:label('monitor.check'),exact:true}));
+  assert.equal(await notices.count(),2,'Repeated checks must retain the same history without duplicate notices');
+  await activate(plan.getByRole('button',{name:label('monitor.pause'),exact:true}));
+  await plan.getByRole('button',{name:label('monitor.resume'),exact:true}).waitFor();
+  assert.equal(await notices.count(),2,'Pausing a plan does not hide prior facts');
+  await activate(notices.getByRole('button',{name:label('monitor.acknowledge'),exact:true}).first());
+  await page.waitForFunction(({id,label})=>{const panel=[...document.querySelectorAll('details')].find(e=>e.querySelector('summary')?.textContent===label);return [...(panel?.querySelectorAll('article')??[])].filter(e=>e.textContent?.includes(id)).filter(e=>e.querySelector('button')).length===1;},{id,label:label('monitor.title')});
+  await overflow(page);
+  await activate(plan.getByRole('button',{name:label('monitor.remove'),exact:true}));
+  await plan.waitFor({state:'hidden'});
 }
 
 async function rulePreviews(page: Page, origin: string, language: Language): Promise<void> {
@@ -260,7 +292,7 @@ async function comparisons(page:Page,fixture:Fixture,language:Language,width:num
  await activate(page.locator('.thread-row').filter({hasText:title}).first());
  await page.waitForFunction(id=>new URL(location.href).searchParams.get('thread')===id,parent.id);
  await page.locator('.turn[open]').waitFor();await execution(page).waitFor();await settled(page);
- const trajectory=page.locator('.task-detail .inspection');await activate(trajectory.locator('summary'));await text(trajectory,label('inspection.limit.context_occupancy_unavailable'));await trajectory.locator('.inspection-card').first().waitFor();await overflow(page);
+ const trajectory=page.locator('.task-detail .inspection').filter({hasText:label('inspection.trajectory')}).first();await activate(trajectory.locator('summary').first());await text(trajectory,label('inspection.limit.context_occupancy_unavailable'));await trajectory.locator('.inspection-card').first().waitFor();await overflow(page);
  const compare=page.locator('.task-detail details').filter({hasText:label('comparison.sessions')}).first();
  if(await compare.getAttribute('open')==null)await activate(compare.locator('summary').first());
  await compare.getByRole('combobox',{name:label('comparison.other')}).fill(child.id);

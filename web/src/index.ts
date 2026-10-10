@@ -48,12 +48,18 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
   const active = new Set<AbortController>();
   const snapshots = new Set<string>();
   const configViews = new Set<string>();
+  const snapshotSources=new Map<string,Set<string>>();
+  const authorizedSources=new Set<string>();
+  let authorizedSourcesComplete=false;
+  const incompleteSnapshotSources=new Set<string>();
   const lifetime = new AbortController();
   const startupRoots = options.roots ? [...options.roots] : undefined;
   const startupProjects = [...(options.projectRoots ?? [])];
   const observedProjects = new Set(startupProjects);
   const observeProjects = (result: import('@wombat/client').UsageResult) => {
     for (const project of result.facets?.directories ?? []) observedProjects.add(project);
+    for(const source of result.quality.sources)authorizedSources.add(source.source.id);
+    if(!result.quality.detailSummary?.omittedSources)authorizedSourcesComplete=true;
   };
   let projectDiscovery: Promise<void> | undefined;
   const discoverProject = async (project: string | null | undefined, query: QueryOptions) => {
@@ -87,7 +93,8 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
     const grants=result.grants.filter(g=>g.status==='authorized');
     options.projectRoots=[...new Set([...startupProjects,...grants.filter(g=>g.purpose==='project').map(g=>g.path)])];
     options.roots=startupRoots ? [...new Set([...startupRoots,...grants.filter(g=>g.purpose==='source').map(g=>g.path)])] : undefined;
-    configViews.clear();snapshots.clear();
+    configViews.clear();snapshots.clear();snapshotSources.clear();authorizedSources.clear();incompleteSnapshotSources.clear();authorizedSourcesComplete=false;
+    observedProjects.clear();for(const project of options.projectRoots??[])observedProjects.add(project);
   };
   if(options.client.directories){try{updateGrants(await options.client.directories({action:'list'}));}catch{/* Keep the startup scope; the directory panel reports the failed registry. */}}
   const prices = backgroundPrices(options.client, options.automaticPrices !== false, lifetime.signal);
@@ -104,6 +111,50 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
   const activity = activityAccess(options.client,snapshots,()=>options.roots,revalidateFixed);
   const client = createUsageClient({
     timing,
+    monitor:async(r,q)=>{
+      if(!options.client.monitor)throw new CoreError('MONITOR_UNAVAILABLE','Monitor unavailable');
+      await revalidateFixed(q);
+      if(!authorizedSourcesComplete){
+        const view=options.client.live ? (await options.client.live({query:{action:'usage',roots:options.roots,scope:{allTime:true},limit:1},mode:'fresh'},q)).result : await options.client.query({action:'usage',roots:options.roots,scope:{allTime:true},limit:1},q);
+        observeProjects(view);
+      }
+      const allowedScope=(scope:import('@wombat/client').UsageRequest['scope'])=>(!scope?.project||observedProjects.has(scope.project)||options.projectRoots?.includes(scope.project))&&(!scope?.sourceInstanceId||authorizedSources.has(scope.sourceInstanceId));
+      const allowedNotification=(n:import('@wombat/client').MonitorResult['notifications'][number])=>allowedScope(n.scope)&&n.sourceInstanceIds.every(id=>authorizedSources.has(id));
+      if(r.action==='upsert'){
+        const settings=await options.client.monitor({action:'list'},q);
+        const existing=settings.plans.find(p=>p.id===r.plan.id);
+        if(existing&&!allowedScope(existing.scope))throw new CoreError('NOT_FOUND','Monitor plan is outside this host');
+        await discoverProject(r.plan.scope?.project,q);
+        if(!allowedScope(r.plan.scope))throw new CoreError('SOURCE_NOT_AUTHORIZED','Source is outside this host');
+      }
+      if(r.action==='remove'||r.action==='acknowledge'){
+        const settings=await options.client.monitor({action:'list'},q);
+        const allowed=r.action==='remove'?settings.plans.some(p=>p.id===r.id&&allowedScope(p.scope)):settings.notifications.some(n=>n.id===r.notificationId&&allowedNotification(n));
+        if(!allowed)throw new CoreError('NOT_FOUND','Monitor item is outside this host');
+      }
+      if(r.action==='check'){
+        if(!snapshots.has(r.snapshotId))throw new CoreError('VIEW_EXPIRED','Unknown host usage view');
+        if(incompleteSnapshotSources.has(r.snapshotId)||!snapshotSources.has(r.snapshotId)){
+          const request:UsageRequest={action:'usage',snapshotId:r.snapshotId,scope:{allTime:true},limit:1};
+          const view=options.client.live&&(r.snapshotId.startsWith('live:')) ? (await options.client.live({query:request,mode:'cached'},q)).result : await options.client.query(request,q);
+          if(view.snapshotRef.snapshotId!==r.snapshotId)throw new CoreError('PROTOCOL_ERROR','Usage view mismatch');
+          snapshotSources.set(r.snapshotId,new Set(view.quality.sources.map(source=>source.source.id)));incompleteSnapshotSources.delete(r.snapshotId);
+        }
+        const settings=await options.client.monitor({action:'list'},q);
+        for(const id of r.ids){
+          const plan=settings.plans.find(p=>p.id===id);
+          if(!plan)throw new CoreError('NOT_FOUND','Monitor plan not found');
+          await discoverProject(plan.scope?.project,q);
+          const source=plan.scope?.sourceInstanceId;
+          if(source&&!snapshotSources.get(r.snapshotId)?.has(source))throw new CoreError('SOURCE_NOT_AUTHORIZED','Source is outside this read view');
+        }
+        await revalidateFixed(q);
+        if(!snapshots.has(r.snapshotId))throw new CoreError('VIEW_EXPIRED','Read scope changed');
+      }
+      const result=await options.client.monitor(r,q);
+      await revalidateFixed(q);
+      return {...result,plans:result.plans.filter(p=>allowedScope(p.scope)),notifications:result.notifications.filter(allowedNotification)};
+    },
     setup:async(r,q)=>{
       if(!options.client.setup)throw new CoreError('SETUP_UNAVAILABLE','Setup unavailable');
       if(r.roots!=null)throw new CoreError('INVALID_ARGUMENT','Web scope is fixed at startup');
@@ -179,7 +230,7 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
       const supplied = Buffer.from(req.headers.authorization ?? '');
       if (supplied.length !== authorization.length || !timingSafeEqual(supplied, authorization) || req.headers.origin !== origin) return reject(403);
       if (req.method !== 'POST') return reject(405);
-      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences','/api/directories','/api/account','/api/handoff','/api/timing','/api/collection','/api/setup'].includes(req.url)) return reject(404);
+      if (!['/api/query', '/api/live', '/api/prices', '/api/config', '/api/optimize', '/api/preferences','/api/directories','/api/account','/api/handoff','/api/timing','/api/collection','/api/setup','/api/monitor'].includes(req.url)) return reject(404);
       if (req.headers['content-type'] !== 'application/json') return reject(415);
       if (Number(req.headers['content-length'] ?? 0) > BODY_LIMIT) return reject(413);
       if (active.size >= 8) return reject(429);
@@ -209,7 +260,8 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         // Revocation from another CLI/window is authoritative at the next request.
         if(req.url!=='/api/directories'&&req.url!=='/api/account'&&req.url!=='/api/timing'&&options.client.directories)updateGrants(await options.client.directories({action:'list'},query));
         // createUsageClient validates each unknown payload before the typed transport runs.
-        const value = req.url === '/api/setup' ? await client.setup!(request as Parameters<NonNullable<UsageClient['setup']>>[0],query)
+        const value = req.url === '/api/monitor' ? await client.monitor!(request as Parameters<NonNullable<UsageClient['monitor']>>[0],query)
+          : req.url === '/api/setup' ? await client.setup!(request as Parameters<NonNullable<UsageClient['setup']>>[0],query)
           : req.url === '/api/collection' ? await client.collection!(request as Parameters<NonNullable<UsageClient['collection']>>[0],query)
           : req.url === '/api/timing' ? await client.timing!(request as Parameters<NonNullable<UsageClient['timing']>>[0], query)
           : req.url === '/api/query' ? await client.query(request as Parameters<UsageClient['query']>[0], query)
@@ -229,6 +281,9 @@ export async function startWebHost(options: WebHostOptions): Promise<WebHost> {
         }
         if (result) {
           snapshots.add(result.snapshotRef.snapshotId);
+          snapshotSources.set(result.snapshotRef.snapshotId,new Set(result.quality.sources.map(s=>s.source.id)));
+          if(result.quality.detailSummary?.omittedSources)incompleteSnapshotSources.add(result.snapshotRef.snapshotId);else incompleteSnapshotSources.delete(result.snapshotRef.snapshotId);
+          if(snapshotSources.size>128)snapshotSources.delete(snapshotSources.keys().next().value!);
         }
         if (req.url === '/api/timing') {
           // Narrow the independently validated timing result; never publish share aliases.

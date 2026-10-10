@@ -5,6 +5,23 @@ pub(in crate::adapters::codex) fn merge_metadata(
     operation: &mut Operation,
     report: &mut SourceReport,
 ) {
+    match (&mut old.text_result, &operation.text_result) {
+        (Some(old), Some(incoming)) => {
+            if old.conflicting || incoming.conflicting || old.hash != incoming.hash {
+                old.hash = None;
+                old.observed_at = None;
+                old.conflicting = true;
+            } else if incoming
+                .observed_at
+                .as_ref()
+                .is_some_and(|at| old.observed_at.as_ref().is_none_or(|old| at < old))
+            {
+                old.observed_at.clone_from(&incoming.observed_at);
+            }
+        }
+        (None, Some(incoming)) => old.text_result = Some(incoming.clone()),
+        _ => {}
+    }
     merge_mcp(old, operation, report);
     super::matching::merge(&mut old.matching, &operation.matching);
     super::work::merge(old, operation, report);

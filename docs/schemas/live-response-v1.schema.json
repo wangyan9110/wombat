@@ -24,6 +24,16 @@
     "Response": {
       "type": "object",
       "properties": {
+        "statistics": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TaskStatistics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "inspection": {
           "anyOf": [
             {
@@ -129,96 +139,52 @@
         "quality"
       ]
     },
-    "Inspection": {
+    "TaskStatistics": {
       "type": "object",
       "properties": {
+        "selectedTask": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TaskTypicality"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "methodVersion": {
           "type": "integer",
-          "minimum": 3,
-          "maximum": 3
+          "minimum": 1,
+          "maximum": 1
         },
-        "kind": {
-          "$ref": "#/definitions/InspectionKind"
+        "quantileMethod": {
+          "description": "Linear interpolation at (n-1)p, shared with timing distributions.",
+          "type": "string"
         },
-        "policy": {
-          "$ref": "#/definitions/InspectionPolicy"
+        "population": {
+          "$ref": "#/definitions/TaskPopulation"
         },
-        "partial": {
-          "type": "boolean"
-        },
-        "limitations": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/InspectionLimit"
-          }
-        },
-        "candidates": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/InvestigationCandidate"
-          }
-        },
-        "trajectory": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/InputPoint"
-          }
-        },
-        "resources": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ResourceHotspot"
-          }
-        },
-        "review": {
+        "dimension": {
           "anyOf": [
             {
-              "$ref": "#/definitions/PeriodReview"
+              "$ref": "#/definitions/Presentation"
             },
             {
               "type": "null"
             }
           ]
         },
-        "candidateCount": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
+        "groups": {
+          "description": "A task using several models occurs in each model population; counts are not additive.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TaskStatisticsGroup"
+          }
         },
-        "resourceCount": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "unlocatedOperations": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "context": {
+        "growth": {
           "anyOf": [
             {
-              "$ref": "#/definitions/ContextInventory"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "activity": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ActivityReview"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "opportunities": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/OpportunityReview"
+              "$ref": "#/definitions/TaskGrowth"
             },
             {
               "type": "null"
@@ -226,119 +192,20 @@
           ]
         }
       },
-      "additionalProperties": false,
       "required": [
         "methodVersion",
-        "kind",
-        "policy",
-        "partial",
-        "limitations",
-        "candidates",
-        "trajectory",
-        "resources",
-        "candidateCount",
-        "resourceCount",
-        "unlocatedOperations"
+        "quantileMethod",
+        "population",
+        "groups"
       ]
     },
-    "InspectionKind": {
-      "type": "string",
-      "enum": [
-        "investigate",
-        "trajectory",
-        "resources",
-        "review",
-        "context"
-      ]
-    },
-    "InspectionPolicy": {
-      "type": "object",
-      "properties": {
-        "minimumTokens": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "minimumInput": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "maximumCacheShare": {
-          "type": "number"
-        },
-        "minimumInputJump": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "minimumDeterminateOperations": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "minimumFailures": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "minimumFailureShare": {
-          "type": "number"
-        },
-        "minimumRepeatedRequests": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "minimumTokens",
-        "minimumInput",
-        "maximumCacheShare",
-        "minimumInputJump",
-        "minimumDeterminateOperations",
-        "minimumFailures",
-        "minimumFailureShare",
-        "minimumRepeatedRequests"
-      ]
-    },
-    "InspectionLimit": {
-      "type": "string",
-      "enum": [
-        "source_partial",
-        "context_occupancy_unavailable",
-        "actual_changes_unavailable",
-        "unlocated_operations",
-        "unknown_input_order",
-        "operation_outcomes_partial",
-        "operation_model_association",
-        "context_metadata_unavailable",
-        "selected_turn_only"
-      ]
-    },
-    "InvestigationCandidate": {
+    "TaskTypicality": {
       "type": "object",
       "properties": {
         "threadId": {
           "type": "string"
         },
-        "title": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "signals": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/InspectionSignal"
-          }
-        },
-        "usage": {
-          "$ref": "#/definitions/UsageSummary"
-        },
-        "input": {
+        "tokens": {
           "type": [
             "integer",
             "null"
@@ -346,13 +213,49 @@
           "minimum": 0,
           "maximum": 9007199254740991
         },
-        "cacheShare": {
+        "completePopulationTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "percentileRank": {
+          "description": "Midrank: (number below + half of ties) / complete sample size.",
           "type": [
             "number",
             "null"
           ]
         },
-        "largestUncachedJump": {
+        "aboveP90": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "threadId",
+        "completePopulationTasks"
+      ]
+    },
+    "TaskPopulation": {
+      "type": "object",
+      "properties": {
+        "measuredTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "completeTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "incompleteTasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "completeTaskTokens": {
           "type": [
             "integer",
             "null"
@@ -360,53 +263,33 @@
           "minimum": 0,
           "maximum": 9007199254740991
         },
-        "determinateOperations": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
+        "meanTokens": {
+          "type": [
+            "number",
+            "null"
+          ]
         },
-        "failedOperations": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
+        "medianTokens": {
+          "type": [
+            "number",
+            "null"
+          ]
         },
-        "outcomeGaps": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
+        "p90Tokens": {
+          "type": [
+            "number",
+            "null"
+          ]
         },
-        "repeatedRequests": {
-          "description": "Identical callable/argument observations inside one exact turn/receiver.",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "evidence": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/InspectionEvidence"
-          }
+        "unassignedUsage": {
+          "$ref": "#/definitions/UsageSummary"
         }
       },
       "required": [
-        "threadId",
-        "signals",
-        "usage",
-        "determinateOperations",
-        "failedOperations",
-        "outcomeGaps",
-        "repeatedRequests",
-        "evidence"
-      ]
-    },
-    "InspectionSignal": {
-      "type": "string",
-      "enum": [
-        "high_usage",
-        "low_cache_reuse",
-        "input_jump",
-        "failure_share",
-        "repeated_request"
+        "measuredTasks",
+        "completeTasks",
+        "incompleteTasks",
+        "unassignedUsage"
       ]
     },
     "UsageSummary": {
@@ -857,54 +740,87 @@
         "requestScoped"
       ]
     },
-    "InspectionEvidence": {
-      "type": "object",
-      "properties": {
-        "view": {
-          "$ref": "#/definitions/InspectionEvidenceView"
-        },
-        "methodVersion": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 1
-        },
-        "snapshotId": {
-          "type": "string"
-        },
-        "scope": {
-          "$ref": "#/definitions/Scope"
-        },
-        "threadId": {
-          "type": "string"
-        },
-        "turnId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "operationId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "view",
-        "methodVersion",
-        "snapshotId",
-        "scope",
-        "threadId"
-      ]
-    },
-    "InspectionEvidenceView": {
+    "Presentation": {
       "type": "string",
       "enum": [
-        "task",
-        "turn",
-        "operation"
+        "distribution",
+        "details",
+        "projects",
+        "models"
+      ]
+    },
+    "TaskStatisticsGroup": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "population": {
+          "$ref": "#/definitions/TaskPopulation"
+        }
+      },
+      "required": [
+        "population"
+      ]
+    },
+    "TaskGrowth": {
+      "type": "object",
+      "properties": {
+        "baselineScope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "baseline": {
+          "$ref": "#/definitions/TaskPopulation"
+        },
+        "taskCountDelta": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "meanTokensDelta": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "taskCountContribution": {
+          "description": "Symmetric arithmetic decomposition: ΔN × (μ0+μ1)/2.\nOnly available for complete, nonempty populations; never a causal attribution.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "perTaskContribution": {
+          "description": "Δμ × (N0+N1)/2; sums with count contribution to attributed token growth.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "attributedTokenDelta": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "unassignedTokenDelta": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "baselineScope",
+        "baseline",
+        "taskCountDelta"
       ]
     },
     "Scope": {
@@ -1004,6 +920,336 @@
         }
       },
       "additionalProperties": false
+    },
+    "Inspection": {
+      "type": "object",
+      "properties": {
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 3
+        },
+        "kind": {
+          "$ref": "#/definitions/InspectionKind"
+        },
+        "policy": {
+          "$ref": "#/definitions/InspectionPolicy"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionLimit"
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InvestigationCandidate"
+          }
+        },
+        "trajectory": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InputPoint"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResourceHotspot"
+          }
+        },
+        "review": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PeriodReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidateCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "resourceCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unlocatedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "context": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ContextInventory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "activity": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ActivityReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "opportunities": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/OpportunityReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "methodVersion",
+        "kind",
+        "policy",
+        "partial",
+        "limitations",
+        "candidates",
+        "trajectory",
+        "resources",
+        "candidateCount",
+        "resourceCount",
+        "unlocatedOperations"
+      ]
+    },
+    "InspectionKind": {
+      "type": "string",
+      "enum": [
+        "investigate",
+        "trajectory",
+        "resources",
+        "review",
+        "context"
+      ]
+    },
+    "InspectionPolicy": {
+      "type": "object",
+      "properties": {
+        "minimumTokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumInput": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maximumCacheShare": {
+          "type": "number"
+        },
+        "minimumInputJump": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumDeterminateOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumFailures": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumFailureShare": {
+          "type": "number"
+        },
+        "minimumRepeatedRequests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "minimumTokens",
+        "minimumInput",
+        "maximumCacheShare",
+        "minimumInputJump",
+        "minimumDeterminateOperations",
+        "minimumFailures",
+        "minimumFailureShare",
+        "minimumRepeatedRequests"
+      ]
+    },
+    "InspectionLimit": {
+      "type": "string",
+      "enum": [
+        "source_partial",
+        "context_occupancy_unavailable",
+        "actual_changes_unavailable",
+        "unlocated_operations",
+        "unknown_input_order",
+        "operation_outcomes_partial",
+        "operation_model_association",
+        "context_metadata_unavailable",
+        "selected_turn_only"
+      ]
+    },
+    "InvestigationCandidate": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionSignal"
+          }
+        },
+        "usage": {
+          "$ref": "#/definitions/UsageSummary"
+        },
+        "input": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cacheShare": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "largestUncachedJump": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "determinateOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failedOperations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "outcomeGaps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "repeatedRequests": {
+          "description": "Identical callable/argument observations inside one exact turn/receiver.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InspectionEvidence"
+          }
+        }
+      },
+      "required": [
+        "threadId",
+        "signals",
+        "usage",
+        "determinateOperations",
+        "failedOperations",
+        "outcomeGaps",
+        "repeatedRequests",
+        "evidence"
+      ]
+    },
+    "InspectionSignal": {
+      "type": "string",
+      "enum": [
+        "high_usage",
+        "low_cache_reuse",
+        "input_jump",
+        "failure_share",
+        "repeated_request"
+      ]
+    },
+    "InspectionEvidence": {
+      "type": "object",
+      "properties": {
+        "view": {
+          "$ref": "#/definitions/InspectionEvidenceView"
+        },
+        "methodVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operationId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "view",
+        "methodVersion",
+        "snapshotId",
+        "scope",
+        "threadId"
+      ]
+    },
+    "InspectionEvidenceView": {
+      "type": "string",
+      "enum": [
+        "task",
+        "turn",
+        "operation"
+      ]
     },
     "InputPoint": {
       "type": "object",
@@ -2767,7 +3013,8 @@
         "trajectory",
         "resources",
         "review",
-        "context"
+        "context",
+        "statistics"
       ]
     },
     "AvailableRange": {

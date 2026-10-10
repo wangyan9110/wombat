@@ -15,6 +15,14 @@ Wombat brings local Codex token usage analysis and configuration review into you
 
 When you need charts, task timelines, or configuration details, open the local Web dashboard for the same project and data version, then continue in Codex.
 
+## Why use Wombat with Codex?
+
+When Codex usage rises, repeated work grows, or project configuration becomes hard to maintain, Wombat helps you find where to start and follow findings through changes and rechecks.
+
+- **Know where to focus.** Find the main tasks behind a usage increase, then inspect input growth, repeated operations, and failure records to focus your investigation on specific work.
+- **Make changes with evidence.** Let Codex use recorded facts and configuration checks to suggest changes, preserve the original purpose, and make the adjustments you authorize.
+- **Spend less effort on follow-up.** Save configuration review decisions and reasons, recheck after edits, and use those records in a new conversation. Reduce repeated investigation and explanations of previous decisions.
+
 ## Get started
 
 **Stable: [`v0.3.0`](https://github.com/wangyan9110/wombat/releases/tag/v0.3.0).**

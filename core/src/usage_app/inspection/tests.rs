@@ -436,6 +436,7 @@ fn resources_keep_project_identity_unknown_duration_and_unverified_changes() {
     };
     for (i, thread) in ["a", "a", "a", "a", "a", "a", "b"].iter().enumerate() {
         collected.operations.push(Arc::new(Operation {
+            text_result: None,
             id: format!("op{i}"),
             thread_id: (*thread).into(),
             turn_id: Some("turn".into()),

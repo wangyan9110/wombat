@@ -9,6 +9,8 @@ mod inspection;
 pub use inspection::*;
 mod opportunities;
 pub use opportunities::*;
+mod statistics;
+pub use statistics::*;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -45,6 +47,7 @@ pub enum Action {
     Resources,
     Review,
     Context,
+    Statistics,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -338,6 +341,8 @@ pub enum TokenBasis {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub statistics: Option<TaskStatistics>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inspection: Option<Inspection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

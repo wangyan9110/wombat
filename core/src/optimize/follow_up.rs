@@ -1,4 +1,4 @@
-//! Post-check operation associations, never proof of adoption, content versions or savings.
+//! Post-check use, exact native read-result matches and descriptive usage comparisons.
 use crate::{
     adapters::contract::{Operation, Thread},
     config::View,
@@ -14,6 +14,7 @@ struct Context<'a> {
     after: Option<Time>,
     project: Option<&'a str>,
     item: Option<&'a Item>,
+    revision_hash: &'a str,
     available: bool,
 }
 impl Context<'_> {
@@ -98,6 +99,12 @@ pub(super) fn observe(
             );
         let index = out.len();
         out.push(FollowUpObservation {
+            matching_read_records: item
+                .filter(|i| matches!(i.kind, Kind::Rule | Kind::Skill))
+                .map(|_| 0),
+            matching_load_records: item.filter(|i| i.kind == Kind::Rule).map(|_| 0),
+            usage_comparison: None,
+            usage_comparison_unavailable: Some("observation_unavailable".into()),
             record_id: record.clone(),
             suggestion_id: suggestion.id.clone(),
             status: if available {
@@ -147,6 +154,7 @@ pub(super) fn observe(
             after,
             project: suggestion.scope_project.as_deref(),
             item,
+            revision_hash: &suggestion.item.content_hash,
             available,
         });
         if !available {
@@ -263,6 +271,27 @@ pub(super) fn observe(
             || operation.name.as_ref() == "read_file"
                 && matches!(operation.kind.as_ref(), "tool" | "skillRead");
         let unknown_mcp = matches!(operation.kind.as_ref(), "mcpConflict" | "mcpUnclassified");
+        if operation.kind.as_ref() == "instructionLoad" {
+            for (index, context) in contexts.iter().enumerate() {
+                if context.contains(thread, at, cutoff, source)
+                    && context.item.is_some_and(|item| {
+                        item.kind == Kind::Rule
+                            && read_path(operation, thread).as_deref() == Some(item.path.as_str())
+                    })
+                    && operation.text_result.as_ref().is_some_and(|result| {
+                        result.method_version == 1
+                            && !result.conflicting
+                            && result.hash.as_deref() == Some(context.revision_hash)
+                    })
+                    && at.is_some()
+                    && usage_observations::operation_identity(operation)
+                        .is_some_and(|id| seen.insert((id, index)))
+                {
+                    out[index].matching_load_records =
+                        out[index].matching_load_records.map(|n| n + 1);
+                }
+            }
+        }
         if use_kind.is_none() && !candidate_read && !file_read && !unknown_mcp {
             continue;
         }
@@ -369,6 +398,31 @@ pub(super) fn observe(
                     continue;
                 }
                 projection.observe_with_time_accounted(operation);
+                if file_read
+                    && reads
+                        .as_ref()
+                        .is_none_or(|reads| !reads.unbound && reads.paths.len() == 1)
+                    && matches!(item.kind, Kind::Rule | Kind::Skill)
+                    && !contexts[index].revision_hash.is_empty()
+                    && operation.text_result.as_ref().is_some_and(|result| {
+                        result.method_version == 1
+                            && !result.conflicting
+                            && result.hash.as_deref() == Some(contexts[index].revision_hash)
+                            && result
+                                .observed_at
+                                .as_deref()
+                                .and_then(|at| DateTime::parse_from_rfc3339(at).ok())
+                                .is_some_and(|at| {
+                                    contexts[index]
+                                        .after
+                                        .zip(cutoff)
+                                        .is_some_and(|(after, cutoff)| at > after && at <= cutoff)
+                                })
+                    })
+                {
+                    out[index].matching_read_records =
+                        out[index].matching_read_records.map(|n| n + 1);
+                }
                 if latest[index].is_none_or(|last| at > last) {
                     latest[index] = Some(at);
                     out[index].last_record_at = Some(at.with_timezone(&Utc).to_rfc3339());
@@ -376,6 +430,7 @@ pub(super) fn observe(
             }
         }
     }
+    let usage_rows = snapshot.ledger();
     for (index, projection) in projections.iter().enumerate() {
         if !contexts[index].available {
             continue;
@@ -394,11 +449,130 @@ pub(super) fn observe(
         ));
         let count = projection.observed_count();
         out[index].observed_records = Some(count);
-        out[index].status = if count > 0 {
+        out[index].status = if out[index].matching_load_records.is_some_and(|n| n > 0) {
+            FollowUpStatus::LoadedContentMatched
+        } else if out[index].matching_read_records.is_some_and(|n| n > 0) {
+            FollowUpStatus::ReadContentMatched
+        } else if count > 0 {
             FollowUpStatus::VersionUnknown
         } else {
             FollowUpStatus::NoObservedRecords
         };
+        let suggestion = suggestions
+            .iter()
+            .find(|s| s.id == out[index].suggestion_id)
+            .expect("selected suggestion");
+        match usage_rows
+            .as_ref()
+            .map_err(|_| ())
+            .and_then(|rows| compare_usage(suggestion, view, source, rows).map_err(|_| ()))
+        {
+            Ok(comparison) => {
+                out[index].usage_comparison = comparison;
+                out[index].usage_comparison_unavailable = out[index]
+                    .usage_comparison
+                    .is_none()
+                    .then(|| "empty_follow_up_window".into());
+            }
+            Err(_) => {
+                out[index].usage_comparison_unavailable = Some("usage_facts_unavailable".into())
+            }
+        }
     }
     out
+}
+fn compare_usage(
+    suggestion: &Suggestion,
+    view: &View,
+    source: Option<&str>,
+    rows: &[crate::usage_store::PricedMeasurement],
+) -> anyhow::Result<Option<FollowUpUsage>> {
+    let Some(snapshot) = &view.snapshot else {
+        return Ok(None);
+    };
+    let change = DateTime::parse_from_rfc3339(&suggestion.checked_at)?.with_timezone(&Utc);
+    let through = DateTime::parse_from_rfc3339(&view.checked)?.with_timezone(&Utc);
+    let duration = through - change;
+    if duration <= chrono::Duration::zero() {
+        return Ok(None);
+    }
+    let start = change
+        .checked_sub_signed(duration)
+        .ok_or_else(|| crate::dto::operation_error("INVALID_FACTS", "Follow-up window overflow"))?;
+    let threads: BTreeMap<_, _> = snapshot
+        .manifest
+        .threads
+        .iter()
+        .map(|t| (t.thread.id.as_str(), &t.thread))
+        .collect();
+    let mut before = vec![];
+    let mut after = vec![];
+    let mut undated = 0;
+    for row in rows {
+        if !suggestion.item.in_source(&row.fact.source_instance_id)
+            || source.is_some_and(|s| s != row.fact.source_instance_id.as_ref())
+            || suggestion.scope_project.as_ref().is_some_and(|project| {
+                row.fact
+                    .thread_id
+                    .as_deref()
+                    .and_then(|id| threads.get(id))
+                    .and_then(|thread| thread.project.as_ref())
+                    != Some(project)
+            })
+        {
+            continue;
+        }
+        let Some(at) = row
+            .fact
+            .timestamp
+            .as_deref()
+            .and_then(|at| DateTime::parse_from_rfc3339(at).ok())
+            .map(|at| at.with_timezone(&Utc))
+        else {
+            undated += 1;
+            continue;
+        };
+        if at > start && at <= change {
+            before.push(row);
+        } else if at > change && at <= through {
+            after.push(row);
+        }
+    }
+    let baseline_usage = crate::usage_app::summarize(&before)?;
+    let current_usage = crate::usage_app::summarize(&after)?;
+    let incomplete_usage = baseline_usage.complete_token_total().is_none()
+        || current_usage.complete_token_total().is_none();
+    Ok(Some(FollowUpUsage {
+        source_instance_ids: suggestion
+            .item
+            .source_ids()
+            .filter(|id| source.is_none_or(|source| source == *id))
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
+        method_version: 1,
+        scope: crate::usage_app_dto::Scope {
+            project: suggestion.scope_project.clone(),
+            source_instance_id: source.map(str::to_owned),
+            timezone: Some("UTC".into()),
+            ..Default::default()
+        },
+        baseline_start: start.to_rfc3339(),
+        change_at: change.to_rfc3339(),
+        observed_through: through.to_rfc3339(),
+        baseline: crate::usage_app::statistics::population(&before)?,
+        current: crate::usage_app::statistics::population(&after)?,
+        baseline_usage,
+        current_usage,
+        undated_records: undated,
+        partial: incomplete_usage
+            || undated > 0
+            || !snapshot.manifest.issues.is_empty()
+            || snapshot
+                .manifest
+                .sources
+                .iter()
+                .any(|s| s.status != "complete"),
+    }))
 }
