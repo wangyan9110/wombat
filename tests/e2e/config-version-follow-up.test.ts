@@ -32,9 +32,9 @@ test('follow-up confirms exact read and loaded versions while preserving review 
     assert.equal(readResult.followUps[0].matchingLoadRecords, 0);
     const compared = readResult.followUps[0].usageComparison!; assert.ok(compared);
     assert.equal(compared.baselineUsage.tokens.total, 30); assert.equal(compared.currentUsage.tokens.total, 80);
-    // Core cutoffs retain microseconds; Date.parse alone would round away the final digits.
-    const micros = (time: string) => BigInt(Date.parse(time)) * 1_000n + BigInt((time.match(/\.(\d+)/)?.[1] ?? '').padEnd(6, '0').slice(3, 6));
-    assert.equal(micros(compared.changeAt) - micros(compared.baselineStart), micros(compared.observedThrough) - micros(compared.changeAt));
+    // Core cutoffs can retain nanoseconds; truncating to microseconds changes interval lengths.
+    const nanos = (time: string) => BigInt(Date.parse(time)) * 1_000_000n + BigInt((time.match(/\.(\d+)/)?.[1] ?? '').padEnd(9, '0').slice(3, 9));
+    assert.equal(nanos(compared.changeAt) - nanos(compared.baselineStart), nanos(compared.observedThrough) - nanos(compared.changeAt));
     assert.equal(compared.partial, false);
     await writeFile(file, 'Synthetic later current version.');
     assert.equal((await history()).followUps[0].status, 'read_content_matched', 'Follow-up binds the saved recheck version even after another edit');

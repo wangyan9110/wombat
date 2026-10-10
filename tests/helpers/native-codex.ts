@@ -1,6 +1,34 @@
 import { createRequire } from 'node:module';
 import { readFile, writeFile } from 'node:fs/promises';
+import { connect } from 'node:net';
 import path from 'node:path';
+
+/** A PID or port can be reused; only the fixture's own random identity establishes liveness. */
+function fixtureAlive(port: number, identity: string, remainingMs: number): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const socket = connect(port, '127.0.0.1');
+    let result = '', settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.destroy();
+      if (error) reject(error); else resolve(result === identity);
+    };
+    const timer = setTimeout(() => finish(new Error('Synthetic lifecycle probe timed out')), remainingMs);
+    socket.setEncoding('utf8');
+    socket.on('data', chunk => {
+      result += chunk;
+      if (Buffer.byteLength(result) > 128) { result = ''; finish(); }
+    });
+    socket.once('end', () => finish());
+    socket.once('close', () => finish());
+    socket.once('error', error => {
+      if ('code' in error && ['ECONNREFUSED', 'ECONNRESET'].includes(String(error.code))) finish();
+      else finish(error);
+    });
+  });
+}
 /** Synthetic native protocol only: no login, model work, or source-file execution. */
 export async function nativeCodexFixture(dir: string) {
   const binary=path.join(dir,'codex.cjs'),mode=path.join(dir,'native-mode.json'),calls=path.join(dir,'native-calls.jsonl'),lifecycle=path.join(dir,'native-lifecycle.jsonl');
@@ -8,7 +36,10 @@ export async function nativeCodexFixture(dir: string) {
   await writeFile(mode,JSON.stringify({kind:'blocked'}));await writeFile(calls,'');await writeFile(lifecycle,'');
   await writeFile(binary,`const {readFileSync,appendFileSync,writeFileSync}=require('node:fs');
 const mode=JSON.parse(readFileSync(${JSON.stringify(mode)},'utf8'));let accountReads=0,hookReads=0;
-appendFileSync(${JSON.stringify(lifecycle)},JSON.stringify({pid:process.pid,event:'spawn',proxy:process.argv.includes('proxy')})+'\\n');
+const identity=require('node:crypto').randomUUID();
+// A peer can disconnect while cleanup stops this fixture; it does not invalidate other probes.
+const monitor=require('node:net').createServer(socket=>{socket.on('error',()=>{});socket.end(identity);});
+monitor.listen(0,'127.0.0.1',()=>appendFileSync(${JSON.stringify(lifecycle)},JSON.stringify({pid:process.pid,event:'spawn',port:monitor.address().port,identity,proxy:process.argv.includes('proxy')})+'\\n'));
 process.once('SIGTERM',()=>process.exit(0));
 process.once('exit',()=>appendFileSync(${JSON.stringify(lifecycle)},JSON.stringify({pid:process.pid,event:'exit'})+'\\n'));
 if(process.argv.includes('--version')){console.log('codex-cli '+(mode.version||'0.160.0'));process.exit(0);}
@@ -45,11 +76,14 @@ if(process.argv.includes('proxy')){
   const waitForExit = async () => {
     const deadline = Date.now() + 3000;
     for (;;) {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) throw new Error('Synthetic native processes did not exit after product cleanup');
       const events = (await readFile(lifecycle, 'utf8')).trim().split('\n').filter(Boolean).map(row => JSON.parse(row));
-      const running = events.filter(e => e.event === 'spawn').some(e => {
-        try { process.kill(e.pid, 0); return true; }
-        catch { return false; }
-      });
+      const alive = await Promise.all(events.filter(e => e.event === 'spawn').map(e => {
+        if (!Number.isInteger(e.port) || e.port < 1 || e.port > 65535 || typeof e.identity !== 'string' || !e.identity) throw new Error('Invalid synthetic lifecycle identity');
+        return fixtureAlive(e.port, e.identity, remainingMs);
+      }));
+      const running = alive.some(Boolean);
       if (!running) return;
       if (Date.now() >= deadline) throw new Error('Synthetic native processes did not exit after product cleanup');
       await new Promise(resolve => setTimeout(resolve, 20));
