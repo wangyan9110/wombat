@@ -17,11 +17,11 @@ When you need charts, task timelines, or configuration details, open the local W
 
 ## Why use Wombat with Codex?
 
-When Codex usage rises, repeated work grows, or project configuration becomes hard to maintain, Wombat helps you find where to start and follow findings through changes and rechecks.
+Wombat turns local records into reusable statistics, evidence tied to one data version, and review decisions you can use across conversations. Codex can use these results when you analyze usage across many tasks or follow changes to project configuration.
 
-- **Know where to focus.** Find the main tasks behind a usage increase, then inspect input growth, repeated operations, and failure records to focus your investigation on specific work.
-- **Make changes with evidence.** Let Codex use recorded facts and configuration checks to suggest changes, preserve the original purpose, and make the adjustments you authorize.
-- **Spend less effort on follow-up.** Save configuration review decisions and reasons, recheck after edits, and use those records in a new conversation. Reduce repeated investigation and explanations of previous decisions.
+- **Reduce repeated preparation.** Reuse local indexes to query usage, growth, and operation records across tasks, reducing the need to organize history again for each question.
+- **Compare on a common basis.** View summaries and details for the same project, period, and data version. Missing data stays visible so you can check conclusions and select changes.
+- **Continue the follow-up.** Save configuration review decisions and reasons, recheck with the same rules after edits, and use those records in a new conversation.
 
 ## Get started
 
@@ -58,13 +58,20 @@ If plugin installation fails, Wombat remains installed. Check the reported stage
 | Your question | What Wombat provides |
 |---|---|
 | Where did usage increase? | Period and task comparisons, main contributions, and input, cache, and output tokens |
+| How does this task's usage compare with other tasks in the project? | Population mean, median, P90, and the selected task's percentile rank |
+| Did usage grow because of more tasks or larger tasks? | Separate contributions from task count and usage per task |
+| How can I get token budget warnings and periodic reviews? | Save daily, weekly, or monthly budgets, run threshold checks, and review the most recent closed period |
 | Where did this task's input grow? | Input trajectories, change points, and records before and after compaction |
 | Which operations deserve attention? | Repeated requests and reads, rapid status checks, failure patterns, and duration signals |
 | Which repeated work could become a script or Skill? | Recurring operations across tasks in one project, for Codex to review and organize |
 | What needs attention in my project configuration? | Format checks, exact duplicate instruction blocks, large files, local references, and Hook targets |
+| Which Skills or MCP entries deserve a review? | Recorded use counts and last-use times for the selected period, to identify extensions to review |
 | Does a configuration issue remain after a change? | Rechecks using the same rules, remaining findings, and action history |
+| Was the changed configuration read or loaded? | Content-version matches supported by native records, and usage before and after the change in the same scope |
 
 You can also inspect recorded task and turn durations, operation intervals, resource records, and Skill or MCP use evidence. Read Codex account allowance, reset times, and stored allowance history separately from project usage.
+
+Ongoing budget checks require a running `wombat monitor watch` or periodic checks enabled in an open Web budget panel. User token budgets are separate from Codex account allowance.
 
 ## Turn findings into changes
 
@@ -76,7 +83,7 @@ For workflow changes, compare relevant later records when available to assess th
 
 ## Explore charts and detailed records
 
-The Web dashboard provides usage trends, project and model distributions, task lists, turn timelines, configuration details, and action history. Ask the Skill to open matching details, or run:
+The Web dashboard provides usage trends, project and model distributions, task statistics, turn timelines, budget reminders, periodic reviews, configuration details, and action history. Ask the Skill to open matching details, or run:
 
 ```sh
 wombat web --open
@@ -123,7 +130,7 @@ Some data saved by earlier versions cannot be opened by this release. Keep the o
 <details>
 <summary>Use JSON queries or run from source</summary>
 
-The CLI provides JSON output for scripts. See the [CLI guide](docs/guides/cli.en.md) for usage, comparisons, timing, configuration queries, and handoffs.
+The CLI provides JSON output for agents and scripts. See the [CLI guide](docs/guides/cli.en.md) for usage, task statistics, budget monitoring, timing, configuration queries, and handoffs.
 
 To run from source, you need Node.js 26.4.0 or newer, Corepack, pnpm, and the Rust version specified in `rust-toolchain.toml`. Clone this repository, then run from its directory:
 
