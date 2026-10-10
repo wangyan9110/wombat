@@ -15,14 +15,29 @@
 | Pre-tag remote preflight | `corepack pnpm release:preflight -- --version <version>` | Requires current root READMEs, a clean `main`, exact `origin/main`, no existing tag/Release, a public unarchived repository, and successful CI for the exact commit; no mutation |
 | Publish end to end | `corepack pnpm release:publish` | Uses root version; synchronizes/checks/commits/pushes, waits exact-source CI, reuses its verified archives, tags/publishes and verifies public install/update |
 | Local build | `corepack pnpm build` | Compiles core, client, Web, and CLI |
+| Source-only checks | `corepack pnpm test:repo` and `corepack pnpm test:prebuild` | Script and platform-assumption tests without dist; CI requires Linux, macOS, and Windows success before compilation |
 | Startup probe without scanning | `corepack pnpm release:probe` | Starts the shared service with nonexistent source directories and reads capabilities to check process startup, sockets, and the CLI protocol; requires built dist/ |
-| Full release gate | `corepack pnpm release:check` | Formatting, Rust lint, build, types, contracts, product tests, licenses, repository rules, and public-source checks |
+| Full release gate | `corepack pnpm release:check` | Source rules and platform assumptions first; then Rust lint, build, types, contracts, product tests, and licenses |
 | Focused install candidate | `corepack pnpm release:verify-install` | Builds the current target, checks types/repository rules/update regressions, and packages/tests installation, upgrade and Web; no publication or full release signoff |
 | Local candidate | `corepack pnpm github:pack -- --current-platform` | Packs and extracts the local archive, checksums, and release-set; no upload |
 | Five-platform candidate | `corepack pnpm github:pack -- --native-dir <artifacts>` | Validates matching version/commit, cores, runtimes, and notices before packing; no upload |
 | Native export | `corepack pnpm native:export` | Exports local core, Node runtime, licenses, version, commit, and hashes |
 
 Packing runs release:check by default. Use --reuse-build only after gates passed on exactly the same source; fingerprint validation still applies. The focused install entry uses it after its scoped checks for candidate diagnosis, while public releases still require the full gate. Rebuild after source, lockfile, release-script, or manifest changes. If local Node lacks its distributed LICENSE, pass --runtime-license with the official license for the bundled runtime; CI setup-node should provide it. The project MIT license cannot replace Node's license.
+
+## Review failure-class coverage before release
+
+Follow the [failure investigation rules](../../../../docs/development/workflow.en.md#failure-investigation) before expensive platform runs. Review the following independent regressions when changing the corresponding fixtures or tools; a local pass does not establish another operating system's behavior.
+
+| Assumption | Regression owner |
+|---|---|
+| Timestamp precision and date boundaries | [Time precision checks](../../../../tests/prebuild/time-precision.test.ts) |
+| Process identity, deadline races, and unanswered probes | [Native lifecycle checks](../../../../tests/prebuild/native-lifecycle.test.ts) |
+| Native filesystem paths and formatter scope | [Formatting checks](../../../../scripts/format-source.test.ts) |
+| Data readiness and version-pinned final counts | [Configuration follow-up acceptance](../../../../tests/e2e/config-version-follow-up.test.ts) |
+| Standalone checks actually execute, need no build, and reject failures | [Prebuild entry acceptance](../../../../scripts/prebuild-gate.test.ts) |
+
+Run source-only checks first. Let exact-source CI establish all operating systems, product flows, and archive installation/upgrade before publication. Publish those verified archives through the [primary publication entry](publication.md), and resume verified stages and downloads after external transport failures rather than rebuilding or replacing identities. Keep evidence in external reports and CI; do not add a second release ledger.
 
 ## Verify candidates
 
