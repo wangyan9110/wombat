@@ -28,7 +28,6 @@ export async function captureHooks(request: Pick<ConfigRequest, 'roots' | 'proje
     const context = await invokeOperation('native_hook_context', request, q, { ...options, maxResponseBytes: 1024 * 1024 }) as Context;
     if (!context.hasDeclarations || !context.nativeHomeSelected || !context.projects.length || context.projects.length > 64) return empty;
     const version = await nativeVersion(q, options);
-    if (!['0.160.0','0.160.1'].includes(version)) return empty;
     rpc = await connectCodex(false, q, options);
     const checkedAt = new Date().toISOString();
     const before = await rpc.request('hooks/list', { cwds: context.projects });

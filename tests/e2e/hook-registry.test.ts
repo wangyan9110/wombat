@@ -55,7 +55,17 @@ test('native Hook registry is version-bound, project-specific and private across
     const changed = await http.config!({ kind: 'hook' });
     assert.equal(changed.hookRegistry.status, 'partial'); assert.ok(changed.hookRegistry.contexts.every(c => !c.registrations.length));
     await writeFile(config, text);
-    await setMode({ version: '999.0.0' }); assert.equal((await http.config!({ kind: 'hook' })).hookRegistry.status, 'unavailable');
+    for (const version of ['0.160.1', '0.162.0-alpha.2', '999.0.0']) {
+      await setMode({ version });
+      const supported = await http.config!({ kind: 'hook' });
+      assert.equal(supported.hookRegistry.status, 'observed', 'validated evidence must not depend on a native version allowlist');
+      assert.equal(supported.hookRegistry.nativeVersion, version);
+      assert.equal(supported.hookRegistry.contexts[0].registrations.length, 1);
+      await setMode({ version, hooks: { data: [{ ...hooks.data[0], hooks: [{ ...metadata, trustStatus: 'unknown-state' }] }] } });
+      const invalid = await http.config!({ kind: 'hook' });
+      assert.equal(invalid.hookRegistry.status, 'partial');
+      assert.ok(invalid.hookRegistry.contexts.every(c => !c.registrations.length));
+    }
     await setMode({ hooks: { data: [{ ...hooks.data[0], hooks: Array.from({ length: 513 }, () => metadata) }] } });
     assert.equal((await http.config!({ kind: 'hook' })).hookRegistry.status, 'unavailable');
     await setMode({ hooks: { data: [{ ...hooks.data[0], hooks: [metadata, {...metadata, enabled:false}] }] } });

@@ -133,6 +133,11 @@ pub(super) fn process(
                 "agents_instructions",
                 &identity,
             );
+            // A native message can load several documents. Bind its ID together
+            // with the document path so replay merges only the same injection.
+            if p.id.as_deref().is_some_and(|id| !id.is_empty()) {
+                operation.item_id = Some(identity);
+            }
             operation.status = "completed".into();
             operation.text_result =
                 loads

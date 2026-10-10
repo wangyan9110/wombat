@@ -1,4 +1,4 @@
-//! Verified 0.160.0 registration identities, independent of command text or cache layout.
+//! Registration identities validated independently of native version, command text or cache layout.
 use super::{CapturedHook, event};
 use std::path::Path;
 

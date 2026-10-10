@@ -6,7 +6,7 @@
 
 ## Access and resource limits
 
-The listener binds to 127.0.0.1 with an automatically assigned port by default. Startup arguments and host-managed directory grants determine source scope; HTTP callers cannot provide arbitrary roots or snapshot paths. The host retains up to 128 returned snapshot identities. Core revision retention is independent; expired versions fail explicitly and require a fresh query.
+The listener binds to 127.0.0.1 with an automatically assigned port by default. The host copies the startup scope and keeps later grant changes in its own state; it does not modify the supplied options or promote temporary grants to startup scope. Startup arguments and host-managed directory grants determine source scope; HTTP callers cannot provide arbitrary roots or snapshot paths. The host retains up to 128 returned snapshot identities. Core revision retention is independent; expired versions fail explicitly and require a fresh query.
 
 Startup generates a random token in the URL fragment. The browser moves it into sessionStorage and clears the fragment. APIs require a Bearer token, exact Origin/Host, and JSON POST; CORS is disabled. The root page contains no business data, and CSP forbids remote scripts and embedding. The token grants local service access; it is not a source API key. A server restart requires a new link.
 

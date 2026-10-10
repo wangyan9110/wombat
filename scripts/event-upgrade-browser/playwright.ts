@@ -32,6 +32,7 @@ export interface Page {
   locator(selector: string): Locator;
   getByRole(role: string, options?: { name?: string; exact?: boolean }): Locator;
   goto(url: string): Promise<unknown>;
+  reload(): Promise<unknown>;
   goBack(): Promise<unknown>;
   url(): string;
   evaluate<T>(expression: string): Promise<T>;

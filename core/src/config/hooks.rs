@@ -105,10 +105,7 @@ pub(super) fn valid(capture: &Capture) -> bool {
             let age = Utc::now().signed_duration_since(at).num_milliseconds();
             (0..60_000).contains(&age)
         });
-    matches!(
-        capture.native_version.as_deref(),
-        Some("0.160.0" | "0.160.1")
-    ) && fresh
+    fresh
         && capture.contexts.len() <= 64
         && capture
             .contexts

@@ -30,8 +30,12 @@
       "en": "f072210e742055d4c76b5bfc109183c8cc221366b3aaa09a5f44a3d0ec727bbd"
     },
     "/cli-command-entry/collection-entries": {
-      "zh": "e396500913892be7b98dcfdabb8287a33e99f33019463ef2ed45e174fa81569e",
-      "en": "a6a7c312ec87ef7f45c8d4c337596ee73c08c4c42f1730b7b1cfb5e255f48534"
+      "zh": "af7c591f27142c1482e7f3b41117d0fb6bcd11125de859d4e97762b0c05cdd0e",
+      "en": "9b1d33a260fbc58ad3ce98106c9442ab5c216f952d773ede0aa8068b7cf0f162"
+    },
+    "/cli-command-entry/release-updates": {
+      "zh": "c58a2d90bcf91a6db795aa2a76b17e5fa81b70169a1d0f601b6954c491186e4f",
+      "en": "4de1a7af725b7fe16da86063bcb7573ad6f34a60f789dbbd8cb6ae6eb070dcbf"
     }
   }
 }

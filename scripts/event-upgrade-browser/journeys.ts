@@ -136,7 +136,7 @@ export async function product(page: Page, fixture: Fixture, language: Language, 
   await setupJourney(page,fixture,language,width,next.scope.sourceInstanceId);
   await statisticsMonitoring(page,fixture,language,width);
   assert.deepEqual(errors, []); await overflow(page);
-  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group','period-contributions-fixed-evidence','session-family-comparison','publication-changes','setup-scoped-receipts-pagination-keyboard-reload','task-distribution-model-groups-budget-save-pause-acknowledge'] };
+  return { source: 'production', language, width, journeys: ['find-return-keyboard', 'parallel-union-sum', 'three-uses-including-failure', 'zero-versus-unrecorded', 'append-explicit-refresh-share-fixed-group','period-contributions-fixed-evidence','session-family-comparison','publication-changes','setup-scoped-receipts-pagination-keyboard-reload','task-distribution-model-groups-budget-validation-save-pause-acknowledge-reload-resume'] };
 }
 
 async function statisticsMonitoring(page:Page,fixture:Fixture,language:Language,width:number) {
@@ -150,8 +150,11 @@ async function statisticsMonitoring(page:Page,fixture:Fixture,language:Language,
   await details(page,'monitor.title');
   const monitor=page.locator('details').filter({hasText:label('monitor.title')}).first();
   const id=`browser-${language}-${width}`;
+  await monitor.getByRole('textbox',{name:label('monitor.id'),exact:true}).fill('invalid id');
+  assert.equal(await monitor.locator('form').evaluate(form=>(form as HTMLFormElement).checkValidity()),false,'Invalid plan IDs must be blocked by browser validation');
   await monitor.getByRole('textbox',{name:label('monitor.id'),exact:true}).fill(id);
   await monitor.getByRole('spinbutton',{name:label('monitor.tokens'),exact:true}).fill('100');
+  assert.equal(await monitor.locator('form').evaluate(form=>(form as HTMLFormElement).checkValidity()),true);
   await monitor.getByRole('combobox',{name:label('webui.period'),exact:true}).selectOption('month');
   await activate(monitor.getByRole('button',{name:label('monitor.save'),exact:true}));
   const plan=monitor.locator('p > span').filter({hasText:id});await plan.waitFor();
@@ -165,6 +168,14 @@ async function statisticsMonitoring(page:Page,fixture:Fixture,language:Language,
   assert.equal(await notices.count(),2,'Pausing a plan does not hide prior facts');
   await activate(notices.getByRole('button',{name:label('monitor.acknowledge'),exact:true}).first());
   await page.waitForFunction(({id,label})=>{const panel=[...document.querySelectorAll('details')].find(e=>e.querySelector('summary')?.textContent===label);return [...(panel?.querySelectorAll('article')??[])].filter(e=>e.textContent?.includes(id)).filter(e=>e.querySelector('button')).length===1;},{id,label:label('monitor.title')});
+  await page.reload();await settled(page);await details(page,'monitor.title');
+  await plan.getByRole('button',{name:label('monitor.resume'),exact:true}).waitFor();
+  assert.equal(await notices.count(),2,'Reload preserves notification history');
+  assert.equal(await notices.getByRole('button',{name:label('monitor.acknowledge'),exact:true}).count(),1,'Reload preserves acknowledgement');
+  await activate(plan.getByRole('button',{name:label('monitor.resume'),exact:true}));
+  await plan.getByRole('button',{name:label('monitor.pause'),exact:true}).waitFor();
+  await activate(monitor.getByRole('button',{name:label('monitor.check'),exact:true}));
+  assert.equal(await notices.count(),2,'Resuming the original plan must not duplicate prior notices');
   await overflow(page);
   await activate(plan.getByRole('button',{name:label('monitor.remove'),exact:true}));
   await plan.waitFor({state:'hidden'});
@@ -270,7 +281,7 @@ async function comparisons(page:Page,fixture:Fixture,language:Language,width:num
  const parent=current.result.items.find(i=>i.kind==='thread'&&i.upstreamId===nativeThread);
  const child=current.result.items.find(i=>i.kind==='thread'&&i.upstreamId==='synthetic-comparison-child');
  assert.ok(parent?.kind==='thread'&&child?.kind==='thread');
- const url=new URL(fixture.product);url.search=new URLSearchParams({page:'usage',since:'2026-10-03',until:'2026-10-03',timezone:'UTC',snapshot:current.result.snapshotRef.snapshotId}).toString();
+ const url=new URL(fixture.product);url.search=new URLSearchParams({page:'usage',since:fixture.date,until:fixture.date,timezone:'UTC',snapshot:current.result.snapshotRef.snapshotId}).toString();
  const fragment=new URLSearchParams(url.hash.slice(1));fragment.set('lang',language);url.hash=fragment.toString();
  await page.goto(url.href);
  await activate(page.locator('.usage-comparison summary'));await page.locator('.usage-comparison tbody tr').first().waitFor();

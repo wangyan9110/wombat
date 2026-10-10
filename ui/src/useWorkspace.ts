@@ -12,8 +12,18 @@ export function useWorkspace(client: UsageClient, route: Route) {
     const visibility = () => workspace.setVisible(document.visibilityState !== 'hidden');
     visibility();
     document.addEventListener('visibilitychange', visibility);
-    return () => { document.removeEventListener('visibilitychange', visibility); workspace.stop(); };
+    return () => {
+      document.removeEventListener('visibilitychange', visibility);
+      workspace.stop();
+    };
   }, [workspace]);
-  useEffect(() => { void workspace.navigate(route); }, [workspace, key]);
-  return { ...state, refresh: workspace.refresh, cancel: workspace.cancel, setReading: workspace.setReading };
+  useEffect(() => {
+    void workspace.navigate(route);
+  }, [workspace, key]);
+  return {
+    ...state,
+    refresh: workspace.refresh,
+    cancel: workspace.cancel,
+    setReading: workspace.setReading,
+  };
 }

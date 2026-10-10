@@ -62,3 +62,9 @@ Wombat 会拒绝未知快照或索引格式，不会迁移或删除原数据。�
 `setup` 分别报告运行时、发现和注册观察，不安装或执行模型任务。`collection` 暴露内核偏好、状态、安全事件分页及暂停与恢复；JSON 使用生成的版本 1 响应。本机偏好修改与按项目筛选的读取分开。`hook codex` 是有上限的 advisory stdin 入口，不输出 stdout，接收失败时也退出 0，因此不会提供模型上下文或权限决定。[CLI 指南](../docs/guides/cli.md)负责命令和限制。
 
 `statistics` 查询任务分布和周期增长；`monitor` 管理预算并显式持续检查。生成的 Agent API 将 monitor 作为独立方法。命令与运行要求由 [CLI 指南](../docs/guides/cli.md)拥有，计算语义由[核心模块](../core/README.md)拥有。
+
+`monitor watch` 将暂时检查失败报告到 stderr，并在下一轮重新读取计划，包括并发修改后的 `MONITOR_CHANGED`。无效请求仍终止运行。
+
+## 发布更新
+
+发布元数据读取超过 4 MiB 时停止并取消输入，无长度头的响应与本地文件也受此限制；发布归档使用独立的 400 MiB 上限。

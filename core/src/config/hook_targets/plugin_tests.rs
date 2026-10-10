@@ -48,15 +48,22 @@ fn native_expansion_is_contextual_ephemeral_and_requires_the_current_declaration
             .unwrap()
             .contains("private-tool")
     );
-    for mode in [
-        "absent",
-        "hash",
-        "plugin",
-        "dynamic",
-        "duplicate",
-        "version",
-        "trust",
-    ] {
+    for version in ["0.162.0-alpha.2", "999.0.0"] {
+        let mut current = capture.clone();
+        current.native_version = Some(version.into());
+        let mut compatible = Analysis::default();
+        analyze(
+            &items,
+            &projects,
+            &roots,
+            &registry,
+            Some(&current),
+            &mut compatible,
+        );
+        assert!(compatible.hook_checks.values().all(|v| *v));
+        assert_eq!(compatible.findings[&item.id].len(), 1);
+    }
+    for mode in ["absent", "hash", "plugin", "dynamic", "duplicate", "trust"] {
         let mut bad = capture.clone();
         let h = &mut bad.contexts[0].hooks[0];
         match mode {
@@ -68,7 +75,6 @@ fn native_expansion_is_contextual_ephemeral_and_requires_the_current_declaration
                 let duplicate = h.clone();
                 bad.contexts[0].hooks.push(duplicate);
             }
-            "version" => bad.native_version = Some("999.0.0".into()),
             "trust" => h.trust_status = HookTrust::Untrusted,
             _ => unreachable!(),
         }

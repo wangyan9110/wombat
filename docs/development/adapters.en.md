@@ -2,7 +2,7 @@
 
 [中文](adapters.md) | English
 
-Wombat's independent synthetic fixtures use protocol fields and hand-calculated expectations. They neither install/run ccusage nor contain real conversations or tool output. Source implementation version: `codex-rollout-9`. See [Codex fixtures](../../core/src/adapters/codex/tests.rs), [heterogeneous protocol fixtures](../../core/src/adapters/mod.rs), [pricing fixtures](../../core/src/pricing/tests.rs), and the [complete query chain](../../tests/integration/usage-v1.test.ts).
+Wombat's independent synthetic fixtures use protocol fields and hand-calculated expectations. They neither install/run ccusage nor contain real conversations or tool output. The [Codex adapter](../../core/src/adapters/codex.rs) owns the current source implementation version. See [Codex fixtures](../../core/src/adapters/codex/tests.rs), [heterogeneous protocol fixtures](../../core/src/adapters/mod.rs), [pricing fixtures](../../core/src/pricing/tests.rs), and the [complete query chain](../../tests/integration/usage-v1.test.ts).
 
 | Case | Covered behavior and test location |
 |---|---|

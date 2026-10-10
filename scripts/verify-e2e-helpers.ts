@@ -132,7 +132,10 @@ export function reusableStage(record: ResumeRecord | undefined, stageName: strin
 
 export async function terminateTree(child: ChildProcess): Promise<boolean> {
   if (!child.pid) return child.exitCode !== null || child.signalCode !== null;
-  const closed = new Promise<void>(resolve => child.once('close', () => resolve()));
+  const alreadyClosed = (child.exitCode !== null || child.signalCode !== null)
+    && [child.stdin, child.stdout, child.stderr].every(stream => !stream || stream.closed);
+  const closed = alreadyClosed ? Promise.resolve()
+    : new Promise<void>(resolve => child.once('close', () => resolve()));
   if (process.platform === 'win32') {
     const killed = spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { encoding: 'utf8', timeout: 5000, maxBuffer: 64 * 1024, windowsHide: true });
     if (killed.error || killed.status !== 0) child.kill('SIGKILL');

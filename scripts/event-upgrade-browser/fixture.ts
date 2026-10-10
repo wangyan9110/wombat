@@ -10,11 +10,13 @@ import { createRequire } from 'node:module';
 import { receiveCodexHook, createNodeClient } from '@wombat/client/node';
 import { startWebHost } from '@wombat/web';
 import type { TimingLocalResult } from '@wombat/client';
+import {browserFixtureEpoch} from './calendar.ts';
 
 export const privateBody = 'SYNTHETIC_PRIVATE_BROWSER_BODY';
 export const nativeThread = 'synthetic-browser-thread', nativeTurn = 'synthetic-browser-turn';
 export const title = 'Synthetic browser task · long title · '.repeat(3).trim();
-const epoch = Date.parse('2026-10-03T00:00:00Z');
+const epoch = browserFixtureEpoch(new Date());
+const date = new Date(epoch).toISOString().slice(0,10);
 const row = (type: string, payload: unknown, milliseconds = 0) => ({ type, payload, timestamp: new Date(epoch + milliseconds).toISOString() });
 const jsonl = (rows: unknown[]) => rows.map(item => JSON.stringify(item) + '\n').join('');
 const token = (id: string, at: number) => row('event_msg', { type: 'token_usage_record', thread_id: nativeThread, turn_id: nativeTurn, response_id: id,
@@ -118,7 +120,7 @@ export async function fixture(repo: string, signal: AbortSignal) {
     }
     await client.collection!({action:'configure',mode:'hooks'});
     for(let n=0;n<51;n++) await receiveCodexHook({hook_event_name:'PostToolUse',session_id:nativeThread,turn_id:nativeTurn,tool_use_id:`synthetic-receipt-${n}`,cwd:project},{signal},{binaryPath});
-    return { dir, root, project, skill, client, product: host.url, preview, close,
+    return { dir, root, project, skill, client, date, product: host.url, preview, close,
       reset: () => writeFile(file, jsonl(nativeRows(project, skill))),
       append: () => appendFile(file, jsonl([row('turn_context', { turn_id: nativeTurn, model: 'gpt-5.4', effort: 'low' }, 104_000), ...read(skill, 'synthetic-browser-read-four', 105_000), token('synthetic-browser-response-two', 110_000)])),
       current: async (): Promise<TimingLocalResult> => {

@@ -26,6 +26,11 @@ fn native_revision_matches_distinguish_read_loading_and_current_inventory() {
         let mut object = item("target", kind);
         object.content_hash = crate::hash("observed content\n");
         let mut op = operation("versioned", operation_kind, &object);
+        if operation_kind == "instructionLoad" {
+            // Native injections have a canonical adapter identity, not a tool call ID.
+            op.call_id = None;
+            op.item_id = None;
+        }
         op.text_result = Some(TextResultObservation {
             method_version: 1,
             hash: Some(object.content_hash.clone()),
@@ -34,10 +39,13 @@ fn native_revision_matches_distinguish_read_loading_and_current_inventory() {
         });
         let out = observe(
             &[suggestion(&object)],
-            &single(&object, vec![op.clone()]),
+            &single(&object, vec![op.clone(), op.clone()]),
             None,
         );
         assert_eq!(out[0].status, status);
+        if operation_kind == "instructionLoad" {
+            assert_eq!(out[0].matching_load_records, Some(1));
+        }
         assert!(!out[0].absence_observable);
         op.text_result.as_mut().unwrap().hash = Some(crate::hash("old content\n"));
         let out = observe(&[suggestion(&object)], &single(&object, vec![op]), None);

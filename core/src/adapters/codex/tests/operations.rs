@@ -79,6 +79,53 @@ fn native_agents_metadata_records_load_without_retaining_or_trusting_user_text()
 }
 
 #[test]
+fn native_instruction_identity_deduplicates_replays_without_merging_document_targets() {
+    let dir = tempfile::tempdir().unwrap();
+    let first = test_absolute("synthetic/first");
+    let second = test_absolute("synthetic/second");
+    let message = |body: &str| {
+        json!({"type":"response_item","timestamp":"2026-09-29T00:00:00Z","payload":{
+            "type":"message","id":"native","role":"user","content":[
+                {"type":"input_text","text":format!("# AGENTS.md instructions for {first}\n\n<INSTRUCTIONS>{body}</INSTRUCTIONS>")},
+                {"type":"input_text","text":format!("# AGENTS.md instructions for {second}\n\n<INSTRUCTIONS>SECOND_PRIVATE_BODY</INSTRUCTIONS>")}
+            ],"internal_chat_message_metadata_passthrough":{"turn_id":"u","content_item_kinds":["agents_md.instructions","agents_md.instructions"]}
+        }})
+    };
+    write(
+        dir.path(),
+        "sessions/instructions.jsonl",
+        &[
+            meta("t"),
+            message("FIRST_PRIVATE_BODY"),
+            message("FIRST_PRIVATE_BODY"),
+            message("CONFLICTING_PRIVATE_BODY"),
+        ],
+    );
+    let result = collect(dir.path());
+    assert_eq!(result.operations.len(), 2);
+    for operation in &result.operations {
+        assert!(operation.item_id.is_some());
+        assert!(operation.call_id.is_none());
+        let expected_conflict = operation.path.as_deref()
+            == Some(
+                Path::new(&first)
+                    .join("AGENTS.md")
+                    .to_string_lossy()
+                    .as_ref(),
+            );
+        assert_eq!(
+            operation.text_result.as_ref().unwrap().conflicting,
+            expected_conflict
+        );
+    }
+    assert!(
+        !serde_json::to_string(&result)
+            .unwrap()
+            .contains("PRIVATE_BODY")
+    );
+}
+
+#[test]
 fn native_skill_catalog_and_observed_use_keep_only_resolved_identity() {
     let dir = tempfile::tempdir().unwrap();
     let root = test_absolute("synthetic/project/.agents/skills");

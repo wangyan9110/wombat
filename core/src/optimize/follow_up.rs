@@ -284,8 +284,11 @@ pub(super) fn observe(
                             && result.hash.as_deref() == Some(context.revision_hash)
                     })
                     && at.is_some()
-                    && usage_observations::operation_identity(operation)
-                        .is_some_and(|id| seen.insert((id, index)))
+                    // Native instruction injection is not a tool dispatch and need not
+                    // have a call/item ID. The adapter's canonical identity deduplicates loads.
+                    && !operation.thread_id.is_empty()
+                    && !operation.id.is_empty()
+                    && seen.insert(((operation.thread_id.as_ref(), operation.id.as_str()), index))
                 {
                     out[index].matching_load_records =
                         out[index].matching_load_records.map(|n| n + 1);

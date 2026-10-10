@@ -8,7 +8,7 @@ This page defines code-change and verification procedures. Module responsibiliti
 
 - Identify the domain owner and current consumers before choosing an implementation. New abstractions, options, and compatibility paths need a present requirement. Cross-module access uses public exports or protocols.
 - Deliver new capabilities through Web and non-TTY interfaces. Generate public DTOs from Rust; check all consumers and cancellation, error, and state semantics when changing them.
-- Validate untrusted data at configuration, file, process, and network entries; do not repeatedly simulate hostile input for typed same-process values. Keep TypeScript strict. Explain why narrowing is infeasible for new any or assertions; never use double assertions to bypass validation.
+- Validate untrusted data at configuration, file, process, and network entries; do not repeatedly validate typed same-process values. Keep TypeScript strict. Explain why narrowing is infeasible for new any or assertions; never use double assertions to bypass validation.
 - Exhaust closed unions by their discriminants; open source values need an explicit unknown branch. Resolve defaults once at the owning entry and report invalid configuration at the earliest reliable point.
 - Enforce authorization and version checks in the operation itself, not solely through disabled UI or wrapper filters. Verify that direct and alternate callers cannot bypass them.
 - Give each asynchronous operation one lifecycle controller or transaction. Additional state needs an independent responsibility; settle success, failure, and cancellation. Cleanup waits boundedly for child work to stop, and late results cannot update expired views.
@@ -16,6 +16,8 @@ This page defines code-change and verification procedures. Module responsibiliti
 - Apply resource limits where the complete emitted or retained value is known, including envelopes, metadata, and multibyte encoding. Cover tiny limits, exact boundaries, and oversized single chunks.
 - Limit catch blocks to the expected failing operation. Explain ignored errors and preserve observable failure. Callback exceptions must not break unrelated requests or cleanup.
 - Comments describe caller-relevant behavior, failures, timing, and ownership. Link decision rationale instead of narrating code or review. Update the owning documentation with the change; local edits need no new decision.
+
+UI and Web hand-written TypeScript sources use the locked Prettier dependency. Run `corepack pnpm format:write` to format them and `corepack pnpm format:check` to check without edits. `repo:check` includes the check. Generated contracts remain generator-owned.
 
 ## Verification
 
@@ -38,6 +40,6 @@ For dependency changes run `corepack pnpm licenses:generate` and `corepack pnpm 
 
 ### Failure investigation
 
-- Stop dependent retries and preserve the failing stage, logs, source revision, and environment. Trace the symptom to its root cause; check upstream documentation before changing unfamiliar platform or library behavior. Do not use blind reruns, parameter changes, or longer timeouts as diagnosis.
-- Classify the cause and inspect every entry that shares the same assumption, including callers, platforms, build prerequisites, and CI/release workflows. Batch the affected fixes with regression coverage before rerunning verification.
-- Validate the whole failure class with focused reproductions first, then run the required aggregate checks once on the settled changes. Start costly platform or release runs only after that analysis and focused verification. Reuse passing evidence only where the change does not invalidate it.
+- Stop retries and preserve the failing stage, logs, source revision, and environment. Trace the root cause. Check upstream documentation for unfamiliar behavior; reruns, parameter changes, and longer timeouts cannot replace analysis.
+- Inspect callers, platforms, build prerequisites, and CI/release workflows that share the assumption. Batch the fixes and regression coverage before verification.
+- Reproduce the whole failure class first, then run aggregate checks on settled changes before costly platform or release tasks. Reuse only passing evidence that remains valid.

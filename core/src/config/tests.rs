@@ -270,6 +270,36 @@ fn query_counts_three_skill_operations_in_one_turn_including_failure() {
 }
 
 #[test]
+fn query_projection_keeps_full_scope_activity_when_list_pages_change() {
+    let mut v = use_view(vec![use_operation("read", "skillRead", "completed")]);
+    let mut unseen = v.items[0].clone();
+    unseen.id = "unseen".into();
+    unseen.path = "/synthetic/unseen/SKILL.md".into();
+    unseen.name = "unseen".into();
+    v.items.push(unseen);
+    let mut request = uses_request();
+    request.sort = Sort::Name;
+    request.limit = Some(1);
+    let first = execute(request.clone(), "config:first".into(), &v).unwrap();
+    request.offset = Some(1);
+    let second = execute(request, "config:second".into(), &v).unwrap();
+    assert_eq!(first.page.total, 2);
+    assert_eq!(second.page.total, 2);
+    assert_eq!(first.items.len(), 1);
+    assert_eq!(second.items.len(), 1);
+    assert_ne!(first.items[0].id, second.items[0].id);
+    assert_eq!(first.summary.observed_items, 1);
+    assert_eq!(second.summary.observed_items, 1);
+    for result in [first, second] {
+        let activity = result.extension_activity.unwrap();
+        assert_eq!(activity.observed_use, 1);
+        assert_eq!(activity.no_observed_use, 1);
+        assert_eq!(activity.items.len(), 1);
+    }
+    assert_eq!(v.items[0].source_contexts[0].counts.file_reads, 9);
+}
+
+#[test]
 fn wrapper_literal_read_keeps_a_candidate_without_claiming_actual_dispatch() {
     let mut wrapper = use_operation("wrapper-path-hash", "skillRead", "completed");
     wrapper.name = "read_skill_file".into();
@@ -463,6 +493,7 @@ fn thread_scope_retains_read_candidates_and_their_queryable_evidence() {
 fn thread_scope_retains_loaded_instructions_without_counting_a_file_read() {
     let mut load = use_operation("instruction", "instructionLoad", "completed");
     load.call_id = None;
+    load.item_id = Some("native-message-document".into());
     let mut view = use_view(vec![load]);
     view.items[0].kind = Kind::Rule;
     let mut request = uses_request();
@@ -471,6 +502,8 @@ fn thread_scope_retains_loaded_instructions_without_counting_a_file_read() {
     assert_eq!(result.items.len(), 1);
     assert_eq!(result.items[0].observation, Observation::LoadedOnly);
     assert_eq!(result.items[0].counts.file_reads, 0);
+    assert_eq!(result.items[0].source_contexts[0].counts.file_reads, 0);
+    assert_eq!(result.items[0].usage_count, None);
     request.scope.thread_id = Some("other-thread".into());
     assert!(
         execute(request, "config:uses".into(), &view)

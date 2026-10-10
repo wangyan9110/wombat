@@ -59,7 +59,7 @@ fn registry_keeps_project_trust_and_enablement_separate_and_omission_unknown() {
     assert!(items.iter().all(|i| i.usage_count.is_none()));
 }
 #[test]
-fn registry_rejects_stale_future_unknown_version_duplicate_and_plugin_bindings() {
+fn registry_rejects_stale_future_duplicate_and_plugin_bindings() {
     let (_dir, items, capture) = fixture();
     for at in [
         Utc::now() - chrono::Duration::seconds(61),
@@ -73,13 +73,6 @@ fn registry_rejects_stale_future_unknown_version_duplicate_and_plugin_bindings()
                 .is_empty()
         );
     }
-    let mut bad = capture.clone();
-    bad.native_version = Some("999.0.0".into());
-    assert!(
-        bind(Some(&bad), &items, &["/allowed".into()])
-            .contexts
-            .is_empty()
-    );
     for key in [
         "plugin@test:hooks/hooks.json:session_start:0:0",
         "unrelated:session_start:0:0",
@@ -99,6 +92,28 @@ fn registry_rejects_stale_future_unknown_version_duplicate_and_plugin_bindings()
             .registrations
             .is_empty()
     );
+}
+
+#[test]
+fn registry_validates_evidence_independently_of_native_version() {
+    let (_dir, items, capture) = fixture();
+    for version in [
+        Some("0.160.1"),
+        Some("0.162.0-alpha.2"),
+        Some("999.0.0"),
+        None,
+    ] {
+        let mut current = capture.clone();
+        current.native_version = version.map(str::to_owned);
+        let result = bind(Some(&current), &items, &["/allowed".into()]);
+        assert!(matches!(result.status, HookRegistryStatus::Observed));
+        assert_eq!(result.contexts[0].registrations.len(), 1);
+        assert_eq!(result.native_version.as_deref(), version);
+        current.contexts[0].hooks[0].key = "unrecognized-registration".into();
+        let unknown = bind(Some(&current), &items, &["/allowed".into()]);
+        assert!(matches!(unknown.status, HookRegistryStatus::Partial));
+        assert!(unknown.contexts[0].registrations.is_empty());
+    }
 }
 
 #[test]

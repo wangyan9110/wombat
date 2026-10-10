@@ -109,6 +109,11 @@ test('plugin-only reuses a managed custom-prefix runtime without downloading or 
   const output=execFileSync('sh',[new URL('./install/install.sh',import.meta.url).pathname,'--plugin-only','--prefix',prefix],{env,encoding:'utf8',stdio:['ignore','pipe','pipe']});
   assert.match(output,/Reusing the current/);assert.match(output,/Installed and verified wombat/);assert.equal(existsSync(path.join(root,'.zshrc')),false);
   assert.equal(readFileSync(path.join(installRoot,'current.txt'),'utf8'),id+'\n');
+  const launcher=path.join(prefix,'bin/wombat'),opened=path.join(root,'opened');
+  mkdirSync(path.dirname(launcher),{recursive:true});
+  writeFileSync(launcher,'#!/bin/sh\nprintf "%s\\n" "$*" > "$OPENED"\n');chmodSync(launcher,0o755);
+  const resumed=execFileSync('sh',[new URL('./install/install.sh',import.meta.url).pathname,'--plugin-only','--prefix',prefix,'--open'],{env:{...env,OPENED:opened},encoding:'utf8',stdio:['ignore','pipe','pipe']});
+  assert.match(resumed,/Starting Wombat/);assert.equal(readFileSync(opened,'utf8'),'web --open\n');
   for(const pointer of ['../outside','..','']){
     writeFileSync(path.join(installRoot,'current.txt'),pointer+'\n');
     assert.throws(()=>execFileSync('sh',[new URL('./install/install.sh',import.meta.url).pathname,'--plugin-only','--prefix',prefix],{env,stdio:'pipe'}));

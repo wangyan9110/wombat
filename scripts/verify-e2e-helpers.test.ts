@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import {once} from 'node:events';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { sourceIdentity } from './build-identity.ts';
 import {
-  acceptanceInputIdentity, assertExternalOutputDir, currentArtifactIdentity, externalFileIdentity, externalPackageIdentity, isWithin, parseVerifyArgs, plannedStages, reusableStage, runBoundedCommand, runFingerprint,
+  acceptanceInputIdentity, assertExternalOutputDir, currentArtifactIdentity, externalFileIdentity, externalPackageIdentity, isWithin, parseVerifyArgs, plannedStages, reusableStage, runBoundedCommand, runFingerprint, terminateTree,
 } from './verify-e2e-helpers.ts';
 
 test('verification arguments require an external report directory and preserve browser paths', () => {
@@ -168,6 +169,24 @@ test('timeout kills descendants even after the direct child exits on SIGTERM', a
   } finally {
     if (descendant && processExists(descendant)) { try { process.kill(descendant, 'SIGKILL'); } catch { /* Already exited. */ } }
     rmSync(temp, { recursive: true, force: true });
+  }
+});
+
+test('cleanup handles an already closed child and still stops surviving group descendants',async()=>{
+  if(process.platform==='win32')return;
+  const temp=mkdtempSync(path.join(os.tmpdir(),'wombat-closed-tree-'));
+  const marker=path.join(temp,'descendant-survived');let descendant:number|undefined;
+  const body=`const {spawn}=require('node:child_process');const child=spawn(process.execPath,['-e',${JSON.stringify(`process.on('SIGTERM',()=>{});setTimeout(()=>{require('node:fs').writeFileSync(${JSON.stringify(marker)},'alive');},1000)`)}],{stdio:'ignore'});console.log(child.pid);child.unref();`;
+  const child=spawn(process.execPath,['-e',body],{detached:true,stdio:['ignore','pipe','ignore']});
+  let output='';child.stdout.on('data',chunk=>{output+=chunk.toString();});
+  try {
+    await once(child,'close');descendant=Number(output.trim());assert.ok(Number.isSafeInteger(descendant)&&descendant>0);
+    assert.equal(await terminateTree(child),true);
+    await new Promise(resolve=>setTimeout(resolve,1100));
+    assert.equal(existsSync(marker),false,'Closing the parent must not skip the surviving process group');
+  } finally {
+    if(descendant&&processExists(descendant)){try{process.kill(descendant,'SIGKILL');}catch{}}
+    rmSync(temp,{recursive:true,force:true});
   }
 });
 
